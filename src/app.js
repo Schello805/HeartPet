@@ -289,6 +289,12 @@ app.get("/email-change/confirm", (req, res) => {
     req.session.user.email = request.new_email;
   }
 
+  createAuditLog(req, "email_change.confirmed", {
+    user_id: request.user_id,
+    new_email: request.new_email,
+    request_id: request.id,
+  }, { entityType: "user", entityId: request.user_id });
+
   setFlash(req, "success", "E-Mail-Adresse erfolgreich bestätigt und aktualisiert.");
   res.redirect(req.session.user ? "/admin/benutzer" : "/login");
 });
@@ -296,6 +302,10 @@ app.get("/email-change/confirm", (req, res) => {
 app.use(requireAuth);
 
 app.get("/", (req, res) => {
+  const q = String(req.query.q || "").trim();
+  const searchable = q.length >= 2;
+  const searchResults = searchable ? buildGlobalSearchResults(q) : [];
+
   const stats = {
     animalCount: db.prepare("SELECT COUNT(*) AS count FROM animals").get().count,
     documentCount: db.prepare("SELECT COUNT(*) AS count FROM documents").get().count,
@@ -324,10 +334,17 @@ app.get("/", (req, res) => {
 
   res.render("pages/dashboard", {
     pageTitle: "Dashboard",
+    search: { q, searchable },
+    searchResults,
     stats,
     recentAnimals,
     upcomingReminders,
   });
+});
+
+app.get("/suche", (req, res) => {
+  const q = String(req.query.q || "").trim();
+  return res.redirect(q ? `/?q=${encodeURIComponent(q)}` : "/");
 });
 
 app.get("/animals", (req, res) => {
@@ -446,6 +463,7 @@ app.get("/animals/:id", (req, res) => {
     categories,
     documentFilter,
     missingRequiredCategories: getMissingRequiredCategories(categories, related.documents),
+    timeline: buildAnimalTimeline(related),
     species: db.prepare("SELECT * FROM species ORDER BY name ASC").all(),
     veterinarians: db.prepare("SELECT * FROM veterinarians ORDER BY name ASC").all(),
   });
@@ -900,8 +918,66 @@ app.post("/animals/:animalId/reminders/:entryId/update", requireAnimalPermission
 
 app.post("/animals/:animalId/reminders/:entryId/delete", requireAnimalPermission("canManageReminders"), (req, res) => {
   db.prepare("DELETE FROM reminders WHERE id = ? AND animal_id = ?").run(req.params.entryId, req.params.animalId);
+  createAuditLog(req, "reminder.delete", {
+    reminder_id: req.params.entryId,
+    animal_id: req.params.animalId,
+  }, { entityType: "reminder", entityId: req.params.entryId });
   setFlash(req, "success", "Erinnerung gelöscht.");
   res.redirect(`/animals/${req.params.animalId}`);
+});
+
+app.post("/animals/:id/reminders/bulk", requireAnimalPermission("canManageReminders"), (req, res) => {
+  const selected = Array.isArray(req.body.reminder_ids) ? req.body.reminder_ids : [req.body.reminder_ids];
+  const ids = selected
+    .map((value) => Number.parseInt(String(value || ""), 10))
+    .filter((value) => Number.isFinite(value));
+  const action = String(req.body.bulk_action || "").trim();
+
+  if (!ids.length) {
+    setFlash(req, "error", "Bitte mindestens eine Erinnerung auswählen.");
+    return res.redirect(`/animals/${req.params.id}`);
+  }
+
+  const placeholders = ids.map(() => "?").join(", ");
+  const reminders = db.prepare(`
+    SELECT *
+    FROM reminders
+    WHERE animal_id = ? AND id IN (${placeholders})
+  `).all(req.params.id, ...ids);
+
+  if (!reminders.length) {
+    setFlash(req, "error", "Keine passenden Erinnerungen gefunden.");
+    return res.redirect(`/animals/${req.params.id}`);
+  }
+
+  if (action === "complete") {
+    const update = db.prepare("UPDATE reminders SET completed_at = CURRENT_TIMESTAMP WHERE id = ?");
+    reminders.forEach((item) => {
+      update.run(item.id);
+      applyCompletionSideEffects(item);
+    });
+    createAuditLog(req, "reminder.bulk_complete", { ids, animal_id: req.params.id }, { entityType: "animal", entityId: req.params.id });
+    setFlash(req, "success", `${reminders.length} Erinnerung(en) als erledigt markiert.`);
+    return res.redirect(`/animals/${req.params.id}`);
+  }
+
+  if (action === "reopen") {
+    db.prepare("UPDATE reminders SET completed_at = NULL, last_notified_at = NULL, last_delivery_status = 'pending', last_delivery_error = '' WHERE id IN (" + placeholders + ")")
+      .run(...reminders.map((item) => item.id));
+    createAuditLog(req, "reminder.bulk_reopen", { ids, animal_id: req.params.id }, { entityType: "animal", entityId: req.params.id });
+    setFlash(req, "success", `${reminders.length} Erinnerung(en) wieder geöffnet.`);
+    return res.redirect(`/animals/${req.params.id}`);
+  }
+
+  if (action === "delete") {
+    db.prepare("DELETE FROM reminders WHERE id IN (" + placeholders + ")").run(...reminders.map((item) => item.id));
+    createAuditLog(req, "reminder.bulk_delete", { ids, animal_id: req.params.id }, { entityType: "animal", entityId: req.params.id });
+    setFlash(req, "success", `${reminders.length} Erinnerung(en) gelöscht.`);
+    return res.redirect(`/animals/${req.params.id}`);
+  }
+
+  setFlash(req, "error", "Ungültige Massenaktion.");
+  res.redirect(`/animals/${req.params.id}`);
 });
 
 app.post("/reminders/:id/complete", requireAnimalPermission("canManageReminders"), (req, res) => {
@@ -922,6 +998,7 @@ app.post("/reminders/:id/complete", requireAnimalPermission("canManageReminders"
     applyCompletionSideEffects(reminder);
     setFlash(req, "success", "Erinnerung als erledigt markiert.");
   }
+  createAuditLog(req, "reminder.complete", { reminder_id: reminder.id, animal_id: reminder.animal_id }, { entityType: "reminder", entityId: reminder.id });
   res.redirect(req.get("referer") || "/");
 });
 
@@ -931,6 +1008,7 @@ app.post("/reminders/:id/reopen", requireAnimalPermission("canManageReminders"),
     SET completed_at = NULL, last_notified_at = NULL, last_delivery_status = 'pending', last_delivery_error = ''
     WHERE id = ?
   `).run(req.params.id);
+  createAuditLog(req, "reminder.reopen", { reminder_id: req.params.id }, { entityType: "reminder", entityId: req.params.id });
   setFlash(req, "success", "Erinnerung wieder geöffnet.");
   res.redirect(req.get("referer") || "/");
 });
@@ -1178,6 +1256,32 @@ app.get("/admin/import", requireAdmin, (req, res) => {
   res.render("pages/admin-import", getAdminViewData("Import", "/admin/import"));
 });
 
+app.get("/admin/systemlog", requireAdmin, (req, res) => {
+  const level = String(req.query.level || "all").trim();
+  const whereLevel = level === "all" ? "" : "WHERE channel = ?";
+  const notificationLogs = db.prepare(`
+    SELECT *
+    FROM notification_logs
+    ${whereLevel}
+    ORDER BY created_at DESC
+    LIMIT 200
+  `).all(...(level === "all" ? [] : [level]));
+
+  const auditLogs = db.prepare(`
+    SELECT *
+    FROM audit_logs
+    ORDER BY created_at DESC
+    LIMIT 200
+  `).all();
+
+  res.render("pages/admin-systemlog", {
+    ...getAdminViewData("Systemlog", "/admin/systemlog"),
+    filters: { level },
+    notificationLogs,
+    auditLogs,
+  });
+});
+
 app.post("/admin/settings", requireAdmin, (req, res) => {
   const booleanKeys = new Set([
     "smtp_secure",
@@ -1215,8 +1319,27 @@ app.post("/admin/settings", requireAdmin, (req, res) => {
 app.post("/admin/test-email", requireAdmin, async (req, res) => {
   try {
     await sendTestEmail(getSettingsObject(db));
+    createNotificationLog({
+      userId: req.session.user?.id,
+      channel: "email",
+      type: "test",
+      recipient: getSettingsObject(db).notification_email_to || getSettingsObject(db).smtp_user || "",
+      subject: "SMTP-Testmail",
+      status: "sent",
+      details: { source: "admin.test-email" },
+    });
     setFlash(req, "success", "SMTP-Testmail wurde versendet.");
   } catch (error) {
+    createNotificationLog({
+      userId: req.session.user?.id,
+      channel: "email",
+      type: "test",
+      recipient: getSettingsObject(db).notification_email_to || getSettingsObject(db).smtp_user || "",
+      subject: "SMTP-Testmail",
+      status: "error",
+      error: error.message,
+      details: { source: "admin.test-email" },
+    });
     setFlash(req, "error", `SMTP-Test fehlgeschlagen: ${error.message}`);
   }
 
@@ -1226,8 +1349,27 @@ app.post("/admin/test-email", requireAdmin, async (req, res) => {
 app.post("/admin/test-telegram", requireAdmin, async (req, res) => {
   try {
     await sendTestTelegram(getSettingsObject(db));
+    createNotificationLog({
+      userId: req.session.user?.id,
+      channel: "telegram",
+      type: "test",
+      recipient: getSettingsObject(db).telegram_chat_id || "",
+      subject: "Telegram-Testnachricht",
+      status: "sent",
+      details: { source: "admin.test-telegram" },
+    });
     setFlash(req, "success", "Telegram-Testnachricht wurde versendet.");
   } catch (error) {
+    createNotificationLog({
+      userId: req.session.user?.id,
+      channel: "telegram",
+      type: "test",
+      recipient: getSettingsObject(db).telegram_chat_id || "",
+      subject: "Telegram-Testnachricht",
+      status: "error",
+      error: error.message,
+      details: { source: "admin.test-telegram" },
+    });
     setFlash(req, "error", `Telegram-Test fehlgeschlagen: ${error.message}`);
   }
 
@@ -1324,6 +1466,7 @@ app.post("/admin/users", requireAdmin, async (req, res) => {
     userPermissions.can_manage_notes,
     userPermissions.can_manage_reminders
   );
+  createAuditLog(req, "user.create", { target_user_id: userResult.lastInsertRowid, role, email }, { entityType: "user", entityId: userResult.lastInsertRowid });
 
   if (req.body.send_invite_email) {
     try {
@@ -1334,10 +1477,29 @@ app.post("/admin/users", requireAdmin, async (req, res) => {
         roleLabel: getRoleLabel(role),
         temporaryPassword: password,
       });
+      createNotificationLog({
+        userId: req.session.user?.id,
+        channel: "email",
+        type: "invite",
+        recipient: email,
+        subject: "Benutzer-Einladung",
+        status: "sent",
+        details: { target_user_id: userResult.lastInsertRowid },
+      });
       setFlash(req, "success", `Benutzer angelegt und Einladungs-Mail an ${email} versendet.`);
       return res.redirect(backTo(req, "/admin/benutzer"));
     } catch (error) {
       console.error("[HeartPet] Einladungs-Mail fehlgeschlagen:", error.message);
+      createNotificationLog({
+        userId: req.session.user?.id,
+        channel: "email",
+        type: "invite",
+        recipient: email,
+        subject: "Benutzer-Einladung",
+        status: "error",
+        error: error.message,
+        details: { target_user_id: userResult.lastInsertRowid },
+      });
       setFlash(req, "error", `Benutzer angelegt, Einladungs-Mail an ${email} fehlgeschlagen: ${error.message}`);
       return res.redirect(backTo(req, "/admin/benutzer"));
     }
@@ -1381,6 +1543,7 @@ app.post("/admin/users/:id/permissions", requireAdmin, (req, res) => {
     userPermissions.can_manage_reminders,
     req.params.id
   );
+  createAuditLog(req, "user.permissions_update", { target_user_id: req.params.id, role: req.body.role || user.role }, { entityType: "user", entityId: req.params.id });
 
   setFlash(req, "success", "Benutzerrechte aktualisiert.");
   res.redirect("/admin/benutzer");
@@ -1424,6 +1587,7 @@ app.post("/admin/users/:id/update", requireAdmin, async (req, res) => {
         newEmail: email,
         displayName: name,
       });
+      createAuditLog(req, "user.email_change_requested", { target_user_id: req.params.id, new_email: email }, { entityType: "user", entityId: req.params.id });
       setFlash(req, "success", `Name gespeichert. E-Mail-Änderung wurde an ${email} zur Bestätigung versendet.`);
     } catch (error) {
       setFlash(req, "error", `Name gespeichert, E-Mail-Änderung fehlgeschlagen: ${error.message}`);
@@ -1432,6 +1596,7 @@ app.post("/admin/users/:id/update", requireAdmin, async (req, res) => {
   }
 
   setFlash(req, "success", "Benutzerdaten aktualisiert.");
+  createAuditLog(req, "user.profile_update", { target_user_id: req.params.id, name }, { entityType: "user", entityId: req.params.id });
   res.redirect("/admin/benutzer");
 });
 
@@ -1455,6 +1620,7 @@ app.post("/admin/users/:id/delete", requireAdmin, (req, res) => {
   }
 
   db.prepare("DELETE FROM users WHERE id = ?").run(req.params.id);
+  createAuditLog(req, "user.delete", { target_user_id: req.params.id, email: user.email }, { entityType: "user", entityId: req.params.id });
   setFlash(req, "success", "Benutzer gelöscht.");
   res.redirect("/admin/benutzer");
 });
@@ -1493,6 +1659,7 @@ app.post("/admin/profile", requireAdmin, async (req, res) => {
         newEmail: email,
         displayName: name,
       });
+      createAuditLog(req, "self.email_change_requested", { user_id: req.session.user.id, new_email: email }, { entityType: "user", entityId: req.session.user.id });
       setFlash(req, "success", `Profil gespeichert. E-Mail-Änderung wurde an ${email} zur Bestätigung versendet.`);
     } catch (error) {
       setFlash(req, "error", `Profil gespeichert, E-Mail-Änderung fehlgeschlagen: ${error.message}`);
@@ -1501,6 +1668,7 @@ app.post("/admin/profile", requireAdmin, async (req, res) => {
   }
 
   setFlash(req, "success", "Profil aktualisiert.");
+  createAuditLog(req, "self.profile_update", { user_id: req.session.user.id, name }, { entityType: "user", entityId: req.session.user.id });
   res.redirect("/admin/benutzer");
 });
 
@@ -1524,6 +1692,7 @@ app.post("/admin/password", (req, res) => {
     .run(bcrypt.hashSync(req.body.new_password, 10), currentUser.id);
 
   req.session.user.mustChangePassword = false;
+  createAuditLog(req, "self.password_change", { user_id: currentUser.id }, { entityType: "user", entityId: currentUser.id });
   setFlash(req, "success", "Passwort wurde aktualisiert.");
   res.redirect("/admin/benutzer");
 });
@@ -1774,7 +1943,23 @@ const port = Number(process.env.PORT || 3000);
 if (require.main === module) {
   cron.schedule("*/10 * * * *", async () => {
     try {
-      await processDueReminders(db, getSettingsObject(db));
+      await processDueReminders(db, getSettingsObject(db), {
+        onNotification: (entry) => {
+          createNotificationLog({
+            userId: null,
+            channel: entry.channel,
+            type: entry.type,
+            recipient: entry.recipient || "",
+            subject: entry.subject || "",
+            status: entry.status,
+            error: entry.error || "",
+            details: {
+              reminder_id: entry.reminder?.id || null,
+              animal_id: entry.reminder?.animal_id || null,
+            },
+          });
+        },
+      });
     } catch (error) {
       console.error("[HeartPet] Fehler im Erinnerungsdienst:", error.message);
     }
@@ -1872,6 +2057,76 @@ function getAnimalRelatedData(animalId) {
       ORDER BY documents.uploaded_at DESC
     `).all(animalId),
   };
+}
+
+function buildGlobalSearchResults(rawQuery) {
+  const q = String(rawQuery || "").trim();
+  if (q.length < 2) {
+    return [];
+  }
+
+  const query = `%${q}%`;
+  const results = [];
+
+  const animals = db.prepare(`
+    SELECT animals.id, animals.name, animals.status, species.name AS species_name
+    FROM animals
+    LEFT JOIN species ON species.id = animals.species_id
+    WHERE animals.name LIKE ? OR animals.breed LIKE ? OR animals.source LIKE ? OR species.name LIKE ?
+    ORDER BY animals.name COLLATE NOCASE ASC
+    LIMIT 20
+  `).all(query, query, query, query);
+
+  animals.forEach((item) => {
+    results.push({
+      kind: "Tier",
+      title: item.name,
+      subtitle: `${item.species_name || "-"} | ${item.status || "-"}`,
+      href: `/animals/${item.id}`,
+      when: "",
+    });
+  });
+
+  const documents = db.prepare(`
+    SELECT documents.id, documents.title, documents.uploaded_at, animals.id AS animal_id, animals.name AS animal_name, document_categories.name AS category_name
+    FROM documents
+    LEFT JOIN animals ON animals.id = documents.animal_id
+    LEFT JOIN document_categories ON document_categories.id = documents.category_id
+    WHERE documents.title LIKE ? OR documents.original_name LIKE ? OR document_categories.name LIKE ?
+    ORDER BY documents.uploaded_at DESC
+    LIMIT 20
+  `).all(query, query, query);
+
+  documents.forEach((item) => {
+    results.push({
+      kind: "Dokument",
+      title: item.title,
+      subtitle: `${item.animal_name || "Ohne Tier"} | ${item.category_name || "Ohne Kategorie"}`,
+      href: item.animal_id ? `/animals/${item.animal_id}` : "/animals",
+      when: formatDateTime(item.uploaded_at),
+    });
+  });
+
+  const events = db.prepare(`
+    SELECT reminders.id, reminders.title, reminders.reminder_type AS kind, reminders.due_at AS at, reminders.completed_at, animals.id AS animal_id, animals.name AS animal_name
+    FROM reminders
+    LEFT JOIN animals ON animals.id = reminders.animal_id
+    WHERE reminders.title LIKE ? OR reminders.reminder_type LIKE ? OR reminders.notes LIKE ?
+    ORDER BY reminders.due_at DESC
+    LIMIT 30
+  `).all(query, query, query);
+
+  events.forEach((item) => {
+    results.push({
+      kind: item.completed_at ? "Ereignis (erledigt)" : "Ereignis",
+      title: item.title,
+      subtitle: `${item.animal_name || "Ohne Tier"} | ${item.kind || "Erinnerung"}`,
+      href: item.animal_id ? `/animals/${item.animal_id}` : "/",
+      when: formatDateTime(item.at),
+    });
+  });
+
+  return results.slice(0, 60);
 }
 
 function splitReminders(reminders) {
@@ -2633,6 +2888,113 @@ function normalizeUserPermissions(role, body = {}) {
   };
 }
 
+function createAuditLog(req, action, details = {}, options = {}) {
+  const actor = req?.session?.user || null;
+  db.prepare(`
+    INSERT INTO audit_logs (actor_user_id, actor_email, action, entity_type, entity_id, details)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(
+    actor?.id || null,
+    actor?.email || "",
+    action,
+    options.entityType || "",
+    options.entityId != null ? String(options.entityId) : "",
+    JSON.stringify(details || {})
+  );
+}
+
+function createNotificationLog({ userId = null, channel, type, recipient = "", subject = "", status, error = "", details = {} }) {
+  db.prepare(`
+    INSERT INTO notification_logs (user_id, channel, notification_type, recipient, subject, status, error_message, details)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    userId || null,
+    String(channel || "unknown"),
+    String(type || "generic"),
+    String(recipient || ""),
+    String(subject || ""),
+    String(status || "unknown"),
+    String(error || ""),
+    JSON.stringify(details || {})
+  );
+}
+
+function buildAnimalTimeline(related) {
+  const entries = [];
+
+  (related.vaccinations || []).forEach((item) => {
+    if (item.vaccination_date) {
+      entries.push({
+        at: `${item.vaccination_date}T09:00`,
+        title: `Impfung durchgeführt: ${item.name}`,
+        type: "Impfung",
+        details: item.notes || "",
+      });
+    }
+    if (item.next_due_date) {
+      entries.push({
+        at: `${item.next_due_date}T09:00`,
+        title: `Impfung fällig: ${item.name}`,
+        type: "Impfung",
+        details: item.notes || "",
+      });
+    }
+  });
+
+  (related.medications || []).forEach((item) => {
+    if (item.start_date) {
+      entries.push({
+        at: `${item.start_date}T08:00`,
+        title: `Medikation gestartet: ${item.name}`,
+        type: "Medikament",
+        details: [item.dosage ? `Dosis: ${item.dosage}` : "", item.notes || ""].filter(Boolean).join(" | "),
+      });
+    }
+    if (item.end_date) {
+      entries.push({
+        at: `${item.end_date}T18:00`,
+        title: `Medikation Ende: ${item.name}`,
+        type: "Medikament",
+        details: item.notes || "",
+      });
+    }
+  });
+
+  (related.appointments || []).forEach((item) => {
+    entries.push({
+      at: item.appointment_at,
+      title: `Arzttermin: ${item.title}`,
+      type: "Arzttermin",
+      details: [item.veterinarian_name ? `Tierarzt: ${item.veterinarian_name}` : "", item.location_text ? `Ort: ${item.location_text}` : "", item.notes || ""]
+        .filter(Boolean)
+        .join(" | "),
+    });
+  });
+
+  (related.reminders || []).forEach((item) => {
+    entries.push({
+      at: item.due_at,
+      title: `${item.completed_at ? "Erledigt" : "Erinnerung"}: ${item.title}`,
+      type: item.reminder_type || "Erinnerung",
+      details: item.notes || "",
+    });
+  });
+
+  (related.notes || []).forEach((item) => {
+    entries.push({
+      at: item.created_at,
+      title: `Protokoll: ${item.title}`,
+      type: "Protokoll",
+      details: item.content || "",
+    });
+  });
+
+  return entries
+    .filter((item) => item.at)
+    .sort((a, b) => String(b.at).localeCompare(String(a.at)))
+    .slice(0, 120);
+}
+
 function getAdminViewData(pageTitle, adminPath) {
   const settings = getSettingsObject(db);
   return {
@@ -2726,8 +3088,27 @@ async function requestEmailChangeConfirmation({ userId, requestedByUserId, newEm
       name: displayName || "Nutzer",
       confirmUrl,
     });
+    createNotificationLog({
+      userId: requestedByUserId || null,
+      channel: "email",
+      type: "email_change_confirmation",
+      recipient: normalizedEmail,
+      subject: "E-Mail-Änderung bestätigen",
+      status: "sent",
+      details: { user_id: userId },
+    });
   } catch (error) {
     db.prepare("DELETE FROM email_change_requests WHERE token_hash = ?").run(tokenHash);
+    createNotificationLog({
+      userId: requestedByUserId || null,
+      channel: "email",
+      type: "email_change_confirmation",
+      recipient: normalizedEmail,
+      subject: "E-Mail-Änderung bestätigen",
+      status: "error",
+      error: error.message,
+      details: { user_id: userId },
+    });
     throw error;
   }
 }

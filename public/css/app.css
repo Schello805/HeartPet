@@ -235,6 +235,32 @@ textarea {
   gap: 18px;
 }
 
+.dashboard-search-panel {
+  margin-bottom: 18px;
+}
+
+.dashboard-search-form {
+  max-width: 920px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.dashboard-search-form input[type="search"] {
+  height: 54px;
+  border-radius: 999px;
+  font-size: 1.15rem;
+  padding: 0 22px;
+}
+
+.dashboard-search-form .button {
+  height: 54px;
+  border-radius: 999px;
+  padding: 0 24px;
+}
+
 .sidebar-subnav {
   display: grid;
   gap: 8px;
@@ -284,6 +310,13 @@ textarea {
 .quick-card,
 .stat-card {
   animation: cardRiseIn 260ms ease-out both;
+}
+
+.no-page-anim .panel,
+.no-page-anim .hero-card,
+.no-page-anim .quick-card,
+.no-page-anim .stat-card {
+  animation: none !important;
 }
 
 .stat-card {
@@ -1201,6 +1234,10 @@ small {
   .event-grid-row-2,
   .event-grid-row-3,
   .event-grid-row-4 {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-search-form {
     grid-template-columns: 1fr;
   }
 

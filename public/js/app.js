@@ -1,3 +1,6 @@
+let softNavInitialized = false;
+let softNavInFlight = false;
+
 async function loadPendingReminders() {
   const bannerTarget = document.querySelector(".page-header");
   if (!bannerTarget) {
@@ -40,29 +43,27 @@ async function loadPendingReminders() {
   }
 }
 
-window.addEventListener("load", loadPendingReminders);
-
-window.addEventListener("load", () => {
+function initMobileNavToggle() {
   const toggle = document.querySelector(".mobile-nav-toggle");
-  const sidebar = document.querySelector(".sidebar");
-  if (!toggle || !sidebar) {
+  if (!toggle || toggle.dataset.bound === "1") {
     return;
   }
-
+  toggle.dataset.bound = "1";
   toggle.addEventListener("click", () => {
     const nextState = !document.body.classList.contains("nav-open");
     document.body.classList.toggle("nav-open", nextState);
     toggle.setAttribute("aria-expanded", nextState ? "true" : "false");
   });
-});
+}
 
-window.addEventListener("load", () => {
+function initSpeciesAutocomplete() {
   const input = document.querySelector("[data-species-autocomplete='true']");
   const datalist = document.querySelector("#species-suggestions");
-  if (!input || !datalist) {
+  if (!input || !datalist || input.dataset.bound === "1") {
     return;
   }
 
+  input.dataset.bound = "1";
   let timer = null;
   input.addEventListener("input", () => {
     window.clearTimeout(timer);
@@ -91,9 +92,9 @@ window.addEventListener("load", () => {
       }
     }, 180);
   });
-});
+}
 
-window.addEventListener("load", () => {
+function initRequiredMarks() {
   document.querySelectorAll("label").forEach((label) => {
     const requiredField = label.querySelector("input[required], select[required], textarea[required]");
     const heading = label.querySelector("span");
@@ -106,10 +107,14 @@ window.addEventListener("load", () => {
     mark.textContent = " *";
     heading.append(mark);
   });
-});
+}
 
-window.addEventListener("load", () => {
+function initProfileUploadAutoSubmit() {
   document.querySelectorAll(".profile-upload-input").forEach((input) => {
+    if (input.dataset.bound === "1") {
+      return;
+    }
+    input.dataset.bound = "1";
     input.addEventListener("change", () => {
       if (!input.files || input.files.length === 0) {
         return;
@@ -124,13 +129,14 @@ window.addEventListener("load", () => {
       form?.requestSubmit();
     });
   });
-});
+}
 
-window.addEventListener("load", () => {
+function initEventFormBehavior() {
   const form = document.querySelector("[data-event-form]");
-  if (!form) {
+  if (!form || form.dataset.bound === "1") {
     return;
   }
+  form.dataset.bound = "1";
 
   const kindSelect = form.querySelector("[data-event-kind-select]");
   const timeWrap = form.querySelector("[data-event-time-wrap]");
@@ -183,7 +189,7 @@ window.addEventListener("load", () => {
   kindSelect?.addEventListener("change", updateEventForm);
   handledByVet?.addEventListener("change", updateEventForm);
   updateEventForm();
-});
+}
 
 function resetCustomValidation(form) {
   form.querySelectorAll("input, select, textarea").forEach((field) => {
@@ -253,6 +259,130 @@ function applyGermanValidationMessages(form) {
   return validatePasswordConfirmation(form) || validateDateRelations(form);
 }
 
+function canSoftNavigate(url, anchor) {
+  if (url.origin !== window.location.origin) {
+    return false;
+  }
+  if (anchor.target && anchor.target !== "_self") {
+    return false;
+  }
+  if (anchor.hasAttribute("download")) {
+    return false;
+  }
+  if (anchor.dataset.noSoftNav === "true") {
+    return false;
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    return false;
+  }
+  if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/media/")) {
+    return false;
+  }
+  if (/^\/documents\/\d+\/download$/.test(url.pathname)) {
+    return false;
+  }
+  if (url.hash && url.pathname === window.location.pathname && url.search === window.location.search) {
+    return false;
+  }
+  return true;
+}
+
+async function navigateTo(url, options = {}) {
+  const { push = true, scrollTop = true } = options;
+  if (softNavInFlight) {
+    return;
+  }
+
+  softNavInFlight = true;
+  try {
+    const response = await fetch(url.toString(), {
+      headers: {
+        "X-Requested-With": "heartpet-soft-nav",
+      },
+      credentials: "same-origin",
+    });
+
+    if (!response.ok) {
+      window.location.href = url.toString();
+      return;
+    }
+
+    const html = await response.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const nextShell = doc.querySelector(".app-shell");
+    const currentShell = document.querySelector(".app-shell");
+    if (!nextShell || !currentShell) {
+      window.location.href = url.toString();
+      return;
+    }
+
+    currentShell.innerHTML = nextShell.innerHTML;
+    document.title = doc.title || document.title;
+
+    if (push) {
+      window.history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    }
+    if (scrollTop) {
+      window.scrollTo(0, 0);
+    }
+
+    document.body.classList.remove("nav-open");
+    initPage();
+  } catch (error) {
+    console.error("Soft-Navigation fehlgeschlagen", error);
+    window.location.href = url.toString();
+  } finally {
+    softNavInFlight = false;
+  }
+}
+
+function initSoftNavigation() {
+  if (softNavInitialized) {
+    return;
+  }
+  softNavInitialized = true;
+
+  document.addEventListener("click", (event) => {
+    const anchor = event.target.closest("a[href]");
+    if (!anchor) {
+      return;
+    }
+    if (event.defaultPrevented) {
+      return;
+    }
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
+      return;
+    }
+
+    const url = new URL(anchor.href, window.location.href);
+    if (!canSoftNavigate(url, anchor)) {
+      return;
+    }
+
+    event.preventDefault();
+    navigateTo(url, { push: true, scrollTop: true });
+  });
+
+  window.addEventListener("popstate", () => {
+    navigateTo(new URL(window.location.href), { push: false, scrollTop: false });
+  });
+}
+
+function initPage() {
+  try {
+    sessionStorage.setItem("heartpet-nav-loaded", "1");
+  } catch (error) {}
+
+  initSoftNavigation();
+  initMobileNavToggle();
+  initSpeciesAutocomplete();
+  initRequiredMarks();
+  initProfileUploadAutoSubmit();
+  initEventFormBehavior();
+  loadPendingReminders();
+}
+
 document.addEventListener("click", (event) => {
   const row = event.target.closest(".table-row-link");
   if (!row) {
@@ -264,7 +394,8 @@ document.addEventListener("click", (event) => {
     return;
   }
 
-  window.location.href = row.dataset.href;
+  const url = new URL(row.dataset.href, window.location.href);
+  navigateTo(url, { push: true, scrollTop: true });
 });
 
 document.addEventListener("keydown", (event) => {
@@ -275,7 +406,8 @@ document.addEventListener("keydown", (event) => {
 
   if (event.key === "Enter" || event.key === " ") {
     event.preventDefault();
-    window.location.href = row.dataset.href;
+    const url = new URL(row.dataset.href, window.location.href);
+    navigateTo(url, { push: true, scrollTop: true });
   }
 });
 
@@ -307,3 +439,5 @@ document.addEventListener("input", (event) => {
   }
   field.setCustomValidity("");
 });
+
+window.addEventListener("load", initPage);

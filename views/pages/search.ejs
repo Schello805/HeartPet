@@ -1,0 +1,85 @@
+<%- include('../partials/top', { pageTitle }) %>
+
+<section class="panel">
+  <form method="get" action="/suche" class="filter-row">
+    <label>
+      <span>Suchbegriff</span>
+      <input type="text" name="q" value="<%= search.q %>" placeholder="Name, Dokument, Ereignis ..." />
+    </label>
+    <label>
+      <span>Bereich</span>
+      <select name="scope">
+        <option value="all" <%= search.scope === 'all' ? 'selected' : '' %>>Alles</option>
+        <option value="animals" <%= search.scope === 'animals' ? 'selected' : '' %>>Tiere</option>
+        <option value="documents" <%= search.scope === 'documents' ? 'selected' : '' %>>Dokumente</option>
+        <option value="events" <%= search.scope === 'events' ? 'selected' : '' %>>Ereignisse</option>
+      </select>
+    </label>
+    <button type="submit" class="button">Suchen</button>
+    <a href="/suche" class="button button-secondary">Zurücksetzen</a>
+  </form>
+</section>
+
+<% if (!search.searchable) { %>
+  <section class="panel">
+    <p class="empty-state">Bitte gib mindestens 2 Zeichen ein.</p>
+  </section>
+<% } else { %>
+  <section class="panel">
+    <div class="panel-head"><h2>Tiere</h2><span class="counter"><%= results.animals.length %></span></div>
+    <% if (!results.animals.length) { %>
+      <p class="empty-state">Keine Treffer.</p>
+    <% } else { %>
+      <div class="stack">
+        <% results.animals.forEach((item) => { %>
+          <a class="animal-card" href="/animals/<%= item.id %>">
+            <div>
+              <strong><%= item.name %></strong>
+              <p><%= item.species_name || '-' %> | <%= item.status || '-' %></p>
+            </div>
+          </a>
+        <% }) %>
+      </div>
+    <% } %>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>Dokumente</h2><span class="counter"><%= results.documents.length %></span></div>
+    <% if (!results.documents.length) { %>
+      <p class="empty-state">Keine Treffer.</p>
+    <% } else { %>
+      <div class="stack">
+        <% results.documents.forEach((item) => { %>
+          <a class="animal-card" href="/animals/<%= item.animal_id %>">
+            <div>
+              <strong><%= item.title %></strong>
+              <p><%= item.animal_name || 'Ohne Tier' %> | <%= item.category_name || 'Ohne Kategorie' %></p>
+            </div>
+            <span><%= formatDateTime(item.uploaded_at) %></span>
+          </a>
+        <% }) %>
+      </div>
+    <% } %>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>Ereignisse / Erinnerungen</h2><span class="counter"><%= results.events.length %></span></div>
+    <% if (!results.events.length) { %>
+      <p class="empty-state">Keine Treffer.</p>
+    <% } else { %>
+      <div class="stack">
+        <% results.events.forEach((item) => { %>
+          <a class="animal-card" href="/animals/<%= item.animal_id %>">
+            <div>
+              <strong><%= item.title %></strong>
+              <p><%= item.animal_name || 'Ohne Tier' %> | <%= item.kind || '-' %></p>
+            </div>
+            <span><%= formatDateTime(item.at) %></span>
+          </a>
+        <% }) %>
+      </div>
+    <% } %>
+  </section>
+<% } %>
+
+<%- include('../partials/bottom') %>

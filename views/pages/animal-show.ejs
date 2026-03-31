@@ -1,6 +1,7 @@
 <%- include('../partials/top', { pageTitle }) %>
 <% const reminderSourceMap = typeof sourceReminderMap !== 'undefined' ? sourceReminderMap : {}; %>
 <% const freeReminders = typeof manualReminders !== 'undefined' ? manualReminders : []; %>
+<% const animalTimeline = typeof timeline !== 'undefined' ? timeline : []; %>
 
 <section class="hero-card animal-hero-card">
   <div class="animal-hero-profile">
@@ -481,6 +482,20 @@
       <details class="sub-accordion" <%= editState.type === 'reminder' ? 'open' : '' %>>
         <summary>Freie Erinnerungen</summary>
         <div class="sub-accordion-content stack compact-stack">
+          <% if (permissions.canManageReminders && freeReminders.length > 0) { %>
+            <div class="stack form-compact compact-card">
+              <div class="mini-grid">
+                <select name="bulk_action" required form="bulk-reminders-<%= animal.id %>">
+                  <option value="">Massenaktion wählen</option>
+                  <option value="complete">Als erledigt markieren</option>
+                  <option value="reopen">Wieder öffnen</option>
+                  <option value="delete">Löschen</option>
+                </select>
+                <button type="submit" class="button button-secondary" form="bulk-reminders-<%= animal.id %>">Auf Auswahl anwenden</button>
+              </div>
+              <small>Auswahl unten per Checkbox treffen.</small>
+            </div>
+          <% } %>
           <% freeReminders.forEach((item) => { %>
             <% if (permissions.canManageReminders && editState.type === 'reminder' && editState.id === item.id) { %>
               <form method="post" action="/animals/<%= animal.id %>/reminders/<%= item.id %>/update" class="stack form-compact edit-card compact-card">
@@ -501,6 +516,12 @@
             <% } else { %>
               <div class="list-card static-card compact-card">
                 <div class="list-card-main">
+                  <% if (permissions.canManageReminders) { %>
+                    <label class="checkbox-line">
+                      <input type="checkbox" name="reminder_ids" value="<%= item.id %>" form="bulk-reminders-<%= animal.id %>" />
+                      <span>Auswählen</span>
+                    </label>
+                  <% } %>
                   <strong><%= item.title %></strong>
                   <p><%= item.reminder_type %> | Fällig: <%= formatDateTime(item.due_at) %></p>
                   <% if (item.notes) { %><small><%= item.notes %></small><% } %>
@@ -525,8 +546,32 @@
               </div>
             <% } %>
           <% }) %>
+          <% if (permissions.canManageReminders && freeReminders.length > 0) { %>
+            <form id="bulk-reminders-<%= animal.id %>" method="post" action="/animals/<%= animal.id %>/reminders/bulk" class="hidden-form" data-confirm="Ausgewählte Erinnerungen wirklich ändern?"></form>
+          <% } %>
         </div>
       </details>
+    </div>
+  </details>
+
+  <details class="accordion-item">
+    <summary>Timeline</summary>
+    <div class="accordion-content compact-layout">
+      <% if (animalTimeline.length === 0) { %>
+        <p class="empty-state">Noch keine Timeline-Einträge vorhanden.</p>
+      <% } else { %>
+        <div class="stack compact-stack">
+          <% animalTimeline.forEach((entry) => { %>
+            <div class="list-card static-card compact-card">
+              <div class="list-card-main">
+                <strong><%= entry.title %></strong>
+                <p><%= entry.type %> | <%= formatDateTime(entry.at) %></p>
+                <% if (entry.details) { %><small><%= entry.details %></small><% } %>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
     </div>
   </details>
 

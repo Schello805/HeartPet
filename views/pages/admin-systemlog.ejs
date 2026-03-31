@@ -1,0 +1,88 @@
+<%- include('../partials/top', { pageTitle }) %>
+
+<section class="accordion-stack">
+  <details class="accordion-item" open>
+    <summary>Mail- und Benachrichtigungslog</summary>
+    <div class="accordion-content">
+      <form method="get" action="/admin/systemlog" class="filter-row">
+        <label>
+          <span>Kanal</span>
+          <select name="level">
+            <option value="all" <%= filters.level === 'all' ? 'selected' : '' %>>Alle</option>
+            <option value="email" <%= filters.level === 'email' ? 'selected' : '' %>>E-Mail</option>
+            <option value="telegram" <%= filters.level === 'telegram' ? 'selected' : '' %>>Telegram</option>
+          </select>
+        </label>
+        <button type="submit" class="button">Filtern</button>
+        <a href="/admin/systemlog" class="button button-secondary">Zurücksetzen</a>
+      </form>
+
+      <% if (!notificationLogs.length) { %>
+        <p class="empty-state">Noch keine Benachrichtigungs-Logs vorhanden.</p>
+      <% } else { %>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Zeit</th>
+                <th>Kanal</th>
+                <th>Typ</th>
+                <th>Empfänger</th>
+                <th>Status</th>
+                <th>Fehler</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% notificationLogs.forEach((item) => { %>
+                <tr>
+                  <td><%= formatDateTime(item.created_at) %></td>
+                  <td><%= item.channel %></td>
+                  <td><%= item.notification_type %></td>
+                  <td><%= item.recipient || '-' %></td>
+                  <td><span class="status-chip status-<%= item.status %>"><%= item.status %></span></td>
+                  <td><%= item.error_message || '-' %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+  </details>
+
+  <details class="accordion-item">
+    <summary>Audit-Log</summary>
+    <div class="accordion-content">
+      <% if (!auditLogs.length) { %>
+        <p class="empty-state">Noch keine Audit-Einträge vorhanden.</p>
+      <% } else { %>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Zeit</th>
+                <th>Benutzer</th>
+                <th>Aktion</th>
+                <th>Objekt</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% auditLogs.forEach((item) => { %>
+                <tr>
+                  <td><%= formatDateTime(item.created_at) %></td>
+                  <td><%= item.actor_email || '-' %></td>
+                  <td><%= item.action %></td>
+                  <td><%= item.entity_type || '-' %> <%= item.entity_id || '' %></td>
+                  <td><code><%= item.details || '-' %></code></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+  </details>
+</section>
+
+<%- include('../partials/bottom') %>

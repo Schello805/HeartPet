@@ -1,4 +1,40 @@
 <%- include('../partials/top', { pageTitle }) %>
+<% const searchState = typeof search !== 'undefined' ? search : { q: '', searchable: false }; %>
+<% const dashboardSearchResults = typeof searchResults !== 'undefined' ? searchResults : []; %>
+
+<section class="panel dashboard-search-panel">
+  <form method="get" action="/" class="dashboard-search-form">
+    <input type="search" name="q" value="<%= searchState.q || '' %>" placeholder="Tiere, Dokumente, Ereignisse suchen ..." autocomplete="off" />
+    <button type="submit" class="button">Suchen</button>
+  </form>
+  <% if (searchState.q && !searchState.searchable) { %>
+    <p class="empty-state">Bitte mindestens 2 Zeichen eingeben.</p>
+  <% } %>
+</section>
+
+<% if (searchState.searchable) { %>
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Suchergebnisse</h2>
+      <span class="counter"><%= dashboardSearchResults.length %> Treffer</span>
+    </div>
+    <% if (!dashboardSearchResults.length) { %>
+      <p class="empty-state">Keine Ergebnisse gefunden.</p>
+    <% } else { %>
+      <div class="stack">
+        <% dashboardSearchResults.forEach((item) => { %>
+          <a class="animal-card" href="<%= item.href %>">
+            <div>
+              <strong><%= item.title %></strong>
+              <p><%= item.kind %> | <%= item.subtitle %></p>
+            </div>
+            <span><%= item.when || '' %></span>
+          </a>
+        <% }) %>
+      </div>
+    <% } %>
+  </section>
+<% } %>
 
 <section class="dashboard-grid">
   <article class="stat-card">

@@ -3,7 +3,7 @@ const nodemailer = require("nodemailer");
 const fs = require("node:fs");
 const path = require("node:path");
 
-async function processDueReminders(db, settings) {
+async function processDueReminders(db, settings, hooks = {}) {
   const now = dayjs().format("YYYY-MM-DDTHH:mm");
   const dueReminders = db.prepare(`
     SELECT reminders.*, animals.name AS animal_name
@@ -28,11 +28,33 @@ async function processDueReminders(db, settings) {
 
       if (reminder.channel_email && emailEnabled) {
         await sendEmailReminder(settings, reminder);
+        if (typeof hooks.onNotification === "function") {
+          hooks.onNotification({
+            channel: "email",
+            type: "reminder",
+            recipient: settings.notification_email_to || settings.smtp_user || "",
+            subject: `Erinnerung: ${reminder.title}`,
+            status: "sent",
+            error: "",
+            reminder,
+          });
+        }
         deliveryState.notified = true;
       }
 
       if (reminder.channel_telegram && telegramEnabled) {
         await sendTelegramReminder(settings, reminder);
+        if (typeof hooks.onNotification === "function") {
+          hooks.onNotification({
+            channel: "telegram",
+            type: "reminder",
+            recipient: settings.telegram_chat_id || "",
+            subject: `Erinnerung: ${reminder.title}`,
+            status: "sent",
+            error: "",
+            reminder,
+          });
+        }
         deliveryState.notified = true;
       }
 
@@ -40,6 +62,17 @@ async function processDueReminders(db, settings) {
     } catch (error) {
       deliveryState.status = "error";
       deliveryState.error = error.message;
+      if (typeof hooks.onNotification === "function") {
+        hooks.onNotification({
+          channel: reminder.channel_email ? "email" : reminder.channel_telegram ? "telegram" : "none",
+          type: "reminder",
+          recipient: settings.notification_email_to || settings.smtp_user || settings.telegram_chat_id || "",
+          subject: `Erinnerung: ${reminder.title}`,
+          status: "error",
+          error: error.message,
+          reminder,
+        });
+      }
     }
 
     db.prepare(`

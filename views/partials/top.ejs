@@ -4,7 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title><%= pageTitle %> | <%= appSettings.app_name || "HeartPet" %></title>
-    <link rel="icon" type="image/png" href="/static/images/logo-heartpet.png" />
+    <script>
+      try {
+        if (sessionStorage.getItem("heartpet-nav-loaded")) {
+          document.documentElement.classList.add("no-page-anim");
+        }
+      } catch (error) {}
+    </script>
+    <link rel="icon" type="image/png" sizes="any" href="/static/images/logo-heartpet.png" />
+    <link rel="shortcut icon" type="image/png" href="/static/images/logo-heartpet.png" />
+    <link rel="apple-touch-icon" href="/static/images/logo-heartpet.png" />
     <link rel="stylesheet" href="/static/css/app.css" />
   </head>
   <body>
@@ -44,6 +53,7 @@
                 <a class="<%= currentPath === '/admin/stammdaten' ? 'active' : '' %>" href="/admin/stammdaten">Stammdaten</a>
                 <a class="<%= currentPath === '/admin/benutzer' ? 'active' : '' %>" href="/admin/benutzer">Benutzer</a>
                 <a class="<%= currentPath === '/admin/import' ? 'active' : '' %>" href="/admin/import">Import</a>
+                <a class="<%= currentPath === '/admin/systemlog' ? 'active' : '' %>" href="/admin/systemlog">Systemlog</a>
               </div>
             <% } %>
           <% } %>
