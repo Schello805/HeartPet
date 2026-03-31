@@ -4,10 +4,12 @@ After=network.target
 
 [Service]
 Type=simple
+# Anpassen, z. B. /opt/HeartPet oder /root/HeartPet
 WorkingDirectory=/opt/HeartPet
 ExecStart=/usr/bin/npm start
 Restart=always
 RestartSec=5
+# Anpassen, z. B. www-data oder root
 User=www-data
 Group=www-data
 Environment=PORT=3000

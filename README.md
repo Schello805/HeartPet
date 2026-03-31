@@ -32,7 +32,12 @@ Kein Docker. Kein externer Objekt-Storage. HeartPet ist für einen einfachen Bet
 
 ```bash
 npm install
-npm start
+```
+
+Für einen kurzen Test ohne `systemd`:
+
+```bash
+./scripts/start.sh
 ```
 
 Die App läuft danach standardmäßig unter:
@@ -132,11 +137,16 @@ sudo journalctl -u heartpet -n 100 --no-pager
 sudo journalctl -u heartpet -f
 ```
 
-Wenn du HeartPet ohne `systemd` testweise direkt startest:
+Ohne `systemd` stehen die mitgelieferten Skripte zur Verfügung:
 
 ```bash
-npm start
+./scripts/start.sh
+./scripts/stop.sh
+./scripts/status.sh
+./scripts/logs.sh
 ```
+
+`npm start` ist nur für kurze manuelle Tests gedacht und blockiert das Terminal im Vordergrund.
 
 ## Update
 
@@ -149,16 +159,21 @@ HeartPet bringt ein Update-Skript mit:
 Das Skript:
 
 - erstellt zuerst ein Backup
+- prüft Git, Node.js und npm
 - holt den aktuellen Stand aus GitHub
 - installiert oder aktualisiert Abhängigkeiten
-- startet `heartpet.service` neu, falls der Dienst vorhanden ist
+- prüft den App-Load
+- startet HeartPet sauber neu
+
+Wenn `heartpet.service` eingerichtet ist, wird der Dienst verwendet. Ohne `systemd` startet HeartPet automatisch im Hintergrund weiter, damit die Shell frei bleibt.
 
 Manuell geht es ebenfalls:
 
 ```bash
 git pull --ff-only
 npm install
-sudo systemctl restart heartpet
+./scripts/stop.sh
+./scripts/start.sh
 ```
 
 ## Backup und Wiederherstellung

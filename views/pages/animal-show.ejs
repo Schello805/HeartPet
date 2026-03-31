@@ -9,21 +9,18 @@
         <% } else { %>
           <div class="animal-profile-image animal-profile-fallback"><%= getAnimalInitial(animal.name) %></div>
         <% } %>
-        <% if (permissions.canManageGallery) { %>
-          <form method="post" action="/animals/<%= animal.id %>/profile-image" enctype="multipart/form-data" class="profile-image-overlay-form">
-            <input id="profile-upload-<%= animal.id %>" class="visually-hidden profile-upload-input" type="file" name="profile_image" accept="image/*" required />
-            <label for="profile-upload-<%= animal.id %>" class="profile-upload-trigger">
-              <%= animal.profile_image_stored_name ? 'Profilbild ändern' : 'Profilbild hochladen' %>
-            </label>
-          </form>
-          <% if (animal.profile_image_stored_name) { %>
-            <button type="submit" class="profile-delete-button" form="profile-image-delete-<%= animal.id %>" aria-label="Profilbild löschen" title="Profilbild löschen">🗑</button>
-            <form method="post" action="/animals/<%= animal.id %>/profile-image/delete" id="profile-image-delete-<%= animal.id %>" class="hidden-form" data-confirm="Profilbild wirklich löschen?"></form>
-          <% } %>
-        <% } %>
       </div>
       <% if (permissions.canManageGallery) { %>
-        <p class="profile-image-hint"><%= animal.profile_image_stored_name ? 'Bild anklicken, um es zu ersetzen.' : 'Lade hier direkt das Profilbild hoch.' %></p>
+        <form method="post" action="/animals/<%= animal.id %>/profile-image" enctype="multipart/form-data" class="profile-image-inline-form">
+          <input id="profile-upload-<%= animal.id %>" class="visually-hidden profile-upload-input" type="file" name="profile_image" accept="image/*" required />
+          <label for="profile-upload-<%= animal.id %>" class="profile-upload-trigger subtle">
+            <%= animal.profile_image_stored_name ? 'Profilbild ändern' : 'Profilbild hochladen' %>
+          </label>
+          <% if (animal.profile_image_stored_name) { %>
+            <button type="submit" class="profile-delete-button subtle" form="profile-image-delete-<%= animal.id %>" aria-label="Profilbild löschen" title="Profilbild löschen">🗑</button>
+            <form method="post" action="/animals/<%= animal.id %>/profile-image/delete" id="profile-image-delete-<%= animal.id %>" class="hidden-form" data-confirm="Profilbild wirklich löschen?"></form>
+          <% } %>
+        </form>
       <% } %>
     </div>
   </div>
@@ -48,7 +45,6 @@
     <% if (permissions.canEditAnimals) { %>
       <a href="/animals/<%= animal.id %>/edit" class="button">Bearbeiten</a>
     <% } %>
-    <a href="/animals/<%= animal.id %>/export/json" class="button button-secondary">JSON Export</a>
     <a href="/animals/<%= animal.id %>/export/pdf" class="button button-secondary">PDF Export</a>
   </div>
 </section>
@@ -597,5 +593,9 @@
     </div>
   </details>
 </section>
+
+<div class="low-emphasis-actions">
+  <a href="/animals/<%= animal.id %>/export/json" class="muted-link">JSON Export</a>
+</div>
 
 <%- include('../partials/bottom') %>

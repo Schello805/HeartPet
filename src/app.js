@@ -958,7 +958,10 @@ app.get("/animals/:id/export/pdf", (req, res) => {
     return renderNotFound(req, res, "Tier nicht gefunden.");
   }
 
-  createAnimalPdf(res, animal, getAnimalRelatedData(req.params.id));
+  createAnimalPdf(res, animal, getAnimalRelatedData(req.params.id), {
+    domain: getSettingsObject(db).app_domain || "HeartPet",
+    uploadsDir: path.join(process.cwd(), "data", "uploads"),
+  });
 });
 
 app.get("/admin", requireAdmin, (req, res) => {

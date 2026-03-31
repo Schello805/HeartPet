@@ -22,16 +22,21 @@ function buildAnimalExportPayload(animal, related, options = {}) {
   };
 }
 
-function createAnimalPdf(res, animal, related) {
-  const doc = new PDFDocument({ margin: 48, size: "A4" });
+function createAnimalPdf(res, animal, related, options = {}) {
+  const doc = new PDFDocument({ margin: 48, size: "A4", bufferPages: true });
+  const exportDate = new Date();
+  const exportDateLabel = formatDateTime(exportDate);
+  const exportDomain = options.domain || "HeartPet";
+
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader("Content-Disposition", `attachment; filename="heartpet-tierakte-${animal.id}.pdf"`);
   doc.pipe(res);
 
-  doc.fontSize(22).text("HeartPet Tierakte", { underline: true });
-  doc.moveDown(0.5);
-  doc.fontSize(10).text("Dieser Export wurde mit HeartPet erzeugt. Ein Import in HeartPet ist möglich.");
-  doc.moveDown();
+  const startY = drawHeader(doc, animal, {
+    exportDomain,
+    uploadsDir: options.uploadsDir,
+  });
+  doc.y = startY;
 
   const lines = [
     `Name: ${animal.name}`,
@@ -47,24 +52,24 @@ function createAnimalPdf(res, animal, related) {
     `Tierarzt: ${animal.veterinarian_name || animal.species_veterinarian_name || "-"}`,
   ];
 
-  lines.forEach((line) => doc.fontSize(11).text(line));
+  lines.forEach((line) => doc.fontSize(11).fillColor("#2d251f").text(line));
 
   if (animal.notes) {
     doc.moveDown();
-    doc.fontSize(13).text("Allgemeine Notizen");
-    doc.fontSize(10).text(animal.notes);
+    doc.fontSize(13).fillColor("#2d251f").text("Allgemeine Notizen");
+    doc.fontSize(10).fillColor("#4e4337").text(animal.notes);
   }
 
-  writeSection(doc, "Vorerkrankungen", related.conditions.map((item) => `${item.title}${item.details ? `: ${item.details}` : ""}`));
+  writeSection(doc, "Vorerkrankungen", (related.conditions || []).map((item) => `${item.title}${item.details ? `: ${item.details}` : ""}`));
   writeSection(
     doc,
     "Medikamente",
-    related.medications.map((item) => `${item.name} | Dosis: ${item.dosage || "-"} | Plan: ${item.schedule || "-"}`)
+    (related.medications || []).map((item) => `${item.name} | Dosis: ${item.dosage || "-"} | Plan: ${item.schedule || "-"}`)
   );
   writeSection(
     doc,
     "Impfungen",
-    related.vaccinations.map(
+    (related.vaccinations || []).map(
       (item) => `${item.name} | Datum: ${item.vaccination_date || "-"} | Nächste Fälligkeit: ${item.next_due_date || "-"}`
     )
   );
@@ -78,12 +83,12 @@ function createAnimalPdf(res, animal, related) {
   writeSection(
     doc,
     "Fütterungspläne",
-    related.feedings.map((item) => `${item.label} | Uhrzeit: ${item.time_of_day || "-"} | Futter: ${item.food || "-"}`)
+    (related.feedings || []).map((item) => `${item.label} | Uhrzeit: ${item.time_of_day || "-"} | Futter: ${item.food || "-"}`)
   );
   writeSection(
     doc,
     "Erinnerungen",
-    related.reminders.map((item) => {
+    (related.reminders || []).map((item) => {
       const repeatText = item.repeat_interval_days ? ` | Wiederholung: alle ${item.repeat_interval_days} Tage` : "";
       const statusText = item.last_delivery_status ? ` | Versandstatus: ${item.last_delivery_status}` : "";
       return `${item.title} | Fällig: ${item.due_at} | Typ: ${item.reminder_type}${repeatText}${statusText}`;
@@ -92,7 +97,7 @@ function createAnimalPdf(res, animal, related) {
   writeSection(
     doc,
     "Dokumente",
-    related.documents.map((item) => `${item.title} | Kategorie: ${item.category_name || "-"} | Datei: ${item.original_name}`)
+    (related.documents || []).map((item) => `${item.title} | Kategorie: ${item.category_name || "-"} | Datei: ${item.original_name}`)
   );
   writeSection(
     doc,
@@ -102,23 +107,117 @@ function createAnimalPdf(res, animal, related) {
   writeSection(
     doc,
     "Protokolle",
-    related.notes.map((item) => `${item.title} | ${item.content}`)
+    (related.notes || []).map((item) => `${item.title} | ${item.content}`)
   );
 
+  drawFooters(doc, exportDateLabel);
   doc.end();
+}
+
+function drawHeader(doc, animal, options) {
+  const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+  const imageSize = 84;
+  const imageX = doc.page.margins.left + pageWidth - imageSize;
+  const imageY = doc.page.margins.top;
+  const textWidth = pageWidth - imageSize - 18;
+
+  doc.fontSize(10).fillColor("#7e6d57").text(`Export aus ${options.exportDomain}`, doc.page.margins.left, doc.page.margins.top, {
+    width: textWidth,
+  });
+  doc.moveDown(0.15);
+  doc.fontSize(22).fillColor("#2d251f").text("HeartPet Tierakte", {
+    width: textWidth,
+  });
+  doc.moveDown(0.35);
+  doc.fontSize(10).fillColor("#7e6d57").text("Dieser Export wurde mit HeartPet erzeugt. Ein Import in HeartPet ist möglich.", {
+    width: textWidth,
+  });
+
+  const profileImagePath = resolveProfileImagePath(animal, options.uploadsDir);
+  if (profileImagePath) {
+    try {
+      doc.image(profileImagePath, imageX, imageY, {
+        fit: [imageSize, imageSize],
+        align: "right",
+        valign: "top",
+      });
+    } catch {
+      drawProfileFallback(doc, animal, imageX, imageY, imageSize);
+    }
+  } else {
+    drawProfileFallback(doc, animal, imageX, imageY, imageSize);
+  }
+
+  doc.save();
+  doc.rect(doc.page.margins.left, imageY + imageSize + 14, pageWidth, 1).fill("#d9c3a6");
+  doc.restore();
+  return imageY + imageSize + 28;
+}
+
+function drawProfileFallback(doc, animal, x, y, size) {
+  doc.save();
+  doc.roundedRect(x, y, size, size, 6).fillAndStroke("#f3e8d8", "#d9c3a6");
+  doc.fillColor("#c86434").fontSize(28).text(getInitial(animal.name), x, y + 24, {
+    width: size,
+    align: "center",
+  });
+  doc.restore();
+}
+
+function drawFooters(doc, exportDateLabel) {
+  const range = doc.bufferedPageRange();
+  for (let index = 0; index < range.count; index += 1) {
+    doc.switchToPage(range.start + index);
+    doc.fontSize(9).fillColor("#7e6d57").text(
+      `Exportdatum: ${exportDateLabel}`,
+      doc.page.margins.left,
+      doc.page.height - doc.page.margins.bottom + 10,
+      {
+        width: doc.page.width - doc.page.margins.left - doc.page.margins.right,
+        align: "right",
+      }
+    );
+  }
 }
 
 function writeSection(doc, title, rows) {
   doc.moveDown();
-  doc.fontSize(13).text(title);
+  doc.fontSize(13).fillColor("#2d251f").text(title);
   if (rows.length === 0) {
-    doc.fontSize(10).text("Keine Einträge.");
+    doc.fontSize(10).fillColor("#7e6d57").text("Keine Einträge.");
     return;
   }
 
   rows.forEach((row) => {
-    doc.fontSize(10).text(`- ${row}`);
+    doc.fontSize(10).fillColor("#4e4337").text(`- ${row}`);
   });
+}
+
+function resolveProfileImagePath(animal, uploadsDir) {
+  if (!uploadsDir || !animal.profile_image_stored_name) {
+    return null;
+  }
+
+  const fullPath = path.join(uploadsDir, animal.profile_image_stored_name);
+  if (!fs.existsSync(fullPath)) {
+    return null;
+  }
+
+  return fullPath;
+}
+
+function getInitial(name) {
+  if (!name) {
+    return "?";
+  }
+  return String(name).trim().charAt(0).toUpperCase();
+}
+
+function formatDateTime(value) {
+  return new Intl.DateTimeFormat("de-DE", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(value);
 }
 
 function attachEmbeddedFile(item, uploadsDir) {
