@@ -70,6 +70,13 @@ function createAnimalPdf(res, animal, related) {
   );
   writeSection(
     doc,
+    "Arzttermine",
+    (related.appointments || []).map(
+      (item) => `${item.title} | Termin: ${item.appointment_at || "-"} | Modus: ${item.location_mode === "vor_ort" ? "Tierarzt kommt vor Ort" : "Tier wird zur Praxis gebracht"} | Ort: ${item.location_text || "-"} | Tierarzt: ${item.veterinarian_name || "-"}`
+    )
+  );
+  writeSection(
+    doc,
     "Fütterungspläne",
     related.feedings.map((item) => `${item.label} | Uhrzeit: ${item.time_of_day || "-"} | Futter: ${item.food || "-"}`)
   );

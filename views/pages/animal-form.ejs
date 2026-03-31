@@ -77,7 +77,7 @@
       <select name="veterinarian_id">
         <option value="">Standard je Tierart verwenden</option>
         <% veterinarians.forEach((item) => { %>
-          <option value="<%= item.id %>" <%= String(animal?.veterinarian_id || '') === String(item.id) ? 'selected' : '' %>><%= item.name %></option>
+          <option value="<%= item.id %>" <%= String(animal?.veterinarian_id || '') === String(item.id) ? 'selected' : '' %>><%= item.name %><%= item.city ? ` (${item.city})` : '' %></option>
         <% }) %>
       </select>
     </label>

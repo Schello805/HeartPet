@@ -89,6 +89,127 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use((req, res, next) => {
+  const setupComplete = isSetupComplete();
+  res.locals.setupComplete = setupComplete;
+
+  if (!setupComplete && !req.path.startsWith("/setup")) {
+    return res.redirect("/setup");
+  }
+
+  if (setupComplete && req.path.startsWith("/setup")) {
+    return res.redirect(req.session.user ? "/" : "/login");
+  }
+
+  next();
+});
+
+app.get("/setup", (req, res) => {
+  res.render("pages/setup", {
+    pageTitle: "Ersteinrichtung",
+    species: db.prepare("SELECT * FROM species ORDER BY name ASC").all(),
+  });
+});
+
+app.post("/setup", (req, res) => {
+  if (isSetupComplete()) {
+    return res.redirect(req.session.user ? "/" : "/login");
+  }
+
+  const adminName = String(req.body.admin_name || "").trim();
+  const adminEmail = String(req.body.admin_email || "").trim().toLowerCase();
+  const adminPassword = String(req.body.admin_password || "");
+  const organizationName = String(req.body.organization_name || "").trim();
+  const veterinarianName = String(req.body.veterinarian_name || "").trim();
+  const animalName = String(req.body.animal_name || "").trim();
+  const speciesName = String(req.body.species_name || "").trim();
+
+  if (!adminName || !adminEmail || !adminPassword || !veterinarianName || !animalName || !speciesName) {
+    setFlash(req, "error", "Bitte fülle alle Pflichtfelder der Ersteinrichtung aus.");
+    return res.redirect("/setup");
+  }
+
+  if (adminPassword.length < 8) {
+    setFlash(req, "error", "Das Admin-Passwort muss mindestens 8 Zeichen lang sein.");
+    return res.redirect("/setup");
+  }
+
+  const duplicateUser = db.prepare("SELECT id FROM users WHERE email = ?").get(adminEmail);
+  if (duplicateUser) {
+    setFlash(req, "error", "Diese E-Mail-Adresse ist bereits vergeben.");
+    return res.redirect("/setup");
+  }
+
+  const setupTx = db.transaction(() => {
+    const userResult = db.prepare(`
+      INSERT INTO users (
+        name, email, password_hash, role, must_change_password,
+        can_edit_animals, can_manage_documents, can_manage_gallery, can_manage_health,
+        can_manage_feedings, can_manage_notes, can_manage_reminders
+      )
+      VALUES (?, ?, ?, 'admin', 0, 1, 1, 1, 1, 1, 1, 1)
+    `).run(adminName, adminEmail, bcrypt.hashSync(adminPassword, 10));
+
+    const veterinarianResult = db.prepare(`
+      INSERT INTO veterinarians (name, street, postal_code, city, country, email, phone, notes)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      veterinarianName,
+      req.body.veterinarian_street || "",
+      req.body.veterinarian_postal_code || "",
+      req.body.veterinarian_city || "",
+      req.body.veterinarian_country || "",
+      req.body.veterinarian_email || "",
+      req.body.veterinarian_phone || "",
+      req.body.veterinarian_notes || ""
+    );
+
+    const species = ensureSpeciesExists(speciesName);
+    const animalResult = db.prepare(`
+      INSERT INTO animals (
+        name, species_id, sex, birth_date, intake_date, source, microchip_number,
+        status, color, breed, weight_kg, veterinarian_id, notes, updated_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'Aktiv', ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    `).run(
+      animalName,
+      species.id,
+      req.body.animal_sex || "",
+      req.body.animal_birth_date || null,
+      req.body.animal_intake_date || dayjs().format("YYYY-MM-DD"),
+      req.body.animal_source || "",
+      req.body.animal_microchip_number || "",
+      req.body.animal_color || "",
+      req.body.animal_breed || "",
+      req.body.animal_weight_kg || null,
+      veterinarianResult.lastInsertRowid,
+      req.body.animal_notes || ""
+    );
+
+    if (organizationName) {
+      upsertSetting(db, "organization_name", organizationName);
+    }
+    upsertSetting(db, "setup_complete", "true");
+
+    return {
+      userId: userResult.lastInsertRowid,
+      animalId: animalResult.lastInsertRowid,
+    };
+  });
+
+  const result = setupTx();
+  req.session.user = {
+    id: result.userId,
+    name: adminName,
+    email: adminEmail,
+    role: "admin",
+    mustChangePassword: false,
+  };
+
+  setFlash(req, "success", "Ersteinrichtung abgeschlossen.");
+  res.redirect(`/animals/${result.animalId}`);
+});
+
 app.get("/login", (req, res) => {
   if (req.session.user) {
     return res.redirect("/");
@@ -370,7 +491,7 @@ app.post("/animals/:animalId/conditions/:entryId/delete", requireAnimalPermissio
 });
 
 app.post("/animals/:id/medications", requireAnimalPermission("canManageHealth"), (req, res) => {
-  db.prepare(`
+  const result = db.prepare(`
     INSERT INTO animal_medications (animal_id, name, dosage, schedule, start_date, end_date, notes)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `).run(
@@ -382,6 +503,7 @@ app.post("/animals/:id/medications", requireAnimalPermission("canManageHealth"),
     req.body.end_date || null,
     req.body.notes || ""
   );
+  syncMedicationReminders(req.params.id, result.lastInsertRowid);
   setFlash(req, "success", "Medikation gespeichert.");
   res.redirect(`/animals/${req.params.id}`);
 });
@@ -401,18 +523,20 @@ app.post("/animals/:animalId/medications/:entryId/update", requireAnimalPermissi
     req.params.entryId,
     req.params.animalId
   );
+  syncMedicationReminders(req.params.animalId, req.params.entryId);
   setFlash(req, "success", "Medikation aktualisiert.");
   res.redirect(`/animals/${req.params.animalId}`);
 });
 
 app.post("/animals/:animalId/medications/:entryId/delete", requireAnimalPermission("canManageHealth"), (req, res) => {
+  deleteGeneratedReminders("medication", req.params.entryId);
   db.prepare("DELETE FROM animal_medications WHERE id = ? AND animal_id = ?").run(req.params.entryId, req.params.animalId);
   setFlash(req, "success", "Medikation gelöscht.");
   res.redirect(`/animals/${req.params.animalId}`);
 });
 
 app.post("/animals/:id/vaccinations", requireAnimalPermission("canManageHealth"), (req, res) => {
-  db.prepare(`
+  const result = db.prepare(`
     INSERT INTO animal_vaccinations (animal_id, name, vaccination_date, next_due_date, notes)
     VALUES (?, ?, ?, ?, ?)
   `).run(
@@ -422,6 +546,7 @@ app.post("/animals/:id/vaccinations", requireAnimalPermission("canManageHealth")
     req.body.next_due_date || null,
     req.body.notes || ""
   );
+  syncVaccinationReminders(req.params.id, result.lastInsertRowid);
   setFlash(req, "success", "Impfung gespeichert.");
   res.redirect(`/animals/${req.params.id}`);
 });
@@ -439,13 +564,60 @@ app.post("/animals/:animalId/vaccinations/:entryId/update", requireAnimalPermiss
     req.params.entryId,
     req.params.animalId
   );
+  syncVaccinationReminders(req.params.animalId, req.params.entryId);
   setFlash(req, "success", "Impfung aktualisiert.");
   res.redirect(`/animals/${req.params.animalId}`);
 });
 
 app.post("/animals/:animalId/vaccinations/:entryId/delete", requireAnimalPermission("canManageHealth"), (req, res) => {
+  deleteGeneratedReminders("vaccination", req.params.entryId);
   db.prepare("DELETE FROM animal_vaccinations WHERE id = ? AND animal_id = ?").run(req.params.entryId, req.params.animalId);
   setFlash(req, "success", "Impfung gelöscht.");
+  res.redirect(`/animals/${req.params.animalId}`);
+});
+
+app.post("/animals/:id/appointments", requireAnimalPermission("canManageHealth"), (req, res) => {
+  const result = db.prepare(`
+    INSERT INTO animal_appointments (animal_id, title, appointment_at, location_mode, location_text, veterinarian_id, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    req.params.id,
+    req.body.title,
+    req.body.appointment_at,
+    req.body.location_mode || "praxis",
+    req.body.location_text || "",
+    req.body.veterinarian_id || null,
+    req.body.notes || ""
+  );
+  syncAppointmentReminders(req.params.id, result.lastInsertRowid);
+  setFlash(req, "success", "Arzttermin gespeichert.");
+  res.redirect(`/animals/${req.params.id}`);
+});
+
+app.post("/animals/:animalId/appointments/:entryId/update", requireAnimalPermission("canManageHealth"), (req, res) => {
+  db.prepare(`
+    UPDATE animal_appointments
+    SET title = ?, appointment_at = ?, location_mode = ?, location_text = ?, veterinarian_id = ?, notes = ?
+    WHERE id = ? AND animal_id = ?
+  `).run(
+    req.body.title,
+    req.body.appointment_at,
+    req.body.location_mode || "praxis",
+    req.body.location_text || "",
+    req.body.veterinarian_id || null,
+    req.body.notes || "",
+    req.params.entryId,
+    req.params.animalId
+  );
+  syncAppointmentReminders(req.params.animalId, req.params.entryId);
+  setFlash(req, "success", "Arzttermin aktualisiert.");
+  res.redirect(`/animals/${req.params.animalId}`);
+});
+
+app.post("/animals/:animalId/appointments/:entryId/delete", requireAnimalPermission("canManageHealth"), (req, res) => {
+  deleteGeneratedReminders("appointment", req.params.entryId);
+  db.prepare("DELETE FROM animal_appointments WHERE id = ? AND animal_id = ?").run(req.params.entryId, req.params.animalId);
+  setFlash(req, "success", "Arzttermin gelöscht.");
   res.redirect(`/animals/${req.params.animalId}`);
 });
 
@@ -649,6 +821,12 @@ app.post("/animals/:id/profile-image", requireAnimalPermission("canManageGallery
     return res.redirect(`/animals/${req.params.id}`);
   }
 
+  if (!String(req.file.mimetype || "").startsWith("image/")) {
+    fs.unlinkSync(req.file.path);
+    setFlash(req, "error", "Es können nur Bilddateien als Profilbild gespeichert werden.");
+    return res.redirect(`/animals/${req.params.id}`);
+  }
+
   db.prepare(`
     UPDATE animals
     SET profile_image_stored_name = ?,
@@ -658,7 +836,30 @@ app.post("/animals/:id/profile-image", requireAnimalPermission("canManageGallery
     WHERE id = ?
   `).run(req.file.filename, req.file.originalname, req.file.mimetype, req.params.id);
 
+  deleteUploadedFileIfUnreferenced(animal.profile_image_stored_name);
+
   setFlash(req, "success", "Profilbild gespeichert.");
+  res.redirect(`/animals/${req.params.id}`);
+});
+
+app.post("/animals/:id/profile-image/delete", requireAnimalPermission("canManageGallery"), (req, res) => {
+  const animal = findAnimal(req.params.id);
+  if (!animal) {
+    return renderNotFound(req, res, "Tier nicht gefunden.");
+  }
+
+  db.prepare(`
+    UPDATE animals
+    SET profile_image_stored_name = NULL,
+        profile_image_original_name = NULL,
+        profile_image_mime_type = NULL,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).run(req.params.id);
+
+  deleteUploadedFileIfUnreferenced(animal.profile_image_stored_name);
+
+  setFlash(req, "success", "Profilbild entfernt.");
   res.redirect(`/animals/${req.params.id}`);
 });
 
@@ -769,7 +970,11 @@ app.get("/admin/allgemein", requireAdmin, (req, res) => {
 });
 
 app.get("/admin/kommunikation", requireAdmin, (req, res) => {
-  res.render("pages/admin-communication", getAdminViewData("Kommunikation", "/admin/kommunikation"));
+  res.redirect("/admin/benachrichtigungen");
+});
+
+app.get("/admin/benachrichtigungen", requireAdmin, (req, res) => {
+  res.render("pages/admin-communication", getAdminViewData("Benachrichtigungen", "/admin/benachrichtigungen"));
 });
 
 app.get("/admin/stammdaten", requireAdmin, (req, res) => {
@@ -805,6 +1010,15 @@ app.post("/admin/settings", requireAdmin, (req, res) => {
     upsertSetting(db, key, req.body[key] || "");
   });
 
+  if (fields.some((key) =>
+    key.endsWith("_reminder_lead_days") ||
+    key.endsWith("_reminder_repeat_count") ||
+    key === "reminder_email_enabled" ||
+    key === "reminder_telegram_enabled"
+  )) {
+    resyncAllGeneratedReminders();
+  }
+
   setFlash(req, "success", "Einstellungen gespeichert.");
   res.redirect(backTo(req, "/admin/allgemein"));
 });
@@ -817,7 +1031,7 @@ app.post("/admin/test-email", requireAdmin, async (req, res) => {
     setFlash(req, "error", `SMTP-Test fehlgeschlagen: ${error.message}`);
   }
 
-  res.redirect("/admin/kommunikation");
+  res.redirect("/admin/benachrichtigungen");
 });
 
 app.post("/admin/test-telegram", requireAdmin, async (req, res) => {
@@ -828,7 +1042,7 @@ app.post("/admin/test-telegram", requireAdmin, async (req, res) => {
     setFlash(req, "error", `Telegram-Test fehlgeschlagen: ${error.message}`);
   }
 
-  res.redirect("/admin/kommunikation");
+  res.redirect("/admin/benachrichtigungen");
 });
 
 app.post("/admin/categories", requireAdmin, (req, res) => {
@@ -859,9 +1073,18 @@ app.post("/admin/species/:id/delete", requireAdmin, (req, res) => {
 
 app.post("/admin/veterinarians", requireAdmin, (req, res) => {
   db.prepare(`
-    INSERT INTO veterinarians (name, email, phone, notes)
-    VALUES (?, ?, ?, ?)
-  `).run(req.body.name, req.body.email || "", req.body.phone || "", req.body.notes || "");
+    INSERT INTO veterinarians (name, street, postal_code, city, country, email, phone, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    req.body.name,
+    req.body.street || "",
+    req.body.postal_code || "",
+    req.body.city || "",
+    req.body.country || "",
+    req.body.email || "",
+    req.body.phone || "",
+    req.body.notes || ""
+  );
   setFlash(req, "success", "Tierarzt gespeichert.");
   res.redirect(backTo(req, "/admin/stammdaten"));
 });
@@ -935,9 +1158,45 @@ app.post("/admin/users/:id/permissions", requireAdmin, (req, res) => {
   res.redirect("/admin/benutzer");
 });
 
+app.post("/admin/users/:id/update", requireAdmin, (req, res) => {
+  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.params.id);
+  if (!user) {
+    return renderNotFound(req, res, "Benutzer nicht gefunden.");
+  }
+
+  const name = (req.body.name || "").trim();
+  const email = (req.body.email || "").trim().toLowerCase();
+
+  if (!name || !email) {
+    setFlash(req, "error", "Name und E-Mail sind Pflichtfelder.");
+    return res.redirect("/admin/benutzer");
+  }
+
+  const duplicate = db.prepare("SELECT id FROM users WHERE email = ? AND id != ?").get(email, req.params.id);
+  if (duplicate) {
+    setFlash(req, "error", "Diese E-Mail-Adresse wird bereits verwendet.");
+    return res.redirect("/admin/benutzer");
+  }
+
+  db.prepare("UPDATE users SET name = ?, email = ? WHERE id = ?").run(name, email, req.params.id);
+
+  if (String(req.session.user.id) === String(req.params.id)) {
+    req.session.user.name = name;
+    req.session.user.email = email;
+  }
+
+  setFlash(req, "success", "Benutzerdaten aktualisiert.");
+  res.redirect("/admin/benutzer");
+});
+
 app.post("/admin/password", (req, res) => {
   if (!req.session.user) {
     return res.redirect("/login");
+  }
+
+  if (String(req.body.new_password || "") !== String(req.body.new_password_confirm || "")) {
+    setFlash(req, "error", "Die neuen Passwörter stimmen nicht überein.");
+    return res.redirect("/admin/benutzer");
   }
 
   const currentUser = db.prepare("SELECT * FROM users WHERE id = ?").get(req.session.user.id);
@@ -992,21 +1251,41 @@ app.post("/admin/import", requireAdmin, importUpload.single("import_file"), (req
 
     const animalId = result.lastInsertRowid;
     const tx = db.transaction(() => {
+      const importedMedicationIds = [];
+      const importedVaccinationIds = [];
+      const importedAppointmentIds = [];
       (related.conditions || []).forEach((item) => {
         db.prepare("INSERT INTO animal_conditions (animal_id, title, details) VALUES (?, ?, ?)")
           .run(animalId, item.title, item.details || "");
       });
       (related.medications || []).forEach((item) => {
-        db.prepare(`
+        const inserted = db.prepare(`
           INSERT INTO animal_medications (animal_id, name, dosage, schedule, start_date, end_date, notes)
           VALUES (?, ?, ?, ?, ?, ?, ?)
         `).run(animalId, item.name, item.dosage || "", item.schedule || "", item.start_date || null, item.end_date || null, item.notes || "");
+        importedMedicationIds.push(inserted.lastInsertRowid);
       });
       (related.vaccinations || []).forEach((item) => {
-        db.prepare(`
+        const inserted = db.prepare(`
           INSERT INTO animal_vaccinations (animal_id, name, vaccination_date, next_due_date, notes)
           VALUES (?, ?, ?, ?, ?)
         `).run(animalId, item.name, item.vaccination_date || null, item.next_due_date || null, item.notes || "");
+        importedVaccinationIds.push(inserted.lastInsertRowid);
+      });
+      (related.appointments || []).forEach((item) => {
+        const inserted = db.prepare(`
+          INSERT INTO animal_appointments (animal_id, title, appointment_at, location_mode, location_text, veterinarian_id, notes)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          animalId,
+          item.title,
+          item.appointment_at,
+          item.location_mode || "praxis",
+          item.location_text || "",
+          null,
+          item.notes || ""
+        );
+        importedAppointmentIds.push(inserted.lastInsertRowid);
       });
       (related.feedings || []).forEach((item) => {
         db.prepare(`
@@ -1055,13 +1334,13 @@ app.post("/admin/import", requireAdmin, importUpload.single("import_file"), (req
           storedFile.file_size || 0
         );
       });
-      (related.reminders || []).forEach((item) => {
+      (related.reminders || []).filter((item) => !item.source_kind).forEach((item) => {
         db.prepare(`
           INSERT INTO reminders (
             animal_id, title, reminder_type, due_at, channel_email, channel_telegram, repeat_interval_days, notes,
-            completed_at, last_notified_at, last_delivery_status, last_delivery_error
+            completed_at, last_notified_at, last_delivery_status, last_delivery_error, source_kind, source_id, source_index
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
           animalId,
           item.title,
@@ -1074,9 +1353,16 @@ app.post("/admin/import", requireAdmin, importUpload.single("import_file"), (req
           item.completed_at || null,
           item.last_notified_at || null,
           item.last_delivery_status || "pending",
-          item.last_delivery_error || ""
+          item.last_delivery_error || "",
+          null,
+          null,
+          item.source_index || 0
         );
       });
+
+      importedMedicationIds.forEach((id) => syncMedicationReminders(animalId, id));
+      importedVaccinationIds.forEach((id) => syncVaccinationReminders(animalId, id));
+      importedAppointmentIds.forEach((id) => syncAppointmentReminders(animalId, id));
     });
 
     tx();
@@ -1164,7 +1450,7 @@ const port = Number(process.env.PORT || 3000);
 if (require.main === module) {
   app.listen(port, "0.0.0.0", () => {
     console.log(`HeartPet läuft auf http://127.0.0.1:${port}`);
-    console.log("Standard-Login: admin@heartpet.local / admin123!");
+    console.log("Wenn dies eine neue Installation ist, starte mit /setup.");
   });
 }
 
@@ -1173,6 +1459,10 @@ function requireAuth(req, res, next) {
     return res.redirect("/login");
   }
   next();
+}
+
+function isSetupComplete() {
+  return getSettingsObject(db).setup_complete === "true";
 }
 
 function requireAdmin(req, res, next) {
@@ -1213,6 +1503,10 @@ function findAnimal(id) {
       animals.*,
       species.name AS species_name,
       veterinarians.name AS veterinarian_name,
+      veterinarians.street AS veterinarian_street,
+      veterinarians.postal_code AS veterinarian_postal_code,
+      veterinarians.city AS veterinarian_city,
+      veterinarians.country AS veterinarian_country,
       species_vet.name AS species_veterinarian_name
     FROM animals
     LEFT JOIN species ON species.id = animals.species_id
@@ -1227,6 +1521,13 @@ function getAnimalRelatedData(animalId) {
     conditions: db.prepare("SELECT * FROM animal_conditions WHERE animal_id = ? ORDER BY created_at DESC").all(animalId),
     medications: db.prepare("SELECT * FROM animal_medications WHERE animal_id = ? ORDER BY created_at DESC").all(animalId),
     vaccinations: db.prepare("SELECT * FROM animal_vaccinations WHERE animal_id = ? ORDER BY next_due_date ASC").all(animalId),
+    appointments: db.prepare(`
+      SELECT animal_appointments.*, veterinarians.name AS veterinarian_name
+      FROM animal_appointments
+      LEFT JOIN veterinarians ON veterinarians.id = animal_appointments.veterinarian_id
+      WHERE animal_appointments.animal_id = ?
+      ORDER BY animal_appointments.appointment_at ASC
+    `).all(animalId),
     feedings: db.prepare("SELECT * FROM animal_feedings WHERE animal_id = ? ORDER BY time_of_day ASC").all(animalId),
     notes: db.prepare("SELECT * FROM animal_notes WHERE animal_id = ? ORDER BY created_at DESC").all(animalId),
     reminders: db.prepare("SELECT * FROM reminders WHERE animal_id = ? ORDER BY due_at ASC").all(animalId),
@@ -1336,6 +1637,173 @@ function parsePositiveInteger(value) {
     return 0;
   }
   return parsed;
+}
+
+function parseReminderBaseDate(value, defaultTime = "09:00") {
+  if (!value) {
+    return null;
+  }
+
+  if (String(value).includes("T")) {
+    return dayjs(value);
+  }
+
+  return dayjs(`${value}T${defaultTime}`);
+}
+
+function getNotificationChannelDefaults() {
+  const settings = getSettingsObject(db);
+  return {
+    channelEmail: settings.reminder_email_enabled === "true" ? 1 : 0,
+    channelTelegram: settings.reminder_telegram_enabled === "true" ? 1 : 0,
+  };
+}
+
+function buildGeneratedReminderRows({ animalId, sourceKind, sourceId, title, reminderType, baseDate, notes, leadDays, repeatCount }) {
+  if (!baseDate || !baseDate.isValid()) {
+    return [];
+  }
+
+  const channels = getNotificationChannelDefaults();
+  const requestedCount = Math.max(parsePositiveInteger(repeatCount), 0);
+  if (requestedCount === 0) {
+    return [];
+  }
+
+  const lead = parsePositiveInteger(leadDays);
+  const effectiveCount = lead === 0 ? 1 : Math.min(requestedCount, lead + 1);
+  return Array.from({ length: effectiveCount }, (_, index) => {
+    const offsetDays = lead - index;
+    return {
+      animal_id: animalId,
+      title,
+      reminder_type: reminderType,
+      due_at: baseDate.subtract(offsetDays, "day").format("YYYY-MM-DDTHH:mm"),
+      channel_email: channels.channelEmail,
+      channel_telegram: channels.channelTelegram,
+      repeat_interval_days: 0,
+      notes: notes || "",
+      source_kind: sourceKind,
+      source_id: sourceId,
+      source_index: index,
+    };
+  });
+}
+
+function replaceGeneratedReminders(sourceKind, sourceId, rows) {
+  const tx = db.transaction(() => {
+    db.prepare("DELETE FROM reminders WHERE source_kind = ? AND source_id = ?").run(sourceKind, sourceId);
+    const insertReminder = db.prepare(`
+      INSERT INTO reminders (
+        animal_id, title, reminder_type, due_at, channel_email, channel_telegram, repeat_interval_days, notes,
+        last_delivery_status, last_delivery_error, source_kind, source_id, source_index
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', '', ?, ?, ?)
+    `);
+    rows.forEach((row) => {
+      insertReminder.run(
+        row.animal_id,
+        row.title,
+        row.reminder_type,
+        row.due_at,
+        row.channel_email,
+        row.channel_telegram,
+        row.repeat_interval_days,
+        row.notes,
+        row.source_kind,
+        row.source_id,
+        row.source_index
+      );
+    });
+  });
+
+  tx();
+}
+
+function deleteGeneratedReminders(sourceKind, sourceId) {
+  db.prepare("DELETE FROM reminders WHERE source_kind = ? AND source_id = ?").run(sourceKind, sourceId);
+}
+
+function syncMedicationReminders(animalId, medicationId) {
+  const item = db.prepare("SELECT * FROM animal_medications WHERE id = ? AND animal_id = ?").get(medicationId, animalId);
+  if (!item) {
+    deleteGeneratedReminders("medication", medicationId);
+    return;
+  }
+
+  const settings = getSettingsObject(db);
+  const rows = buildGeneratedReminderRows({
+    animalId,
+    sourceKind: "medication",
+    sourceId: item.id,
+    title: `Medikamentengabe: ${item.name}`,
+    reminderType: "Medikament",
+    baseDate: parseReminderBaseDate(item.start_date, "08:00"),
+    notes: [item.dosage ? `Dosis: ${item.dosage}` : "", item.schedule ? `Plan: ${item.schedule}` : "", item.notes || ""]
+      .filter(Boolean)
+      .join(" | "),
+    leadDays: settings.medication_reminder_lead_days,
+    repeatCount: settings.medication_reminder_repeat_count,
+  });
+  replaceGeneratedReminders("medication", item.id, rows);
+}
+
+function syncVaccinationReminders(animalId, vaccinationId) {
+  const item = db.prepare("SELECT * FROM animal_vaccinations WHERE id = ? AND animal_id = ?").get(vaccinationId, animalId);
+  if (!item) {
+    deleteGeneratedReminders("vaccination", vaccinationId);
+    return;
+  }
+
+  const settings = getSettingsObject(db);
+  const rows = buildGeneratedReminderRows({
+    animalId,
+    sourceKind: "vaccination",
+    sourceId: item.id,
+    title: `Impftermin: ${item.name}`,
+    reminderType: "Impfung",
+    baseDate: parseReminderBaseDate(item.next_due_date, "09:00"),
+    notes: item.notes || "",
+    leadDays: settings.vaccination_reminder_lead_days,
+    repeatCount: settings.vaccination_reminder_repeat_count,
+  });
+  replaceGeneratedReminders("vaccination", item.id, rows);
+}
+
+function syncAppointmentReminders(animalId, appointmentId) {
+  const item = db.prepare(`
+    SELECT animal_appointments.*, veterinarians.name AS veterinarian_name
+    FROM animal_appointments
+    LEFT JOIN veterinarians ON veterinarians.id = animal_appointments.veterinarian_id
+    WHERE animal_appointments.id = ? AND animal_appointments.animal_id = ?
+  `).get(appointmentId, animalId);
+  if (!item) {
+    deleteGeneratedReminders("appointment", appointmentId);
+    return;
+  }
+
+  const settings = getSettingsObject(db);
+  const locationLabel = item.location_mode === "vor_ort" ? "Tierarzt kommt vor Ort" : "Tier wird zur Praxis gebracht";
+  const rows = buildGeneratedReminderRows({
+    animalId,
+    sourceKind: "appointment",
+    sourceId: item.id,
+    title: `Arzttermin: ${item.title}`,
+    reminderType: "Arzttermin",
+    baseDate: parseReminderBaseDate(item.appointment_at, "09:00"),
+    notes: [locationLabel, item.location_text ? `Ort: ${item.location_text}` : "", item.veterinarian_name ? `Tierarzt: ${item.veterinarian_name}` : "", item.notes || ""]
+      .filter(Boolean)
+      .join(" | "),
+    leadDays: settings.appointment_reminder_lead_days,
+    repeatCount: settings.appointment_reminder_repeat_count,
+  });
+  replaceGeneratedReminders("appointment", item.id, rows);
+}
+
+function resyncAllGeneratedReminders() {
+  db.prepare("SELECT id, animal_id FROM animal_medications").all().forEach((item) => syncMedicationReminders(item.animal_id, item.id));
+  db.prepare("SELECT id, animal_id FROM animal_vaccinations").all().forEach((item) => syncVaccinationReminders(item.animal_id, item.id));
+  db.prepare("SELECT id, animal_id FROM animal_appointments").all().forEach((item) => syncAppointmentReminders(item.animal_id, item.id));
 }
 
 function getRoleLabel(role) {
@@ -1463,6 +1931,26 @@ function restoreEmbeddedFile(embeddedFile) {
     mime_type: embeddedFile.mime_type || "",
     file_size: buffer.length,
   };
+}
+
+function deleteUploadedFileIfUnreferenced(storedName) {
+  if (!storedName) {
+    return;
+  }
+
+  const referenceCount =
+    db.prepare("SELECT COUNT(*) AS count FROM animals WHERE profile_image_stored_name = ?").get(storedName).count +
+    db.prepare("SELECT COUNT(*) AS count FROM animal_images WHERE stored_name = ?").get(storedName).count +
+    db.prepare("SELECT COUNT(*) AS count FROM documents WHERE stored_name = ?").get(storedName).count;
+
+  if (referenceCount > 0) {
+    return;
+  }
+
+  const fullPath = path.join(process.cwd(), "data", "uploads", storedName);
+  if (fs.existsSync(fullPath)) {
+    fs.unlinkSync(fullPath);
+  }
 }
 
 function normalizeUserPermissions(role, body = {}) {

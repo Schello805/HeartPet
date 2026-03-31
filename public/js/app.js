@@ -107,6 +107,24 @@ window.addEventListener("load", () => {
   });
 });
 
+window.addEventListener("load", () => {
+  document.querySelectorAll(".profile-upload-input").forEach((input) => {
+    input.addEventListener("change", () => {
+      if (!input.files || input.files.length === 0) {
+        return;
+      }
+
+      const form = input.closest("form");
+      const trigger = form?.querySelector(".profile-upload-trigger");
+      if (trigger) {
+        trigger.textContent = "Bild wird hochgeladen...";
+      }
+
+      form?.requestSubmit();
+    });
+  });
+});
+
 function resetCustomValidation(form) {
   form.querySelectorAll("input, select, textarea").forEach((field) => {
     field.setCustomValidity("");
@@ -114,8 +132,8 @@ function resetCustomValidation(form) {
 }
 
 function validateDateRelations(form) {
-  const birthDate = form.querySelector('input[name="birth_date"]');
-  const intakeDate = form.querySelector('input[name="intake_date"]');
+  const birthDate = form.querySelector('input[name="birth_date"], input[name="animal_birth_date"]');
+  const intakeDate = form.querySelector('input[name="intake_date"], input[name="animal_intake_date"]');
   if (birthDate && intakeDate && birthDate.value && intakeDate.value && birthDate.value > intakeDate.value) {
     intakeDate.setCustomValidity("Das Aufnahmedatum darf nicht vor dem Geburtsdatum liegen.");
     return intakeDate;
@@ -133,6 +151,21 @@ function validateDateRelations(form) {
   if (vaccinationDate && nextDueDate && vaccinationDate.value && nextDueDate.value && vaccinationDate.value > nextDueDate.value) {
     nextDueDate.setCustomValidity("Die nächste Fälligkeit darf nicht vor dem Impfdatum liegen.");
     return nextDueDate;
+  }
+
+  return null;
+}
+
+function validatePasswordConfirmation(form) {
+  const password = form.querySelector('input[name="new_password"]');
+  const confirmation = form.querySelector('input[name="new_password_confirm"]');
+  if (!password || !confirmation) {
+    return null;
+  }
+
+  if (password.value && confirmation.value && password.value !== confirmation.value) {
+    confirmation.setCustomValidity("Die neuen Passwörter stimmen nicht überein.");
+    return confirmation;
   }
 
   return null;
@@ -157,7 +190,7 @@ function applyGermanValidationMessages(form) {
     }
   }
 
-  return validateDateRelations(form);
+  return validatePasswordConfirmation(form) || validateDateRelations(form);
 }
 
 document.addEventListener("click", (event) => {

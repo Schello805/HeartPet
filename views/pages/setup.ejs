@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= pageTitle %> | HeartPet</title>
+    <link rel="stylesheet" href="/static/css/app.css" />
+  </head>
+  <body class="login-body">
+    <section class="login-panel setup-panel card">
+      <div class="brand-lockup">
+        <img class="brand-logo brand-logo-login" src="/static/images/logo-heartpet.png" alt="HeartPet Logo" />
+        <div>
+          <h1>HeartPet einrichten</h1>
+          <p>Lege zuerst den Administrator, einen Tierarzt und das erste Tier an. Danach landest du direkt in der normalen Oberfläche.</p>
+        </div>
+      </div>
+
+      <% if (flash) { %>
+        <div class="flash flash-<%= flash.type %>"><%= flash.message %></div>
+      <% } %>
+
+      <form method="post" action="/setup" class="stack">
+        <details class="accordion-item" open>
+          <summary>1. Administrator</summary>
+          <div class="accordion-content">
+            <div class="form-grid">
+              <label>
+                <span>Name</span>
+                <input type="text" name="admin_name" required />
+              </label>
+              <label>
+                <span>E-Mail</span>
+                <input type="email" name="admin_email" required />
+              </label>
+              <label class="full-width">
+                <span>Passwort</span>
+                <input type="password" name="admin_password" required minlength="8" />
+              </label>
+              <label class="full-width">
+                <span>Name der Haltung / Organisation</span>
+                <input type="text" name="organization_name" placeholder="optional" />
+              </label>
+            </div>
+          </div>
+        </details>
+
+        <details class="accordion-item" open>
+          <summary>2. Tierarzt</summary>
+          <div class="accordion-content">
+            <div class="form-grid">
+              <label class="full-width">
+                <span>Name</span>
+                <input type="text" name="veterinarian_name" required />
+              </label>
+              <label class="full-width">
+                <span>Straße</span>
+                <input type="text" name="veterinarian_street" />
+              </label>
+              <label>
+                <span>PLZ</span>
+                <input type="text" name="veterinarian_postal_code" />
+              </label>
+              <label>
+                <span>Ort</span>
+                <input type="text" name="veterinarian_city" />
+              </label>
+              <label>
+                <span>Land</span>
+                <input type="text" name="veterinarian_country" value="Deutschland" />
+              </label>
+              <label>
+                <span>Telefon</span>
+                <input type="text" name="veterinarian_phone" />
+              </label>
+              <label class="full-width">
+                <span>E-Mail</span>
+                <input type="email" name="veterinarian_email" />
+              </label>
+            </div>
+          </div>
+        </details>
+
+        <details class="accordion-item" open>
+          <summary>3. Erstes Tier</summary>
+          <div class="accordion-content">
+            <div class="form-grid">
+              <label>
+                <span>Name</span>
+                <input type="text" name="animal_name" required />
+              </label>
+              <label>
+                <span>Tierart</span>
+                <input type="text" name="species_name" list="setup-species-options" required />
+              </label>
+              <label>
+                <span>Geschlecht</span>
+                <select name="animal_sex">
+                  <option value="">Bitte wählen</option>
+                  <option value="Weiblich">Weiblich</option>
+                  <option value="Männlich">Männlich</option>
+                  <option value="Unbekannt">Unbekannt</option>
+                </select>
+              </label>
+              <label>
+                <span>Aufnahmedatum</span>
+                <input type="date" name="animal_intake_date" />
+              </label>
+              <label>
+                <span>Geburtsdatum</span>
+                <input type="date" name="animal_birth_date" />
+              </label>
+              <label>
+                <span>Herkunft</span>
+                <input type="text" name="animal_source" />
+              </label>
+            </div>
+            <datalist id="setup-species-options">
+              <% species.forEach((item) => { %>
+                <option value="<%= item.name %>"></option>
+              <% }) %>
+            </datalist>
+          </div>
+        </details>
+
+        <button type="submit" class="button button-full">Ersteinrichtung abschließen</button>
+      </form>
+    </section>
+    <script src="/static/js/app.js"></script>
+  </body>
+</html>

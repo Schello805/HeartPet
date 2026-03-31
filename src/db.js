@@ -1,7 +1,6 @@
 const fs = require("fs");
 const path = require("path");
 const Database = require("better-sqlite3");
-const bcrypt = require("bcryptjs");
 
 const dataDir = path.join(process.cwd(), "data");
 const databaseFile = path.join(dataDir, "heartpet.sqlite");
@@ -44,6 +43,10 @@ function initDatabase() {
     CREATE TABLE IF NOT EXISTS veterinarians (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
+      street TEXT,
+      postal_code TEXT,
+      city TEXT,
+      country TEXT,
       email TEXT,
       phone TEXT,
       notes TEXT,
@@ -111,6 +114,20 @@ function initDatabase() {
       notes TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(animal_id) REFERENCES animals(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS animal_appointments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      animal_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      appointment_at TEXT NOT NULL,
+      location_mode TEXT NOT NULL DEFAULT 'praxis',
+      location_text TEXT,
+      veterinarian_id INTEGER,
+      notes TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(animal_id) REFERENCES animals(id) ON DELETE CASCADE,
+      FOREIGN KEY(veterinarian_id) REFERENCES veterinarians(id) ON DELETE SET NULL
     );
 
     CREATE TABLE IF NOT EXISTS animal_feedings (
@@ -181,6 +198,9 @@ function initDatabase() {
       last_notified_at TEXT,
       last_delivery_status TEXT,
       last_delivery_error TEXT,
+      source_kind TEXT,
+      source_id INTEGER,
+      source_index INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(animal_id) REFERENCES animals(id) ON DELETE SET NULL
     );
@@ -193,6 +213,9 @@ function initDatabase() {
   ensureColumn(db, "reminders", "repeat_interval_days", "INTEGER NOT NULL DEFAULT 0");
   ensureColumn(db, "reminders", "last_delivery_status", "TEXT");
   ensureColumn(db, "reminders", "last_delivery_error", "TEXT");
+  ensureColumn(db, "reminders", "source_kind", "TEXT");
+  ensureColumn(db, "reminders", "source_id", "INTEGER");
+  ensureColumn(db, "reminders", "source_index", "INTEGER NOT NULL DEFAULT 0");
   ensureColumn(db, "users", "can_edit_animals", "INTEGER NOT NULL DEFAULT 1");
   ensureColumn(db, "users", "can_manage_documents", "INTEGER NOT NULL DEFAULT 1");
   ensureColumn(db, "users", "can_manage_gallery", "INTEGER NOT NULL DEFAULT 1");
@@ -200,6 +223,10 @@ function initDatabase() {
   ensureColumn(db, "users", "can_manage_feedings", "INTEGER NOT NULL DEFAULT 1");
   ensureColumn(db, "users", "can_manage_notes", "INTEGER NOT NULL DEFAULT 1");
   ensureColumn(db, "users", "can_manage_reminders", "INTEGER NOT NULL DEFAULT 1");
+  ensureColumn(db, "veterinarians", "street", "TEXT");
+  ensureColumn(db, "veterinarians", "postal_code", "TEXT");
+  ensureColumn(db, "veterinarians", "city", "TEXT");
+  ensureColumn(db, "veterinarians", "country", "TEXT");
 
   seedDefaults(db);
   return db;
@@ -222,12 +249,103 @@ function seedDefaults(db) {
     reminder_email_enabled: "false",
     reminder_telegram_enabled: "false",
     browser_notifications_enabled: "true",
-    help_contact: "",
-    legal_contact_email: "",
-    imprint_text: "Bitte Impressum im Adminbereich pflegen.",
-    privacy_text: "Bitte Datenschutzerklärung im Adminbereich pflegen.",
-    contact_text: "Bitte Kontaktinformationen im Adminbereich pflegen.",
-    cookies_text: "Bitte Cookie-Hinweise im Adminbereich pflegen.",
+    medication_reminder_lead_days: "0",
+    medication_reminder_repeat_count: "0",
+    vaccination_reminder_lead_days: "30",
+    vaccination_reminder_repeat_count: "1",
+    appointment_reminder_lead_days: "1",
+    appointment_reminder_repeat_count: "1",
+    help_contact: "Support-Kontakt: [Name / Organisation], [E-Mail], [Telefon optional]",
+    legal_contact_email: "[recht@beispiel.de]",
+    imprint_text: [
+      "Wichtiger Hinweis: Dieser Text ist nur eine allgemeine Vorlage, nicht vollständig und nicht rechtssicher. Bitte vor produktivem Einsatz rechtlich prüfen lassen.",
+      "",
+      "Angaben gemäß § 5 TMG",
+      "[Name der verantwortlichen Person oder Organisation]",
+      "[Straße und Hausnummer]",
+      "[PLZ Ort]",
+      "[Land]",
+      "",
+      "Kontakt",
+      "E-Mail: [recht@beispiel.de]",
+      "Telefon: [Telefonnummer optional]",
+      "",
+      "Verantwortlich für den Inhalt",
+      "[Name der verantwortlichen Person]",
+      "[Anschrift, falls abweichend]",
+      "",
+      "Projekt-Hinweis",
+      "HeartPet ist eine selbst gehostete Webanwendung zur Verwaltung von Tierakten. Je nach Art des Betriebs, des Angebots und der Veröffentlichung können weitere Pflichtangaben erforderlich sein.",
+    ].join("\n"),
+    privacy_text: [
+      "Wichtiger Hinweis: Dieser Text ist nur eine allgemeine Vorlage, nicht vollständig und nicht rechtssicher. Bitte vor produktivem Einsatz rechtlich prüfen lassen.",
+      "",
+      "Datenschutzerklärung",
+      "",
+      "1. Allgemeine Hinweise",
+      "Diese Webanwendung verarbeitet personenbezogene Daten nur in dem Umfang, der für den Betrieb, die Anmeldung und die Nutzung von HeartPet erforderlich ist.",
+      "",
+      "2. Verantwortliche Stelle",
+      "[Name / Organisation]",
+      "[Anschrift]",
+      "E-Mail: [recht@beispiel.de]",
+      "",
+      "3. Verarbeitete Daten",
+      "- Benutzerkonten und Anmeldedaten",
+      "- Session-Daten zur Anmeldung",
+      "- eingegebene Tierdaten, Dokumente und Bilder",
+      "- Kommunikationsdaten für SMTP und optional Telegram",
+      "- technische Server- und Protokolldaten, soweit für den Betrieb erforderlich",
+      "",
+      "4. Zweck der Verarbeitung",
+      "Die Verarbeitung erfolgt zum Betrieb der Anwendung, zur Verwaltung von Tierakten, zur Dokumentation und für Erinnerungsfunktionen.",
+      "",
+      "5. Rechtsgrundlagen",
+      "Je nach Nutzung kommen insbesondere Art. 6 Abs. 1 lit. b DSGVO, Art. 6 Abs. 1 lit. c DSGVO und Art. 6 Abs. 1 lit. f DSGVO in Betracht.",
+      "",
+      "6. Speicherort und Hosting",
+      "HeartPet speichert Daten lokal auf dem eingesetzten Server. Uploads, Datenbankinhalte und Exporte verbleiben grundsätzlich in der eigenen Hosting-Umgebung.",
+      "",
+      "7. Empfänger / Drittanbieter",
+      "Bei Nutzung der E-Mail-Funktion werden Daten an den konfigurierten SMTP-Dienst übermittelt. Bei Nutzung von Telegram werden Daten an Telegram übermittelt.",
+      "",
+      "8. Speicherdauer",
+      "Daten werden so lange gespeichert, wie sie für die Nutzung, Dokumentation oder rechtliche Nachweise benötigt werden oder bis sie gelöscht werden.",
+      "",
+      "9. Betroffenenrechte",
+      "Betroffene Personen haben im Rahmen der gesetzlichen Vorschriften insbesondere Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung und Beschwerde bei einer Aufsichtsbehörde.",
+      "",
+      "10. Sicherheit",
+      "Es sollten geeignete technische und organisatorische Maßnahmen umgesetzt werden, insbesondere Zugriffsschutz, Backups, sichere Passwörter und ein abgesicherter Serverbetrieb.",
+    ].join("\n"),
+    contact_text: [
+      "Wichtiger Hinweis: Dieser Text ist nur eine allgemeine Vorlage, nicht vollständig und nicht rechtssicher. Bitte vor produktivem Einsatz rechtlich prüfen lassen.",
+      "",
+      "Kontakt",
+      "",
+      "Bei Fragen zu HeartPet oder zum Betrieb dieser Instanz:",
+      "",
+      "Name / Organisation: [Bitte eintragen]",
+      "E-Mail: [kontakt@beispiel.de]",
+      "Telefon: [optional]",
+      "",
+      "Technischer Hinweis",
+      "Bitte keine sensiblen Unterlagen unverschlüsselt per E-Mail versenden, wenn dies vermeidbar ist.",
+    ].join("\n"),
+    cookies_text: [
+      "Wichtiger Hinweis: Dieser Text ist nur eine allgemeine Vorlage, nicht vollständig und nicht rechtssicher. Bitte vor produktivem Einsatz rechtlich prüfen lassen.",
+      "",
+      "Cookie- und Session-Hinweise",
+      "",
+      "HeartPet verwendet technisch notwendige Session-Daten, damit Anmeldungen und geschützte Bereiche funktionieren.",
+      "",
+      "Aktuell sind in dieser Vorlage keine Marketing-, Tracking- oder Analyse-Cookies beschrieben. Falls solche Dienste später eingesetzt werden, muss dieser Hinweis angepasst und rechtlich geprüft werden.",
+      "",
+      "Technisch notwendige Funktionen können insbesondere umfassen:",
+      "- Anmeldung und Sitzungsverwaltung",
+      "- Schutz interner Bereiche vor unbefugtem Zugriff",
+      "- sichere Formular- und Benutzerinteraktion",
+    ].join("\n"),
   };
 
   const insertSetting = db.prepare(`
@@ -241,12 +359,8 @@ function seedDefaults(db) {
 
   if (db.prepare("SELECT COUNT(*) AS count FROM document_categories").get().count === 0) {
     const categories = [
-      "Impfnachweis",
-      "Arztbrief",
-      "Laborbefund",
-      "Kaufvertrag",
-      "Abgabeprotokoll",
-      "Foto",
+      "Impfbescheinigung",
+      "Vertrag",
       "Sonstiges",
     ];
     const insertCategory = db.prepare("INSERT INTO document_categories (name) VALUES (?)");
@@ -259,7 +373,6 @@ function seedDefaults(db) {
     "Katze",
     "Koi",
     "Goldfisch",
-    "Aquariumfisch",
     "Huhn",
     "Ente",
     "Gans",
@@ -303,21 +416,10 @@ function seedDefaults(db) {
   const tx = db.transaction((items) => items.forEach((name) => insertSpecies.run(name)));
   tx(species);
 
-  if (db.prepare("SELECT COUNT(*) AS count FROM veterinarians").get().count === 0) {
-    db.prepare(`
-      INSERT INTO veterinarians (name, email, phone, notes)
-      VALUES (?, ?, ?, ?)
-    `).run("Standard Tierarzt", "", "", "Kann in den Admin-Einstellungen angepasst oder ersetzt werden.");
+  if (!db.prepare("SELECT 1 FROM settings WHERE key = ?").get("setup_complete")) {
+    const hasUsers = db.prepare("SELECT COUNT(*) AS count FROM users").get().count > 0;
+    upsertSetting(db, "setup_complete", hasUsers ? "true" : "false");
   }
-
-  if (db.prepare("SELECT COUNT(*) AS count FROM users").get().count === 0) {
-    const passwordHash = bcrypt.hashSync("admin123!", 10);
-    db.prepare(`
-      INSERT INTO users (name, email, password_hash, role, must_change_password)
-      VALUES (?, ?, ?, ?, ?)
-    `).run("Administrator", "admin@heartpet.local", passwordHash, "admin", 1);
-  }
-
 }
 
 function getSettingsObject(db) {

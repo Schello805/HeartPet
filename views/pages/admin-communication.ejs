@@ -2,7 +2,7 @@
 
 <section class="accordion-stack">
   <details class="accordion-item" open>
-    <summary>E-Mail und Erinnerungen</summary>
+    <summary>E-Mail und allgemeine Benachrichtigungen</summary>
     <div class="accordion-content">
       <form method="post" action="/admin/settings" class="form-grid">
         <input type="hidden" name="_fields" value="smtp_host,smtp_port,smtp_user,smtp_password,smtp_from,notification_email_to,smtp_secure,reminder_email_enabled,browser_notifications_enabled" />
@@ -55,6 +55,45 @@
           <button type="submit" class="button button-secondary">SMTP-Testmail senden</button>
         </form>
       </div>
+    </div>
+  </details>
+
+  <details class="accordion-item">
+    <summary>Automatische Erinnerungsregeln</summary>
+    <div class="accordion-content">
+      <form method="post" action="/admin/settings" class="form-grid">
+        <input type="hidden" name="_fields" value="medication_reminder_lead_days,medication_reminder_repeat_count,vaccination_reminder_lead_days,vaccination_reminder_repeat_count,appointment_reminder_lead_days,appointment_reminder_repeat_count" />
+        <label>
+          <span>Medikamente: Tage vorher</span>
+          <input type="number" min="0" step="1" name="medication_reminder_lead_days" value="<%= settings.medication_reminder_lead_days || '0' %>" />
+        </label>
+        <label>
+          <span>Medikamente: Anzahl Erinnerungen</span>
+          <input type="number" min="0" step="1" name="medication_reminder_repeat_count" value="<%= settings.medication_reminder_repeat_count || '0' %>" />
+        </label>
+        <label>
+          <span>Impfungen: Tage vorher</span>
+          <input type="number" min="0" step="1" name="vaccination_reminder_lead_days" value="<%= settings.vaccination_reminder_lead_days || '30' %>" />
+        </label>
+        <label>
+          <span>Impfungen: Anzahl Erinnerungen</span>
+          <input type="number" min="0" step="1" name="vaccination_reminder_repeat_count" value="<%= settings.vaccination_reminder_repeat_count || '1' %>" />
+        </label>
+        <label>
+          <span>Arzttermine: Tage vorher</span>
+          <input type="number" min="0" step="1" name="appointment_reminder_lead_days" value="<%= settings.appointment_reminder_lead_days || '1' %>" />
+        </label>
+        <label>
+          <span>Arzttermine: Anzahl Erinnerungen</span>
+          <input type="number" min="0" step="1" name="appointment_reminder_repeat_count" value="<%= settings.appointment_reminder_repeat_count || '1' %>" />
+        </label>
+        <div class="full-width note-box">
+          Die Anzahl steuert, wie viele Erinnerungen automatisch erzeugt werden. Bei mehreren Erinnerungen wird ab dem Vorlauf täglich erinnert.
+        </div>
+        <div class="full-width form-actions">
+          <button type="submit" class="button">Erinnerungsregeln speichern</button>
+        </div>
+      </form>
     </div>
   </details>
 

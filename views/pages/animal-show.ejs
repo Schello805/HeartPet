@@ -2,11 +2,30 @@
 
 <section class="hero-card">
   <div class="animal-hero-profile">
-    <% if (animal.profile_image_stored_name) { %>
-      <img class="animal-profile-image" src="/media/<%= animal.profile_image_stored_name %>" alt="Profilbild von <%= animal.name %>" />
-    <% } else { %>
-      <div class="animal-profile-image animal-profile-fallback"><%= getAnimalInitial(animal.name) %></div>
-    <% } %>
+    <div class="profile-image-panel">
+      <div class="profile-image-frame">
+        <% if (animal.profile_image_stored_name) { %>
+          <img class="animal-profile-image" src="/media/<%= animal.profile_image_stored_name %>" alt="Profilbild von <%= animal.name %>" />
+        <% } else { %>
+          <div class="animal-profile-image animal-profile-fallback"><%= getAnimalInitial(animal.name) %></div>
+        <% } %>
+        <% if (permissions.canManageGallery) { %>
+          <form method="post" action="/animals/<%= animal.id %>/profile-image" enctype="multipart/form-data" class="profile-image-overlay-form">
+            <input id="profile-upload-<%= animal.id %>" class="visually-hidden profile-upload-input" type="file" name="profile_image" accept="image/*" required />
+            <label for="profile-upload-<%= animal.id %>" class="profile-upload-trigger">
+              <%= animal.profile_image_stored_name ? 'Profilbild ändern' : 'Profilbild hochladen' %>
+            </label>
+          </form>
+          <% if (animal.profile_image_stored_name) { %>
+            <button type="submit" class="profile-delete-button" form="profile-image-delete-<%= animal.id %>" aria-label="Profilbild löschen" title="Profilbild löschen">🗑</button>
+            <form method="post" action="/animals/<%= animal.id %>/profile-image/delete" id="profile-image-delete-<%= animal.id %>" class="hidden-form" data-confirm="Profilbild wirklich löschen?"></form>
+          <% } %>
+        <% } %>
+      </div>
+      <% if (permissions.canManageGallery) { %>
+        <p class="profile-image-hint"><%= animal.profile_image_stored_name ? 'Bild anklicken, um es zu ersetzen.' : 'Lade hier direkt das Profilbild hoch.' %></p>
+      <% } %>
+    </div>
   </div>
   <div>
     <p class="eyebrow"><%= animal.species_name || 'Tier' %></p>
@@ -19,6 +38,11 @@
     <p class="hero-copy">
       Tierarzt: <strong><%= animal.veterinarian_name || animal.species_veterinarian_name || '-' %></strong>
     </p>
+    <% if (animal.veterinarian_name && (animal.veterinarian_street || animal.veterinarian_city || animal.veterinarian_country)) { %>
+      <p class="hero-copy">
+        Adresse: <strong><%= [animal.veterinarian_street, animal.veterinarian_postal_code, animal.veterinarian_city, animal.veterinarian_country].filter(Boolean).join(', ') %></strong>
+      </p>
+    <% } %>
   </div>
   <div class="hero-actions">
     <% if (permissions.canEditAnimals) { %>
@@ -42,15 +66,6 @@
         <div><dt>Gewicht</dt><dd><%= animal.weight_kg || '-' %></dd></div>
       </dl>
       <p><%= animal.notes || 'Keine weiteren Notizen vorhanden.' %></p>
-      <% if (permissions.canManageGallery) { %>
-        <form method="post" action="/animals/<%= animal.id %>/profile-image" enctype="multipart/form-data" class="stack form-compact">
-          <label>
-            <span>Profilbild</span>
-            <input type="file" name="profile_image" accept="image/*" required />
-          </label>
-          <button type="submit" class="button">Profilbild hochladen</button>
-        </form>
-      <% } %>
     </div>
   </details>
 
@@ -387,6 +402,76 @@
   </details>
 
   <details class="accordion-item">
+    <summary>Arzttermine</summary>
+    <div class="accordion-content">
+      <div class="stack">
+        <% (related.appointments || []).forEach((item) => { %>
+          <% if (permissions.canManageHealth && editState.type === 'appointment' && editState.id === item.id) { %>
+            <form method="post" action="/animals/<%= animal.id %>/appointments/<%= item.id %>/update" class="stack form-compact edit-card">
+              <input type="text" name="title" required value="<%= item.title %>" />
+              <input type="datetime-local" name="appointment_at" required value="<%= item.appointment_at || '' %>" />
+              <div class="mini-grid">
+                <select name="location_mode">
+                  <option value="praxis" <%= item.location_mode === 'praxis' ? 'selected' : '' %>>Tier zum Arzt</option>
+                  <option value="vor_ort" <%= item.location_mode === 'vor_ort' ? 'selected' : '' %>>Tierarzt kommt vor Ort</option>
+                </select>
+                <select name="veterinarian_id">
+                  <option value="">Tierarzt auswählen</option>
+                  <% veterinarians.forEach((vet) => { %>
+                    <option value="<%= vet.id %>" <%= Number(item.veterinarian_id || 0) === Number(vet.id) ? 'selected' : '' %>><%= vet.name %></option>
+                  <% }) %>
+                </select>
+              </div>
+              <input type="text" name="location_text" value="<%= item.location_text || '' %>" placeholder="Ort / Adresse" />
+              <textarea name="notes" rows="3"><%= item.notes || '' %></textarea>
+              <div class="inline-actions">
+                <button type="submit" class="button">Speichern</button>
+                <a href="/animals/<%= animal.id %>" class="button button-secondary">Abbrechen</a>
+              </div>
+            </form>
+          <% } else { %>
+            <div class="list-card static-card">
+              <div>
+                <strong><%= item.title %></strong>
+                <p><%= formatDateTime(item.appointment_at) %> | <%= item.location_mode === 'vor_ort' ? 'Tierarzt kommt vor Ort' : 'Tier wird zur Praxis gebracht' %></p>
+                <p>Ort: <%= item.location_text || '-' %> | Tierarzt: <%= item.veterinarian_name || '-' %></p>
+                <% if (item.notes) { %><small><%= item.notes %></small><% } %>
+              </div>
+              <% if (permissions.canManageHealth) { %>
+                <div class="inline-actions">
+                  <a href="/animals/<%= animal.id %>?editType=appointment&editId=<%= item.id %>" class="button button-secondary">Bearbeiten</a>
+                  <form method="post" action="/animals/<%= animal.id %>/appointments/<%= item.id %>/delete" data-confirm="Arzttermin wirklich löschen?">
+                    <button type="submit" class="button button-danger">Löschen</button>
+                  </form>
+                </div>
+              <% } %>
+            </div>
+          <% } %>
+        <% }) %>
+      </div>
+      <% if (permissions.canManageHealth) { %><form method="post" action="/animals/<%= animal.id %>/appointments" class="stack form-compact">
+        <input type="text" name="title" required placeholder="Terminbezeichnung" />
+        <input type="datetime-local" name="appointment_at" required />
+        <div class="mini-grid">
+          <select name="location_mode">
+            <option value="praxis">Tier zum Arzt</option>
+            <option value="vor_ort">Tierarzt kommt vor Ort</option>
+          </select>
+          <select name="veterinarian_id">
+            <option value="">Tierarzt auswählen</option>
+            <% veterinarians.forEach((vet) => { %>
+              <option value="<%= vet.id %>"><%= vet.name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <input type="text" name="location_text" placeholder="Ort / Adresse" />
+        <textarea name="notes" rows="3" placeholder="Notizen"></textarea>
+        <button type="submit" class="button">Speichern</button>
+      </form><% } %>
+    </div>
+  </details>
+
+  <details class="accordion-item">
     <summary>Erinnerungen</summary>
     <div class="accordion-content">
       <div class="reminder-buckets">
@@ -402,7 +487,7 @@
             <% } else { %>
               <div class="stack">
                 <% reminderBuckets[bucket.key].forEach((item) => { %>
-                  <% if (permissions.canEditAnimals && editState.type === 'reminder' && editState.id === item.id) { %>
+                  <% if (permissions.canManageReminders && editState.type === 'reminder' && editState.id === item.id) { %>
                     <form method="post" action="/animals/<%= animal.id %>/reminders/<%= item.id %>/update" class="stack form-compact edit-card">
                       <input type="text" name="title" required value="<%= item.title %>" />
                       <input type="text" name="reminder_type" value="<%= item.reminder_type || '' %>" />
@@ -424,6 +509,9 @@
                         <p class="meta-line">
                           Wiederholung: <%= item.repeat_interval_days ? `alle ${item.repeat_interval_days} Tage` : 'keine' %>
                         </p>
+                        <% if (item.source_kind) { %>
+                          <p class="meta-line">Automatisch erzeugt aus: <%= item.source_kind === 'medication' ? 'Medikation' : item.source_kind === 'vaccination' ? 'Impfung' : item.source_kind === 'appointment' ? 'Arzttermin' : item.source_kind %></p>
+                        <% } %>
                         <% if (item.last_notified_at) { %><small>Zuletzt gesendet: <%= formatDateTime(item.last_notified_at) %></small><% } %>
                         <div class="status-line">
                           <span class="status-chip status-<%= item.last_delivery_status || 'pending' %>"><%= item.last_delivery_status || 'pending' %></span>

@@ -28,7 +28,7 @@
             <% if (currentPath.startsWith('/admin')) { %>
               <div class="sidebar-subnav">
                 <a class="<%= currentPath === '/admin/allgemein' ? 'active' : '' %>" href="/admin/allgemein">Allgemein</a>
-                <a class="<%= currentPath === '/admin/kommunikation' ? 'active' : '' %>" href="/admin/kommunikation">Kommunikation</a>
+                <a class="<%= currentPath === '/admin/benachrichtigungen' || currentPath === '/admin/kommunikation' ? 'active' : '' %>" href="/admin/benachrichtigungen">Benachrichtigungen</a>
                 <a class="<%= currentPath === '/admin/stammdaten' ? 'active' : '' %>" href="/admin/stammdaten">Stammdaten</a>
                 <a class="<%= currentPath === '/admin/benutzer' ? 'active' : '' %>" href="/admin/benutzer">Benutzer</a>
                 <a class="<%= currentPath === '/admin/import' ? 'active' : '' %>" href="/admin/import">Import</a>

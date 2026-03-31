@@ -36,6 +36,7 @@
           <div class="list-card static-card">
             <div>
               <strong><%= vet.name %></strong>
+              <p><%= [vet.street, vet.postal_code, vet.city, vet.country].filter(Boolean).join(', ') || 'Keine Adresse' %></p>
               <p><%= vet.phone || '-' %> | <%= vet.email || '-' %></p>
             </div>
             <form method="post" action="/admin/veterinarians/<%= vet.id %>/delete" data-confirm="Tierarzt wirklich löschen?">
@@ -46,6 +47,12 @@
       </div>
       <form method="post" action="/admin/veterinarians" class="stack form-compact">
         <input type="text" name="name" required placeholder="Name" />
+        <input type="text" name="street" placeholder="Straße und Hausnummer" />
+        <div class="mini-grid">
+          <input type="text" name="postal_code" placeholder="PLZ" />
+          <input type="text" name="city" placeholder="Ort" />
+        </div>
+        <input type="text" name="country" placeholder="Land" />
         <input type="text" name="phone" placeholder="Telefon" />
         <input type="email" name="email" placeholder="E-Mail" />
         <textarea name="notes" rows="3" placeholder="Notizen"></textarea>

@@ -14,6 +14,16 @@
               </div>
               <span><%= user.must_change_password ? 'Passwortwechsel offen' : 'Aktiv' %></span>
             </div>
+            <div class="form-grid">
+              <label>
+                <span>Name</span>
+                <input type="text" name="name" form="user-profile-<%= user.id %>" required value="<%= user.name %>" />
+              </label>
+              <label>
+                <span>E-Mail</span>
+                <input type="email" name="email" form="user-profile-<%= user.id %>" required value="<%= user.email %>" />
+              </label>
+            </div>
             <label>
               <span>Rolle</span>
               <select name="role">
@@ -31,8 +41,12 @@
               <label class="checkbox-line"><input type="checkbox" name="can_manage_notes" <%= user.can_manage_notes ? 'checked' : '' %> /> Protokolle</label>
               <label class="checkbox-line"><input type="checkbox" name="can_manage_reminders" <%= user.can_manage_reminders ? 'checked' : '' %> /> Erinnerungen</label>
             </div>
-            <button type="submit" class="button button-secondary">Rechte speichern</button>
+            <div class="button-row">
+              <button type="submit" class="button button-secondary">Rechte speichern</button>
+              <button type="submit" class="button button-secondary" form="user-profile-<%= user.id %>">Name & E-Mail speichern</button>
+            </div>
           </form>
+          <form method="post" action="/admin/users/<%= user.id %>/update" id="user-profile-<%= user.id %>" class="hidden-form"></form>
         <% }) %>
       </div>
       <form method="post" action="/admin/users" class="stack form-compact">
@@ -64,6 +78,7 @@
       <form method="post" action="/admin/password" class="stack form-compact">
         <input type="password" name="current_password" required placeholder="Aktuelles Passwort" />
         <input type="password" name="new_password" required placeholder="Neues Passwort" />
+        <input type="password" name="new_password_confirm" required placeholder="Neues Passwort wiederholen" />
         <button type="submit" class="button">Passwort aktualisieren</button>
       </form>
     </div>

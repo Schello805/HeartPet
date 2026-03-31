@@ -492,6 +492,16 @@ td {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.hidden-form {
+  display: none;
+}
+
 .mini-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -545,11 +555,23 @@ textarea {
   flex: 0 0 auto;
 }
 
+.profile-image-panel {
+  display: grid;
+  gap: 10px;
+  width: 180px;
+}
+
+.profile-image-frame {
+  position: relative;
+  width: 180px;
+  height: 180px;
+}
+
 .animal-profile-image {
-  width: 132px;
-  height: 132px;
+  width: 180px;
+  height: 180px;
   object-fit: cover;
-  border-radius: 12px;
+  border-radius: 6px;
   border: 1px solid var(--line);
   background: #f6efe5;
 }
@@ -560,6 +582,74 @@ textarea {
   font-size: 2.6rem;
   font-weight: 700;
   color: var(--accent-dark);
+}
+
+.profile-image-overlay-form {
+  position: absolute;
+  inset: auto 10px 10px 10px;
+}
+
+.profile-upload-trigger {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  min-height: 40px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: rgba(35, 58, 43, 0.86);
+  color: #fffaf1;
+  font-weight: 700;
+  text-align: center;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 8px 18px rgba(35, 58, 43, 0.18);
+  cursor: pointer;
+}
+
+.profile-upload-trigger:hover {
+  background: rgba(35, 58, 43, 0.94);
+}
+
+.profile-delete-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(193, 72, 56, 0.92);
+  color: #fff8f5;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(193, 72, 56, 0.2);
+}
+
+.profile-delete-button:hover {
+  background: rgba(177, 58, 44, 0.98);
+}
+
+.profile-image-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .hero-copy {
@@ -765,6 +855,10 @@ small {
 .login-panel {
   width: min(480px, 100%);
   padding: 32px;
+}
+
+.setup-panel {
+  width: min(920px, 100%);
 }
 
 .brand-lockup {

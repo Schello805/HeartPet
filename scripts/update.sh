@@ -12,5 +12,12 @@ git pull --ff-only
 echo "Installiere oder aktualisiere Abhaengigkeiten"
 npm install
 
+if command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files | grep -q '^heartpet\.service'; then
+  echo "Starte heartpet.service neu"
+  sudo systemctl restart heartpet
+  sudo systemctl status heartpet --no-pager || true
+else
+  echo "Kein heartpet.service gefunden. Bitte HeartPet manuell neu starten."
+fi
+
 echo "HeartPet wurde aktualisiert."
-echo "Falls die App ueber systemd laeuft, jetzt den Dienst neu starten."

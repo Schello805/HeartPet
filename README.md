@@ -41,14 +41,19 @@ Die App läuft danach standardmäßig unter:
 http://127.0.0.1:3000
 ```
 
-Standard-Login beim ersten Start:
+Bei einer neuen Installation erscheint zuerst die Ersteinrichtung unter:
 
 ```text
-E-Mail: admin@heartpet.local
-Passwort: admin123!
+/setup
 ```
 
-Dieses Passwort sollte direkt im Adminbereich geändert werden.
+Dort werden in einem kurzen Wizard angelegt:
+
+- der erste Administrator
+- der erste Tierarzt
+- das erste Tier
+
+Erst danach wird die normale Oberfläche freigeschaltet.
 
 ## Konfiguration
 
@@ -101,9 +106,64 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now heartpet
 ```
 
-## Backup
+Wenn du eine `.env`-Datei verwenden willst, kannst du die Service-Datei erweitern um:
 
-Ein separates Backup-Skript liegt unter:
+```ini
+EnvironmentFile=/opt/HeartPet/.env
+```
+
+und danach:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart heartpet
+```
+
+## Grundlegende Befehle nach der Installation
+
+Typische Betriebsbefehle auf dem LXC:
+
+```bash
+sudo systemctl start heartpet
+sudo systemctl stop heartpet
+sudo systemctl restart heartpet
+sudo systemctl status heartpet --no-pager
+sudo journalctl -u heartpet -n 100 --no-pager
+sudo journalctl -u heartpet -f
+```
+
+Wenn du HeartPet ohne `systemd` testweise direkt startest:
+
+```bash
+npm start
+```
+
+## Update
+
+HeartPet bringt ein Update-Skript mit:
+
+```bash
+./scripts/update.sh
+```
+
+Das Skript:
+
+- erstellt zuerst ein Backup
+- holt den aktuellen Stand aus GitHub
+- installiert oder aktualisiert Abhängigkeiten
+- startet `heartpet.service` neu, falls der Dienst vorhanden ist
+
+Manuell geht es ebenfalls:
+
+```bash
+git pull --ff-only
+npm install
+sudo systemctl restart heartpet
+```
+
+## Backup und Wiederherstellung
+
+Backup erstellen:
 
 ```bash
 ./scripts/backup.sh
@@ -117,25 +177,37 @@ Gesichert werden:
 - Uploads
 - Exporte
 
-## Updates aus GitHub
-
-Ein einfaches Updateskript liegt unter:
-
-```bash
-./scripts/update.sh
-```
-
-Das Skript:
-
-- erstellt zuerst ein Backup
-- holt den aktuellen Stand aus GitHub
-- installiert oder aktualisiert Abhängigkeiten
-
-Wenn HeartPet über `systemd` läuft, den Dienst danach neu starten:
+Wiederherstellung erfolgt in der Praxis durch Zurückkopieren eines Backup-Ordners nach `data/`.
+Vorher HeartPet stoppen:
 
 ```bash
-sudo systemctl restart heartpet
+sudo systemctl stop heartpet
 ```
+
+danach Daten zurückkopieren und wieder starten:
+
+```bash
+sudo systemctl start heartpet
+```
+
+## Schneller LXC-Check
+
+Nach der Installation solltest du mindestens diese Punkte prüfen:
+
+```bash
+sudo systemctl status heartpet --no-pager
+curl -I http://127.0.0.1:3000
+ls -lah data
+```
+
+Erwartung:
+
+- der Dienst läuft ohne Neustart-Schleife
+- Port `3000` antwortet lokal
+- `data/heartpet.sqlite` und `data/sessions.sqlite` werden angelegt
+- `data/uploads` existiert
+
+## Reverse Proxy / SSL
 
 ## SMTP und Telegram
 
@@ -154,8 +226,8 @@ Telegram Einrichtung:
 
 - PDF-Exporte enthalten die wichtigsten Daten einer Tierakte
 - JSON-Exporte enthalten einen Import-Hinweis für HeartPet
-- Dokument- und Bilddateien selbst werden aktuell nicht in den JSON-Export eingebettet
-- Beim Import werden deshalb derzeit nur strukturierte Daten sicher übernommen, keine Binärdateien
+- Dokument- und Bilddateien werden im HeartPet-JSON-Export eingebettet
+- Beim Import werden strukturierte Daten und eingebettete Dateien wiederhergestellt
 
 ## Rollen
 
