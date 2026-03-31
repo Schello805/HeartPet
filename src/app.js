@@ -401,6 +401,15 @@ app.get("/animals", (req, res) => {
   });
 });
 
+app.get("/animals/suggest", renderSearchSuggestions);
+app.get("/admin/suggest", renderSearchSuggestions);
+app.get("/animals/systemlog", requireAdmin, (req, res) => {
+  res.redirect("/admin/systemlog");
+});
+app.get("/admin/systemlog/systemlog", requireAdmin, (req, res) => {
+  res.redirect("/admin/systemlog");
+});
+
 app.get("/animals/new", requireAnimalEditor, (req, res) => {
   res.render("pages/animal-form", {
     pageTitle: "Tier anlegen",
@@ -1288,6 +1297,13 @@ app.get("/admin/systemlog", requireAdmin, (req, res) => {
   });
 });
 
+app.get(/^\/.+\/systemlog$/, requireAdmin, (req, res) => {
+  res.redirect("/admin/systemlog");
+});
+app.get(/^\/.+\/system-log$/, requireAdmin, (req, res) => {
+  res.redirect("/admin/systemlog");
+});
+
 app.post("/admin/settings", requireAdmin, (req, res) => {
   const booleanKeys = new Set([
     "smtp_secure",
@@ -1949,6 +1965,8 @@ function renderSearchSuggestions(req, res) {
 ["/api/search/suggest", "/api/suggest", "/search/suggest", "/suggest"].forEach((suggestPath) => {
   app.get(suggestPath, renderSearchSuggestions);
 });
+
+app.get(/^\/.+\/suggest$/, renderSearchSuggestions);
 
 app.get("/api/reminders/pending", (req, res) => {
   const rows = db.prepare(`
