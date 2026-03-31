@@ -1921,7 +1921,7 @@ app.get("/api/species/search", (req, res) => {
   res.json({ results: ranked });
 });
 
-app.get("/api/search/suggest", (req, res) => {
+function renderSearchSuggestions(req, res) {
   const q = String(req.query.q || "").trim();
   if (q.length < 2) {
     return res.json({ results: [] });
@@ -1938,7 +1938,11 @@ app.get("/api/search/suggest", (req, res) => {
     }));
 
   res.json({ results: suggestions });
-});
+}
+
+app.get("/api/search/suggest", renderSearchSuggestions);
+app.get("/search/suggest", renderSearchSuggestions);
+app.get("/suggest", renderSearchSuggestions);
 
 app.get("/api/reminders/pending", (req, res) => {
   const rows = db.prepare(`
