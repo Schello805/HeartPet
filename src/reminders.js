@@ -63,33 +63,14 @@ async function sendEmailReminder(settings, reminder) {
     throw new Error("Keine Empfängeradresse für Erinnerungen konfiguriert.");
   }
 
-  const transporter = nodemailer.createTransport({
-    host: settings.smtp_host,
-    port: Number(settings.smtp_port || 587),
-    secure: settings.smtp_secure === "true",
-    auth: settings.smtp_user
-      ? {
-          user: settings.smtp_user,
-          pass: settings.smtp_password || "",
-        }
-      : undefined,
-  });
+  const transporter = createSmtpTransport(settings);
 
   const animalPart = reminder.animal_name ? ` für ${reminder.animal_name}` : "";
   const appName = settings.app_name || "HeartPet";
   const appBaseUrl = getAppBaseUrl(settings);
   const logoFilePath = path.join(__dirname, "..", "public", "images", "logo-heartpet.png");
   const logoCid = "heartpet-logo";
-  const attachments = [];
-  let logoUrl = appBaseUrl ? `${appBaseUrl}/static/images/logo-heartpet.png` : "";
-  if (fs.existsSync(logoFilePath)) {
-    attachments.push({
-      filename: "logo-heartpet.png",
-      path: logoFilePath,
-      cid: logoCid,
-    });
-    logoUrl = `cid:${logoCid}`;
-  }
+  const { attachments, logoUrl } = resolveEmailLogo({ logoFilePath, logoCid, appBaseUrl });
   const animalUrl = appBaseUrl && reminder.animal_id ? `${appBaseUrl}/animals/${reminder.animal_id}` : "";
   const dashboardUrl = appBaseUrl ? `${appBaseUrl}/` : "";
   const dueLabel = formatReminderDate(reminder.due_at);
@@ -129,6 +110,57 @@ async function sendEmailReminder(settings, reminder) {
   });
 }
 
+async function sendUserInviteEmail(settings, payload) {
+  const recipient = String(payload?.email || "").trim();
+  if (!recipient) {
+    throw new Error("Keine E-Mail-Adresse für die Einladung angegeben.");
+  }
+  if (!settings.smtp_host || !settings.smtp_from) {
+    throw new Error("SMTP ist nicht vollständig konfiguriert.");
+  }
+
+  const transporter = createSmtpTransport(settings);
+  const appName = settings.app_name || "HeartPet";
+  const appBaseUrl = getAppBaseUrl(settings);
+  const loginUrl = appBaseUrl ? `${appBaseUrl}/login` : "";
+  const logoFilePath = path.join(__dirname, "..", "public", "images", "logo-heartpet.png");
+  const logoCid = "heartpet-invite-logo";
+  const { attachments, logoUrl } = resolveEmailLogo({ logoFilePath, logoCid, appBaseUrl });
+  const html = buildUserInviteEmailHtml({
+    appName,
+    logoUrl,
+    name: payload.name || "Nutzer",
+    email: recipient,
+    role: payload.roleLabel || "Benutzer",
+    temporaryPassword: payload.temporaryPassword || "",
+    loginUrl,
+  });
+  const text = [
+    `${appName} - Zugang eingerichtet`,
+    "",
+    `Hallo ${payload.name || "Nutzer"},`,
+    `für dich wurde ein Zugang zu ${appName} angelegt.`,
+    `Rolle: ${payload.roleLabel || "Benutzer"}`,
+    `E-Mail: ${recipient}`,
+    payload.temporaryPassword ? `Startpasswort: ${payload.temporaryPassword}` : "",
+    "",
+    loginUrl ? `Login: ${loginUrl}` : "Login: Bitte beim Administrator nach der Login-URL fragen.",
+    "",
+    "Wichtig: Bitte das Startpasswort direkt nach dem ersten Login ändern.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  await transporter.sendMail({
+    from: settings.smtp_from,
+    to: recipient,
+    subject: `[${appName}] Dein Zugang wurde eingerichtet`,
+    text,
+    html,
+    attachments,
+  });
+}
+
 async function sendTestEmail(settings) {
   await sendEmailReminder(settings, {
     animal_name: "Testtier",
@@ -136,6 +168,51 @@ async function sendTestEmail(settings) {
     due_at: dayjs().format("YYYY-MM-DDTHH:mm"),
     reminder_type: "Test",
     notes: "Diese Testnachricht wurde direkt aus dem HeartPet-Adminbereich versendet.",
+  });
+}
+
+async function sendEmailChangeConfirmation(settings, payload) {
+  const recipient = String(payload?.recipient || "").trim();
+  const confirmUrl = String(payload?.confirmUrl || "").trim();
+  if (!recipient || !confirmUrl) {
+    throw new Error("Bestätigungs-E-Mail konnte nicht erstellt werden.");
+  }
+  if (!settings.smtp_host || !settings.smtp_from) {
+    throw new Error("SMTP ist nicht vollständig konfiguriert.");
+  }
+
+  const transporter = createSmtpTransport(settings);
+  const appName = settings.app_name || "HeartPet";
+  const appBaseUrl = getAppBaseUrl(settings);
+  const logoFilePath = path.join(__dirname, "..", "public", "images", "logo-heartpet.png");
+  const logoCid = "heartpet-email-change-logo";
+  const { attachments, logoUrl } = resolveEmailLogo({ logoFilePath, logoCid, appBaseUrl });
+  const html = buildEmailChangeConfirmationHtml({
+    appName,
+    logoUrl,
+    name: payload.name || "Nutzer",
+    newEmail: recipient,
+    confirmUrl,
+  });
+  const text = [
+    `${appName} - E-Mail-Änderung bestätigen`,
+    "",
+    `Hallo ${payload.name || "Nutzer"},`,
+    "bitte bestätige die Änderung deiner E-Mail-Adresse.",
+    `Neue E-Mail: ${recipient}`,
+    "",
+    `Bestätigen: ${confirmUrl}`,
+    "",
+    "Erst nach Bestätigung wird die neue E-Mail-Adresse aktiv.",
+  ].join("\n");
+
+  await transporter.sendMail({
+    from: settings.smtp_from,
+    to: recipient,
+    subject: `[${appName}] Bitte E-Mail-Änderung bestätigen`,
+    text,
+    html,
+    attachments,
   });
 }
 
@@ -200,6 +277,34 @@ function isTelegramEnabled(settings) {
       settings.telegram_bot_token &&
       settings.telegram_chat_id
   );
+}
+
+function createSmtpTransport(settings) {
+  return nodemailer.createTransport({
+    host: settings.smtp_host,
+    port: Number(settings.smtp_port || 587),
+    secure: settings.smtp_secure === "true",
+    auth: settings.smtp_user
+      ? {
+          user: settings.smtp_user,
+          pass: settings.smtp_password || "",
+        }
+      : undefined,
+  });
+}
+
+function resolveEmailLogo({ logoFilePath, logoCid, appBaseUrl }) {
+  const attachments = [];
+  let logoUrl = appBaseUrl ? `${appBaseUrl}/static/images/logo-heartpet.png` : "";
+  if (fs.existsSync(logoFilePath)) {
+    attachments.push({
+      filename: "logo-heartpet.png",
+      path: logoFilePath,
+      cid: logoCid,
+    });
+    logoUrl = `cid:${logoCid}`;
+  }
+  return { attachments, logoUrl };
 }
 
 function escapeTelegram(value) {
@@ -305,10 +410,137 @@ function buildReminderEmailHtml(payload) {
   `.trim();
 }
 
+function buildUserInviteEmailHtml(payload) {
+  const { appName, logoUrl, name, email, role, temporaryPassword, loginUrl } = payload;
+
+  const safe = (value) =>
+    String(value || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;");
+
+  const dataRow = (label, value) => `
+    <tr>
+      <td style="padding:7px 0;color:#5f7b6f;font-size:13px;">${safe(label)}</td>
+      <td style="padding:7px 0;color:#1d3128;font-size:14px;font-weight:600;text-align:right;">${safe(value)}</td>
+    </tr>
+  `;
+
+  return `
+<!doctype html>
+<html lang="de">
+  <body style="margin:0;padding:0;background:#f2faf6;font-family:Manrope,Segoe UI,Arial,sans-serif;color:#1d3128;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f2faf6;padding:24px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#fcfffd;border:1px solid #cfe5d8;border-radius:10px;overflow:hidden;">
+            <tr>
+              <td style="padding:18px 20px;background:linear-gradient(180deg,#f2fbf6 0%,#eaf7f0 100%);border-bottom:1px solid #cfe5d8;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td style="vertical-align:middle;">
+                      <div style="font-size:12px;color:#5f7b6f;letter-spacing:.08em;text-transform:uppercase;">${safe(appName)}</div>
+                      <div style="font-size:22px;font-weight:800;color:#1d3128;margin-top:4px;">Zugang eingerichtet</div>
+                    </td>
+                    <td align="right" style="vertical-align:middle;">
+                      ${logoUrl ? `<img src="${safe(logoUrl)}" alt="${safe(appName)} Logo" style="width:64px;height:64px;object-fit:contain;" />` : ""}
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:18px 20px;">
+                <p style="margin:0 0 12px 0;font-size:15px;line-height:1.5;color:#31483f;">
+                  Hallo <strong>${safe(name || "Nutzer")}</strong>, für dich wurde ein Zugang in <strong>${safe(appName)}</strong> angelegt.
+                </p>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                  ${dataRow("Name", name || "-")}
+                  ${dataRow("E-Mail", email || "-")}
+                  ${dataRow("Rolle", role || "-")}
+                  ${dataRow("Startpasswort", temporaryPassword || "-")}
+                </table>
+                ${loginUrl ? `<div style="margin-top:18px;"><a href="${safe(loginUrl)}" style="display:inline-block;padding:10px 14px;border-radius:7px;background:linear-gradient(180deg,#42b084 0%,#2e9a6f 100%);color:#ffffff;text-decoration:none;font-weight:700;font-size:13px;">Zum Login</a></div>` : ""}
+                <div style="margin-top:14px;padding:12px;border:1px solid #d8ebdf;background:#f6fcf9;border-radius:8px;color:#395247;font-size:13px;line-height:1.5;">
+                  <strong>Wichtig:</strong> Bitte das Startpasswort direkt nach dem ersten Login ändern.
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:14px 20px;border-top:1px solid #e1f0e8;background:#f8fdfb;">
+                <div style="font-size:12px;color:#6f897d;line-height:1.5;">
+                  Diese Nachricht wurde automatisch von ${safe(appName)} versendet.
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+  `.trim();
+}
+
+function buildEmailChangeConfirmationHtml(payload) {
+  const { appName, logoUrl, name, newEmail, confirmUrl } = payload;
+  const safe = (value) =>
+    String(value || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;");
+
+  return `
+<!doctype html>
+<html lang="de">
+  <body style="margin:0;padding:0;background:#f2faf6;font-family:Manrope,Segoe UI,Arial,sans-serif;color:#1d3128;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f2faf6;padding:24px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#fcfffd;border:1px solid #cfe5d8;border-radius:10px;overflow:hidden;">
+            <tr>
+              <td style="padding:18px 20px;background:linear-gradient(180deg,#f2fbf6 0%,#eaf7f0 100%);border-bottom:1px solid #cfe5d8;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td style="vertical-align:middle;">
+                      <div style="font-size:12px;color:#5f7b6f;letter-spacing:.08em;text-transform:uppercase;">${safe(appName)}</div>
+                      <div style="font-size:22px;font-weight:800;color:#1d3128;margin-top:4px;">E-Mail bestätigen</div>
+                    </td>
+                    <td align="right" style="vertical-align:middle;">
+                      ${logoUrl ? `<img src="${safe(logoUrl)}" alt="${safe(appName)} Logo" style="width:64px;height:64px;object-fit:contain;" />` : ""}
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:18px 20px;">
+                <p style="margin:0 0 12px 0;font-size:15px;line-height:1.5;color:#31483f;">
+                  Hallo <strong>${safe(name)}</strong>, bitte bestätige die Änderung auf <strong>${safe(newEmail)}</strong>.
+                </p>
+                <a href="${safe(confirmUrl)}" style="display:inline-block;padding:10px 14px;border-radius:7px;background:linear-gradient(180deg,#42b084 0%,#2e9a6f 100%);color:#ffffff;text-decoration:none;font-weight:700;font-size:13px;">E-Mail jetzt bestätigen</a>
+                <div style="margin-top:14px;padding:12px;border:1px solid #d8ebdf;background:#f6fcf9;border-radius:8px;color:#395247;font-size:13px;line-height:1.5;">
+                  Erst nach Klick auf den Button wird die neue E-Mail-Adresse in HeartPet übernommen.
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+  `.trim();
+}
+
 module.exports = {
   processDueReminders,
   sendEmailReminder,
   sendTelegramReminder,
+  sendUserInviteEmail,
+  sendEmailChangeConfirmation,
   sendTestEmail,
   sendTestTelegram,
   isEmailEnabled,

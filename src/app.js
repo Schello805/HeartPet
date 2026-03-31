@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const express = require("express");
 const session = require("express-session");
 const SQLiteStoreFactory = require("connect-sqlite3");
@@ -13,6 +14,8 @@ const {
   processDueReminders,
   sendTestEmail,
   sendTestTelegram,
+  sendUserInviteEmail,
+  sendEmailChangeConfirmation,
   isEmailEnabled,
   isTelegramEnabled,
 } = require("./reminders");
@@ -245,6 +248,49 @@ app.post("/logout", requireAuth, (req, res) => {
   req.session.destroy(() => {
     res.redirect("/login");
   });
+});
+
+app.get("/email-change/confirm", (req, res) => {
+  const token = String(req.query.token || "").trim();
+  if (!token) {
+    setFlash(req, "error", "Ungültiger Bestätigungslink.");
+    return res.redirect("/login");
+  }
+
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+  const request = db.prepare(`
+    SELECT *
+    FROM email_change_requests
+    WHERE token_hash = ?
+      AND confirmed_at IS NULL
+      AND expires_at >= CURRENT_TIMESTAMP
+  `).get(tokenHash);
+
+  if (!request) {
+    setFlash(req, "error", "Der Bestätigungslink ist ungültig oder abgelaufen.");
+    return res.redirect("/login");
+  }
+
+  const duplicate = db.prepare("SELECT id FROM users WHERE email = ? AND id != ?").get(request.new_email, request.user_id);
+  if (duplicate) {
+    setFlash(req, "error", "Diese E-Mail-Adresse wird bereits verwendet.");
+    return res.redirect("/login");
+  }
+
+  const tx = db.transaction(() => {
+    db.prepare("UPDATE users SET email = ? WHERE id = ?").run(request.new_email, request.user_id);
+    db.prepare("UPDATE email_change_requests SET confirmed_at = CURRENT_TIMESTAMP WHERE id = ?").run(request.id);
+    db.prepare("UPDATE email_change_requests SET confirmed_at = CURRENT_TIMESTAMP WHERE user_id = ? AND id != ? AND confirmed_at IS NULL")
+      .run(request.user_id, request.id);
+  });
+  tx();
+
+  if (req.session.user && String(req.session.user.id) === String(request.user_id)) {
+    req.session.user.email = request.new_email;
+  }
+
+  setFlash(req, "success", "E-Mail-Adresse erfolgreich bestätigt und aktualisiert.");
+  res.redirect(req.session.user ? "/admin/benutzer" : "/login");
 });
 
 app.use(requireAuth);
@@ -1118,7 +1164,14 @@ app.get("/admin/stammdaten", requireAdmin, (req, res) => {
 });
 
 app.get("/admin/benutzer", requireAdmin, (req, res) => {
-  res.render("pages/admin-users", getAdminViewData("Benutzer", "/admin/benutzer"));
+  const viewData = getAdminViewData("Benutzer", "/admin/benutzer");
+  viewData.selfUser = db.prepare(`
+    SELECT id, name, email, role, must_change_password
+    FROM users
+    WHERE id = ?
+  `).get(req.session.user.id);
+  viewData.users = (viewData.users || []).filter((user) => String(user.id) !== String(req.session.user.id));
+  res.render("pages/admin-users", viewData);
 });
 
 app.get("/admin/import", requireAdmin, (req, res) => {
@@ -1231,10 +1284,26 @@ app.post("/admin/veterinarians/:id/delete", requireAdmin, (req, res) => {
   res.redirect(backTo(req, "/admin/stammdaten"));
 });
 
-app.post("/admin/users", requireAdmin, (req, res) => {
-  const passwordHash = bcrypt.hashSync(req.body.password, 10);
-  const userPermissions = normalizeUserPermissions(req.body.role, req.body);
-  db.prepare(`
+app.post("/admin/users", requireAdmin, async (req, res) => {
+  const name = String(req.body.name || "").trim();
+  const email = String(req.body.email || "").trim().toLowerCase();
+  const password = String(req.body.password || "");
+  const role = String(req.body.role || "viewer");
+
+  if (!name || !email || !password) {
+    setFlash(req, "error", "Name, E-Mail und Startpasswort sind Pflichtfelder.");
+    return res.redirect(backTo(req, "/admin/benutzer"));
+  }
+
+  const duplicate = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
+  if (duplicate) {
+    setFlash(req, "error", "Diese E-Mail-Adresse wird bereits verwendet.");
+    return res.redirect(backTo(req, "/admin/benutzer"));
+  }
+
+  const passwordHash = bcrypt.hashSync(password, 10);
+  const userPermissions = normalizeUserPermissions(role, req.body);
+  const userResult = db.prepare(`
     INSERT INTO users (
       name, email, password_hash, role, must_change_password,
       can_edit_animals, can_manage_documents, can_manage_gallery, can_manage_health,
@@ -1242,10 +1311,10 @@ app.post("/admin/users", requireAdmin, (req, res) => {
     )
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
-    req.body.name,
-    req.body.email,
+    name,
+    email,
     passwordHash,
-    req.body.role || "viewer",
+    role,
     1,
     userPermissions.can_edit_animals,
     userPermissions.can_manage_documents,
@@ -1256,6 +1325,24 @@ app.post("/admin/users", requireAdmin, (req, res) => {
     userPermissions.can_manage_reminders
   );
 
+  if (req.body.send_invite_email) {
+    try {
+      await sendUserInviteEmail(getSettingsObject(db), {
+        userId: userResult.lastInsertRowid,
+        name,
+        email,
+        roleLabel: getRoleLabel(role),
+        temporaryPassword: password,
+      });
+      setFlash(req, "success", `Benutzer angelegt und Einladungs-Mail an ${email} versendet.`);
+      return res.redirect(backTo(req, "/admin/benutzer"));
+    } catch (error) {
+      console.error("[HeartPet] Einladungs-Mail fehlgeschlagen:", error.message);
+      setFlash(req, "error", `Benutzer angelegt, Einladungs-Mail an ${email} fehlgeschlagen: ${error.message}`);
+      return res.redirect(backTo(req, "/admin/benutzer"));
+    }
+  }
+
   setFlash(req, "success", "Benutzer angelegt.");
   res.redirect(backTo(req, "/admin/benutzer"));
 });
@@ -1264,6 +1351,11 @@ app.post("/admin/users/:id/permissions", requireAdmin, (req, res) => {
   const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.params.id);
   if (!user) {
     return renderNotFound(req, res, "Benutzer nicht gefunden.");
+  }
+
+  if (String(req.session.user.id) === String(req.params.id)) {
+    setFlash(req, "error", "Deinen eigenen Admin-Account verwaltest du im Profilbereich.");
+    return res.redirect("/admin/benutzer");
   }
 
   const userPermissions = normalizeUserPermissions(req.body.role, req.body);
@@ -1294,34 +1386,121 @@ app.post("/admin/users/:id/permissions", requireAdmin, (req, res) => {
   res.redirect("/admin/benutzer");
 });
 
-app.post("/admin/users/:id/update", requireAdmin, (req, res) => {
+app.post("/admin/users/:id/update", requireAdmin, async (req, res) => {
   const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.params.id);
   if (!user) {
     return renderNotFound(req, res, "Benutzer nicht gefunden.");
   }
 
+  if (String(req.session.user.id) === String(req.params.id)) {
+    setFlash(req, "error", "Deinen eigenen Admin-Account verwaltest du im Profilbereich.");
+    return res.redirect("/admin/benutzer");
+  }
+
   const name = (req.body.name || "").trim();
   const email = (req.body.email || "").trim().toLowerCase();
+  const emailChanged = email !== String(user.email || "").trim().toLowerCase();
 
   if (!name || !email) {
     setFlash(req, "error", "Name und E-Mail sind Pflichtfelder.");
     return res.redirect("/admin/benutzer");
   }
 
-  const duplicate = db.prepare("SELECT id FROM users WHERE email = ? AND id != ?").get(email, req.params.id);
-  if (duplicate) {
-    setFlash(req, "error", "Diese E-Mail-Adresse wird bereits verwendet.");
+  if (emailChanged) {
+    const duplicate = db.prepare("SELECT id FROM users WHERE email = ? AND id != ?").get(email, req.params.id);
+    if (duplicate) {
+      setFlash(req, "error", "Diese E-Mail-Adresse wird bereits verwendet.");
+      return res.redirect("/admin/benutzer");
+    }
+  }
+
+  db.prepare("UPDATE users SET name = ? WHERE id = ?").run(name, req.params.id);
+
+  if (emailChanged) {
+    try {
+      await requestEmailChangeConfirmation({
+        userId: user.id,
+        requestedByUserId: req.session.user.id,
+        newEmail: email,
+        displayName: name,
+      });
+      setFlash(req, "success", `Name gespeichert. E-Mail-Änderung wurde an ${email} zur Bestätigung versendet.`);
+    } catch (error) {
+      setFlash(req, "error", `Name gespeichert, E-Mail-Änderung fehlgeschlagen: ${error.message}`);
+    }
     return res.redirect("/admin/benutzer");
   }
 
-  db.prepare("UPDATE users SET name = ?, email = ? WHERE id = ?").run(name, email, req.params.id);
+  setFlash(req, "success", "Benutzerdaten aktualisiert.");
+  res.redirect("/admin/benutzer");
+});
 
-  if (String(req.session.user.id) === String(req.params.id)) {
-    req.session.user.name = name;
-    req.session.user.email = email;
+app.post("/admin/users/:id/delete", requireAdmin, (req, res) => {
+  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.params.id);
+  if (!user) {
+    return renderNotFound(req, res, "Benutzer nicht gefunden.");
   }
 
-  setFlash(req, "success", "Benutzerdaten aktualisiert.");
+  if (String(req.session.user.id) === String(req.params.id)) {
+    setFlash(req, "error", "Dein eigenes Konto kann hier nicht gelöscht werden.");
+    return res.redirect("/admin/benutzer");
+  }
+
+  if (user.role === "admin") {
+    const adminCount = db.prepare("SELECT COUNT(*) AS count FROM users WHERE role = 'admin'").get().count;
+    if (Number(adminCount) <= 1) {
+      setFlash(req, "error", "Der letzte Admin kann nicht gelöscht werden.");
+      return res.redirect("/admin/benutzer");
+    }
+  }
+
+  db.prepare("DELETE FROM users WHERE id = ?").run(req.params.id);
+  setFlash(req, "success", "Benutzer gelöscht.");
+  res.redirect("/admin/benutzer");
+});
+
+app.post("/admin/profile", requireAdmin, async (req, res) => {
+  if (!req.session.user) {
+    return res.redirect("/login");
+  }
+
+  const name = (req.body.name || "").trim();
+  const email = (req.body.email || "").trim().toLowerCase();
+  const currentUser = db.prepare("SELECT * FROM users WHERE id = ?").get(req.session.user.id);
+  const emailChanged = email !== String(currentUser?.email || "").trim().toLowerCase();
+
+  if (!name || !email) {
+    setFlash(req, "error", "Name und E-Mail sind Pflichtfelder.");
+    return res.redirect("/admin/benutzer");
+  }
+
+  if (emailChanged) {
+    const duplicate = db.prepare("SELECT id FROM users WHERE email = ? AND id != ?").get(email, req.session.user.id);
+    if (duplicate) {
+      setFlash(req, "error", "Diese E-Mail-Adresse wird bereits verwendet.");
+      return res.redirect("/admin/benutzer");
+    }
+  }
+
+  db.prepare("UPDATE users SET name = ? WHERE id = ?").run(name, req.session.user.id);
+  req.session.user.name = name;
+
+  if (emailChanged) {
+    try {
+      await requestEmailChangeConfirmation({
+        userId: req.session.user.id,
+        requestedByUserId: req.session.user.id,
+        newEmail: email,
+        displayName: name,
+      });
+      setFlash(req, "success", `Profil gespeichert. E-Mail-Änderung wurde an ${email} zur Bestätigung versendet.`);
+    } catch (error) {
+      setFlash(req, "error", `Profil gespeichert, E-Mail-Änderung fehlgeschlagen: ${error.message}`);
+    }
+    return res.redirect("/admin/benutzer");
+  }
+
+  setFlash(req, "success", "Profil aktualisiert.");
   res.redirect("/admin/benutzer");
 });
 
@@ -2496,6 +2675,72 @@ function backTo(req, fallback) {
   } catch {
     return fallback;
   }
+}
+
+async function requestEmailChangeConfirmation({ userId, requestedByUserId, newEmail, displayName }) {
+  const normalizedEmail = String(newEmail || "").trim().toLowerCase();
+  if (!normalizedEmail) {
+    throw new Error("Neue E-Mail-Adresse fehlt.");
+  }
+
+  const settings = getSettingsObject(db);
+  if (!settings.smtp_host || !settings.smtp_from) {
+    throw new Error("SMTP ist nicht vollständig konfiguriert.");
+  }
+
+  const existingConflict = db.prepare("SELECT id FROM users WHERE email = ? AND id != ?").get(normalizedEmail, userId);
+  if (existingConflict) {
+    throw new Error("Diese E-Mail-Adresse wird bereits verwendet.");
+  }
+
+  const pendingConflict = db.prepare(`
+    SELECT id
+    FROM email_change_requests
+    WHERE new_email = ?
+      AND user_id != ?
+      AND confirmed_at IS NULL
+      AND expires_at >= CURRENT_TIMESTAMP
+  `).get(normalizedEmail, userId);
+  if (pendingConflict) {
+    throw new Error("Diese E-Mail-Adresse wartet bereits auf eine andere Bestätigung.");
+  }
+
+  const token = crypto.randomBytes(32).toString("hex");
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+  const expiresAt = dayjs().add(24, "hour").format("YYYY-MM-DD HH:mm:ss");
+  const appBaseUrl = resolveAppBaseUrl(settings);
+  const confirmUrl = `${appBaseUrl}/email-change/confirm?token=${token}`;
+
+  const tx = db.transaction(() => {
+    db.prepare("DELETE FROM email_change_requests WHERE user_id = ? AND confirmed_at IS NULL").run(userId);
+    db.prepare(`
+      INSERT INTO email_change_requests (user_id, requested_by_user_id, new_email, token_hash, expires_at)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(userId, requestedByUserId || null, normalizedEmail, tokenHash, expiresAt);
+  });
+  tx();
+
+  try {
+    await sendEmailChangeConfirmation(settings, {
+      recipient: normalizedEmail,
+      name: displayName || "Nutzer",
+      confirmUrl,
+    });
+  } catch (error) {
+    db.prepare("DELETE FROM email_change_requests WHERE token_hash = ?").run(tokenHash);
+    throw error;
+  }
+}
+
+function resolveAppBaseUrl(settings) {
+  const raw = String(settings.app_domain || "").trim();
+  if (!raw) {
+    return "http://127.0.0.1:3000";
+  }
+  if (/^https?:\/\//i.test(raw)) {
+    return raw.replace(/\/+$/, "");
+  }
+  return `https://${raw}`.replace(/\/+$/, "");
 }
 
 module.exports = app;

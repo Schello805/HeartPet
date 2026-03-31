@@ -207,6 +207,19 @@ function initDatabase() {
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(animal_id) REFERENCES animals(id) ON DELETE SET NULL
     );
+
+    CREATE TABLE IF NOT EXISTS email_change_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      requested_by_user_id INTEGER,
+      new_email TEXT NOT NULL,
+      token_hash TEXT NOT NULL UNIQUE,
+      expires_at TEXT NOT NULL,
+      confirmed_at TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY(requested_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+    );
   `);
 
   ensureColumn(db, "animals", "profile_image_stored_name", "TEXT");

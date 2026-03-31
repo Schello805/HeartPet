@@ -1,14 +1,59 @@
 <%- include('../partials/top', { pageTitle }) %>
 
+<% const me = (typeof selfUser !== 'undefined' ? selfUser : null) || currentUser || {}; %>
 <section class="accordion-stack">
   <details class="accordion-item" open>
-    <summary>Benutzer & Rollen</summary>
+    <summary>Profil & Sicherheit</summary>
     <div class="accordion-content">
+      <div class="list-card static-card compact-card">
+        <div class="list-card-main">
+          <strong><%= me.name || 'Administrator' %></strong>
+          <p><%= me.email || '-' %> | <%= getRoleLabel(me.role || 'admin') %></p>
+          <small>Hier verwaltest du nur dein eigenes Login und Passwort.</small>
+        </div>
+      </div>
+
+      <h3>Eigene Profildaten</h3>
+      <form method="post" action="/admin/profile" class="stack form-compact">
+        <div class="form-grid">
+          <label>
+            <span>Name</span>
+            <input type="text" name="name" required value="<%= me.name || '' %>" />
+          </label>
+          <label>
+            <span>E-Mail</span>
+            <input type="email" name="email" required value="<%= me.email || '' %>" />
+          </label>
+        </div>
+        <small>E-Mail-Änderungen werden erst nach Klick auf den Bestätigungslink wirksam.</small>
+        <button type="submit" class="button button-secondary">Profil speichern</button>
+      </form>
+
+      <h3>Eigenes Passwort ändern</h3>
+      <form method="post" action="/admin/password" class="stack form-compact">
+        <input type="password" name="current_password" required placeholder="Aktuelles Passwort" />
+        <input type="password" name="new_password" required placeholder="Neues Passwort" />
+        <input type="password" name="new_password_confirm" required placeholder="Neues Passwort wiederholen" />
+        <button type="submit" class="button">Passwort aktualisieren</button>
+      </form>
+    </div>
+  </details>
+
+  <details class="accordion-item">
+    <summary>Nutzer erstellen / verwalten</summary>
+    <div class="accordion-content">
+      <p class="compact-note">Dieser Bereich ist für alle Nutzerkonten, Rollen und Rechte zuständig. Dein eigenes Admin-Konto verwaltest du oben im Profilbereich.</p>
+      <% const managedUsers = (users || []).filter((user) => {
+        const sameId = String(user.id) === String(me.id || "");
+        const sameMail = String(user.email || "").trim().toLowerCase() === String(me.email || "").trim().toLowerCase();
+        return !sameId && !sameMail;
+      }); %>
+      <p class="compact-note"><strong>Angelegte weitere Nutzer:</strong> <%= managedUsers.length %></p>
       <div class="stack compact-list">
-        <% users.forEach((user) => { %>
+        <% managedUsers.forEach((user) => { %>
           <form method="post" action="/admin/users/<%= user.id %>/permissions" class="stack form-compact user-permissions-card">
-            <div class="list-card static-card">
-              <div>
+            <div class="list-card static-card compact-card">
+              <div class="list-card-main">
                 <strong><%= user.name %></strong>
                 <p><%= user.email %> | <%= getRoleLabel(user.role) %></p>
               </div>
@@ -44,15 +89,25 @@
             <div class="button-row">
               <button type="submit" class="button button-secondary">Rechte speichern</button>
               <button type="submit" class="button button-secondary" form="user-profile-<%= user.id %>">Name & E-Mail speichern</button>
+              <button type="submit" class="button button-danger" form="user-delete-<%= user.id %>">Löschen</button>
             </div>
+            <small>E-Mail-Änderungen werden erst nach Bestätigung durch den Nutzer aktiv.</small>
           </form>
           <form method="post" action="/admin/users/<%= user.id %>/update" id="user-profile-<%= user.id %>" class="hidden-form"></form>
+          <form method="post" action="/admin/users/<%= user.id %>/delete" id="user-delete-<%= user.id %>" class="hidden-form" data-confirm="Benutzer wirklich löschen?"></form>
         <% }) %>
+        <% if (managedUsers.length === 0) { %>
+          <p class="empty-state">Aktuell sind keine weiteren Nutzer angelegt. Dein Admin-Konto findest du oben im Bereich „Profil & Sicherheit“.</p>
+        <% } %>
       </div>
       <form method="post" action="/admin/users" class="stack form-compact">
         <input type="text" name="name" required placeholder="Name" />
         <input type="email" name="email" required placeholder="E-Mail" />
         <input type="password" name="password" required placeholder="Startpasswort" />
+        <label class="checkbox-line">
+          <input type="checkbox" name="send_invite_email" value="1" checked />
+          Einladungs-Mail mit Login-Link senden
+        </label>
         <select name="role">
           <option value="admin">Admin</option>
           <option value="user">Benutzer</option>
@@ -68,18 +123,6 @@
           <label class="checkbox-line"><input type="checkbox" name="can_manage_reminders" checked /> Erinnerungen</label>
         </div>
         <button type="submit" class="button">Benutzer anlegen</button>
-      </form>
-    </div>
-  </details>
-
-  <details class="accordion-item">
-    <summary>Eigenes Passwort ändern</summary>
-    <div class="accordion-content">
-      <form method="post" action="/admin/password" class="stack form-compact">
-        <input type="password" name="current_password" required placeholder="Aktuelles Passwort" />
-        <input type="password" name="new_password" required placeholder="Neues Passwort" />
-        <input type="password" name="new_password_confirm" required placeholder="Neues Passwort wiederholen" />
-        <button type="submit" class="button">Passwort aktualisieren</button>
       </form>
     </div>
   </details>
