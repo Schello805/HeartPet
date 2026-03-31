@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= pageTitle %> | <%= appSettings.app_name || "HeartPet" %></title>
+    <link rel="stylesheet" href="/static/css/app.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div>
+          <img class="brand-logo" src="/static/images/logo-heartpet.png" alt="HeartPet Logo" />
+          <div class="brand-text">
+            <strong><%= appSettings.app_name || "HeartPet" %></strong>
+            <span>Tierverwaltung auf einen Blick</span>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav">
+          <a class="<%= currentPath === '/' ? 'active' : '' %>" href="/">Dashboard</a>
+          <a class="<%= currentPath.startsWith('/animals') ? 'active' : '' %>" href="/animals">Tiere</a>
+          <a class="<%= currentPath.startsWith('/admin') ? 'active' : '' %>" href="/admin/allgemein">Admin</a>
+          <a class="<%= currentPath === '/hilfe' ? 'active' : '' %>" href="/hilfe">Hilfe</a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="small-label">Eingeloggt als</div>
+          <strong><%= currentUser?.name || "-" %></strong>
+          <span><%= currentUser?.role || "" %></span>
+          <form method="post" action="/logout">
+            <button type="submit" class="button button-secondary button-full">Abmelden</button>
+          </form>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="page-header">
+          <div>
+            <p class="eyebrow">HeartPet</p>
+            <h1><%= pageTitle %></h1>
+          </div>
+          <div class="header-actions">
+            <a href="/animals/new" class="button">Neues Tier</a>
+          </div>
+        </header>
+
+        <% if (currentUser?.mustChangePassword) { %>
+          <div class="banner-warning">
+            Das Standardpasswort ist noch aktiv. Bitte ändere es im Adminbereich.
+          </div>
+        <% } %>
+
+        <% if (flash) { %>
+          <div class="flash flash-<%= flash.type %>"><%= flash.message %></div>
+        <% } %>

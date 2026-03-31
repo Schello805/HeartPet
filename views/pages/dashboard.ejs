@@ -1,0 +1,92 @@
+<%- include('../partials/top', { pageTitle }) %>
+
+<section class="dashboard-grid">
+  <article class="stat-card">
+    <span>Tiere</span>
+    <strong><%= stats.animalCount %></strong>
+  </article>
+  <article class="stat-card">
+    <span>Dokumente</span>
+    <strong><%= stats.documentCount %></strong>
+  </article>
+  <article class="stat-card">
+    <span>Offene Erinnerungen</span>
+    <strong><%= stats.openReminderCount %></strong>
+  </article>
+  <article class="stat-card stat-card-warning">
+    <span>Jetzt fällig</span>
+    <strong><%= stats.dueReminderCount %></strong>
+  </article>
+</section>
+
+<section class="content-grid">
+  <article class="panel">
+    <div class="panel-head">
+      <h2>Nächste Erinnerungen</h2>
+    </div>
+    <% if (upcomingReminders.length === 0) { %>
+      <p class="empty-state">Keine offenen Erinnerungen vorhanden.</p>
+    <% } else { %>
+      <div class="stack">
+        <% upcomingReminders.forEach((reminder) => { %>
+          <div class="list-card">
+            <div>
+              <strong><%= reminder.title %></strong>
+              <p><%= reminder.animal_name || "Ohne Tierzuordnung" %> | <%= reminder.reminder_type %></p>
+              <small>Fällig: <%= formatDateTime(reminder.due_at) %></small>
+            </div>
+            <% if (!reminder.completed_at) { %>
+              <form method="post" action="/reminders/<%= reminder.id %>/complete">
+                <button type="submit" class="button button-secondary">Erledigt</button>
+              </form>
+            <% } %>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  </article>
+
+  <article class="panel">
+    <div class="panel-head">
+      <h2>Neueste Tierakten</h2>
+      <a href="/animals" class="link-button">Alle anzeigen</a>
+    </div>
+    <% if (recentAnimals.length === 0) { %>
+      <p class="empty-state">Es wurden noch keine Tiere angelegt.</p>
+    <% } else { %>
+      <div class="stack">
+        <% recentAnimals.forEach((animal) => { %>
+          <a class="animal-card" href="/animals/<%= animal.id %>">
+            <div>
+              <strong><%= animal.name %></strong>
+              <p><%= animal.species_name || "-" %> | <%= animal.status %></p>
+            </div>
+            <span><%= formatDate(animal.intake_date) %></span>
+          </a>
+        <% }) %>
+      </div>
+    <% } %>
+  </article>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h2>Schnellstart</h2>
+  </div>
+  <div class="quick-actions">
+    <a href="/animals/new" class="quick-card">
+      <strong>Tier anlegen</strong>
+      <span>Neue Akte mit Stammdaten, Herkunft und Tierarzt erstellen.</span>
+    </a>
+    <a href="/admin/allgemein" class="quick-card">
+      <strong>Admin öffnen</strong>
+      <span>SMTP, Telegram, Benutzer, Tierarten und Dokumentkategorien verwalten.</span>
+    </a>
+    <a href="/hilfe" class="quick-card">
+      <strong>Hilfe lesen</strong>
+      <span>Anleitungen für Einrichtung, Telegram-Bot und Updatescript.</span>
+    </a>
+  </div>
+</section>
+
+<%- include('../partials/bottom') %>

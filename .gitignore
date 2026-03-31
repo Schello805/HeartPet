@@ -1,0 +1,11 @@
+node_modules
+data/heartpet.sqlite
+data/sessions.sqlite
+data/uploads/*
+!data/uploads/.gitkeep
+data/exports/*
+!data/exports/.gitkeep
+data/backups/*
+!data/backups/.gitkeep
+.DS_Store
+npm-debug.log*

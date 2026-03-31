@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login | HeartPet</title>
+    <link rel="stylesheet" href="/static/css/app.css" />
+  </head>
+  <body class="login-body">
+    <section class="login-panel">
+      <div class="brand-lockup">
+        <img class="brand-logo brand-logo-login" src="/static/images/logo-heartpet.png" alt="HeartPet Logo" />
+        <div>
+          <h1>HeartPet</h1>
+          <p>Tierakten, Dokumente, Erinnerungen und Admin-Einstellungen in einer Webapp.</p>
+        </div>
+      </div>
+
+      <% if (flash) { %>
+        <div class="flash flash-<%= flash.type %>"><%= flash.message %></div>
+      <% } %>
+
+      <form method="post" action="/login" class="stack">
+        <label>
+          <span>E-Mail</span>
+          <input type="email" name="email" required value="admin@heartpet.local" />
+        </label>
+        <label>
+          <span>Passwort</span>
+          <input type="password" name="password" required value="admin123!" />
+        </label>
+        <button type="submit" class="button button-full">Anmelden</button>
+      </form>
+
+      <div class="note-box">
+        Standard-Login für den ersten Start:<br />
+        <strong>admin@heartpet.local</strong><br />
+        <strong>admin123!</strong>
+      </div>
+    </section>
+  </body>
+</html>

@@ -1,0 +1,34 @@
+<%- include('../partials/top', { pageTitle }) %>
+<section class="admin-layout">
+  <%- include('../partials/admin-subnav', { adminPath }) %>
+  <div class="admin-main">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Allgemeine Einstellungen</h2>
+      </div>
+      <form method="post" action="/admin/settings" class="form-grid">
+        <input type="hidden" name="_fields" value="app_name,app_domain,organization_name,help_contact" />
+        <label>
+          <span>App-Name</span>
+          <input type="text" name="app_name" value="<%= settings.app_name || '' %>" />
+        </label>
+        <label>
+          <span>Domain</span>
+          <input type="text" name="app_domain" value="<%= settings.app_domain || '' %>" />
+        </label>
+        <label class="full-width">
+          <span>Name der Haltung / Organisation</span>
+          <input type="text" name="organization_name" value="<%= settings.organization_name || '' %>" />
+        </label>
+        <label class="full-width">
+          <span>Kontakt für Hilfe / Impressumshinweis</span>
+          <input type="text" name="help_contact" value="<%= settings.help_contact || '' %>" />
+        </label>
+        <div class="full-width form-actions">
+          <button type="submit" class="button">Einstellungen speichern</button>
+        </div>
+      </form>
+    </section>
+  </div>
+</section>
+<%- include('../partials/bottom') %>

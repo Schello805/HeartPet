@@ -1,0 +1,85 @@
+<%- include('../partials/top', { pageTitle }) %>
+<section class="admin-layout">
+  <%- include('../partials/admin-subnav', { adminPath }) %>
+  <div class="admin-main">
+    <div class="content-grid">
+      <article class="panel">
+        <div class="panel-head">
+          <h2>E-Mail und Erinnerungen</h2>
+        </div>
+        <form method="post" action="/admin/settings" class="form-grid">
+          <input type="hidden" name="_fields" value="smtp_host,smtp_port,smtp_user,smtp_password,smtp_from,smtp_secure,reminder_email_enabled,browser_notifications_enabled" />
+          <label>
+            <span>SMTP Host</span>
+            <input type="text" name="smtp_host" value="<%= settings.smtp_host || '' %>" />
+          </label>
+          <label>
+            <span>SMTP Port</span>
+            <input type="number" name="smtp_port" value="<%= settings.smtp_port || '587' %>" />
+          </label>
+          <label>
+            <span>SMTP Benutzer / Empfänger</span>
+            <input type="email" name="smtp_user" value="<%= settings.smtp_user || '' %>" />
+          </label>
+          <label>
+            <span>SMTP Passwort</span>
+            <input type="password" name="smtp_password" value="<%= settings.smtp_password || '' %>" />
+          </label>
+          <label>
+            <span>Absenderadresse</span>
+            <input type="email" name="smtp_from" value="<%= settings.smtp_from || '' %>" />
+          </label>
+          <label class="checkbox-line">
+            <input type="checkbox" name="smtp_secure" <%= settings.smtp_secure === 'true' ? 'checked' : '' %> />
+            SMTPS / SSL direkt verwenden
+          </label>
+          <label class="checkbox-line full-width">
+            <input type="checkbox" name="reminder_email_enabled" <%= settings.reminder_email_enabled === 'true' ? 'checked' : '' %> />
+            Erinnerungen per E-Mail aktivieren
+          </label>
+          <label class="checkbox-line full-width">
+            <input type="checkbox" name="browser_notifications_enabled" <%= settings.browser_notifications_enabled === 'true' ? 'checked' : '' %> />
+            Browser-Hinweise für offene Erinnerungen aktivieren
+          </label>
+          <div class="full-width form-actions">
+            <button type="submit" class="button">E-Mail-Einstellungen speichern</button>
+          </div>
+        </form>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Telegram</h2>
+        </div>
+        <form method="post" action="/admin/settings" class="stack">
+          <input type="hidden" name="_fields" value="telegram_bot_token,telegram_chat_id,reminder_telegram_enabled" />
+          <label>
+            <span>Telegram Bot Token</span>
+            <input type="text" name="telegram_bot_token" value="<%= settings.telegram_bot_token || '' %>" />
+          </label>
+          <label>
+            <span>Telegram Chat ID</span>
+            <input type="text" name="telegram_chat_id" value="<%= settings.telegram_chat_id || '' %>" />
+          </label>
+          <label class="checkbox-line">
+            <input type="checkbox" name="reminder_telegram_enabled" <%= settings.reminder_telegram_enabled === 'true' ? 'checked' : '' %> />
+            Erinnerungen per Telegram aktivieren
+          </label>
+          <button type="submit" class="button">Telegram speichern</button>
+        </form>
+
+        <div class="note-box">
+          Telegram Bot Anleitung:
+          <ol>
+            <li>In Telegram <strong>@BotFather</strong> öffnen.</li>
+            <li>Mit <strong>/newbot</strong> einen Bot erstellen und den Token kopieren.</li>
+            <li>Dem Bot einmal schreiben.</li>
+            <li>Im Browser <strong>https://api.telegram.org/botTOKEN/getUpdates</strong> aufrufen und die <strong>chat.id</strong> auslesen.</li>
+            <li>Token und Chat ID oben speichern.</li>
+          </ol>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+<%- include('../partials/bottom') %>

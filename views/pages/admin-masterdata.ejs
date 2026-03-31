@@ -1,0 +1,80 @@
+<%- include('../partials/top', { pageTitle }) %>
+<section class="admin-layout">
+  <%- include('../partials/admin-subnav', { adminPath }) %>
+  <div class="admin-main">
+    <div class="content-grid">
+      <article class="panel">
+        <div class="panel-head"><h2>Dokumentkategorien</h2></div>
+        <div class="stack compact-list">
+          <% categories.forEach((category) => { %>
+            <div class="list-card static-card">
+              <strong><%= category.name %></strong>
+              <form method="post" action="/admin/categories/<%= category.id %>/delete">
+                <button type="submit" class="button button-danger">Löschen</button>
+              </form>
+            </div>
+          <% }) %>
+        </div>
+        <form method="post" action="/admin/categories" class="stack form-compact">
+          <input type="text" name="name" required placeholder="Neue Kategorie" />
+          <button type="submit" class="button">Anlegen</button>
+        </form>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head"><h2>Tierärzte</h2></div>
+        <div class="stack compact-list">
+          <% veterinarians.forEach((vet) => { %>
+            <div class="list-card static-card">
+              <div>
+                <strong><%= vet.name %></strong>
+                <p><%= vet.phone || '-' %> | <%= vet.email || '-' %></p>
+              </div>
+              <form method="post" action="/admin/veterinarians/<%= vet.id %>/delete">
+                <button type="submit" class="button button-danger">Löschen</button>
+              </form>
+            </div>
+          <% }) %>
+        </div>
+        <form method="post" action="/admin/veterinarians" class="stack form-compact">
+          <input type="text" name="name" required placeholder="Name" />
+          <input type="text" name="phone" placeholder="Telefon" />
+          <input type="email" name="email" placeholder="E-Mail" />
+          <textarea name="notes" rows="3" placeholder="Notizen"></textarea>
+          <button type="submit" class="button">Speichern</button>
+        </form>
+      </article>
+    </div>
+
+    <div class="content-grid">
+      <article class="panel">
+        <div class="panel-head"><h2>Tierarten</h2></div>
+        <div class="stack compact-list">
+          <% species.forEach((item) => { %>
+            <div class="list-card static-card">
+              <div>
+                <strong><%= item.name %></strong>
+                <p>Standard Tierarzt: <%= item.veterinarian_name || '-' %></p>
+              </div>
+              <form method="post" action="/admin/species/<%= item.id %>/delete">
+                <button type="submit" class="button button-danger">Löschen</button>
+              </form>
+            </div>
+          <% }) %>
+        </div>
+        <form method="post" action="/admin/species" class="stack form-compact">
+          <input type="text" name="name" required placeholder="Tierart" />
+          <select name="default_veterinarian_id">
+            <option value="">Kein Standard-Tierarzt</option>
+            <% veterinarians.forEach((vet) => { %>
+              <option value="<%= vet.id %>"><%= vet.name %></option>
+            <% }) %>
+          </select>
+          <textarea name="notes" rows="3" placeholder="Notizen"></textarea>
+          <button type="submit" class="button">Speichern</button>
+        </form>
+      </article>
+    </div>
+  </div>
+</section>
+<%- include('../partials/bottom') %>

@@ -1,0 +1,15 @@
+<%- include('../partials/top', { pageTitle }) %>
+<section class="admin-layout">
+  <%- include('../partials/admin-subnav', { adminPath }) %>
+  <div class="admin-main">
+    <section class="panel">
+      <div class="panel-head"><h2>HeartPet Import</h2></div>
+      <p class="help-copy">JSON-Exporte aus HeartPet können hier wieder eingelesen werden.</p>
+      <form method="post" action="/admin/import" enctype="multipart/form-data" class="stack form-compact">
+        <input type="file" name="import_file" accept="application/json" required />
+        <button type="submit" class="button">Import starten</button>
+      </form>
+    </section>
+  </div>
+</section>
+<%- include('../partials/bottom') %>

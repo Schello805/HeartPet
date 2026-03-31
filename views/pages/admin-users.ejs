@@ -1,0 +1,43 @@
+<%- include('../partials/top', { pageTitle }) %>
+<section class="admin-layout">
+  <%- include('../partials/admin-subnav', { adminPath }) %>
+  <div class="admin-main">
+    <div class="content-grid">
+      <article class="panel">
+        <div class="panel-head"><h2>Benutzer & Rollen</h2></div>
+        <div class="stack compact-list">
+          <% users.forEach((user) => { %>
+            <div class="list-card static-card">
+              <div>
+                <strong><%= user.name %></strong>
+                <p><%= user.email %> | <%= user.role %></p>
+              </div>
+              <span><%= user.must_change_password ? 'Passwortwechsel offen' : 'Aktiv' %></span>
+            </div>
+          <% }) %>
+        </div>
+        <form method="post" action="/admin/users" class="stack form-compact">
+          <input type="text" name="name" required placeholder="Name" />
+          <input type="email" name="email" required placeholder="E-Mail" />
+          <input type="password" name="password" required placeholder="Startpasswort" />
+          <select name="role">
+            <option value="admin">Admin</option>
+            <option value="helper">Helfer</option>
+            <option value="viewer">Nur Lesen</option>
+          </select>
+          <button type="submit" class="button">Benutzer anlegen</button>
+        </form>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head"><h2>Eigenes Passwort ändern</h2></div>
+        <form method="post" action="/admin/password" class="stack form-compact">
+          <input type="password" name="current_password" required placeholder="Aktuelles Passwort" />
+          <input type="password" name="new_password" required placeholder="Neues Passwort" />
+          <button type="submit" class="button">Passwort aktualisieren</button>
+        </form>
+      </article>
+    </div>
+  </div>
+</section>
+<%- include('../partials/bottom') %>

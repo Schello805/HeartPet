@@ -1,0 +1,64 @@
+<%- include('../partials/top', { pageTitle }) %>
+
+<section class="panel">
+  <form method="get" action="/animals" class="filter-row">
+    <label>
+      <span>Suche</span>
+      <input type="text" name="q" value="<%= filters.search %>" placeholder="Name, Herkunft, Rasse" />
+    </label>
+    <label>
+      <span>Status</span>
+      <select name="status">
+        <option value="">Alle</option>
+        <option value="Aktiv" <%= filters.status === 'Aktiv' ? 'selected' : '' %>>Aktiv</option>
+        <option value="Vermittelt" <%= filters.status === 'Vermittelt' ? 'selected' : '' %>>Vermittelt</option>
+        <option value="Verkauft" <%= filters.status === 'Verkauft' ? 'selected' : '' %>>Verkauft</option>
+        <option value="Verstorben" <%= filters.status === 'Verstorben' ? 'selected' : '' %>>Verstorben</option>
+      </select>
+    </label>
+    <button type="submit" class="button">Filtern</button>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="panel-head">
+    <h2>Tierbestand</h2>
+    <span class="counter"><%= animals.length %> Einträge</span>
+  </div>
+
+  <% if (animals.length === 0) { %>
+    <p class="empty-state">Noch keine Tiere vorhanden. Lege dein erstes Tier über "Neues Tier" an.</p>
+  <% } else { %>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Tierart</th>
+            <th>Status</th>
+            <th>Tierarzt</th>
+            <th>Aufnahme</th>
+            <th>Aktion</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% animals.forEach((animal) => { %>
+            <tr>
+              <td>
+                <strong><%= animal.name %></strong>
+                <div class="table-sub"><%= animal.breed || '-' %></div>
+              </td>
+              <td><%= animal.species_name || '-' %></td>
+              <td><span class="pill"><%= animal.status %></span></td>
+              <td><%= animal.veterinarian_name || '-' %></td>
+              <td><%= formatDate(animal.intake_date) %></td>
+              <td><a href="/animals/<%= animal.id %>" class="link-button">Öffnen</a></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>
+
+<%- include('../partials/bottom') %>

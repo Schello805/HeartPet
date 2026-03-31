@@ -1,0 +1,224 @@
+<%- include('../partials/top', { pageTitle }) %>
+
+<section class="hero-card">
+  <div>
+    <p class="eyebrow"><%= animal.species_name || 'Tier' %></p>
+    <h2><%= animal.name %></h2>
+    <p class="hero-copy">
+      Alter: <strong><%= getAnimalAge(animal.birth_date) %></strong> |
+      Aufnahme: <strong><%= formatDate(animal.intake_date) %></strong> |
+      Status: <strong><%= animal.status %></strong>
+    </p>
+    <p class="hero-copy">
+      Tierarzt: <strong><%= animal.veterinarian_name || animal.species_veterinarian_name || '-' %></strong>
+    </p>
+  </div>
+  <div class="hero-actions">
+    <a href="/animals/<%= animal.id %>/edit" class="button">Bearbeiten</a>
+    <a href="/animals/<%= animal.id %>/export/json" class="button button-secondary">JSON Export</a>
+    <a href="/animals/<%= animal.id %>/export/pdf" class="button button-secondary">PDF Export</a>
+  </div>
+</section>
+
+<section class="content-grid">
+  <article class="panel">
+    <div class="panel-head">
+      <h2>Stammdaten</h2>
+    </div>
+    <dl class="detail-list">
+      <div><dt>Herkunft</dt><dd><%= animal.source || '-' %></dd></div>
+      <div><dt>Rasse</dt><dd><%= animal.breed || '-' %></dd></div>
+      <div><dt>Farbe</dt><dd><%= animal.color || '-' %></dd></div>
+      <div><dt>Geschlecht</dt><dd><%= animal.sex || '-' %></dd></div>
+      <div><dt>Mikrochip</dt><dd><%= animal.microchip_number || '-' %></dd></div>
+      <div><dt>Gewicht</dt><dd><%= animal.weight_kg || '-' %></dd></div>
+    </dl>
+    <p><%= animal.notes || 'Keine weiteren Notizen vorhanden.' %></p>
+  </article>
+
+  <article class="panel">
+    <div class="panel-head">
+      <h2>Dokumente</h2>
+    </div>
+    <% if (related.documents.length === 0) { %>
+      <p class="empty-state">Noch keine Dokumente hochgeladen.</p>
+    <% } else { %>
+      <div class="stack">
+        <% related.documents.forEach((item) => { %>
+          <a class="list-card" href="/documents/<%= item.id %>/download">
+            <div>
+              <strong><%= item.title %></strong>
+              <p><%= item.category_name || 'Ohne Kategorie' %></p>
+            </div>
+            <span><%= formatDateTime(item.uploaded_at) %></span>
+          </a>
+        <% }) %>
+      </div>
+    <% } %>
+    <form method="post" action="/animals/<%= animal.id %>/documents" enctype="multipart/form-data" class="stack form-compact">
+      <label>
+        <span>Titel</span>
+        <input type="text" name="title" placeholder="z. B. Impfpass 2026" />
+      </label>
+      <label>
+        <span>Kategorie</span>
+        <select name="category_id">
+          <option value="">Keine Kategorie</option>
+          <% categories.forEach((category) => { %>
+            <option value="<%= category.id %>"><%= category.name %></option>
+          <% }) %>
+        </select>
+      </label>
+      <label>
+        <span>Datei</span>
+        <input type="file" name="document" required />
+      </label>
+      <button type="submit" class="button">Dokument hochladen</button>
+    </form>
+  </article>
+</section>
+
+<section class="content-grid">
+  <article class="panel">
+    <div class="panel-head"><h2>Vorerkrankungen</h2></div>
+    <div class="stack">
+      <% related.conditions.forEach((item) => { %>
+        <div class="list-card static-card">
+          <div>
+            <strong><%= item.title %></strong>
+            <p><%= item.details || 'Keine Details' %></p>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+    <form method="post" action="/animals/<%= animal.id %>/conditions" class="stack form-compact">
+      <input type="text" name="title" required placeholder="Bezeichnung" />
+      <textarea name="details" rows="3" placeholder="Beschreibung"></textarea>
+      <button type="submit" class="button">Speichern</button>
+    </form>
+  </article>
+
+  <article class="panel">
+    <div class="panel-head"><h2>Medikamente</h2></div>
+    <div class="stack">
+      <% related.medications.forEach((item) => { %>
+        <div class="list-card static-card">
+          <div>
+            <strong><%= item.name %></strong>
+            <p>Dosis: <%= item.dosage || '-' %> | Plan: <%= item.schedule || '-' %></p>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+    <form method="post" action="/animals/<%= animal.id %>/medications" class="stack form-compact">
+      <input type="text" name="name" required placeholder="Name" />
+      <input type="text" name="dosage" placeholder="Dosis" />
+      <input type="text" name="schedule" placeholder="z. B. täglich 08:00 und 18:00" />
+      <div class="mini-grid">
+        <input type="date" name="start_date" />
+        <input type="date" name="end_date" />
+      </div>
+      <textarea name="notes" rows="3" placeholder="Notizen"></textarea>
+      <button type="submit" class="button">Speichern</button>
+    </form>
+  </article>
+</section>
+
+<section class="content-grid">
+  <article class="panel">
+    <div class="panel-head"><h2>Impfungen</h2></div>
+    <div class="stack">
+      <% related.vaccinations.forEach((item) => { %>
+        <div class="list-card static-card">
+          <div>
+            <strong><%= item.name %></strong>
+            <p>Geimpft: <%= formatDate(item.vaccination_date) %> | Nächste Fälligkeit: <%= formatDate(item.next_due_date) %></p>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+    <form method="post" action="/animals/<%= animal.id %>/vaccinations" class="stack form-compact">
+      <input type="text" name="name" required placeholder="Impfung" />
+      <div class="mini-grid">
+        <input type="date" name="vaccination_date" />
+        <input type="date" name="next_due_date" />
+      </div>
+      <textarea name="notes" rows="3" placeholder="Notizen"></textarea>
+      <button type="submit" class="button">Speichern</button>
+    </form>
+  </article>
+
+  <article class="panel">
+    <div class="panel-head"><h2>Fütterungsplan</h2></div>
+    <div class="stack">
+      <% related.feedings.forEach((item) => { %>
+        <div class="list-card static-card">
+          <div>
+            <strong><%= item.label %></strong>
+            <p><%= item.time_of_day || '-' %> | <%= item.food || '-' %> | <%= item.amount || '-' %></p>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+    <form method="post" action="/animals/<%= animal.id %>/feedings" class="stack form-compact">
+      <input type="text" name="label" required placeholder="Bezeichnung" />
+      <input type="time" name="time_of_day" />
+      <input type="text" name="food" placeholder="Futter" />
+      <input type="text" name="amount" placeholder="Menge" />
+      <textarea name="notes" rows="3" placeholder="Notizen"></textarea>
+      <button type="submit" class="button">Speichern</button>
+    </form>
+  </article>
+</section>
+
+<section class="content-grid">
+  <article class="panel">
+    <div class="panel-head"><h2>Erinnerungen</h2></div>
+    <div class="stack">
+      <% related.reminders.forEach((item) => { %>
+        <div class="list-card static-card">
+          <div>
+            <strong><%= item.title %></strong>
+            <p><%= item.reminder_type %> | Fällig: <%= formatDateTime(item.due_at) %></p>
+          </div>
+          <% if (!item.completed_at) { %>
+            <form method="post" action="/reminders/<%= item.id %>/complete">
+              <button type="submit" class="button button-secondary">Erledigt</button>
+            </form>
+          <% } %>
+        </div>
+      <% }) %>
+    </div>
+    <form method="post" action="/animals/<%= animal.id %>/reminders" class="stack form-compact">
+      <input type="text" name="title" required placeholder="Titel" />
+      <input type="text" name="reminder_type" placeholder="Typ, z. B. Impfung" />
+      <input type="datetime-local" name="due_at" required />
+      <label class="checkbox-line"><input type="checkbox" name="channel_email" checked /> E-Mail senden</label>
+      <label class="checkbox-line"><input type="checkbox" name="channel_telegram" /> Telegram senden</label>
+      <textarea name="notes" rows="3" placeholder="Notizen"></textarea>
+      <button type="submit" class="button">Speichern</button>
+    </form>
+  </article>
+
+  <article class="panel">
+    <div class="panel-head"><h2>Protokolle</h2></div>
+    <div class="stack">
+      <% related.notes.forEach((item) => { %>
+        <div class="list-card static-card">
+          <div>
+            <strong><%= item.title %></strong>
+            <p><%= item.content %></p>
+            <small><%= formatDateTime(item.created_at) %></small>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+    <form method="post" action="/animals/<%= animal.id %>/notes" class="stack form-compact">
+      <input type="text" name="title" required placeholder="Titel" />
+      <textarea name="content" rows="4" required placeholder="Eintrag"></textarea>
+      <button type="submit" class="button">Speichern</button>
+    </form>
+  </article>
+</section>
+
+<%- include('../partials/bottom') %>
