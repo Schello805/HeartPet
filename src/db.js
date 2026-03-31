@@ -303,6 +303,10 @@ function seedDefaults(db) {
     vaccination_reminder_repeat_count: "1",
     appointment_reminder_lead_days: "1",
     appointment_reminder_repeat_count: "1",
+    daily_digest_enabled: "false",
+    daily_digest_time: "07:30",
+    daily_digest_only_when_open: "true",
+    last_daily_digest_date: "",
     help_contact: "Support-Kontakt: [Name / Organisation], [E-Mail], [Telefon optional]",
     legal_contact_email: "[recht@beispiel.de]",
     imprint_text: [

@@ -1199,6 +1199,11 @@ small {
   border-color: #d49e92;
 }
 
+.status-warning {
+  background: #fff4d6;
+  border-color: #e1c989;
+}
+
 .meta-line {
   margin: 6px 0 0;
   color: var(--muted);

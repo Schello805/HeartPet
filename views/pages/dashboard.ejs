@@ -58,6 +58,31 @@
 </section>
 
 <section class="content-grid">
+  <article class="panel" id="dringende-erinnerungen">
+    <div class="panel-head">
+      <h2>Dringend: Überfällig & Heute</h2>
+    </div>
+    <% const urgentList = typeof urgentReminders !== 'undefined' ? urgentReminders : []; %>
+    <% if (urgentList.length === 0) { %>
+      <p class="empty-state">Keine dringenden Erinnerungen vorhanden.</p>
+    <% } else { %>
+      <div class="stack">
+        <% urgentList.forEach((reminder) => { %>
+          <div class="list-card">
+            <div>
+              <strong><%= reminder.title %></strong>
+              <p><%= reminder.animal_name || "Ohne Tierzuordnung" %> | <%= reminder.reminder_type %></p>
+              <small>Fällig: <%= formatDateTime(reminder.due_at) %></small>
+            </div>
+            <span class="status-chip <%= reminder.urgency === 'overdue' ? 'status-error' : reminder.urgency === 'today' ? 'status-warning' : 'status-muted' %>">
+              <%= reminder.urgency === 'overdue' ? 'Überfällig' : reminder.urgency === 'today' ? 'Heute' : 'Bald' %>
+            </span>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  </article>
+
   <article class="panel" id="naechste-erinnerungen">
     <div class="panel-head">
       <h2>Nächste Erinnerungen</h2>

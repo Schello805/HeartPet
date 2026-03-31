@@ -12,10 +12,13 @@ const dayjs = require("dayjs");
 const { initDatabase, getSettingsObject, upsertSetting } = require("./db");
 const {
   processDueReminders,
+  sendDailyDigestEmail,
+  sendDailyDigestTelegram,
   sendTestEmail,
   sendTestTelegram,
   sendUserInviteEmail,
   sendEmailChangeConfirmation,
+  verifySmtpConnection,
   isEmailEnabled,
   isTelegramEnabled,
 } = require("./reminders");
@@ -332,6 +335,33 @@ app.get("/", (req, res) => {
     LIMIT 10
   `).all();
 
+  const urgentReminders = db.prepare(`
+    SELECT reminders.*, animals.name AS animal_name,
+      CASE
+        WHEN reminders.due_at < ? THEN 'overdue'
+        WHEN reminders.due_at <= ? THEN 'today'
+        ELSE 'upcoming'
+      END AS urgency
+    FROM reminders
+    LEFT JOIN animals ON animals.id = reminders.animal_id
+    WHERE reminders.completed_at IS NULL
+      AND reminders.due_at <= ?
+    ORDER BY
+      CASE
+        WHEN reminders.due_at < ? THEN 0
+        WHEN reminders.due_at <= ? THEN 1
+        ELSE 2
+      END,
+      reminders.due_at ASC
+    LIMIT 12
+  `).all(
+    dayjs().format("YYYY-MM-DDTHH:mm"),
+    dayjs().endOf("day").format("YYYY-MM-DDTHH:mm"),
+    dayjs().add(3, "day").endOf("day").format("YYYY-MM-DDTHH:mm"),
+    dayjs().format("YYYY-MM-DDTHH:mm"),
+    dayjs().endOf("day").format("YYYY-MM-DDTHH:mm")
+  );
+
   res.render("pages/dashboard", {
     pageTitle: "Dashboard",
     search: { q, searchable },
@@ -339,6 +369,7 @@ app.get("/", (req, res) => {
     stats,
     recentAnimals,
     upcomingReminders,
+    urgentReminders,
   });
 });
 
@@ -1310,6 +1341,8 @@ app.post("/admin/settings", requireAdmin, (req, res) => {
     "reminder_email_enabled",
     "reminder_telegram_enabled",
     "browser_notifications_enabled",
+    "daily_digest_enabled",
+    "daily_digest_only_when_open",
   ]);
   const fields = String(req.body._fields || "")
     .split(",")
@@ -1365,6 +1398,35 @@ app.post("/admin/test-email", requireAdmin, async (req, res) => {
     setFlash(req, "error", `SMTP-Test fehlgeschlagen: ${error.message}`);
   }
 
+  res.redirect("/admin/benachrichtigungen");
+});
+
+app.post("/admin/test-smtp-connection", requireAdmin, async (req, res) => {
+  try {
+    await verifySmtpConnection(getSettingsObject(db));
+    createNotificationLog({
+      userId: req.session.user?.id,
+      channel: "email",
+      type: "smtp_connection_check",
+      recipient: getSettingsObject(db).smtp_host || "",
+      subject: "SMTP-Verbindung prüfen",
+      status: "sent",
+      details: {},
+    });
+    setFlash(req, "success", "SMTP-Verbindung erfolgreich geprüft.");
+  } catch (error) {
+    createNotificationLog({
+      userId: req.session.user?.id,
+      channel: "email",
+      type: "smtp_connection_check",
+      recipient: getSettingsObject(db).smtp_host || "",
+      subject: "SMTP-Verbindung prüfen",
+      status: "error",
+      error: error.message,
+      details: {},
+    });
+    setFlash(req, "error", `SMTP-Verbindung fehlgeschlagen: ${error.message}`);
+  }
   res.redirect("/admin/benachrichtigungen");
 });
 
@@ -1986,6 +2048,130 @@ app.use((req, res) => {
   renderNotFound(req, res, "Seite nicht gefunden.");
 });
 
+async function maybeSendDailyDigest() {
+  const settings = getSettingsObject(db);
+  if (settings.daily_digest_enabled !== "true") {
+    return;
+  }
+
+  const timeRaw = String(settings.daily_digest_time || "07:30").trim();
+  const [hourRaw, minuteRaw] = timeRaw.split(":");
+  const hour = Math.max(0, Math.min(23, Number.parseInt(hourRaw || "7", 10) || 7));
+  const minute = Math.max(0, Math.min(59, Number.parseInt(minuteRaw || "30", 10) || 30));
+  const now = dayjs();
+  const today = now.format("YYYY-MM-DD");
+  const sendAt = dayjs(`${today}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`);
+  const lastDigestDate = String(settings.last_daily_digest_date || "").trim();
+
+  if (lastDigestDate === today || now.isBefore(sendAt)) {
+    return;
+  }
+
+  const overdueCount = db.prepare(`
+    SELECT COUNT(*) AS count
+    FROM reminders
+    WHERE completed_at IS NULL
+      AND due_at < ?
+  `).get(now.format("YYYY-MM-DDTHH:mm")).count;
+  const todayCount = db.prepare(`
+    SELECT COUNT(*) AS count
+    FROM reminders
+    WHERE completed_at IS NULL
+      AND due_at >= ?
+      AND due_at <= ?
+  `).get(`${today}T00:00`, `${today}T23:59`).count;
+  const nextDaysCount = db.prepare(`
+    SELECT COUNT(*) AS count
+    FROM reminders
+    WHERE completed_at IS NULL
+      AND due_at > ?
+      AND due_at <= ?
+  `).get(`${today}T23:59`, now.add(3, "day").format("YYYY-MM-DDTHH:mm")).count;
+
+  if (settings.daily_digest_only_when_open === "true" && overdueCount + todayCount + nextDaysCount === 0) {
+    upsertSetting(db, "last_daily_digest_date", today);
+    createNotificationLog({
+      userId: null,
+      channel: "system",
+      type: "daily_digest",
+      recipient: "",
+      subject: "Tageszusammenfassung",
+      status: "skipped",
+      details: { reason: "no_open_reminders" },
+    });
+    return;
+  }
+
+  const rows = db.prepare(`
+    SELECT reminders.*, animals.name AS animal_name
+    FROM reminders
+    LEFT JOIN animals ON animals.id = reminders.animal_id
+    WHERE reminders.completed_at IS NULL
+      AND reminders.due_at <= ?
+    ORDER BY reminders.due_at ASC
+    LIMIT 20
+  `).all(now.add(3, "day").format("YYYY-MM-DDTHH:mm"))
+    .map((item) => ({
+      ...item,
+      dueLabel: formatDateTime(item.due_at),
+    }));
+
+  const payload = {
+    generatedAt: formatDateTime(now.format("YYYY-MM-DDTHH:mm")),
+    counts: {
+      overdue: overdueCount,
+      today: todayCount,
+      nextDays: nextDaysCount,
+    },
+    rows,
+  };
+
+  const deliveries = [];
+  try {
+    if (isEmailEnabled(settings)) {
+      await sendDailyDigestEmail(settings, payload);
+      deliveries.push({
+        channel: "email",
+        status: "sent",
+        recipient: settings.notification_email_to || settings.smtp_user || "",
+      });
+    }
+    if (isTelegramEnabled(settings)) {
+      await sendDailyDigestTelegram(settings, payload);
+      deliveries.push({
+        channel: "telegram",
+        status: "sent",
+        recipient: settings.telegram_chat_id || "",
+      });
+    }
+
+    if (!deliveries.length) {
+      deliveries.push({ channel: "system", status: "skipped", recipient: "" });
+    }
+  } catch (error) {
+    deliveries.push({
+      channel: "system",
+      status: "error",
+      recipient: "",
+      error: error.message,
+    });
+  }
+
+  deliveries.forEach((entry) => {
+    createNotificationLog({
+      userId: null,
+      channel: entry.channel,
+      type: "daily_digest",
+      recipient: entry.recipient,
+      subject: "Tageszusammenfassung",
+      status: entry.status,
+      error: entry.error || "",
+      details: payload.counts,
+    });
+  });
+  upsertSetting(db, "last_daily_digest_date", today);
+}
+
 const port = Number(process.env.PORT || 3000);
 if (require.main === module) {
   cron.schedule("*/10 * * * *", async () => {
@@ -2007,6 +2193,7 @@ if (require.main === module) {
           });
         },
       });
+      await maybeSendDailyDigest();
     } catch (error) {
       console.error("[HeartPet] Fehler im Erinnerungsdienst:", error.message);
     }

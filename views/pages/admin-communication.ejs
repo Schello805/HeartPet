@@ -5,7 +5,7 @@
     <summary>E-Mail und allgemeine Benachrichtigungen</summary>
     <div class="accordion-content">
       <form method="post" action="/admin/settings" class="form-grid">
-        <input type="hidden" name="_fields" value="smtp_host,smtp_port,smtp_user,smtp_password,smtp_from,notification_email_to,smtp_secure,reminder_email_enabled,browser_notifications_enabled" />
+        <input type="hidden" name="_fields" value="smtp_host,smtp_port,smtp_user,smtp_password,smtp_from,notification_email_to,smtp_secure,reminder_email_enabled,browser_notifications_enabled,daily_digest_enabled,daily_digest_time,daily_digest_only_when_open" />
         <label>
           <span>SMTP Host</span>
           <input type="text" name="smtp_host" value="<%= settings.smtp_host || '' %>" />
@@ -42,15 +42,35 @@
           <input type="checkbox" name="browser_notifications_enabled" <%= settings.browser_notifications_enabled === 'true' ? 'checked' : '' %> />
           Browser-Hinweise für offene Erinnerungen aktivieren
         </label>
+        <label class="checkbox-line full-width">
+          <input type="checkbox" name="daily_digest_enabled" <%= settings.daily_digest_enabled === 'true' ? 'checked' : '' %> />
+          Tägliche Erinnerungs-Zusammenfassung aktivieren
+        </label>
+        <label>
+          <span>Tägliche Zusammenfassung um</span>
+          <input type="time" name="daily_digest_time" value="<%= settings.daily_digest_time || '07:30' %>" />
+        </label>
+        <label class="checkbox-line">
+          <input type="checkbox" name="daily_digest_only_when_open" <%= settings.daily_digest_only_when_open !== 'false' ? 'checked' : '' %> />
+          Nur senden, wenn offene Erinnerungen vorhanden sind
+        </label>
         <div class="full-width form-actions">
           <button type="submit" class="button">E-Mail-Einstellungen speichern</button>
         </div>
       </form>
 
+      <div class="note-box">
+        Zustellbarkeit (wichtig): Für stabile Zustellung sollten SPF, DKIM und DMARC für deine Absender-Domain korrekt gesetzt sein.
+        Prüfe zusätzlich regelmäßig den Versandstatus im Systemlog.
+      </div>
+
       <div class="status-row">
         <span class="status-chip <%= communicationStatus.emailReady ? 'status-ok' : 'status-muted' %>">
           <%= communicationStatus.emailReady ? 'E-Mail Versand bereit' : 'E-Mail Versand noch nicht vollständig konfiguriert' %>
         </span>
+        <form method="post" action="/admin/test-smtp-connection">
+          <button type="submit" class="button button-secondary">SMTP-Verbindung prüfen</button>
+        </form>
         <form method="post" action="/admin/test-email">
           <button type="submit" class="button button-secondary">SMTP-Testmail senden</button>
         </form>

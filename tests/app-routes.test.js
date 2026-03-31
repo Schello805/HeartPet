@@ -66,3 +66,9 @@ test("Such-Suggestions liefern Ergebnisse", async () => {
   assert.equal(nestedAlias.status, 200);
   assert.equal(Array.isArray(nestedAlias.body.results), true);
 });
+
+test("SMTP-Verbindungstest Route ist erreichbar", async () => {
+  const response = await agent.post("/admin/test-smtp-connection").type("form").send({});
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.location, "/admin/benachrichtigungen");
+});

@@ -204,6 +204,14 @@ async function sendTestEmail(settings) {
   });
 }
 
+async function verifySmtpConnection(settings) {
+  if (!settings.smtp_host || !settings.smtp_from) {
+    throw new Error("SMTP ist nicht vollständig konfiguriert.");
+  }
+  const transporter = createSmtpTransport(settings);
+  await transporter.verify();
+}
+
 async function sendEmailChangeConfirmation(settings, payload) {
   const recipient = String(payload?.recipient || "").trim();
   const confirmUrl = String(payload?.confirmUrl || "").trim();
@@ -568,14 +576,171 @@ function buildEmailChangeConfirmationHtml(payload) {
   `.trim();
 }
 
+async function sendDailyDigestEmail(settings, payload) {
+  const recipient = settings.notification_email_to || settings.smtp_user;
+  if (!recipient) {
+    throw new Error("Keine Empfängeradresse für die Tageszusammenfassung konfiguriert.");
+  }
+
+  const transporter = createSmtpTransport(settings);
+  const appName = settings.app_name || "HeartPet";
+  const appBaseUrl = getAppBaseUrl(settings);
+  const logoFilePath = path.join(__dirname, "..", "public", "images", "logo-heartpet.png");
+  const logoCid = "heartpet-digest-logo";
+  const { attachments, logoUrl } = resolveEmailLogo({ logoFilePath, logoCid, appBaseUrl });
+  const dashboardUrl = appBaseUrl ? `${appBaseUrl}/` : "";
+  const html = buildDailyDigestEmailHtml({
+    appName,
+    logoUrl,
+    dashboardUrl,
+    generatedAt: payload.generatedAt,
+    counts: payload.counts,
+    rows: payload.rows,
+  });
+
+  const lines = [
+    `${appName} Tageszusammenfassung`,
+    "",
+    `Überfällig: ${payload.counts.overdue}`,
+    `Heute: ${payload.counts.today}`,
+    `Nächste 3 Tage: ${payload.counts.nextDays}`,
+    "",
+    ...payload.rows.map((item) => `- ${item.dueLabel} | ${item.animal_name || "Ohne Tier"} | ${item.title}`),
+    "",
+    dashboardUrl ? `Dashboard: ${dashboardUrl}` : "",
+  ].filter(Boolean);
+
+  await transporter.sendMail({
+    from: settings.smtp_from,
+    to: recipient,
+    subject: `[${appName}] Tageszusammenfassung Erinnerungen`,
+    text: lines.join("\n"),
+    html,
+    attachments,
+  });
+}
+
+async function sendDailyDigestTelegram(settings, payload) {
+  const appName = settings.app_name || "HeartPet";
+  const appBaseUrl = getAppBaseUrl(settings);
+  const dashboardUrl = appBaseUrl ? `${appBaseUrl}/` : "";
+  const lines = [
+    `*${escapeTelegram(appName)}* Tageszusammenfassung`,
+    "",
+    `*Überfällig:* ${escapeTelegram(String(payload.counts.overdue))}`,
+    `*Heute:* ${escapeTelegram(String(payload.counts.today))}`,
+    `*Nächste 3 Tage:* ${escapeTelegram(String(payload.counts.nextDays))}`,
+    "",
+    ...payload.rows.slice(0, 10).map((item) => `• ${escapeTelegram(`${item.dueLabel} | ${item.animal_name || "Ohne Tier"} | ${item.title}`)}`),
+    dashboardUrl ? `\n*Dashboard:* ${escapeTelegram(dashboardUrl)}` : "",
+  ].filter(Boolean);
+
+  const response = await fetch(`https://api.telegram.org/bot${settings.telegram_bot_token}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: settings.telegram_chat_id,
+      text: lines.join("\n"),
+      parse_mode: "MarkdownV2",
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Telegram-Tageszusammenfassung fehlgeschlagen: ${response.status}`);
+  }
+}
+
+function buildDailyDigestEmailHtml(payload) {
+  const { appName, logoUrl, dashboardUrl, generatedAt, counts, rows } = payload;
+  const safe = (value) =>
+    String(value || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;");
+
+  const tableRows = rows.length
+    ? rows
+        .map(
+          (item) => `
+            <tr>
+              <td style="padding:8px 6px;border-bottom:1px solid #e7f2ec;">${safe(item.dueLabel)}</td>
+              <td style="padding:8px 6px;border-bottom:1px solid #e7f2ec;">${safe(item.animal_name || "Ohne Tier")}</td>
+              <td style="padding:8px 6px;border-bottom:1px solid #e7f2ec;">${safe(item.title)}</td>
+              <td style="padding:8px 6px;border-bottom:1px solid #e7f2ec;">${safe(item.reminder_type || "Erinnerung")}</td>
+            </tr>
+          `
+        )
+        .join("")
+    : `<tr><td colspan="4" style="padding:10px 6px;color:#5f7b6f;">Keine offenen Erinnerungen.</td></tr>`;
+
+  return `
+<!doctype html>
+<html lang="de">
+  <body style="margin:0;padding:0;background:#f2faf6;font-family:Manrope,Segoe UI,Arial,sans-serif;color:#1d3128;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f2faf6;padding:24px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:700px;background:#fcfffd;border:1px solid #cfe5d8;border-radius:10px;overflow:hidden;">
+            <tr>
+              <td style="padding:18px 20px;background:linear-gradient(180deg,#f2fbf6 0%,#eaf7f0 100%);border-bottom:1px solid #cfe5d8;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td style="vertical-align:middle;">
+                      <div style="font-size:12px;color:#5f7b6f;letter-spacing:.08em;text-transform:uppercase;">${safe(appName)}</div>
+                      <div style="font-size:22px;font-weight:800;color:#1d3128;margin-top:4px;">Tageszusammenfassung</div>
+                    </td>
+                    <td align="right" style="vertical-align:middle;">
+                      ${logoUrl ? `<img src="${safe(logoUrl)}" alt="${safe(appName)} Logo" style="width:64px;height:64px;object-fit:contain;" />` : ""}
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:16px 20px;">
+                <p style="margin:0 0 12px 0;color:#31483f;font-size:14px;">Stand: <strong>${safe(generatedAt)}</strong></p>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;margin:0 0 12px 0;">
+                  <span style="padding:6px 10px;border-radius:999px;background:#ffe9e6;color:#7a2f27;font-weight:700;font-size:12px;">Überfällig: ${safe(counts.overdue)}</span>
+                  <span style="padding:6px 10px;border-radius:999px;background:#fff4d6;color:#7b5b16;font-weight:700;font-size:12px;">Heute: ${safe(counts.today)}</span>
+                  <span style="padding:6px 10px;border-radius:999px;background:#eaf7f0;color:#1d563e;font-weight:700;font-size:12px;">Nächste 3 Tage: ${safe(counts.nextDays)}</span>
+                </div>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:13px;border:1px solid #d8ebdf;border-radius:8px;overflow:hidden;">
+                  <thead>
+                    <tr style="background:#f6fcf9;color:#345146;">
+                      <th align="left" style="padding:8px 6px;">Zeit</th>
+                      <th align="left" style="padding:8px 6px;">Tier</th>
+                      <th align="left" style="padding:8px 6px;">Titel</th>
+                      <th align="left" style="padding:8px 6px;">Typ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${tableRows}
+                  </tbody>
+                </table>
+                ${dashboardUrl ? `<div style="margin-top:14px;"><a href="${safe(dashboardUrl)}" style="display:inline-block;padding:10px 14px;border-radius:7px;background:linear-gradient(180deg,#42b084 0%,#2e9a6f 100%);color:#ffffff;text-decoration:none;font-weight:700;font-size:13px;">Zum Dashboard</a></div>` : ""}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+  `.trim();
+}
+
 module.exports = {
   processDueReminders,
   sendEmailReminder,
   sendTelegramReminder,
+  sendDailyDigestEmail,
+  sendDailyDigestTelegram,
   sendUserInviteEmail,
   sendEmailChangeConfirmation,
   sendTestEmail,
   sendTestTelegram,
+  verifySmtpConnection,
   isEmailEnabled,
   isTelegramEnabled,
 };
