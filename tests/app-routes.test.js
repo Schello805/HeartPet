@@ -42,6 +42,10 @@ test("Systemlog ist erreichbar (inkl. Alias)", async () => {
   const alias = await agent.get("/systemlog");
   assert.equal(alias.status, 302);
   assert.equal(alias.headers.location, "/admin/systemlog");
+
+  const aliasDash = await agent.get("/system-log");
+  assert.equal(aliasDash.status, 302);
+  assert.equal(aliasDash.headers.location, "/admin/systemlog");
 });
 
 test("Such-Suggestions liefern Ergebnisse", async () => {
@@ -49,4 +53,8 @@ test("Such-Suggestions liefern Ergebnisse", async () => {
   assert.equal(response.status, 200);
   assert.equal(Array.isArray(response.body.results), true);
   assert.ok(response.body.results.length >= 1);
+
+  const alias = await agent.get("/api/suggest").query({ q: "min" });
+  assert.equal(alias.status, 200);
+  assert.equal(Array.isArray(alias.body.results), true);
 });

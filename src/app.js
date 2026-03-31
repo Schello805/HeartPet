@@ -1282,8 +1282,10 @@ app.get("/admin/systemlog", requireAdmin, (req, res) => {
   });
 });
 
-app.get("/systemlog", requireAdmin, (req, res) => {
-  res.redirect("/admin/systemlog");
+["/systemlog", "/system-log", "/admin/system-log", "/admin/log"].forEach((aliasPath) => {
+  app.get(aliasPath, requireAdmin, (req, res) => {
+    res.redirect("/admin/systemlog");
+  });
 });
 
 app.post("/admin/settings", requireAdmin, (req, res) => {
@@ -1944,9 +1946,9 @@ function renderSearchSuggestions(req, res) {
   res.json({ results: suggestions });
 }
 
-app.get("/api/search/suggest", renderSearchSuggestions);
-app.get("/search/suggest", renderSearchSuggestions);
-app.get("/suggest", renderSearchSuggestions);
+["/api/search/suggest", "/api/suggest", "/search/suggest", "/suggest"].forEach((suggestPath) => {
+  app.get(suggestPath, renderSearchSuggestions);
+});
 
 app.get("/api/reminders/pending", (req, res) => {
   const rows = db.prepare(`
