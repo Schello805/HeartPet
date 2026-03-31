@@ -2,7 +2,10 @@ const fs = require("fs");
 const path = require("path");
 const Database = require("better-sqlite3");
 
-const dataDir = path.join(process.cwd(), "data");
+const configuredDataDir = String(process.env.HEARTPET_DATA_DIR || "").trim();
+const dataDir = configuredDataDir
+  ? path.resolve(configuredDataDir)
+  : path.join(process.cwd(), "data");
 const databaseFile = path.join(dataDir, "heartpet.sqlite");
 
 function ensureDataDirectories() {

@@ -1282,6 +1282,10 @@ app.get("/admin/systemlog", requireAdmin, (req, res) => {
   });
 });
 
+app.get("/systemlog", requireAdmin, (req, res) => {
+  res.redirect("/admin/systemlog");
+});
+
 app.post("/admin/settings", requireAdmin, (req, res) => {
   const booleanKeys = new Set([
     "smtp_secure",
