@@ -72,3 +72,12 @@ test("SMTP-Verbindungstest Route ist erreichbar", async () => {
   assert.equal(response.status, 302);
   assert.equal(response.headers.location, "/admin/benachrichtigungen");
 });
+
+test("Benachrichtigungen Alias ist erreichbar", async () => {
+  const direct = await agent.get("/admin/benachrichtigungen");
+  assert.equal(direct.status, 200);
+
+  const alias = await agent.get("/benachrichtigungen");
+  assert.equal(alias.status, 302);
+  assert.equal(alias.headers.location, "/admin/benachrichtigungen");
+});

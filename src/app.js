@@ -1277,6 +1277,15 @@ app.get("/admin/benachrichtigungen", requireAdmin, (req, res) => {
   res.render("pages/admin-communication", getAdminViewData("Benachrichtigungen", "/admin/benachrichtigungen"));
 });
 
+["/benachrichtigungen", "/admin/notifications", "/notifications"].forEach((aliasPath) => {
+  app.get(aliasPath, requireAdmin, (req, res) => {
+    res.redirect("/admin/benachrichtigungen");
+  });
+});
+app.get(/^\/.+\/benachrichtigungen$/, requireAdmin, (req, res) => {
+  res.redirect("/admin/benachrichtigungen");
+});
+
 app.get("/admin/stammdaten", requireAdmin, (req, res) => {
   res.render("pages/admin-masterdata", getAdminViewData("Stammdaten", "/admin/stammdaten"));
 });
