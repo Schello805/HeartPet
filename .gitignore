@@ -11,3 +11,4 @@ data/backups/*
 !data/backups/.gitkeep
 .DS_Store
 npm-debug.log*
+.env

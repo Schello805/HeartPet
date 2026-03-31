@@ -12,12 +12,21 @@
     </label>
     <label>
       <span>Tierart</span>
-      <select name="species_id">
-        <option value="">Bitte wählen</option>
+      <input
+        type="text"
+        name="species_name"
+        required
+        list="species-suggestions"
+        data-species-autocomplete="true"
+        autocomplete="off"
+        value="<%= animal?.species_name || '' %>"
+        placeholder="Tierart suchen, z. B. Hund, Koi, Schlange"
+      />
+      <datalist id="species-suggestions">
         <% species.forEach((item) => { %>
-          <option value="<%= item.id %>" <%= String(animal?.species_id || '') === String(item.id) ? 'selected' : '' %>><%= item.name %></option>
+          <option value="<%= item.name %>"></option>
         <% }) %>
-      </select>
+      </datalist>
     </label>
     <label>
       <span>Geschlecht</span>

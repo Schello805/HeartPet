@@ -1,17 +1,21 @@
 # HeartPet
 
-HeartPet ist eine deutschsprachige Webapp fuer Tierhalter, Gnadenhoefe und kleinere Tierhaltungen. Ziel ist eine zentrale Tierakte pro Tier mit Dokumenten, Tierarztbezug, Medikamenten, Impfungen, Fuetterungsplaenen, Erinnerungen und Exporten.
+HeartPet ist eine deutschsprachige Webapp für Tierhalter, Gnadenhöfe und kleinere Tierhaltungen. Ziel ist eine zentrale Tierakte pro Tier mit Dokumenten, Tierarztbezug, Medikamenten, Impfungen, Fütterungsplänen, Erinnerungen, Bildern und Exporten.
 
-## Funktionsumfang im aktuellen MVP
+## Aktueller Stand
+
+HeartPet ist inzwischen ein brauchbares MVP für den Alltag:
 
 - Tierakten mit Stammdaten, Herkunft, Status, Mikrochip, Notizen und Tierarzt
 - Tierarzt je Tier und Standard-Tierarzt je Tierart
-- Dokument-Uploads mit lokalem Dateispeicher und frei verwaltbaren Kategorien
-- Vorerkrankungen, Medikamente, Impfungen, Fuetterungsplaene und Protokolle
-- Erinnerungen mit E-Mail- und Telegram-Kanaelen
-- Browser-Hinweise bei offenen Erinnerungen
-- JSON-Export mit Import-Hinweis und PDF-Export pro Tier
-- Adminbereich fuer SMTP, Telegram, Benutzer, Tierarten, Tieraerzte und Kategorien
+- Profilbild und Bildergalerie pro Tier
+- Dokument-Uploads mit lokalem Dateispeicher
+- Dokumentkategorien mit optionalen Pflichtkategorien
+- Vorerkrankungen, Medikamente, Impfungen, Fütterungspläne und Protokolle
+- Erinnerungen mit E-Mail, Telegram, Browser-Hinweisen und Wiederholungen
+- JSON- und PDF-Export pro Tier
+- Import eines HeartPet-JSON-Exports
+- Adminbereich für Kommunikation, Benutzer, Tierarten, Tierärzte, Kategorien und Rechtstexte
 - Hilfe-Seite direkt in der App
 
 ## Technik
@@ -22,7 +26,7 @@ HeartPet ist eine deutschsprachige Webapp fuer Tierhalter, Gnadenhoefe und klein
 - SQLite
 - Lokaler Dateispeicher unter `data/uploads`
 
-Kein Docker. Kein externer Objekt-Storage. Die App ist fuer einen einfachen Betrieb auf einem LXC oder Linux-Server gedacht.
+Kein Docker. Kein externer Objekt-Storage. HeartPet ist für einen einfachen Betrieb auf einem LXC oder Linux-Server gedacht.
 
 ## Installation
 
@@ -31,7 +35,7 @@ npm install
 npm start
 ```
 
-Die App laeuft danach standardmaessig unter:
+Die App läuft danach standardmäßig unter:
 
 ```text
 http://127.0.0.1:3000
@@ -44,7 +48,18 @@ E-Mail: admin@heartpet.local
 Passwort: admin123!
 ```
 
-Dieses Passwort sollte direkt im Adminbereich geaendert werden.
+Dieses Passwort sollte direkt im Adminbereich geändert werden.
+
+## Konfiguration
+
+HeartPet liest derzeit folgende Umgebungsvariablen:
+
+- `PORT`
+- `HEARTPET_SESSION_SECRET`
+
+Eine Vorlage liegt in [.env.example](/Users/michael/Programmerierung/HeartPet/.env.example).
+
+Wenn du HeartPet per `systemd` startest, kannst du die Werte direkt über `Environment=` setzen.
 
 ## Datenablage
 
@@ -52,29 +67,55 @@ Dieses Passwort sollte direkt im Adminbereich geaendert werden.
 - Uploads: `data/uploads`
 - Exporte: `data/exports`
 - Sessions: `data/sessions.sqlite`
+- Backups: `data/backups`
 
 ## Reverse Proxy / SSL
 
-HeartPet selbst spricht nur HTTP. SSL und Domain wie `heartpet.de` sollten ueber einen externen Reverse Proxy erledigt werden, z. B. Nginx oder Traefik auf dem Host.
+HeartPet selbst spricht nur HTTP. SSL und Domain wie `heartpet.de` sollten über einen externen Reverse Proxy erledigt werden, zum Beispiel Nginx auf dem Host.
 
-Beispielziel:
+Eine Beispielkonfiguration liegt in:
+
+```text
+deploy/nginx-heartpet.example.conf
+```
+
+Ziel der Weiterleitung:
 
 ```text
 http://127.0.0.1:3000
 ```
 
-## SMTP und Telegram
+## Betrieb mit systemd
 
-Die SMTP- und Telegram-Daten werden im Adminbereich hinterlegt.
+Eine Beispiel-Datei liegt in:
 
-Telegram Einrichtung:
+```text
+deploy/heartpet.service.example
+```
 
-1. In Telegram `@BotFather` oeffnen
-2. `/newbot` ausfuehren
-3. Token kopieren
-4. Dem Bot einmal schreiben
-5. `https://api.telegram.org/botTOKEN/getUpdates` aufrufen
-6. `chat.id` aus der Antwort in HeartPet eintragen
+Typischer Ablauf:
+
+```bash
+sudo cp deploy/heartpet.service.example /etc/systemd/system/heartpet.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now heartpet
+```
+
+## Backup
+
+Ein separates Backup-Skript liegt unter:
+
+```bash
+./scripts/backup.sh
+```
+
+Gesichert werden:
+
+- Datenbank
+- WAL-/SHM-Dateien
+- Sessions
+- Uploads
+- Exporte
 
 ## Updates aus GitHub
 
@@ -86,43 +127,49 @@ Ein einfaches Updateskript liegt unter:
 
 Das Skript:
 
-- sichert Datenbank und Uploads
-- macht `git pull --ff-only`
-- fuehrt `npm install` aus
+- erstellt zuerst ein Backup
+- holt den aktuellen Stand aus GitHub
+- installiert oder aktualisiert Abhängigkeiten
 
-Wenn HeartPet ueber `systemd` laeuft, den Dienst danach neu starten.
-
-## Deployment mit systemd
-
-Beispiel fuer `/etc/systemd/system/heartpet.service`:
-
-```ini
-[Unit]
-Description=HeartPet
-After=network.target
-
-[Service]
-Type=simple
-WorkingDirectory=/opt/HeartPet
-ExecStart=/usr/bin/npm start
-Restart=always
-User=www-data
-Environment=PORT=3000
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Danach:
+Wenn HeartPet über `systemd` läuft, den Dienst danach neu starten:
 
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable --now heartpet
+sudo systemctl restart heartpet
 ```
+
+## SMTP und Telegram
+
+Die SMTP- und Telegram-Daten werden im Adminbereich hinterlegt.
+
+Telegram Einrichtung:
+
+1. In Telegram `@BotFather` öffnen
+2. `/newbot` ausführen
+3. Token kopieren
+4. Dem Bot einmal schreiben
+5. `https://api.telegram.org/botTOKEN/getUpdates` aufrufen
+6. `chat.id` aus der Antwort in HeartPet eintragen
+
+## Import / Export
+
+- PDF-Exporte enthalten die wichtigsten Daten einer Tierakte
+- JSON-Exporte enthalten einen Import-Hinweis für HeartPet
+- Dokument- und Bilddateien selbst werden aktuell nicht in den JSON-Export eingebettet
+- Beim Import werden deshalb derzeit nur strukturierte Daten sicher übernommen, keine Binärdateien
+
+## Rollen
+
+Aktuell gibt es drei Rollen:
+
+- `Administrator`
+- `Benutzer`
+- `Nur Lesen`
+
+`Administrator` hat Vollzugriff. `Benutzer` kann unter `Tiere` alles sehen, anlegen, ändern und löschen. `Nur Lesen` darf ausschließlich lesen.
 
 ## Hinweise
 
-- PDF-Exporte enthalten die wichtigsten Daten einer Tierakte.
-- JSON-Exporte enthalten einen Import-Hinweis fuer HeartPet.
-- Dokumentdateien werden lokal gespeichert und nicht versioniert.
-- Sprache ist aktuell nur Deutsch.
+- Sprache ist aktuell nur Deutsch
+- Dateispeicher ist bewusst lokal gehalten
+- Dokumente werden nicht versioniert oder signiert
+- HeartPet ist für Self-Hosting gedacht und nicht als SaaS aufgebaut

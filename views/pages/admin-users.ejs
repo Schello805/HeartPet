@@ -1,43 +1,73 @@
 <%- include('../partials/top', { pageTitle }) %>
-<section class="admin-layout">
-  <%- include('../partials/admin-subnav', { adminPath }) %>
-  <div class="admin-main">
-    <div class="content-grid">
-      <article class="panel">
-        <div class="panel-head"><h2>Benutzer & Rollen</h2></div>
-        <div class="stack compact-list">
-          <% users.forEach((user) => { %>
+
+<section class="accordion-stack">
+  <details class="accordion-item" open>
+    <summary>Benutzer & Rollen</summary>
+    <div class="accordion-content">
+      <div class="stack compact-list">
+        <% users.forEach((user) => { %>
+          <form method="post" action="/admin/users/<%= user.id %>/permissions" class="stack form-compact user-permissions-card">
             <div class="list-card static-card">
               <div>
                 <strong><%= user.name %></strong>
-                <p><%= user.email %> | <%= user.role %></p>
+                <p><%= user.email %> | <%= getRoleLabel(user.role) %></p>
               </div>
               <span><%= user.must_change_password ? 'Passwortwechsel offen' : 'Aktiv' %></span>
             </div>
-          <% }) %>
+            <label>
+              <span>Rolle</span>
+              <select name="role">
+                <option value="admin" <%= user.role === 'admin' ? 'selected' : '' %>>Admin</option>
+                <option value="user" <%= user.role === 'user' ? 'selected' : '' %>>Benutzer</option>
+                <option value="viewer" <%= user.role === 'viewer' ? 'selected' : '' %>>Nur Lesen</option>
+              </select>
+            </label>
+            <div class="permission-grid">
+              <label class="checkbox-line"><input type="checkbox" name="can_edit_animals" <%= user.can_edit_animals ? 'checked' : '' %> /> Tier-Stammdaten</label>
+              <label class="checkbox-line"><input type="checkbox" name="can_manage_documents" <%= user.can_manage_documents ? 'checked' : '' %> /> Dokumente</label>
+              <label class="checkbox-line"><input type="checkbox" name="can_manage_gallery" <%= user.can_manage_gallery ? 'checked' : '' %> /> Galerie & Profilbilder</label>
+              <label class="checkbox-line"><input type="checkbox" name="can_manage_health" <%= user.can_manage_health ? 'checked' : '' %> /> Medikamente, Impfungen, Krankheiten</label>
+              <label class="checkbox-line"><input type="checkbox" name="can_manage_feedings" <%= user.can_manage_feedings ? 'checked' : '' %> /> Fütterungen</label>
+              <label class="checkbox-line"><input type="checkbox" name="can_manage_notes" <%= user.can_manage_notes ? 'checked' : '' %> /> Protokolle</label>
+              <label class="checkbox-line"><input type="checkbox" name="can_manage_reminders" <%= user.can_manage_reminders ? 'checked' : '' %> /> Erinnerungen</label>
+            </div>
+            <button type="submit" class="button button-secondary">Rechte speichern</button>
+          </form>
+        <% }) %>
+      </div>
+      <form method="post" action="/admin/users" class="stack form-compact">
+        <input type="text" name="name" required placeholder="Name" />
+        <input type="email" name="email" required placeholder="E-Mail" />
+        <input type="password" name="password" required placeholder="Startpasswort" />
+        <select name="role">
+          <option value="admin">Admin</option>
+          <option value="user">Benutzer</option>
+          <option value="viewer">Nur Lesen</option>
+        </select>
+        <div class="permission-grid">
+          <label class="checkbox-line"><input type="checkbox" name="can_edit_animals" checked /> Tier-Stammdaten</label>
+          <label class="checkbox-line"><input type="checkbox" name="can_manage_documents" checked /> Dokumente</label>
+          <label class="checkbox-line"><input type="checkbox" name="can_manage_gallery" checked /> Galerie & Profilbilder</label>
+          <label class="checkbox-line"><input type="checkbox" name="can_manage_health" checked /> Medikamente, Impfungen, Krankheiten</label>
+          <label class="checkbox-line"><input type="checkbox" name="can_manage_feedings" checked /> Fütterungen</label>
+          <label class="checkbox-line"><input type="checkbox" name="can_manage_notes" checked /> Protokolle</label>
+          <label class="checkbox-line"><input type="checkbox" name="can_manage_reminders" checked /> Erinnerungen</label>
         </div>
-        <form method="post" action="/admin/users" class="stack form-compact">
-          <input type="text" name="name" required placeholder="Name" />
-          <input type="email" name="email" required placeholder="E-Mail" />
-          <input type="password" name="password" required placeholder="Startpasswort" />
-          <select name="role">
-            <option value="admin">Admin</option>
-            <option value="helper">Helfer</option>
-            <option value="viewer">Nur Lesen</option>
-          </select>
-          <button type="submit" class="button">Benutzer anlegen</button>
-        </form>
-      </article>
-
-      <article class="panel">
-        <div class="panel-head"><h2>Eigenes Passwort ändern</h2></div>
-        <form method="post" action="/admin/password" class="stack form-compact">
-          <input type="password" name="current_password" required placeholder="Aktuelles Passwort" />
-          <input type="password" name="new_password" required placeholder="Neues Passwort" />
-          <button type="submit" class="button">Passwort aktualisieren</button>
-        </form>
-      </article>
+        <button type="submit" class="button">Benutzer anlegen</button>
+      </form>
     </div>
-  </div>
+  </details>
+
+  <details class="accordion-item">
+    <summary>Eigenes Passwort ändern</summary>
+    <div class="accordion-content">
+      <form method="post" action="/admin/password" class="stack form-compact">
+        <input type="password" name="current_password" required placeholder="Aktuelles Passwort" />
+        <input type="password" name="new_password" required placeholder="Neues Passwort" />
+        <button type="submit" class="button">Passwort aktualisieren</button>
+      </form>
+    </div>
+  </details>
 </section>
+
 <%- include('../partials/bottom') %>

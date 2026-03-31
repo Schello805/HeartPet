@@ -1,13 +1,11 @@
 <%- include('../partials/top', { pageTitle }) %>
-<section class="admin-layout">
-  <%- include('../partials/admin-subnav', { adminPath }) %>
-  <div class="admin-main">
-    <section class="panel">
-      <div class="panel-head">
-        <h2>Allgemeine Einstellungen</h2>
-      </div>
+
+<section class="accordion-stack">
+  <details class="accordion-item" open>
+    <summary>Organisation & App</summary>
+    <div class="accordion-content">
       <form method="post" action="/admin/settings" class="form-grid">
-        <input type="hidden" name="_fields" value="app_name,app_domain,organization_name,help_contact" />
+        <input type="hidden" name="_fields" value="app_name,app_domain,organization_name,help_contact,legal_contact_email" />
         <label>
           <span>App-Name</span>
           <input type="text" name="app_name" value="<%= settings.app_name || '' %>" />
@@ -20,15 +18,64 @@
           <span>Name der Haltung / Organisation</span>
           <input type="text" name="organization_name" value="<%= settings.organization_name || '' %>" />
         </label>
-        <label class="full-width">
-          <span>Kontakt für Hilfe / Impressumshinweis</span>
+        <label>
+          <span>Kontakt für Hilfe</span>
           <input type="text" name="help_contact" value="<%= settings.help_contact || '' %>" />
         </label>
+        <label>
+          <span>Kontakt E-Mail für Rechtstexte</span>
+          <input type="email" name="legal_contact_email" value="<%= settings.legal_contact_email || '' %>" />
+        </label>
         <div class="full-width form-actions">
-          <button type="submit" class="button">Einstellungen speichern</button>
+          <button type="submit" class="button">Allgemeine Einstellungen speichern</button>
         </div>
       </form>
-    </section>
-  </div>
+    </div>
+  </details>
+
+  <details class="accordion-item">
+    <summary>Impressum</summary>
+    <div class="accordion-content">
+      <form method="post" action="/admin/settings" class="stack form-compact">
+        <input type="hidden" name="_fields" value="imprint_text" />
+        <textarea name="imprint_text" rows="10" placeholder="Impressumstext"><%= settings.imprint_text || '' %></textarea>
+        <button type="submit" class="button">Impressum speichern</button>
+      </form>
+    </div>
+  </details>
+
+  <details class="accordion-item">
+    <summary>Datenschutzerklärung</summary>
+    <div class="accordion-content">
+      <form method="post" action="/admin/settings" class="stack form-compact">
+        <input type="hidden" name="_fields" value="privacy_text" />
+        <textarea name="privacy_text" rows="12" placeholder="Datenschutzerklärung"><%= settings.privacy_text || '' %></textarea>
+        <button type="submit" class="button">Datenschutzerklärung speichern</button>
+      </form>
+    </div>
+  </details>
+
+  <details class="accordion-item">
+    <summary>Kontakt</summary>
+    <div class="accordion-content">
+      <form method="post" action="/admin/settings" class="stack form-compact">
+        <input type="hidden" name="_fields" value="contact_text" />
+        <textarea name="contact_text" rows="8" placeholder="Kontaktinformationen"><%= settings.contact_text || '' %></textarea>
+        <button type="submit" class="button">Kontaktseite speichern</button>
+      </form>
+    </div>
+  </details>
+
+  <details class="accordion-item">
+    <summary>Cookie-Hinweise</summary>
+    <div class="accordion-content">
+      <form method="post" action="/admin/settings" class="stack form-compact">
+        <input type="hidden" name="_fields" value="cookies_text" />
+        <textarea name="cookies_text" rows="8" placeholder="Cookie-Hinweise"><%= settings.cookies_text || '' %></textarea>
+        <button type="submit" class="button">Cookie-Hinweise speichern</button>
+      </form>
+    </div>
+  </details>
 </section>
+
 <%- include('../partials/bottom') %>

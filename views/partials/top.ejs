@@ -7,8 +7,11 @@
     <link rel="stylesheet" href="/static/css/app.css" />
   </head>
   <body>
+    <button type="button" class="mobile-nav-toggle" aria-expanded="false" aria-controls="sidebar-navigation">
+      Menü
+    </button>
     <div class="app-shell">
-      <aside class="sidebar">
+      <aside class="sidebar" id="sidebar-navigation">
         <div>
           <img class="brand-logo" src="/static/images/logo-heartpet.png" alt="HeartPet Logo" />
           <div class="brand-text">
@@ -20,14 +23,28 @@
         <nav class="sidebar-nav">
           <a class="<%= currentPath === '/' ? 'active' : '' %>" href="/">Dashboard</a>
           <a class="<%= currentPath.startsWith('/animals') ? 'active' : '' %>" href="/animals">Tiere</a>
-          <a class="<%= currentPath.startsWith('/admin') ? 'active' : '' %>" href="/admin/allgemein">Admin</a>
+          <% if (permissions.canManageAdmin) { %>
+            <a class="<%= currentPath.startsWith('/admin') ? 'active' : '' %>" href="/admin/allgemein">Admin</a>
+            <% if (currentPath.startsWith('/admin')) { %>
+              <div class="sidebar-subnav">
+                <a class="<%= currentPath === '/admin/allgemein' ? 'active' : '' %>" href="/admin/allgemein">Allgemein</a>
+                <a class="<%= currentPath === '/admin/kommunikation' ? 'active' : '' %>" href="/admin/kommunikation">Kommunikation</a>
+                <a class="<%= currentPath === '/admin/stammdaten' ? 'active' : '' %>" href="/admin/stammdaten">Stammdaten</a>
+                <a class="<%= currentPath === '/admin/benutzer' ? 'active' : '' %>" href="/admin/benutzer">Benutzer</a>
+                <a class="<%= currentPath === '/admin/import' ? 'active' : '' %>" href="/admin/import">Import</a>
+              </div>
+            <% } %>
+          <% } %>
           <a class="<%= currentPath === '/hilfe' ? 'active' : '' %>" href="/hilfe">Hilfe</a>
         </nav>
 
         <div class="sidebar-footer">
           <div class="small-label">Eingeloggt als</div>
           <strong><%= currentUser?.name || "-" %></strong>
-          <span><%= currentUser?.role || "" %></span>
+          <% const roleLabel = currentUser?.role ? getRoleLabel(currentUser.role) : ""; %>
+          <% if (roleLabel && String(currentUser?.name || "").trim().toLowerCase() !== String(roleLabel).trim().toLowerCase()) { %>
+            <span><%= roleLabel %></span>
+          <% } %>
           <form method="post" action="/logout">
             <button type="submit" class="button button-secondary button-full">Abmelden</button>
           </form>
@@ -41,7 +58,9 @@
             <h1><%= pageTitle %></h1>
           </div>
           <div class="header-actions">
-            <a href="/animals/new" class="button">Neues Tier</a>
+            <% if (permissions.canEditAnimals) { %>
+              <a href="/animals/new" class="button">Neues Tier</a>
+            <% } %>
           </div>
         </header>
 

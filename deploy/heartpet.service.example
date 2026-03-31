@@ -1,0 +1,17 @@
+[Unit]
+Description=HeartPet Tierverwaltung
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/HeartPet
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=5
+User=www-data
+Group=www-data
+Environment=PORT=3000
+Environment=HEARTPET_SESSION_SECRET=bitte-aendern
+
+[Install]
+WantedBy=multi-user.target

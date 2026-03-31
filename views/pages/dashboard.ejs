@@ -35,7 +35,7 @@
               <p><%= reminder.animal_name || "Ohne Tierzuordnung" %> | <%= reminder.reminder_type %></p>
               <small>Fällig: <%= formatDateTime(reminder.due_at) %></small>
             </div>
-            <% if (!reminder.completed_at) { %>
+            <% if (!reminder.completed_at && permissions.canManageReminders) { %>
               <form method="post" action="/reminders/<%= reminder.id %>/complete">
                 <button type="submit" class="button button-secondary">Erledigt</button>
               </form>
@@ -74,14 +74,18 @@
     <h2>Schnellstart</h2>
   </div>
   <div class="quick-actions">
-    <a href="/animals/new" class="quick-card">
-      <strong>Tier anlegen</strong>
-      <span>Neue Akte mit Stammdaten, Herkunft und Tierarzt erstellen.</span>
-    </a>
-    <a href="/admin/allgemein" class="quick-card">
-      <strong>Admin öffnen</strong>
-      <span>SMTP, Telegram, Benutzer, Tierarten und Dokumentkategorien verwalten.</span>
-    </a>
+    <% if (permissions.canEditAnimals) { %>
+      <a href="/animals/new" class="quick-card">
+        <strong>Tier anlegen</strong>
+        <span>Neue Akte mit Stammdaten, Herkunft und Tierarzt erstellen.</span>
+      </a>
+    <% } %>
+    <% if (permissions.canManageAdmin) { %>
+      <a href="/admin/allgemein" class="quick-card">
+        <strong>Admin öffnen</strong>
+        <span>SMTP, Telegram, Benutzer, Tierarten und Dokumentkategorien verwalten.</span>
+      </a>
+    <% } %>
     <a href="/hilfe" class="quick-card">
       <strong>Hilfe lesen</strong>
       <span>Anleitungen für Einrichtung, Telegram-Bot und Updatescript.</span>

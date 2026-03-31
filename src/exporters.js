@@ -1,15 +1,24 @@
+const fs = require("fs");
+const path = require("path");
 const PDFDocument = require("pdfkit");
 
-function buildAnimalExportPayload(animal, related) {
+function buildAnimalExportPayload(animal, related, options = {}) {
+  const exportRelated = {
+    ...related,
+    documents: (related.documents || []).map((item) => attachEmbeddedFile(item, options.uploadsDir)),
+    images: (related.images || []).map((item) => attachEmbeddedFile(item, options.uploadsDir)),
+  };
+
   return {
     meta: {
       application: "HeartPet",
       version: 1,
       exportedAt: new Date().toISOString(),
       importHint: "Diese Datei kann für einen Import in HeartPet verwendet werden.",
+      includesEmbeddedFiles: Boolean(options.embedFiles !== false),
     },
     animal,
-    related,
+    related: exportRelated,
   };
 }
 
@@ -67,12 +76,21 @@ function createAnimalPdf(res, animal, related) {
   writeSection(
     doc,
     "Erinnerungen",
-    related.reminders.map((item) => `${item.title} | Fällig: ${item.due_at} | Typ: ${item.reminder_type}`)
+    related.reminders.map((item) => {
+      const repeatText = item.repeat_interval_days ? ` | Wiederholung: alle ${item.repeat_interval_days} Tage` : "";
+      const statusText = item.last_delivery_status ? ` | Versandstatus: ${item.last_delivery_status}` : "";
+      return `${item.title} | Fällig: ${item.due_at} | Typ: ${item.reminder_type}${repeatText}${statusText}`;
+    })
   );
   writeSection(
     doc,
     "Dokumente",
     related.documents.map((item) => `${item.title} | Kategorie: ${item.category_name || "-"} | Datei: ${item.original_name}`)
+  );
+  writeSection(
+    doc,
+    "Bildergalerie",
+    (related.images || []).map((item) => `${item.title || "Bild"} | Datei: ${item.original_name}`)
   );
   writeSection(
     doc,
@@ -94,6 +112,27 @@ function writeSection(doc, title, rows) {
   rows.forEach((row) => {
     doc.fontSize(10).text(`- ${row}`);
   });
+}
+
+function attachEmbeddedFile(item, uploadsDir) {
+  const exported = { ...item };
+  if (!uploadsDir || !item.stored_name) {
+    return exported;
+  }
+
+  const fullPath = path.join(uploadsDir, item.stored_name);
+  if (!fs.existsSync(fullPath)) {
+    return exported;
+  }
+
+  exported.embedded_file = {
+    original_name: item.original_name || item.stored_name,
+    stored_name: item.stored_name,
+    mime_type: item.mime_type || "",
+    encoding: "base64",
+    content: fs.readFileSync(fullPath).toString("base64"),
+  };
+  return exported;
 }
 
 module.exports = {

@@ -16,14 +16,35 @@
         <option value="Verstorben" <%= filters.status === 'Verstorben' ? 'selected' : '' %>>Verstorben</option>
       </select>
     </label>
+    <label>
+      <span>Tierart</span>
+      <select name="species_id">
+        <option value="">Alle</option>
+        <% speciesOptions.forEach((item) => { %>
+          <option value="<%= item.id %>" <%= String(filters.speciesId || '') === String(item.id) ? 'selected' : '' %>><%= item.name %></option>
+        <% }) %>
+      </select>
+    </label>
+    <label>
+      <span>Sortierung</span>
+      <select name="sort">
+        <option value="name_asc" <%= filters.sort === 'name_asc' ? 'selected' : '' %>>Name A-Z</option>
+        <option value="name_desc" <%= filters.sort === 'name_desc' ? 'selected' : '' %>>Name Z-A</option>
+        <option value="intake_desc" <%= filters.sort === 'intake_desc' ? 'selected' : '' %>>Aufnahme neu zuerst</option>
+        <option value="intake_asc" <%= filters.sort === 'intake_asc' ? 'selected' : '' %>>Aufnahme alt zuerst</option>
+        <option value="created_desc" <%= filters.sort === 'created_desc' ? 'selected' : '' %>>Zuletzt angelegt</option>
+        <option value="status_asc" <%= filters.sort === 'status_asc' ? 'selected' : '' %>>Status</option>
+      </select>
+    </label>
     <button type="submit" class="button">Filtern</button>
+    <a href="/animals" class="button button-secondary">Zurücksetzen</a>
   </form>
 </section>
 
 <section class="panel">
   <div class="panel-head">
     <h2>Tierbestand</h2>
-    <span class="counter"><%= animals.length %> Einträge</span>
+    <span class="counter"><%= pagination.totalCount %> Einträge</span>
   </div>
 
   <% if (animals.length === 0) { %>
@@ -38,26 +59,42 @@
             <th>Status</th>
             <th>Tierarzt</th>
             <th>Aufnahme</th>
-            <th>Aktion</th>
           </tr>
         </thead>
         <tbody>
           <% animals.forEach((animal) => { %>
-            <tr>
+            <tr class="table-row-link" data-href="/animals/<%= animal.id %>" tabindex="0" role="link" aria-label="<%= animal.name %> öffnen">
               <td>
-                <strong><%= animal.name %></strong>
-                <div class="table-sub"><%= animal.breed || '-' %></div>
+                <div class="animal-list-cell">
+                  <% if (animal.profile_image_stored_name) { %>
+                    <img class="animal-thumb" src="/media/<%= animal.profile_image_stored_name %>" alt="Profilbild von <%= animal.name %>" />
+                  <% } else { %>
+                    <div class="animal-thumb animal-thumb-fallback"><%= getAnimalInitial(animal.name) %></div>
+                  <% } %>
+                  <div>
+                    <strong><%= animal.name %></strong>
+                    <div class="table-sub"><%= animal.breed || '-' %></div>
+                  </div>
+                </div>
               </td>
               <td><%= animal.species_name || '-' %></td>
               <td><span class="pill"><%= animal.status %></span></td>
               <td><%= animal.veterinarian_name || '-' %></td>
               <td><%= formatDate(animal.intake_date) %></td>
-              <td><a href="/animals/<%= animal.id %>" class="link-button">Öffnen</a></td>
             </tr>
           <% }) %>
         </tbody>
       </table>
     </div>
+
+    <% if (pagination.totalPages > 1) { %>
+      <nav class="pagination-row">
+        <% for (let page = 1; page <= pagination.totalPages; page += 1) { %>
+          <% const url = `/animals?q=${encodeURIComponent(filters.search || '')}&status=${encodeURIComponent(filters.status || '')}&species_id=${encodeURIComponent(filters.speciesId || '')}&sort=${encodeURIComponent(filters.sort || 'name_asc')}&page=${page}`; %>
+          <a href="<%= url %>" class="pagination-link <%= page === pagination.currentPage ? 'active' : '' %>"><%= page %></a>
+        <% } %>
+      </nav>
+    <% } %>
   <% } %>
 </section>
 
