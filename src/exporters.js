@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const PDFDocument = require("pdfkit");
+const QRCode = require("qrcode");
 
 function buildAnimalExportPayload(animal, related, options = {}) {
   const exportRelated = {
@@ -22,18 +23,20 @@ function buildAnimalExportPayload(animal, related, options = {}) {
   };
 }
 
-function createAnimalPdf(res, animal, related, options = {}) {
+async function createAnimalPdf(res, animal, related, options = {}) {
   const doc = new PDFDocument({ margin: 48, size: "A4", bufferPages: true });
   const exportDate = new Date();
   const exportDateLabel = formatDateTime(exportDate);
   const exportDomain = options.domain || "HeartPet";
+  const animalUrl = buildAnimalUrl(exportDomain, animal.id);
 
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader("Content-Disposition", `attachment; filename="heartpet-tierakte-${animal.id}.pdf"`);
   doc.pipe(res);
 
-  const startY = drawHeader(doc, animal, {
+  const startY = await drawHeader(doc, animal, {
     exportDomain,
+    animalUrl,
     uploadsDir: options.uploadsDir,
   });
   doc.y = startY;
@@ -51,6 +54,10 @@ function createAnimalPdf(res, animal, related, options = {}) {
     `Gewicht: ${animal.weight_kg || "-"}`,
     `Tierarzt: ${animal.veterinarian_name || animal.species_veterinarian_name || "-"}`,
   ];
+
+  if (animalUrl) {
+    lines.push(`Direktlink: ${animalUrl}`);
+  }
 
   lines.forEach((line) => doc.fontSize(11).fillColor("#2d251f").text(line));
 
@@ -114,12 +121,14 @@ function createAnimalPdf(res, animal, related, options = {}) {
   doc.end();
 }
 
-function drawHeader(doc, animal, options) {
+async function drawHeader(doc, animal, options) {
   const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
   const imageSize = 84;
-  const imageX = doc.page.margins.left + pageWidth - imageSize;
+  const qrSize = options.animalUrl ? 70 : 0;
+  const mediaColumnWidth = Math.max(imageSize, qrSize);
+  const imageX = doc.page.margins.left + pageWidth - mediaColumnWidth;
   const imageY = doc.page.margins.top;
-  const textWidth = pageWidth - imageSize - 18;
+  const textWidth = pageWidth - mediaColumnWidth - 18;
 
   doc.fontSize(10).fillColor("#7e6d57").text(`Export aus ${options.exportDomain}`, doc.page.margins.left, doc.page.margins.top, {
     width: textWidth,
@@ -148,10 +157,35 @@ function drawHeader(doc, animal, options) {
     drawProfileFallback(doc, animal, imageX, imageY, imageSize);
   }
 
+  let mediaBottomY = imageY + imageSize;
+  if (options.animalUrl) {
+    try {
+      const qrBuffer = await QRCode.toBuffer(options.animalUrl, {
+        type: "png",
+        errorCorrectionLevel: "M",
+        margin: 1,
+        width: qrSize * 4,
+      });
+      const qrY = imageY + imageSize + 10;
+      doc.image(qrBuffer, imageX, qrY, {
+        fit: [qrSize, qrSize],
+        align: "right",
+        valign: "top",
+      });
+      doc.fontSize(8).fillColor("#7e6d57").text("QR zum Tier", imageX, qrY + qrSize + 4, {
+        width: mediaColumnWidth,
+        align: "center",
+      });
+      mediaBottomY = qrY + qrSize + 18;
+    } catch {
+      mediaBottomY = imageY + imageSize;
+    }
+  }
+
   doc.save();
-  doc.rect(doc.page.margins.left, imageY + imageSize + 14, pageWidth, 1).fill("#d9c3a6");
+  doc.rect(doc.page.margins.left, mediaBottomY + 10, pageWidth, 1).fill("#d9c3a6");
   doc.restore();
-  return imageY + imageSize + 28;
+  return mediaBottomY + 24;
 }
 
 function drawProfileFallback(doc, animal, x, y, size) {
@@ -218,6 +252,27 @@ function formatDateTime(value) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(value);
+}
+
+function buildAnimalUrl(domainValue, animalId) {
+  const normalizedBase = normalizeBaseUrl(domainValue);
+  if (!normalizedBase) {
+    return "";
+  }
+  return `${normalizedBase.replace(/\/+$/, "")}/animals/${animalId}`;
+}
+
+function normalizeBaseUrl(domainValue) {
+  const raw = String(domainValue || "").trim();
+  if (!raw) {
+    return "";
+  }
+
+  if (/^https?:\/\//i.test(raw)) {
+    return raw;
+  }
+
+  return `https://${raw}`;
 }
 
 function attachEmbeddedFile(item, uploadsDir) {

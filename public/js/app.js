@@ -125,6 +125,65 @@ window.addEventListener("load", () => {
   });
 });
 
+window.addEventListener("load", () => {
+  const form = document.querySelector("[data-event-form]");
+  if (!form) {
+    return;
+  }
+
+  const kindSelect = form.querySelector("[data-event-kind-select]");
+  const timeWrap = form.querySelector("[data-event-time-wrap]");
+  const timeInput = form.querySelector("[data-event-time]");
+  const handledByVet = form.querySelector("[data-handled-by-vet]");
+  const veterinarianFields = form.querySelector("[data-veterinarian-fields]");
+  const veterinarianSelect = form.querySelector('select[name="veterinarian_id"]');
+  const createReminder = form.querySelector("[data-create-reminder]");
+  const reminderInlineWrap = form.querySelector("[data-reminder-inline-wrap]");
+
+  function updateEventForm() {
+    const kind = kindSelect?.value || "medication";
+    const needsTime = kind === "appointment" || kind === "reminder";
+    const showVeterinarian = Boolean(handledByVet?.checked);
+    const canHaveReminder = kind !== "reminder";
+
+    if (timeWrap) {
+      timeWrap.hidden = !needsTime;
+    }
+    if (timeInput) {
+      timeInput.required = needsTime;
+      if (!needsTime) {
+        timeInput.value = "";
+      }
+    }
+
+    if (veterinarianFields) {
+      veterinarianFields.hidden = !showVeterinarian;
+    }
+    if (veterinarianSelect) {
+      veterinarianSelect.disabled = !showVeterinarian;
+      veterinarianSelect.required = showVeterinarian;
+      if (!showVeterinarian) {
+        veterinarianSelect.value = "";
+      }
+    }
+
+    if (createReminder) {
+      createReminder.disabled = !canHaveReminder;
+      if (!canHaveReminder) {
+        createReminder.checked = false;
+      }
+    }
+
+    if (reminderInlineWrap) {
+      reminderInlineWrap.hidden = !canHaveReminder;
+    }
+  }
+
+  kindSelect?.addEventListener("change", updateEventForm);
+  handledByVet?.addEventListener("change", updateEventForm);
+  updateEventForm();
+});
+
 function resetCustomValidation(form) {
   form.querySelectorAll("input, select, textarea").forEach((field) => {
     field.setCustomValidity("");

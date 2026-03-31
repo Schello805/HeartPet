@@ -13,7 +13,7 @@ run_systemctl() {
 }
 
 service_exists() {
-  command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files | grep -q '^heartpet\.service'
+  command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files --type=service --no-legend 2>/dev/null | grep -q '^heartpet\.service'
 }
 
 if service_exists; then

@@ -32,10 +32,11 @@ echo "Installiere oder aktualisiere Abhaengigkeiten"
 npm install
 
 echo "Pruefe App-Load"
-node -e "require('./src/app'); console.log('app-load-ok')"
+node -e "require('./src/app'); console.log('app-load-ok'); process.exit(0)"
 
 echo "Starte HeartPet neu"
 "$APP_DIR/scripts/stop.sh" || true
 "$APP_DIR/scripts/start.sh"
 
 echo "HeartPet wurde aktualisiert."
+echo "Die Shell bleibt frei. Status bei Bedarf mit ./scripts/status.sh pruefen."

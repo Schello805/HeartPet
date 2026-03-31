@@ -59,10 +59,14 @@
   </details>
 
   <details class="accordion-item">
-    <summary>Automatische Erinnerungsregeln</summary>
+    <summary>Erinnerungsregeln je Ereignis</summary>
     <div class="accordion-content">
       <form method="post" action="/admin/settings" class="form-grid">
         <input type="hidden" name="_fields" value="medication_reminder_lead_days,medication_reminder_repeat_count,vaccination_reminder_lead_days,vaccination_reminder_repeat_count,appointment_reminder_lead_days,appointment_reminder_repeat_count" />
+        <div class="full-width note-box">
+          Diese Regeln gelten nur für Ereignisse, bei denen in der Tierakte der Haken <strong>Erinnern</strong> gesetzt wurde.
+          E-Mail und Telegram werden global oben aktiviert und gelten dann zusätzlich für alle passenden Ereignisse.
+        </div>
         <label>
           <span>Medikamente: Tage vorher</span>
           <input type="number" min="0" step="1" name="medication_reminder_lead_days" value="<%= settings.medication_reminder_lead_days || '0' %>" />
@@ -87,9 +91,7 @@
           <span>Arzttermine: Anzahl Erinnerungen</span>
           <input type="number" min="0" step="1" name="appointment_reminder_repeat_count" value="<%= settings.appointment_reminder_repeat_count || '1' %>" />
         </label>
-        <div class="full-width note-box">
-          Die Anzahl steuert, wie viele Erinnerungen automatisch erzeugt werden. Bei mehreren Erinnerungen wird ab dem Vorlauf täglich erinnert.
-        </div>
+        <div class="full-width note-box">Die Anzahl steuert, wie viele Erinnerungen automatisch erzeugt werden. Bei mehreren Erinnerungen wird ab dem Vorlauf täglich erinnert.</div>
         <div class="full-width form-actions">
           <button type="submit" class="button">Erinnerungsregeln speichern</button>
         </div>

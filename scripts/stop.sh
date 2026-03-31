@@ -13,7 +13,7 @@ run_systemctl() {
 }
 
 service_exists() {
-  command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files | grep -q '^heartpet\.service'
+  command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files --type=service --no-legend 2>/dev/null | grep -q '^heartpet\.service'
 }
 
 if service_exists; then
@@ -25,6 +25,7 @@ fi
 if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
   echo "Stoppe HeartPet PID $(cat "$PID_FILE")"
   kill "$(cat "$PID_FILE")"
+  sleep 1
   rm -f "$PID_FILE"
   exit 0
 fi

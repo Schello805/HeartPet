@@ -78,6 +78,8 @@ app.use((req, res, next) => {
   res.locals.currentUser = req.session.user || null;
   res.locals.appSettings = getSettingsObject(db);
   res.locals.currentPath = req.path;
+  res.locals.currentQuery = req.query || {};
+  res.locals.animalSpeciesMenu = listActiveSpecies();
   res.locals.formatDate = formatDate;
   res.locals.formatDateTime = formatDateTime;
   res.locals.getAnimalAge = getAnimalAge;
@@ -290,12 +292,6 @@ app.get("/animals", (req, res) => {
   const page = Math.max(Number.parseInt(req.query.page || "1", 10) || 1, 1);
   const pageSize = 25;
 
-  let sqlBase = `
-    FROM animals
-    LEFT JOIN species ON species.id = animals.species_id
-    LEFT JOIN veterinarians ON veterinarians.id = animals.veterinarian_id
-    WHERE 1 = 1
-  `;
   let sql = `
     SELECT animals.*, species.name AS species_name, veterinarians.name AS veterinarian_name
     FROM animals
@@ -312,37 +308,27 @@ app.get("/animals", (req, res) => {
 
   if (status) {
     sql += ` AND animals.status = ?`;
-    sqlBase += ` AND animals.status = ?`;
     params.push(status);
   }
 
   if (speciesId) {
     sql += ` AND animals.species_id = ?`;
-    sqlBase += ` AND animals.species_id = ?`;
     params.push(speciesId);
   }
-
-  const orderByMap = {
-    name_asc: "animals.name COLLATE NOCASE ASC",
-    name_desc: "animals.name COLLATE NOCASE DESC",
-    intake_desc: "animals.intake_date DESC, animals.name COLLATE NOCASE ASC",
-    intake_asc: "animals.intake_date ASC, animals.name COLLATE NOCASE ASC",
-    created_desc: "animals.created_at DESC",
-    status_asc: "animals.status COLLATE NOCASE ASC, animals.name COLLATE NOCASE ASC",
-  };
-  const orderBy = orderByMap[sort] || orderByMap.name_asc;
-  sql += ` ORDER BY ${orderBy} LIMIT ? OFFSET ?`;
-
-  const totalCount = db.prepare(`SELECT COUNT(*) AS count ${sqlBase}`).get(...params).count;
+  const allAnimals = db.prepare(sql).all(...params);
+  const animalsWithNextTerm = attachNextTermData(allAnimals);
+  const sortedAnimals = sortAnimals(animalsWithNextTerm, sort);
+  const totalCount = sortedAnimals.length;
   const totalPages = Math.max(Math.ceil(totalCount / pageSize), 1);
   const currentPage = Math.min(page, totalPages);
-  const animals = db.prepare(sql).all(...params, pageSize, (currentPage - 1) * pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const animals = sortedAnimals.slice(startIndex, startIndex + pageSize);
 
   res.render("pages/animals-index", {
     pageTitle: "Tiere",
     animals,
     filters: { search, status, speciesId, sort },
-    speciesOptions: db.prepare("SELECT * FROM species ORDER BY name ASC").all(),
+    speciesOptions: listActiveSpecies(),
     pagination: {
       currentPage,
       totalPages,
@@ -408,6 +394,8 @@ app.get("/animals/:id", (req, res) => {
       documents: filterDocuments(related.documents, documentFilter),
     },
     reminderBuckets: splitReminders(related.reminders),
+    sourceReminderMap: buildReminderSourceMap(related.reminders),
+    manualReminders: (related.reminders || []).filter((item) => !item.source_kind),
     editState,
     categories,
     documentFilter,
@@ -465,6 +453,142 @@ app.post("/animals/:id/update", requireAnimalEditor, (req, res) => {
 
   setFlash(req, "success", "Tierdaten wurden aktualisiert.");
   res.redirect(`/animals/${req.params.id}`);
+});
+
+app.post("/animals/:id/events", (req, res) => {
+  const user = req.session.user ? db.prepare("SELECT * FROM users WHERE id = ?").get(req.session.user.id) : null;
+  const permissions = buildPermissions(user);
+  const eventKind = String(req.body.event_kind || "").trim();
+  const title = String(req.body.title || "").trim();
+  const notes = appendVeterinarianNote(req.body.notes, req.body.handled_by_veterinarian, req.body.veterinarian_id);
+
+  if (!["medication", "vaccination", "appointment", "reminder"].includes(eventKind)) {
+    setFlash(req, "error", "Bitte wähle einen gültigen Ereignistyp aus.");
+    return res.redirect(`/animals/${req.params.id}`);
+  }
+
+  if (!title) {
+    setFlash(req, "error", "Bitte gib eine Bezeichnung für das Ereignis an.");
+    return res.redirect(`/animals/${req.params.id}`);
+  }
+
+  if (req.body.handled_by_veterinarian && !req.body.veterinarian_id) {
+    setFlash(req, "error", "Bitte wähle einen Tierarzt aus.");
+    return res.redirect(`/animals/${req.params.id}`);
+  }
+
+  if (eventKind === "reminder" && !permissions.canManageReminders) {
+    setFlash(req, "error", "Für freie Erinnerungen fehlen die erforderlichen Rechte.");
+    return res.redirect(`/animals/${req.params.id}`);
+  }
+
+  if (eventKind !== "reminder" && !permissions.canManageHealth) {
+    setFlash(req, "error", "Für medizinische Ereignisse fehlen die erforderlichen Rechte.");
+    return res.redirect(`/animals/${req.params.id}`);
+  }
+
+  try {
+    if (eventKind === "medication") {
+      const startDate = String(req.body.event_date || "").trim();
+      if (!startDate) {
+        throw new Error("Bitte gib ein Datum für das Medikament an.");
+      }
+
+      const result = db.prepare(`
+        INSERT INTO animal_medications (animal_id, name, dosage, schedule, start_date, end_date, reminder_enabled, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        req.params.id,
+        title,
+        "",
+        "",
+        startDate,
+        null,
+        req.body.create_reminder ? 1 : 0,
+        notes
+      );
+      syncMedicationReminders(req.params.id, result.lastInsertRowid);
+      setFlash(req, "success", "Medikament gespeichert.");
+      return res.redirect(`/animals/${req.params.id}`);
+    }
+
+    if (eventKind === "vaccination") {
+      const eventDate = String(req.body.event_date || "").trim();
+      if (!eventDate) {
+        throw new Error("Bitte gib ein Datum für die Impfung an.");
+      }
+      const isFuture = dayjs(eventDate).isAfter(dayjs(), "day");
+
+      const result = db.prepare(`
+        INSERT INTO animal_vaccinations (animal_id, name, vaccination_date, next_due_date, reminder_enabled, notes)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(
+        req.params.id,
+        title,
+        isFuture ? null : eventDate,
+        isFuture ? eventDate : null,
+        req.body.create_reminder ? 1 : 0,
+        notes
+      );
+      syncVaccinationReminders(req.params.id, result.lastInsertRowid);
+      setFlash(req, "success", "Impfung gespeichert.");
+      return res.redirect(`/animals/${req.params.id}`);
+    }
+
+    if (eventKind === "appointment") {
+      const appointmentAt = combineDateAndTime(req.body.event_date, req.body.event_time, "09:00");
+      if (!appointmentAt) {
+        throw new Error("Bitte gib Datum und Uhrzeit für den Arzttermin an.");
+      }
+
+      const result = db.prepare(`
+        INSERT INTO animal_appointments (animal_id, title, appointment_at, location_mode, location_text, veterinarian_id, reminder_enabled, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        req.params.id,
+        title,
+        appointmentAt,
+        req.body.handled_by_veterinarian ? "praxis" : "praxis",
+        "",
+        req.body.handled_by_veterinarian ? (req.body.veterinarian_id || null) : null,
+        req.body.create_reminder ? 1 : 0,
+        notes
+      );
+      syncAppointmentReminders(req.params.id, result.lastInsertRowid);
+      setFlash(req, "success", "Arzttermin gespeichert.");
+      return res.redirect(`/animals/${req.params.id}`);
+    }
+
+    const dueAt = combineDateAndTime(req.body.event_date, req.body.event_time, "09:00");
+    if (!dueAt) {
+      throw new Error("Bitte gib Datum und Uhrzeit für die freie Erinnerung an.");
+    }
+
+    const reminderChannels = getNotificationChannelDefaults();
+    db.prepare(`
+      INSERT INTO reminders (
+        animal_id, title, reminder_type, due_at, channel_email, channel_telegram, repeat_interval_days, notes,
+        last_delivery_status, last_delivery_error
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      req.params.id,
+      title,
+      "Allgemein",
+      dueAt,
+      reminderChannels.channelEmail,
+      reminderChannels.channelTelegram,
+      0,
+      notes,
+      "pending",
+      ""
+    );
+    setFlash(req, "success", "Freie Erinnerung gespeichert.");
+    return res.redirect(`/animals/${req.params.id}`);
+  } catch (error) {
+    setFlash(req, "error", error.message || "Das Ereignis konnte nicht gespeichert werden.");
+    return res.redirect(`/animals/${req.params.id}`);
+  }
 });
 
 app.post("/animals/:id/conditions", requireAnimalPermission("canManageHealth"), (req, res) => {
@@ -952,16 +1076,24 @@ app.get("/animals/:id/export/json", (req, res) => {
   res.send(JSON.stringify(payload, null, 2));
 });
 
-app.get("/animals/:id/export/pdf", (req, res) => {
+app.get("/animals/:id/export/pdf", async (req, res) => {
   const animal = findAnimal(req.params.id);
   if (!animal) {
     return renderNotFound(req, res, "Tier nicht gefunden.");
   }
 
-  createAnimalPdf(res, animal, getAnimalRelatedData(req.params.id), {
-    domain: getSettingsObject(db).app_domain || "HeartPet",
-    uploadsDir: path.join(process.cwd(), "data", "uploads"),
-  });
+  try {
+    await createAnimalPdf(res, animal, getAnimalRelatedData(req.params.id), {
+      domain: getSettingsObject(db).app_domain || "HeartPet",
+      uploadsDir: path.join(process.cwd(), "data", "uploads"),
+    });
+  } catch (error) {
+    console.error("[HeartPet] PDF-Export fehlgeschlagen:", error.message);
+    if (!res.headersSent) {
+      setFlash(req, "error", "Der PDF-Export konnte nicht erstellt werden.");
+      return res.redirect(`/animals/${req.params.id}`);
+    }
+  }
 });
 
 app.get("/admin", requireAdmin, (req, res) => {
@@ -1263,22 +1395,38 @@ app.post("/admin/import", requireAdmin, importUpload.single("import_file"), (req
       });
       (related.medications || []).forEach((item) => {
         const inserted = db.prepare(`
-          INSERT INTO animal_medications (animal_id, name, dosage, schedule, start_date, end_date, notes)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-        `).run(animalId, item.name, item.dosage || "", item.schedule || "", item.start_date || null, item.end_date || null, item.notes || "");
+          INSERT INTO animal_medications (animal_id, name, dosage, schedule, start_date, end_date, reminder_enabled, notes)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          animalId,
+          item.name,
+          item.dosage || "",
+          item.schedule || "",
+          item.start_date || null,
+          item.end_date || null,
+          item.reminder_enabled ? 1 : 0,
+          item.notes || ""
+        );
         importedMedicationIds.push(inserted.lastInsertRowid);
       });
       (related.vaccinations || []).forEach((item) => {
         const inserted = db.prepare(`
-          INSERT INTO animal_vaccinations (animal_id, name, vaccination_date, next_due_date, notes)
-          VALUES (?, ?, ?, ?, ?)
-        `).run(animalId, item.name, item.vaccination_date || null, item.next_due_date || null, item.notes || "");
+          INSERT INTO animal_vaccinations (animal_id, name, vaccination_date, next_due_date, reminder_enabled, notes)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `).run(
+          animalId,
+          item.name,
+          item.vaccination_date || null,
+          item.next_due_date || null,
+          item.reminder_enabled ? 1 : 0,
+          item.notes || ""
+        );
         importedVaccinationIds.push(inserted.lastInsertRowid);
       });
       (related.appointments || []).forEach((item) => {
         const inserted = db.prepare(`
-          INSERT INTO animal_appointments (animal_id, title, appointment_at, location_mode, location_text, veterinarian_id, notes)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO animal_appointments (animal_id, title, appointment_at, location_mode, location_text, veterinarian_id, reminder_enabled, notes)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
           animalId,
           item.title,
@@ -1286,6 +1434,7 @@ app.post("/admin/import", requireAdmin, importUpload.single("import_file"), (req
           item.location_mode || "praxis",
           item.location_text || "",
           null,
+          item.reminder_enabled ? 1 : 0,
           item.notes || ""
         );
         importedAppointmentIds.push(inserted.lastInsertRowid);
@@ -1441,16 +1590,16 @@ app.use((req, res) => {
   renderNotFound(req, res, "Seite nicht gefunden.");
 });
 
-cron.schedule("*/10 * * * *", async () => {
-  try {
-    await processDueReminders(db, getSettingsObject(db));
-  } catch (error) {
-    console.error("[HeartPet] Fehler im Erinnerungsdienst:", error.message);
-  }
-});
-
 const port = Number(process.env.PORT || 3000);
 if (require.main === module) {
+  cron.schedule("*/10 * * * *", async () => {
+    try {
+      await processDueReminders(db, getSettingsObject(db));
+    } catch (error) {
+      console.error("[HeartPet] Fehler im Erinnerungsdienst:", error.message);
+    }
+  });
+
   app.listen(port, "0.0.0.0", () => {
     console.log(`HeartPet läuft auf http://127.0.0.1:${port}`);
     console.log("Wenn dies eine neue Installation ist, starte mit /setup.");
@@ -1642,6 +1791,196 @@ function parsePositiveInteger(value) {
   return parsed;
 }
 
+function combineDateAndTime(dateValue, timeValue, defaultTime = "09:00") {
+  const date = String(dateValue || "").trim();
+  if (!date) {
+    return "";
+  }
+
+  const time = String(timeValue || "").trim() || defaultTime;
+  return `${date}T${time}`;
+}
+
+function listActiveSpecies() {
+  return db.prepare(`
+    SELECT species.id, species.name, COUNT(animals.id) AS animal_count
+    FROM species
+    INNER JOIN animals ON animals.species_id = species.id
+    GROUP BY species.id, species.name
+    ORDER BY species.name COLLATE NOCASE ASC
+  `).all();
+}
+
+function attachNextTermData(animals) {
+  if (!animals.length) {
+    return [];
+  }
+
+  const lookup = buildNextTermLookup(animals.map((animal) => animal.id));
+  return animals.map((animal) => ({
+    ...animal,
+    next_term: lookup.get(animal.id) || null,
+  }));
+}
+
+function buildNextTermLookup(animalIds) {
+  const now = dayjs();
+  const today = now.format("YYYY-MM-DD");
+  const placeholders = animalIds.map(() => "?").join(", ");
+  const map = new Map(animalIds.map((id) => [Number(id), []]));
+
+  const pushEvent = (animalId, event) => {
+    if (!map.has(Number(animalId))) {
+      map.set(Number(animalId), []);
+    }
+    map.get(Number(animalId)).push(event);
+  };
+
+  db.prepare(`
+    SELECT id, animal_id, title, appointment_at
+    FROM animal_appointments
+    WHERE animal_id IN (${placeholders}) AND appointment_at >= ?
+  `).all(...animalIds, now.format("YYYY-MM-DDTHH:mm")).forEach((item) => {
+    pushEvent(item.animal_id, {
+      type: "Arzttermin",
+      label: item.title || "Arzttermin",
+      at: item.appointment_at,
+      sortAt: item.appointment_at,
+    });
+  });
+
+  db.prepare(`
+    SELECT id, animal_id, name, next_due_date
+    FROM animal_vaccinations
+    WHERE animal_id IN (${placeholders}) AND next_due_date IS NOT NULL AND next_due_date >= ?
+  `).all(...animalIds, today).forEach((item) => {
+    pushEvent(item.animal_id, {
+      type: "Impfung",
+      label: item.name || "Impfung",
+      at: item.next_due_date,
+      sortAt: `${item.next_due_date}T09:00`,
+    });
+  });
+
+  db.prepare(`
+    SELECT id, animal_id, name, start_date, end_date
+    FROM animal_medications
+    WHERE animal_id IN (${placeholders})
+  `).all(...animalIds).forEach((item) => {
+    const candidates = [item.start_date, item.end_date].filter((value) => value && value >= today).sort();
+    if (!candidates.length) {
+      return;
+    }
+    pushEvent(item.animal_id, {
+      type: "Medikament",
+      label: item.name || "Medikament",
+      at: candidates[0],
+      sortAt: `${candidates[0]}T08:00`,
+    });
+  });
+
+  db.prepare(`
+    SELECT id, animal_id, label, time_of_day
+    FROM animal_feedings
+    WHERE animal_id IN (${placeholders}) AND time_of_day IS NOT NULL AND time_of_day != ''
+  `).all(...animalIds).forEach((item) => {
+    const todayCandidate = dayjs(`${today}T${item.time_of_day}`);
+    const sortAt = todayCandidate.isAfter(now) ? todayCandidate : todayCandidate.add(1, "day");
+    pushEvent(item.animal_id, {
+      type: "Fütterung",
+      label: item.label || "Fütterung",
+      at: sortAt.format("YYYY-MM-DDTHH:mm"),
+      sortAt: sortAt.format("YYYY-MM-DDTHH:mm"),
+    });
+  });
+
+  db.prepare(`
+    SELECT id, animal_id, title, due_at, reminder_type
+    FROM reminders
+    WHERE animal_id IN (${placeholders})
+      AND completed_at IS NULL
+      AND due_at >= ?
+      AND source_kind IS NULL
+  `).all(...animalIds, now.format("YYYY-MM-DDTHH:mm")).forEach((item) => {
+    pushEvent(item.animal_id, {
+      type: item.reminder_type || "Erinnerung",
+      label: item.title || "Erinnerung",
+      at: item.due_at,
+      sortAt: item.due_at,
+    });
+  });
+
+  const nextMap = new Map();
+  map.forEach((events, animalId) => {
+    const nextEvent = events
+      .sort((a, b) => String(a.sortAt).localeCompare(String(b.sortAt)))
+      .find(Boolean);
+    if (nextEvent) {
+      nextMap.set(animalId, {
+        ...nextEvent,
+        displayLabel: formatUpcomingEvent(nextEvent.at),
+      });
+    }
+  });
+  return nextMap;
+}
+
+function sortAnimals(animals, sort) {
+  const collator = new Intl.Collator("de", { sensitivity: "base" });
+  const sorted = [...animals];
+  sorted.sort((left, right) => {
+    switch (sort) {
+      case "name_desc":
+        return collator.compare(right.name || "", left.name || "");
+      case "intake_desc":
+        return compareDates(right.intake_date, left.intake_date) || collator.compare(left.name || "", right.name || "");
+      case "intake_asc":
+        return compareDates(left.intake_date, right.intake_date) || collator.compare(left.name || "", right.name || "");
+      case "created_desc":
+        return compareDates(right.created_at, left.created_at) || collator.compare(left.name || "", right.name || "");
+      case "status_asc":
+        return collator.compare(left.status || "", right.status || "") || collator.compare(left.name || "", right.name || "");
+      case "next_term_asc":
+        return compareDates(left.next_term?.sortAt, right.next_term?.sortAt, true) || collator.compare(left.name || "", right.name || "");
+      case "name_asc":
+      default:
+        return collator.compare(left.name || "", right.name || "");
+    }
+  });
+  return sorted;
+}
+
+function compareDates(a, b, nullsLast = false) {
+  if (!a && !b) {
+    return 0;
+  }
+  if (!a) {
+    return nullsLast ? 1 : -1;
+  }
+  if (!b) {
+    return nullsLast ? -1 : 1;
+  }
+  return String(a).localeCompare(String(b));
+}
+
+function formatUpcomingEvent(value) {
+  if (!value) {
+    return "-";
+  }
+  return String(value).includes("T") ? formatDateTime(value) : formatDate(value);
+}
+
+function buildReminderSourceMap(reminders) {
+  return (reminders || []).reduce((acc, item) => {
+    const key = item.source_kind && item.source_id ? `${item.source_kind}:${item.source_id}` : "manual";
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(item);
+    return acc;
+  }, {});
+}
+
 function parseReminderBaseDate(value, defaultTime = "09:00") {
   if (!value) {
     return null;
@@ -1727,9 +2066,108 @@ function deleteGeneratedReminders(sourceKind, sourceId) {
   db.prepare("DELETE FROM reminders WHERE source_kind = ? AND source_id = ?").run(sourceKind, sourceId);
 }
 
+function resolveReminderChannels(mode) {
+  switch (String(mode || "none")) {
+    case "defaults": {
+      const defaults = getNotificationChannelDefaults();
+      return {
+        channelEmail: defaults.channelEmail,
+        channelTelegram: defaults.channelTelegram,
+      };
+    }
+    case "email":
+      return { channelEmail: 1, channelTelegram: 0 };
+    case "telegram":
+      return { channelEmail: 0, channelTelegram: 1 };
+    case "both":
+      return { channelEmail: 1, channelTelegram: 1 };
+    case "browser":
+    default:
+      return { channelEmail: 0, channelTelegram: 0 };
+  }
+}
+
+function appendVeterinarianNote(noteValue, handledByVeterinarian, veterinarianId) {
+  const notes = String(noteValue || "").trim();
+  if (!handledByVeterinarian) {
+    return notes;
+  }
+
+  const veterinarian = veterinarianId
+    ? db.prepare("SELECT name FROM veterinarians WHERE id = ?").get(veterinarianId)
+    : null;
+  const prefix = veterinarian?.name
+    ? `Durchgeführt durch Tierarzt: ${veterinarian.name}`
+    : "Durchgeführt durch Tierarzt";
+
+  if (!notes) {
+    return prefix;
+  }
+
+  return `${prefix}\n${notes}`;
+}
+
+function createSupplementalEventReminders({ animalId, eventKind, title, notes, baseDate, channelMode, daysBefore, onEvent }) {
+  if (!baseDate || !baseDate.isValid() || String(channelMode || "none") === "none") {
+    return;
+  }
+
+  if (baseDate.isBefore(dayjs())) {
+    return;
+  }
+
+  const reminderTypeMap = {
+    medication: "Medikament",
+    vaccination: "Impfung",
+    appointment: "Arzttermin",
+  };
+  const reminderType = reminderTypeMap[eventKind] || "Ereignis";
+  const channels = resolveReminderChannels(channelMode);
+  const days = parsePositiveInteger(daysBefore);
+  const dueMoments = [];
+
+  if (days > 0) {
+    dueMoments.push(baseDate.subtract(days, "day"));
+  }
+  if (String(onEvent || "") === "1" || !dueMoments.length) {
+    dueMoments.push(baseDate);
+  }
+
+  const seen = new Set();
+  const insert = db.prepare(`
+    INSERT INTO reminders (
+      animal_id, title, reminder_type, due_at, channel_email, channel_telegram, repeat_interval_days, notes,
+      last_delivery_status, last_delivery_error
+    )
+    VALUES (?, ?, ?, ?, ?, ?, 0, ?, 'pending', '')
+  `);
+
+  dueMoments.forEach((moment) => {
+    const dueAt = moment.format("YYYY-MM-DDTHH:mm");
+    if (seen.has(dueAt)) {
+      return;
+    }
+    seen.add(dueAt);
+    insert.run(
+      animalId,
+      `${reminderType}: ${title}`,
+      reminderType,
+      dueAt,
+      channels.channelEmail,
+      channels.channelTelegram,
+      notes || ""
+    );
+  });
+}
+
 function syncMedicationReminders(animalId, medicationId) {
   const item = db.prepare("SELECT * FROM animal_medications WHERE id = ? AND animal_id = ?").get(medicationId, animalId);
   if (!item) {
+    deleteGeneratedReminders("medication", medicationId);
+    return;
+  }
+
+  if (!Number(item.reminder_enabled || 0)) {
     deleteGeneratedReminders("medication", medicationId);
     return;
   }
@@ -1758,6 +2196,11 @@ function syncVaccinationReminders(animalId, vaccinationId) {
     return;
   }
 
+  if (!Number(item.reminder_enabled || 0)) {
+    deleteGeneratedReminders("vaccination", vaccinationId);
+    return;
+  }
+
   const settings = getSettingsObject(db);
   const rows = buildGeneratedReminderRows({
     animalId,
@@ -1781,6 +2224,11 @@ function syncAppointmentReminders(animalId, appointmentId) {
     WHERE animal_appointments.id = ? AND animal_appointments.animal_id = ?
   `).get(appointmentId, animalId);
   if (!item) {
+    deleteGeneratedReminders("appointment", appointmentId);
+    return;
+  }
+
+  if (!Number(item.reminder_enabled || 0)) {
     deleteGeneratedReminders("appointment", appointmentId);
     return;
   }

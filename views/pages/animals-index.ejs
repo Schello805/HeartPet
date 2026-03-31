@@ -34,6 +34,7 @@
         <option value="intake_asc" <%= filters.sort === 'intake_asc' ? 'selected' : '' %>>Aufnahme alt zuerst</option>
         <option value="created_desc" <%= filters.sort === 'created_desc' ? 'selected' : '' %>>Zuletzt angelegt</option>
         <option value="status_asc" <%= filters.sort === 'status_asc' ? 'selected' : '' %>>Status</option>
+        <option value="next_term_asc" <%= filters.sort === 'next_term_asc' ? 'selected' : '' %>>Nächster Termin</option>
       </select>
     </label>
     <button type="submit" class="button">Filtern</button>
@@ -58,6 +59,7 @@
             <th>Tierart</th>
             <th>Status</th>
             <th>Tierarzt</th>
+            <th>Nächster Termin</th>
             <th>Aufnahme</th>
           </tr>
         </thead>
@@ -80,6 +82,15 @@
               <td><%= animal.species_name || '-' %></td>
               <td><span class="pill"><%= animal.status %></span></td>
               <td><%= animal.veterinarian_name || '-' %></td>
+              <td>
+                <% if (animal.next_term) { %>
+                  <div class="table-sub"><strong><%= animal.next_term.type %></strong></div>
+                  <div class="table-sub"><%= animal.next_term.label %></div>
+                  <div class="table-sub"><%= animal.next_term.displayLabel %></div>
+                <% } else { %>
+                  <span class="table-sub">-</span>
+                <% } %>
+              </td>
               <td><%= formatDate(animal.intake_date) %></td>
             </tr>
           <% }) %>

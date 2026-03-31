@@ -100,6 +100,7 @@ function initDatabase() {
       schedule TEXT,
       start_date TEXT,
       end_date TEXT,
+      reminder_enabled INTEGER NOT NULL DEFAULT 0,
       notes TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(animal_id) REFERENCES animals(id) ON DELETE CASCADE
@@ -111,6 +112,7 @@ function initDatabase() {
       name TEXT NOT NULL,
       vaccination_date TEXT,
       next_due_date TEXT,
+      reminder_enabled INTEGER NOT NULL DEFAULT 0,
       notes TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(animal_id) REFERENCES animals(id) ON DELETE CASCADE
@@ -124,6 +126,7 @@ function initDatabase() {
       location_mode TEXT NOT NULL DEFAULT 'praxis',
       location_text TEXT,
       veterinarian_id INTEGER,
+      reminder_enabled INTEGER NOT NULL DEFAULT 0,
       notes TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY(animal_id) REFERENCES animals(id) ON DELETE CASCADE,
@@ -227,6 +230,9 @@ function initDatabase() {
   ensureColumn(db, "veterinarians", "postal_code", "TEXT");
   ensureColumn(db, "veterinarians", "city", "TEXT");
   ensureColumn(db, "veterinarians", "country", "TEXT");
+  ensureColumn(db, "animal_medications", "reminder_enabled", "INTEGER NOT NULL DEFAULT 0");
+  ensureColumn(db, "animal_vaccinations", "reminder_enabled", "INTEGER NOT NULL DEFAULT 0");
+  ensureColumn(db, "animal_appointments", "reminder_enabled", "INTEGER NOT NULL DEFAULT 0");
 
   seedDefaults(db);
   return db;
