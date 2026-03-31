@@ -2,9 +2,9 @@
 
 <section class="panel">
   <form method="get" action="/animals" class="filter-row">
-    <label>
+    <label class="search-autocomplete-field">
       <span>Suche</span>
-      <input type="text" name="q" value="<%= filters.search %>" placeholder="Name, Herkunft, Rasse" />
+      <input type="text" name="q" value="<%= filters.search %>" placeholder="Name, Herkunft, Rasse" data-global-search-autocomplete="true" />
     </label>
     <label>
       <span>Status</span>

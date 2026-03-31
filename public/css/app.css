@@ -75,6 +75,10 @@ textarea {
   display: none;
 }
 
+.mobile-tabbar {
+  display: none;
+}
+
 .sidebar {
   position: fixed;
   inset: 0 auto 0 0;
@@ -179,7 +183,8 @@ textarea {
 .hero-card h2,
 .login-panel h1 {
   margin: 0;
-  font-family: "Fraunces", Georgia, serif;
+  font-family: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
+  font-weight: 800;
   letter-spacing: 0.01em;
 }
 
@@ -253,6 +258,53 @@ textarea {
   border-radius: 999px;
   font-size: 1.15rem;
   padding: 0 22px;
+}
+
+.search-autocomplete-field {
+  position: relative;
+}
+
+.global-search-suggest {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 45;
+  display: none;
+  max-height: 320px;
+  overflow: auto;
+  background: #fcfffd;
+  border: 1px solid #c9e2d5;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+
+.global-search-suggest.visible {
+  display: block;
+}
+
+.global-search-suggest-item {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e7f2ec;
+}
+
+.global-search-suggest-item:last-child {
+  border-bottom: 0;
+}
+
+.global-search-suggest-item:hover {
+  background: #f1fbf6;
+}
+
+.global-search-suggest-item strong {
+  font-size: 0.96rem;
+}
+
+.global-search-suggest-item span {
+  font-size: 0.82rem;
+  color: var(--muted);
 }
 
 .dashboard-search-form .button {
@@ -1182,40 +1234,21 @@ small {
 
 @media (max-width: 960px) {
 .mobile-nav-toggle {
-    display: inline-flex;
-    position: sticky;
-    top: 14px;
-    z-index: 30;
-    margin: 14px 14px 0;
-    border: 0;
-    border-radius: 6px;
-    padding: 12px 14px;
-    background: linear-gradient(180deg, #2a8d66 0%, #1f7a57 100%);
-    color: #f3fff9;
-    box-shadow: var(--shadow);
+    display: none;
   }
 
   .sidebar {
-    position: fixed;
-    inset: 0 auto 0 0;
-    width: min(88vw, 320px);
-    gap: 24px;
-    transform: translateX(-105%);
-    transition: transform 180ms ease;
-    z-index: 20;
+    display: none;
   }
 
   .main-content {
     margin-left: 0;
-    padding-top: 14px;
+    padding-top: 16px;
+    padding-bottom: 98px;
   }
 
   .app-footer {
-    margin-left: 24px;
-  }
-
-  body.nav-open .sidebar {
-    transform: translateX(0);
+    display: none;
   }
 
   .dashboard-grid,
@@ -1244,5 +1277,39 @@ small {
   .hero-card,
   .page-header {
     flex-direction: column;
+  }
+
+  .mobile-tabbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 8px;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    background: rgba(246, 253, 249, 0.95);
+    border-top: 1px solid #cde4d7;
+    backdrop-filter: blur(8px);
+  }
+
+  .mobile-tabbar a {
+    display: grid;
+    place-items: center;
+    min-height: 42px;
+    border-radius: 10px;
+    font-size: 0.83rem;
+    font-weight: 700;
+    color: #3c5b4d;
+    background: #eef7f2;
+    border: 1px solid #d5e9de;
+  }
+
+  .mobile-tabbar a.active {
+    color: #ffffff;
+    background: linear-gradient(180deg, #66c7a0 0%, #4ab788 100%);
+    border-color: #49b486;
   }
 }

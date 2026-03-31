@@ -1,4 +1,21 @@
       </main>
+
+      <nav class="mobile-tabbar" aria-label="Mobile Navigation">
+        <a class="<%= currentPath === '/' ? 'active' : '' %>" href="/">
+          <span class="mobile-tabbar-label">Dashboard</span>
+        </a>
+        <a class="<%= currentPath.startsWith('/animals') ? 'active' : '' %>" href="/animals">
+          <span class="mobile-tabbar-label">Tiere</span>
+        </a>
+        <% if (permissions.canManageAdmin) { %>
+          <a class="<%= currentPath.startsWith('/admin') ? 'active' : '' %>" href="/admin/allgemein">
+            <span class="mobile-tabbar-label">Verwaltung</span>
+          </a>
+        <% } %>
+        <a class="<%= currentPath === '/hilfe' ? 'active' : '' %>" href="/hilfe">
+          <span class="mobile-tabbar-label">Hilfe</span>
+        </a>
+      </nav>
     </div>
     <footer class="app-footer">
       <a href="/impressum">Impressum</a>

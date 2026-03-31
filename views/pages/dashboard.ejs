@@ -4,7 +4,9 @@
 
 <section class="panel dashboard-search-panel">
   <form method="get" action="/" class="dashboard-search-form">
-    <input type="search" name="q" value="<%= searchState.q || '' %>" placeholder="Tiere, Dokumente, Ereignisse suchen ..." autocomplete="off" />
+    <div class="search-autocomplete-field">
+      <input type="search" name="q" value="<%= searchState.q || '' %>" placeholder="Tiere, Dokumente, Ereignisse suchen ..." autocomplete="off" data-global-search-autocomplete="true" />
+    </div>
     <button type="submit" class="button">Suchen</button>
   </form>
   <% if (searchState.q && !searchState.searchable) { %>

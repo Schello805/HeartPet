@@ -1921,6 +1921,25 @@ app.get("/api/species/search", (req, res) => {
   res.json({ results: ranked });
 });
 
+app.get("/api/search/suggest", (req, res) => {
+  const q = String(req.query.q || "").trim();
+  if (q.length < 2) {
+    return res.json({ results: [] });
+  }
+
+  const suggestions = buildGlobalSearchResults(q)
+    .slice(0, 12)
+    .map((item) => ({
+      kind: item.kind,
+      title: item.title,
+      subtitle: item.subtitle,
+      href: item.href,
+      when: item.when || "",
+    }));
+
+  res.json({ results: suggestions });
+});
+
 app.get("/api/reminders/pending", (req, res) => {
   const rows = db.prepare(`
     SELECT reminders.id, reminders.title, reminders.due_at, animals.name AS animal_name
