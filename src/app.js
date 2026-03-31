@@ -873,6 +873,7 @@ app.post("/reminders/:id/complete", requireAnimalPermission("canManageReminders"
     setFlash(req, "success", "Wiederkehrende Erinnerung abgeschlossen und neu terminiert.");
   } else {
     db.prepare("UPDATE reminders SET completed_at = CURRENT_TIMESTAMP WHERE id = ?").run(req.params.id);
+    applyCompletionSideEffects(reminder);
     setFlash(req, "success", "Erinnerung als erledigt markiert.");
   }
   res.redirect(req.get("referer") || "/");
@@ -2158,6 +2159,19 @@ function createSupplementalEventReminders({ animalId, eventKind, title, notes, b
       notes || ""
     );
   });
+}
+
+function applyCompletionSideEffects(reminder) {
+  if (!reminder || reminder.source_kind !== "vaccination" || !reminder.source_id) {
+    return;
+  }
+
+  db.prepare(`
+    UPDATE animal_vaccinations
+    SET vaccination_date = ?
+    WHERE id = ?
+      AND vaccination_date IS NULL
+  `).run(dayjs().format("YYYY-MM-DD"), reminder.source_id);
 }
 
 function syncMedicationReminders(animalId, medicationId) {

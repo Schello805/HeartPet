@@ -37,7 +37,7 @@ ensure_service_override() {
     return 0
   fi
 
-  local npm_path current_working_dir current_exec_start override_tmp needs_override
+  local npm_path current_working_dir current_exec_start current_user current_group target_user target_group override_tmp needs_override
   npm_path="$(command -v npm || true)"
   if [ -z "$npm_path" ]; then
     echo "Warnung: npm wurde nicht gefunden, Service-Override kann nicht geprueft werden."
@@ -46,6 +46,14 @@ ensure_service_override() {
 
   current_working_dir="$(run_systemctl show -p WorkingDirectory --value heartpet 2>/dev/null || true)"
   current_exec_start="$(run_systemctl show -p ExecStart --value heartpet 2>/dev/null || true)"
+  current_user="$(run_systemctl show -p User --value heartpet 2>/dev/null || true)"
+  current_group="$(run_systemctl show -p Group --value heartpet 2>/dev/null || true)"
+  target_user="${current_user:-root}"
+  target_group="${current_group:-$target_user}"
+  if [[ "$APP_DIR" == /root/* ]] && [ "$target_user" != "root" ]; then
+    target_user="root"
+    target_group="root"
+  fi
   needs_override=0
 
   if [ "$current_working_dir" != "$APP_DIR" ]; then
@@ -56,17 +64,23 @@ ensure_service_override() {
     needs_override=1
   fi
 
+  if [ "$current_user" != "$target_user" ] || [ "$current_group" != "$target_group" ]; then
+    needs_override=1
+  fi
+
   if [ "$needs_override" -eq 0 ]; then
     return 0
   fi
 
-  echo "Korrigiere heartpet.service (WorkingDirectory/ExecStart) automatisch."
+  echo "Korrigiere heartpet.service (WorkingDirectory/ExecStart/User/Group) automatisch."
   override_tmp="$(mktemp)"
   cat > "$override_tmp" <<EOF
 [Service]
 WorkingDirectory=$APP_DIR
 ExecStart=
 ExecStart=$npm_path start
+User=$target_user
+Group=$target_group
 EOF
 
   run_as_root mkdir -p /etc/systemd/system/heartpet.service.d
