@@ -16,8 +16,56 @@ run_systemctl() {
   fi
 }
 
+run_as_root() {
+  if [ "$(id -u)" -eq 0 ]; then
+    "$@"
+  else
+    sudo "$@"
+  fi
+}
+
 service_exists() {
   command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files --type=service --no-legend 2>/dev/null | grep -q '^heartpet\.service'
+}
+
+ensure_service_override() {
+  local npm_path current_working_dir current_exec_start override_tmp needs_override
+
+  npm_path="$(command -v npm || true)"
+  if [ -z "$npm_path" ]; then
+    echo "Warnung: npm wurde nicht gefunden, Service-Override kann nicht geprueft werden."
+    return 0
+  fi
+
+  current_working_dir="$(run_systemctl show -p WorkingDirectory --value heartpet 2>/dev/null || true)"
+  current_exec_start="$(run_systemctl show -p ExecStart --value heartpet 2>/dev/null || true)"
+  needs_override=0
+
+  if [ "$current_working_dir" != "$APP_DIR" ]; then
+    needs_override=1
+  fi
+
+  if [[ "$current_exec_start" != *"$npm_path start"* ]] && [[ "$current_exec_start" != *"npm start"* ]]; then
+    needs_override=1
+  fi
+
+  if [ "$needs_override" -eq 0 ]; then
+    return 0
+  fi
+
+  echo "Korrigiere heartpet.service (WorkingDirectory/ExecStart) automatisch."
+  override_tmp="$(mktemp)"
+  cat > "$override_tmp" <<EOF
+[Service]
+WorkingDirectory=$APP_DIR
+ExecStart=
+ExecStart=$npm_path start
+EOF
+
+  run_as_root mkdir -p /etc/systemd/system/heartpet.service.d
+  run_as_root cp "$override_tmp" /etc/systemd/system/heartpet.service.d/override.conf
+  rm -f "$override_tmp"
+  run_systemctl daemon-reload
 }
 
 wait_for_http() {
@@ -41,6 +89,7 @@ mkdir -p "$APP_DIR/data" "$APP_DIR/data/uploads" "$APP_DIR/data/exports" "$APP_D
 cd "$APP_DIR"
 
 if service_exists; then
+  ensure_service_override
   echo "Starte heartpet.service"
   run_systemctl start heartpet
   run_systemctl status heartpet --no-pager || true

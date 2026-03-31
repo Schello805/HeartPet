@@ -2,7 +2,7 @@
 <% const reminderSourceMap = typeof sourceReminderMap !== 'undefined' ? sourceReminderMap : {}; %>
 <% const freeReminders = typeof manualReminders !== 'undefined' ? manualReminders : []; %>
 
-<section class="hero-card">
+<section class="hero-card animal-hero-card">
   <div class="animal-hero-profile">
     <div class="profile-image-panel">
       <div class="profile-image-frame">
@@ -169,7 +169,7 @@
     <div class="accordion-content compact-layout">
       <% if (permissions.canManageHealth || permissions.canManageReminders) { %>
         <form method="post" action="/animals/<%= animal.id %>/events" class="stack form-compact compact-form event-form" data-event-form>
-          <div class="form-grid event-grid">
+          <div class="form-grid event-grid event-grid-row-1">
             <label>
               <span>Typ</span>
               <select name="event_kind" required data-event-kind-select>
@@ -183,18 +183,13 @@
                 <% } %>
               </select>
             </label>
-            <label class="checkbox-line event-checkbox top-align subtle-toggle">
-              <input type="checkbox" name="handled_by_veterinarian" value="1" data-handled-by-vet />
-              <span>Durch Tierarzt</span>
-            </label>
-            <label class="checkbox-line event-checkbox top-align subtle-toggle" data-reminder-inline-wrap>
-              <input type="checkbox" name="create_reminder" value="1" data-create-reminder />
-              <span>Erinnern</span>
-            </label>
             <label>
               <span>Bezeichnung</span>
               <input type="text" name="title" required placeholder="z. B. Wurmkur, Tollwut, Nachkontrolle" />
             </label>
+          </div>
+
+          <div class="form-grid event-grid event-grid-row-2">
             <label>
               <span>Datum</span>
               <input type="date" name="event_date" required data-event-date />
@@ -205,24 +200,38 @@
             </label>
           </div>
 
-          <div class="form-grid event-grid" data-veterinarian-fields hidden>
-            <label>
-              <span>Tierarzt</span>
-              <select name="veterinarian_id">
-                <option value="">Tierarzt auswählen</option>
-                <% veterinarians.forEach((vet) => { %>
-                  <option value="<%= vet.id %>"><%= vet.name %></option>
-                <% }) %>
-              </select>
+          <div class="form-grid event-grid event-grid-row-3">
+            <div data-veterinarian-fields hidden>
+              <label>
+                <span>Tierarzt</span>
+                <select name="veterinarian_id">
+                  <option value="">Tierarzt auswählen</option>
+                  <% veterinarians.forEach((vet) => { %>
+                    <option value="<%= vet.id %>"><%= vet.name %></option>
+                  <% }) %>
+                </select>
+              </label>
+            </div>
+            <label class="checkbox-line subtle-toggle compact-toggle">
+              <input type="checkbox" name="handled_by_veterinarian" value="1" data-handled-by-vet />
+              <span>Durch Tierarzt</span>
+            </label>
+            <label class="checkbox-line subtle-toggle compact-toggle" data-reminder-inline-wrap>
+              <input type="checkbox" name="create_reminder" value="1" data-create-reminder />
+              <span>Erinnern</span>
             </label>
           </div>
 
-          <label>
-            <span>Bemerkungen</span>
-            <textarea name="notes" rows="3" placeholder="Hinweise zum Ereignis"></textarea>
-          </label>
+          <div class="form-grid event-grid event-grid-row-4">
+            <label>
+              <span>Bemerkung (optional)</span>
+              <textarea name="notes" rows="2" placeholder="Optionaler Hinweis"></textarea>
+            </label>
+          </div>
 
-          <button type="submit" class="button">Ereignis speichern</button>
+          <div class="event-form-actions">
+            <button type="submit" class="button">Ereignis speichern</button>
+          </div>
         </form>
       <% } else { %>
         <p class="empty-state">Für neue Ereignisse fehlen die erforderlichen Rechte.</p>
@@ -230,7 +239,7 @@
     </div>
   </details>
 
-  <details class="accordion-item" open>
+  <details class="accordion-item">
     <summary>Medizin</summary>
     <div class="accordion-content compact-layout">
       <details class="sub-accordion" <%= editState.type === 'condition' ? 'open' : '' %>>

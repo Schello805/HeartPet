@@ -17,9 +17,10 @@ async function loadPendingReminders() {
 
     const existing = document.querySelector(".floating-reminder");
     if (!existing) {
-      const banner = document.createElement("div");
+      const banner = document.createElement("a");
       banner.className = "floating-reminder";
-      banner.innerHTML = `<strong>${payload.count} offene Erinnerung(en)</strong><span>Bitte im Dashboard oder in der Tierakte prüfen.</span>`;
+      banner.href = window.location.pathname === "/" ? "#naechste-erinnerungen" : "/#naechste-erinnerungen";
+      banner.innerHTML = `<strong>${payload.count} offene Erinnerung(en)</strong><span>Jetzt direkt anzeigen</span>`;
       bannerTarget.after(banner);
     }
 
