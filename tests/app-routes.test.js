@@ -188,3 +188,59 @@ test("Tierakten-Drawer-Routen sind erreichbar", async () => {
   assert.equal(documentDrawer.status, 200);
   assert.match(documentDrawer.text, /Dokument hochladen/i);
 });
+
+test("Alle Tierakten-Aktionen liefern keine 404", async () => {
+  await agent.post("/animals/1/conditions").type("form").send({
+    title: "Arthrose",
+    details: "Altbefund",
+    return_to: "/animals/1",
+  });
+  await agent.post("/animals/1/feedings").type("form").send({
+    label: "Morgens",
+    food: "Trockenfutter",
+    amount: "50 g",
+    return_to: "/animals/1",
+  });
+  await agent.post("/animals/1/notes").type("form").send({
+    title: "Tagesnotiz",
+    content: "Alles ruhig.",
+    return_to: "/animals/1",
+  });
+  await agent.post("/animals/1/reminders").type("form").send({
+    title: "Kontrolle",
+    reminder_type: "Allgemein",
+    due_at: "2026-04-05T09:00",
+    return_to: "/animals/1",
+  });
+
+  const animalPage = await agent.get("/animals/1");
+  assert.equal(animalPage.status, 200);
+
+  const conditionId = animalPage.text.match(/\/animals\/1\/conditions\/(\d+)\/edit/)?.[1];
+  const feedingId = animalPage.text.match(/\/animals\/1\/feedings\/(\d+)\/edit/)?.[1];
+  const noteId = animalPage.text.match(/\/animals\/1\/notes\/(\d+)\/edit/)?.[1];
+  const reminderId = animalPage.text.match(/\/animals\/1\/reminders\/(\d+)\/edit/)?.[1];
+  assert.ok(conditionId);
+  assert.ok(feedingId);
+  assert.ok(noteId);
+  assert.ok(reminderId);
+
+  const urls = [
+    "/animals/1/events/new",
+    "/animals/1/conditions/new",
+    `/animals/1/conditions/${conditionId}/edit`,
+    "/animals/1/feedings/new",
+    `/animals/1/feedings/${feedingId}/edit`,
+    "/animals/1/notes/new",
+    `/animals/1/notes/${noteId}/edit`,
+    "/animals/1/documents/new",
+    "/animals/1/images/new",
+    `/animals/1/reminders/${reminderId}/edit`,
+  ];
+
+  for (const url of urls) {
+    const response = await agent.get(url).query({ return_to: "/animals/1" });
+    assert.notEqual(response.status, 404, url);
+    assert.equal(response.status, 200, url);
+  }
+});
