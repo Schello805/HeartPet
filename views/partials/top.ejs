@@ -35,7 +35,7 @@
           <% const queryState = typeof currentQuery !== 'undefined' ? currentQuery : {}; %>
           <a class="<%= currentPath === '/' ? 'active' : '' %>" href="/">Dashboard</a>
           <a class="<%= currentPath.startsWith('/animals') ? 'active' : '' %>" href="/animals">Tiere</a>
-          <% if (currentPath.startsWith('/animals') && animalMenu.length > 0) { %>
+          <% if (animalMenu.length > 0) { %>
             <div class="sidebar-subnav">
               <% const activeSpeciesId = String(queryState.species_id || ''); %>
               <a class="<%= !activeSpeciesId ? 'active' : '' %>" href="/animals">Alle Tiere</a>
@@ -46,16 +46,14 @@
           <% } %>
           <% if (permissions.canManageAdmin) { %>
             <a class="<%= currentPath.startsWith('/admin') ? 'active' : '' %>" href="/admin/allgemein">Verwaltung</a>
-            <% if (currentPath.startsWith('/admin')) { %>
-              <div class="sidebar-subnav">
-                <a class="<%= currentPath === '/admin/allgemein' ? 'active' : '' %>" href="/admin/allgemein">Allgemein</a>
-                <a class="<%= currentPath === '/admin/benachrichtigungen' || currentPath === '/admin/kommunikation' ? 'active' : '' %>" href="/admin/benachrichtigungen">Benachrichtigungen</a>
-                <a class="<%= currentPath === '/admin/stammdaten' ? 'active' : '' %>" href="/admin/stammdaten">Stammdaten</a>
-                <a class="<%= currentPath === '/admin/benutzer' ? 'active' : '' %>" href="/admin/benutzer">Benutzer</a>
-                <a class="<%= currentPath === '/admin/import' ? 'active' : '' %>" href="/admin/import">Import</a>
-                <a class="<%= currentPath === '/admin/systemlog' ? 'active' : '' %>" href="/admin/systemlog">Systemlog</a>
-              </div>
-            <% } %>
+            <div class="sidebar-subnav">
+              <a class="<%= currentPath === '/admin/allgemein' ? 'active' : '' %>" href="/admin/allgemein">Allgemein</a>
+              <a class="<%= currentPath === '/admin/benachrichtigungen' || currentPath === '/admin/kommunikation' ? 'active' : '' %>" href="/admin/benachrichtigungen">Benachrichtigungen</a>
+              <a class="<%= currentPath === '/admin/stammdaten' ? 'active' : '' %>" href="/admin/stammdaten">Stammdaten</a>
+              <a class="<%= currentPath === '/admin/benutzer' ? 'active' : '' %>" href="/admin/benutzer">Benutzer</a>
+              <a class="<%= currentPath === '/admin/import' ? 'active' : '' %>" href="/admin/import">Import</a>
+              <a class="<%= currentPath === '/admin/systemlog' ? 'active' : '' %>" href="/admin/systemlog">Systemlog</a>
+            </div>
           <% } %>
           <a class="<%= currentPath === '/hilfe' ? 'active' : '' %>" href="/hilfe">Hilfe</a>
         </nav>
