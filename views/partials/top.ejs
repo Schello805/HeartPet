@@ -87,6 +87,7 @@
           </div>
         <% } %>
 
-        <% if (flash) { %>
-          <div class="flash flash-<%= flash.type %>"><%= flash.message %></div>
-        <% } %>
+        <div class="main-content-inner">
+          <% if (flash) { %>
+            <div class="flash flash-<%= flash.type %>"><%= flash.message %></div>
+          <% } %>

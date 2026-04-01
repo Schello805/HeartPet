@@ -10,8 +10,21 @@
 <% const isVeterinarianEdit = Boolean(masterEditState.veterinarianId); %>
 <% const isSpeciesEdit = Boolean(masterEditState.speciesId); %>
 
-<section class="accordion-stack">
-  <details id="stammdaten-kategorien" class="accordion-item" <%= isVeterinarianEdit || isSpeciesEdit ? '' : 'open' %>>
+<section class="masterdata-hero panel">
+  <div>
+    <p class="eyebrow">Verwaltung</p>
+    <h2>Stammdaten kompakt verwalten</h2>
+    <p class="help-copy">Tierärzte, Tierarten und Dokumentkategorien in einer klareren Desktop-Ansicht mit weniger Leerraum.</p>
+  </div>
+  <div class="masterdata-hero-stats">
+    <div class="pill">Kategorien <strong><%= categories.length %></strong></div>
+    <div class="pill">Tierärzte <strong><%= veterinarians.length %></strong></div>
+    <div class="pill">Tierarten <strong><%= species.length %></strong></div>
+  </div>
+</section>
+
+<section class="accordion-stack masterdata-layout">
+  <details id="stammdaten-kategorien" class="accordion-item masterdata-section masterdata-section-wide" <%= isVeterinarianEdit || isSpeciesEdit ? '' : 'open' %>>
     <summary>Dokumentkategorien</summary>
     <div class="accordion-content">
       <form method="post" action="/admin/categories" class="masterdata-inline-create">
@@ -55,13 +68,13 @@
     </div>
   </details>
 
-  <details id="stammdaten-tieraerzte" class="accordion-item" <%= isVeterinarianEdit ? 'open' : '' %>>
+  <details id="stammdaten-tieraerzte" class="accordion-item masterdata-section" <%= isVeterinarianEdit ? 'open' : '' %>>
     <summary>Tierärzte</summary>
     <div class="accordion-content">
-      <div class="stack compact-list">
+      <div class="masterdata-card-grid compact-list">
         <% veterinarians.forEach((vet) => { %>
           <% if (masterEditState.veterinarianId === vet.id) { %>
-            <form method="post" action="/admin/veterinarians/<%= vet.id %>/update" class="stack form-compact list-card static-card">
+            <form method="post" action="/admin/veterinarians/<%= vet.id %>/update" class="stack form-compact list-card static-card masterdata-entity-card">
               <input type="text" name="name" required value="<%= vet.name %>" />
               <input type="text" name="street" placeholder="Straße und Hausnummer" minlength="3" maxlength="120" pattern="[A-Za-zÄÖÜäöüß0-9 .,\-\/]{3,120}" value="<%= vet.street || '' %>" />
               <div class="mini-grid">
@@ -78,7 +91,7 @@
               </div>
             </form>
           <% } else { %>
-            <div class="list-card static-card">
+            <div class="list-card static-card masterdata-entity-card">
               <div>
                 <strong><%= vet.name %></strong>
                 <% if (defaultVetIdState === String(vet.id)) { %>
@@ -102,7 +115,7 @@
           <% } %>
         <% }) %>
       </div>
-      <form method="post" action="/admin/veterinarians" class="stack form-compact">
+      <form method="post" action="/admin/veterinarians" class="stack form-compact masterdata-create-card">
         <input type="text" name="name" required placeholder="Name" />
         <input type="text" name="street" placeholder="Straße und Hausnummer" minlength="3" maxlength="120" pattern="[A-Za-zÄÖÜäöüß0-9 .,\-\/]{3,120}" />
         <div class="mini-grid">
@@ -118,13 +131,13 @@
     </div>
   </details>
 
-  <details id="stammdaten-tierarten" class="accordion-item" <%= isSpeciesEdit ? 'open' : '' %>>
+  <details id="stammdaten-tierarten" class="accordion-item masterdata-section" <%= isSpeciesEdit ? 'open' : '' %>>
     <summary>Tierarten</summary>
     <div class="accordion-content">
-      <div class="stack compact-list">
+      <div class="masterdata-card-grid compact-list">
         <% species.forEach((item) => { %>
           <% if (masterEditState.speciesId === item.id) { %>
-            <form method="post" action="/admin/species/<%= item.id %>/update" class="stack form-compact list-card static-card">
+            <form method="post" action="/admin/species/<%= item.id %>/update" class="stack form-compact list-card static-card masterdata-entity-card">
               <input type="text" name="name" required value="<%= item.name %>" />
               <select name="default_veterinarian_id">
                 <option value="">Kein Standard-Tierarzt</option>
@@ -139,7 +152,7 @@
               </div>
             </form>
           <% } else { %>
-            <div class="list-card static-card">
+            <div class="list-card static-card masterdata-entity-card">
               <div>
                 <strong><%= item.name %></strong>
                 <p>Standard Tierarzt: <%= item.veterinarian_name || '-' %></p>
@@ -154,7 +167,7 @@
           <% } %>
         <% }) %>
       </div>
-      <form method="post" action="/admin/species" class="stack form-compact">
+      <form method="post" action="/admin/species" class="stack form-compact masterdata-create-card">
         <input type="text" name="name" required placeholder="Tierart" />
         <select name="default_veterinarian_id">
           <option value="">Kein Standard-Tierarzt</option>
