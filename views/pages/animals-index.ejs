@@ -1,72 +1,72 @@
 <%- include('../partials/top', { pageTitle }) %>
 
-<section class="panel">
-  <form method="get" action="/animals" class="filter-row">
-    <label class="search-autocomplete-field">
-      <span>Suche</span>
-      <input type="text" name="q" value="<%= filters.search %>" placeholder="Name, Herkunft, Rasse" data-global-search-autocomplete="true" />
-    </label>
-    <label>
-      <span>Status</span>
-      <select name="status">
-        <option value="">Alle</option>
-        <option value="Aktiv" <%= filters.status === 'Aktiv' ? 'selected' : '' %>>Aktiv</option>
-        <option value="Vermittelt" <%= filters.status === 'Vermittelt' ? 'selected' : '' %>>Vermittelt</option>
-        <option value="Verkauft" <%= filters.status === 'Verkauft' ? 'selected' : '' %>>Verkauft</option>
-        <option value="Verstorben" <%= filters.status === 'Verstorben' ? 'selected' : '' %>>Verstorben</option>
-      </select>
-    </label>
-    <label>
-      <span>Tierart</span>
-      <select name="species_id">
-        <option value="">Alle</option>
-        <% speciesOptions.forEach((item) => { %>
-          <option value="<%= item.id %>" <%= String(filters.speciesId || '') === String(item.id) ? 'selected' : '' %>><%= item.name %></option>
-        <% }) %>
-      </select>
-    </label>
-    <label>
-      <span>Sortierung</span>
-      <select name="sort">
-        <option value="name_asc" <%= filters.sort === 'name_asc' ? 'selected' : '' %>>Name A-Z</option>
-        <option value="name_desc" <%= filters.sort === 'name_desc' ? 'selected' : '' %>>Name Z-A</option>
-        <option value="intake_desc" <%= filters.sort === 'intake_desc' ? 'selected' : '' %>>Aufnahme neu zuerst</option>
-        <option value="intake_asc" <%= filters.sort === 'intake_asc' ? 'selected' : '' %>>Aufnahme alt zuerst</option>
-        <option value="created_desc" <%= filters.sort === 'created_desc' ? 'selected' : '' %>>Zuletzt angelegt</option>
-        <option value="status_asc" <%= filters.sort === 'status_asc' ? 'selected' : '' %>>Status</option>
-        <option value="next_term_asc" <%= filters.sort === 'next_term_asc' ? 'selected' : '' %>>Nächster Termin</option>
-      </select>
-    </label>
-    <button type="submit" class="button">Filtern</button>
-    <a href="/animals" class="button button-secondary">Zurücksetzen</a>
-  </form>
-</section>
+<section class="animals-workspace">
+  <aside class="animals-list-pane">
+    <section class="panel animals-filter-panel">
+      <form method="get" action="/animals" class="filter-row animals-filter-grid">
+        <label class="search-autocomplete-field full-width">
+          <span>Suche</span>
+          <input type="text" name="q" value="<%= filters.search %>" placeholder="Name, Herkunft, Rasse" data-global-search-autocomplete="true" />
+        </label>
+        <label>
+          <span>Status</span>
+          <select name="status">
+            <option value="">Alle</option>
+            <option value="Aktiv" <%= filters.status === 'Aktiv' ? 'selected' : '' %>>Aktiv</option>
+            <option value="Vermittelt" <%= filters.status === 'Vermittelt' ? 'selected' : '' %>>Vermittelt</option>
+            <option value="Verkauft" <%= filters.status === 'Verkauft' ? 'selected' : '' %>>Verkauft</option>
+            <option value="Verstorben" <%= filters.status === 'Verstorben' ? 'selected' : '' %>>Verstorben</option>
+          </select>
+        </label>
+        <label>
+          <span>Tierart</span>
+          <select name="species_id">
+            <option value="">Alle</option>
+            <% speciesOptions.forEach((item) => { %>
+              <option value="<%= item.id %>" <%= String(filters.speciesId || '') === String(item.id) ? 'selected' : '' %>><%= item.name %></option>
+            <% }) %>
+          </select>
+        </label>
+        <label class="full-width">
+          <span>Sortierung</span>
+          <select name="sort">
+            <option value="name_asc" <%= filters.sort === 'name_asc' ? 'selected' : '' %>>Name A-Z</option>
+            <option value="name_desc" <%= filters.sort === 'name_desc' ? 'selected' : '' %>>Name Z-A</option>
+            <option value="intake_desc" <%= filters.sort === 'intake_desc' ? 'selected' : '' %>>Aufnahme neu zuerst</option>
+            <option value="intake_asc" <%= filters.sort === 'intake_asc' ? 'selected' : '' %>>Aufnahme alt zuerst</option>
+            <option value="created_desc" <%= filters.sort === 'created_desc' ? 'selected' : '' %>>Zuletzt angelegt</option>
+            <option value="status_asc" <%= filters.sort === 'status_asc' ? 'selected' : '' %>>Status</option>
+            <option value="next_term_asc" <%= filters.sort === 'next_term_asc' ? 'selected' : '' %>>Nächster Termin</option>
+          </select>
+        </label>
+        <% if (selectedAnimal) { %>
+          <input type="hidden" name="animal_id" value="<%= selectedAnimal.id %>" />
+        <% } %>
+        <button type="submit" class="button">Filtern</button>
+        <a href="/animals" class="button button-secondary">Zurücksetzen</a>
+      </form>
+    </section>
 
-<section class="panel">
-  <div class="panel-head">
-    <h2>Tierbestand</h2>
-    <span class="counter"><%= pagination.totalCount %> Einträge</span>
-  </div>
+    <section class="panel animals-list-panel">
+      <div class="panel-head">
+        <h2>Tierbestand</h2>
+        <span class="counter"><%= pagination.totalCount %> Einträge</span>
+      </div>
 
-  <% if (animals.length === 0) { %>
-    <p class="empty-state">Noch keine Tiere vorhanden. Lege dein erstes Tier über "Neues Tier" an.</p>
-  <% } else { %>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Tierart</th>
-            <th>Status</th>
-            <th>Tierarzt</th>
-            <th>Nächster Termin</th>
-            <th>Aufnahme</th>
-          </tr>
-        </thead>
-        <tbody>
+      <% if (animals.length === 0) { %>
+        <p class="empty-state">Noch keine Tiere vorhanden. Lege dein erstes Tier über "Neues Tier" an.</p>
+      <% } else { %>
+        <div class="animals-list-stack">
           <% animals.forEach((animal) => { %>
-            <tr class="table-row-link" data-href="/animals/<%= animal.id %>" tabindex="0" role="link" aria-label="<%= animal.name %> öffnen">
-              <td>
+            <% const rowParams = new URLSearchParams(); %>
+            <% if (filters.search) rowParams.set('q', filters.search); %>
+            <% if (filters.status) rowParams.set('status', filters.status); %>
+            <% if (filters.speciesId) rowParams.set('species_id', filters.speciesId); %>
+            <% if (filters.sort) rowParams.set('sort', filters.sort); %>
+            <% if (pagination.currentPage > 1) rowParams.set('page', String(pagination.currentPage)); %>
+            <% rowParams.set('animal_id', String(animal.id)); %>
+            <a href="/animals?<%= rowParams.toString() %>" class="animal-list-entry <%= selectedAnimal && String(selectedAnimal.id) === String(animal.id) ? 'active' : '' %>">
+              <div class="animal-list-entry-main">
                 <div class="animal-list-cell">
                   <% if (animal.profile_image_stored_name) { %>
                     <img class="animal-thumb" src="/media/<%= animal.profile_image_stored_name %>" alt="Profilbild von <%= animal.name %>" />
@@ -75,38 +75,48 @@
                   <% } %>
                   <div>
                     <strong><%= animal.name %></strong>
-                    <div class="table-sub"><%= animal.breed || '-' %></div>
+                    <div class="table-sub"><%= animal.species_name || '-' %> · <%= animal.breed || '-' %></div>
                   </div>
                 </div>
-              </td>
-              <td><%= animal.species_name || '-' %></td>
-              <td><span class="pill"><%= animal.status %></span></td>
-              <td><%= animal.veterinarian_name || '-' %></td>
-              <td>
+                <span class="pill"><%= animal.status %></span>
+              </div>
+              <div class="animal-list-entry-meta">
+                <span><%= animal.veterinarian_name || 'Kein Tierarzt' %></span>
                 <% if (animal.next_term) { %>
-                  <div class="table-sub"><strong><%= animal.next_term.type %></strong></div>
-                  <div class="table-sub"><%= animal.next_term.label %></div>
-                  <div class="table-sub"><%= animal.next_term.displayLabel %></div>
+                  <strong><%= animal.next_term.type %></strong>
+                  <span><%= animal.next_term.displayLabel %></span>
                 <% } else { %>
-                  <span class="table-sub">-</span>
+                  <span>Kein nächster Termin</span>
                 <% } %>
-              </td>
-              <td><%= formatDate(animal.intake_date) %></td>
-            </tr>
+              </div>
+            </a>
           <% }) %>
-        </tbody>
-      </table>
-    </div>
+        </div>
 
-    <% if (pagination.totalPages > 1) { %>
-      <nav class="pagination-row">
-        <% for (let page = 1; page <= pagination.totalPages; page += 1) { %>
-          <% const url = `/animals?q=${encodeURIComponent(filters.search || '')}&status=${encodeURIComponent(filters.status || '')}&species_id=${encodeURIComponent(filters.speciesId || '')}&sort=${encodeURIComponent(filters.sort || 'name_asc')}&page=${page}`; %>
-          <a href="<%= url %>" class="pagination-link <%= page === pagination.currentPage ? 'active' : '' %>"><%= page %></a>
+        <% if (pagination.totalPages > 1) { %>
+          <nav class="pagination-row">
+            <% for (let page = 1; page <= pagination.totalPages; page += 1) { %>
+              <% const url = `/animals?q=${encodeURIComponent(filters.search || '')}&status=${encodeURIComponent(filters.status || '')}&species_id=${encodeURIComponent(filters.speciesId || '')}&sort=${encodeURIComponent(filters.sort || 'name_asc')}&page=${page}${selectedAnimal ? `&animal_id=${selectedAnimal.id}` : ''}`; %>
+              <a href="<%= url %>" class="pagination-link <%= page === pagination.currentPage ? 'active' : '' %>"><%= page %></a>
+            <% } %>
+          </nav>
         <% } %>
-      </nav>
+      <% } %>
+    </section>
+  </aside>
+
+  <section class="animals-detail-pane">
+    <% if (selectedAnimal && selectedAnimalView) { %>
+      <%- include('./animal-show', { pageTitle: selectedAnimal.name, embedded: true, ...selectedAnimalView }) %>
+    <% } else { %>
+      <section class="panel animals-empty-detail">
+        <div class="panel-head">
+          <h2>Tier auswählen</h2>
+        </div>
+        <p class="empty-state">Wähle links ein Tier aus, um die Akte direkt in dieser Arbeitsansicht zu öffnen.</p>
+      </section>
     <% } %>
-  <% } %>
+  </section>
 </section>
 
 <%- include('../partials/bottom') %>

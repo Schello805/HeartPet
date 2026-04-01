@@ -390,6 +390,7 @@ app.get("/animals", (req, res) => {
   const status = (req.query.status || "").trim();
   const speciesId = (req.query.species_id || "").trim();
   const sort = (req.query.sort || "name_asc").trim();
+  const selectedAnimalId = (req.query.animal_id || "").trim();
   const page = Math.max(Number.parseInt(req.query.page || "1", 10) || 1, 1);
   const pageSize = 25;
 
@@ -424,10 +425,15 @@ app.get("/animals", (req, res) => {
   const currentPage = Math.min(page, totalPages);
   const startIndex = (currentPage - 1) * pageSize;
   const animals = sortedAnimals.slice(startIndex, startIndex + pageSize);
+  const selectedAnimal = selectedAnimalId
+    ? animals.find((item) => String(item.id) === String(selectedAnimalId)) || sortedAnimals.find((item) => String(item.id) === String(selectedAnimalId)) || null
+    : animals[0] || null;
 
   res.render("pages/animals-index", {
     pageTitle: "Tiere",
     animals,
+    selectedAnimal,
+    selectedAnimalView: selectedAnimal ? buildAnimalDetailViewData(selectedAnimal.id, req) : null,
     filters: { search, status, speciesId, sort },
     speciesOptions: listActiveSpecies(),
     pagination: {
@@ -482,39 +488,14 @@ app.post("/animals", requireAnimalEditor, (req, res) => {
 });
 
 app.get("/animals/:id", (req, res) => {
-  const animal = findAnimal(req.params.id);
-  if (!animal) {
+  const animalView = buildAnimalDetailViewData(req.params.id, req);
+  if (!animalView) {
     return renderNotFound(req, res, "Tier nicht gefunden.");
   }
 
-  const related = getAnimalRelatedData(req.params.id);
-  const categories = db.prepare("SELECT * FROM document_categories ORDER BY name ASC").all();
-  const documentFilter = {
-    categoryId: req.query.documentCategory || "",
-    fileType: req.query.documentType || "",
-  };
-  const editState = {
-    type: req.query.editType || "",
-    id: req.query.editId ? Number(req.query.editId) : null,
-  };
-
   res.render("pages/animal-show", {
-    pageTitle: animal.name,
-    animal,
-    related: {
-      ...related,
-      documents: filterDocuments(related.documents, documentFilter),
-    },
-    reminderBuckets: splitReminders(related.reminders),
-    sourceReminderMap: buildReminderSourceMap(related.reminders),
-    manualReminders: (related.reminders || []).filter((item) => !item.source_kind),
-    editState,
-    categories,
-    documentFilter,
-    missingRequiredCategories: getMissingRequiredCategories(categories, related.documents),
-    timeline: buildAnimalTimeline(related),
-    species: db.prepare("SELECT * FROM species ORDER BY name ASC").all(),
-    veterinarians: db.prepare("SELECT * FROM veterinarians ORDER BY name ASC").all(),
+    pageTitle: animalView.animal.name,
+    ...animalView,
   });
 });
 
@@ -2784,6 +2765,42 @@ function getAnimalRelatedData(animalId) {
       WHERE documents.animal_id = ?
       ORDER BY documents.uploaded_at DESC
     `).all(animalId),
+  };
+}
+
+function buildAnimalDetailViewData(animalId, req) {
+  const animal = findAnimal(animalId);
+  if (!animal) {
+    return null;
+  }
+
+  const related = getAnimalRelatedData(animalId);
+  const categories = db.prepare("SELECT * FROM document_categories ORDER BY name ASC").all();
+  const documentFilter = {
+    categoryId: req.query.documentCategory || "",
+    fileType: req.query.documentType || "",
+  };
+  const editState = {
+    type: req.query.editType || "",
+    id: req.query.editId ? Number(req.query.editId) : null,
+  };
+
+  return {
+    animal,
+    related: {
+      ...related,
+      documents: filterDocuments(related.documents, documentFilter),
+    },
+    reminderBuckets: splitReminders(related.reminders),
+    sourceReminderMap: buildReminderSourceMap(related.reminders),
+    manualReminders: (related.reminders || []).filter((item) => !item.source_kind),
+    editState,
+    categories,
+    documentFilter,
+    missingRequiredCategories: getMissingRequiredCategories(categories, related.documents),
+    timeline: buildAnimalTimeline(related),
+    species: db.prepare("SELECT * FROM species ORDER BY name ASC").all(),
+    veterinarians: db.prepare("SELECT * FROM veterinarians ORDER BY name ASC").all(),
   };
 }
 

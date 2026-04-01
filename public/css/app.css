@@ -311,6 +311,88 @@ textarea {
   gap: 14px;
 }
 
+.animals-workspace {
+  display: grid;
+  grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.animals-list-pane,
+.animals-detail-pane {
+  display: grid;
+  gap: 14px;
+}
+
+.animals-list-pane {
+  position: sticky;
+  top: 18px;
+}
+
+.animals-filter-panel,
+.animals-list-panel,
+.animals-detail-pane > .hero-card,
+.animals-detail-pane > .accordion-stack,
+.animals-empty-detail {
+  margin: 0;
+}
+
+.animals-filter-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+}
+
+.animals-list-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.animal-list-entry {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(167, 243, 208, 0.22);
+  box-shadow: 0 8px 20px rgba(6, 78, 59, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.animal-list-entry:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 24px rgba(6, 78, 59, 0.08);
+  border-color: rgba(16, 185, 129, 0.32);
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.animal-list-entry.active {
+  border-color: rgba(16, 185, 129, 0.45);
+  background: linear-gradient(180deg, rgba(236, 253, 245, 0.96), rgba(255, 255, 255, 0.98));
+  box-shadow: 0 16px 28px rgba(16, 185, 129, 0.12);
+}
+
+.animal-list-entry-main {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.animal-list-entry-meta {
+  display: grid;
+  gap: 2px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.animals-detail-pane {
+  min-width: 0;
+}
+
+.animals-detail-pane .accordion-stack {
+  gap: 10px;
+}
+
 .dashboard-search-panel {
   margin-bottom: 18px;
   position: relative;
@@ -1816,6 +1898,7 @@ small {
   .content-grid,
   .quick-actions,
   .animal-workbench-strip,
+  .animals-workspace,
   .form-grid,
   .communication-grid,
   .filter-row,
@@ -1842,6 +1925,14 @@ small {
   .masterdata-inline-create {
     grid-template-columns: 1fr;
     align-items: stretch;
+  }
+
+  .animals-list-pane {
+    position: static;
+  }
+
+  .animals-filter-grid {
+    grid-template-columns: 1fr;
   }
 
   .masterdata-inline-create .checkbox-line {

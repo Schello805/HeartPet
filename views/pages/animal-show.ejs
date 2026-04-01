@@ -1,4 +1,7 @@
-<%- include('../partials/top', { pageTitle }) %>
+<% const isEmbeddedView = typeof embedded !== 'undefined' && embedded; %>
+<% if (!isEmbeddedView) { %>
+  <%- include('../partials/top', { pageTitle }) %>
+<% } %>
 <% const reminderSourceMap = typeof sourceReminderMap !== 'undefined' ? sourceReminderMap : {}; %>
 <% const freeReminders = typeof manualReminders !== 'undefined' ? manualReminders : []; %>
 <% const animalTimeline = typeof timeline !== 'undefined' ? timeline : []; %>
@@ -613,4 +616,6 @@
   </details>
 </section>
 
-<%- include('../partials/bottom') %>
+<% if (!isEmbeddedView) { %>
+  <%- include('../partials/bottom') %>
+<% } %>

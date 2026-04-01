@@ -244,3 +244,11 @@ test("Alle Tierakten-Aktionen liefern keine 404", async () => {
     assert.equal(response.status, 200, url);
   }
 });
+
+test("Tiere-Arbeitsansicht zeigt Liste und ausgewählte Akte", async () => {
+  const response = await agent.get("/animals").query({ animal_id: "1" });
+  assert.equal(response.status, 200);
+  assert.match(response.text, /animals-workspace/);
+  assert.match(response.text, /Tierbestand/);
+  assert.match(response.text, /Tobi|Minka/);
+});
