@@ -1176,6 +1176,19 @@ small {
   margin-top: auto;
 }
 
+.masterdata-inline-create {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.masterdata-inline-create .checkbox-line {
+  margin: 0;
+  white-space: nowrap;
+}
+
 .checkbox-line {
   display: flex;
   align-items: center;
@@ -1319,6 +1332,15 @@ small {
   .permission-grid,
   .event-grid {
     grid-template-columns: 1fr;
+  }
+
+  .masterdata-inline-create {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .masterdata-inline-create .checkbox-line {
+    white-space: normal;
   }
 
   .event-grid-row-1,

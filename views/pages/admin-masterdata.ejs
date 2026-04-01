@@ -14,7 +14,7 @@
   <details id="stammdaten-kategorien" class="accordion-item" <%= isVeterinarianEdit || isSpeciesEdit ? '' : 'open' %>>
     <summary>Dokumentkategorien</summary>
     <div class="accordion-content">
-      <form method="post" action="/admin/categories" class="stack form-compact">
+      <form method="post" action="/admin/categories" class="masterdata-inline-create">
         <input type="text" name="name" required placeholder="Neue Kategorie" />
         <label class="checkbox-line">
           <input type="checkbox" name="is_required" />
