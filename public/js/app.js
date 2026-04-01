@@ -351,6 +351,20 @@ function initDrawerNavigation() {
   }
 }
 
+function initAutoDrawerOpen() {
+  const url = new URL(window.location.href);
+  const drawerPath = url.searchParams.get("drawer");
+  if (!drawerPath || document.body.dataset.autoDrawerHandled === "1") {
+    return;
+  }
+
+  document.body.dataset.autoDrawerHandled = "1";
+  url.searchParams.delete("drawer");
+  const cleaned = `${url.pathname}${url.search}${url.hash}`;
+  window.history.replaceState({}, "", cleaned);
+  openDrawer(drawerPath);
+}
+
 function initSpeciesAutocomplete() {
   document.querySelectorAll("[data-species-autocomplete='true']").forEach((input) => {
     const datalist = input.parentElement?.querySelector("#species-suggestions") || document.querySelector("#species-suggestions");
@@ -877,6 +891,7 @@ function initPage() {
   initSidebarGroups();
   initToasts();
   initDrawerNavigation();
+  initAutoDrawerOpen();
   initDrawerForms();
   initSpeciesAutocomplete();
   initRequiredMarks();

@@ -18,6 +18,7 @@
   <details id="stammdaten-kategorien" class="accordion-item masterdata-section masterdata-section-wide" open>
     <summary>Dokumentkategorien</summary>
     <div class="accordion-content">
+      <p class="compact-note">Hier legst du fest, wie hochgeladene Unterlagen einsortiert werden. Pflichtkategorien helfen dabei, wichtige Nachweise später schneller wiederzufinden.</p>
       <div class="button-row">
         <a href="/admin/categories/new" class="button" data-drawer="masterdata-form">Neue Kategorie</a>
       </div>
@@ -49,6 +50,7 @@
   <details id="stammdaten-tieraerzte" class="accordion-item masterdata-section">
     <summary>Tierärzte</summary>
     <div class="accordion-content">
+      <p class="compact-note">Tierärzte können global hinterlegt und später einzelnen Tierarten oder direkt einem Tier zugeordnet werden. Der Standardtierarzt dient als Fallback, wenn beim Tier selbst nichts ausgewählt ist.</p>
       <div class="button-row">
         <a href="/admin/veterinarians/new" class="button" data-drawer="masterdata-form">Neuer Tierarzt</a>
       </div>
@@ -70,7 +72,7 @@
               </a>
               <% if (defaultVetIdState !== String(vet.id)) { %>
                 <form method="post" action="/admin/veterinarians/<%= vet.id %>/set-default">
-                  <button type="submit" class="button button-secondary">Als Standard markieren</button>
+                  <button type="submit" class="button button-secondary" title="Wird automatisch verwendet, wenn bei einer Tierart oder einem Tier kein eigener Tierarzt hinterlegt ist.">Als Standard markieren</button>
                 </form>
               <% } %>
               <form method="post" action="/admin/veterinarians/<%= vet.id %>/delete" data-confirm="Tierarzt wirklich löschen?">
@@ -89,6 +91,7 @@
   <details id="stammdaten-tierarten" class="accordion-item masterdata-section">
     <summary>Tierarten</summary>
     <div class="accordion-content">
+      <p class="compact-note">Tierarten helfen dir bei der sauberen Struktur. Du kannst hier pro Art einen Standardtierarzt hinterlegen, der beim Anlegen neuer Tiere automatisch vorgeschlagen wird.</p>
       <div class="button-row">
         <a href="/admin/species/new" class="button" data-drawer="masterdata-form">Neue Tierart</a>
       </div>

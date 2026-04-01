@@ -123,6 +123,10 @@ fi
 
 mkdir -p "$APP_DIR/data" "$APP_DIR/data/uploads" "$APP_DIR/data/exports" "$APP_DIR/data/backups" "$APP_DIR/data/logs"
 
+if [ -d "$APP_DIR/.githooks" ]; then
+  git -C "$APP_DIR" config --local core.hooksPath .githooks || echo "Warnung: Git-Hooks konnten nicht automatisch aktiviert werden. Bitte einmal ausfuehren: git config --local core.hooksPath .githooks"
+fi
+
 "$APP_DIR/scripts/backup.sh"
 
 cd "$APP_DIR"

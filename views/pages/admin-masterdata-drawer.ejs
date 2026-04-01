@@ -12,6 +12,7 @@
   <% if (isCategory) { %>
     <form method="post" action="<%= isEdit ? `/admin/categories/${item.id}/update` : '/admin/categories' %>" class="stack form-compact" data-drawer-form="masterdata">
       <input type="hidden" name="return_to" value="<%= returnTo || '/admin/stammdaten' %>" />
+      <p class="compact-note">Dokumentkategorien strukturieren hochgeladene Unterlagen wie Verträge, Impfbescheinigungen oder eigene Nachweise.</p>
       <label>
         <span>Name</span>
         <input type="text" name="name" required value="<%= item?.name || '' %>" />
@@ -20,6 +21,7 @@
         <input type="checkbox" name="is_required" <%= item?.is_required ? 'checked' : '' %> />
         Als Pflichtkategorie markieren
       </label>
+      <small class="compact-note">Pflichtkategorien sind besonders wichtige Nachweise. So fällt später schneller auf, wenn bei einem Tier noch etwas fehlt.</small>
       <div class="button-row">
         <button type="submit" class="button"><%= isEdit ? 'Kategorie speichern' : 'Kategorie anlegen' %></button>
         <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
@@ -30,6 +32,7 @@
   <% if (isVeterinarian) { %>
     <form method="post" action="<%= isEdit ? `/admin/veterinarians/${item.id}/update` : '/admin/veterinarians' %>" class="stack form-compact" data-drawer-form="masterdata">
       <input type="hidden" name="return_to" value="<%= returnTo || '/admin/stammdaten' %>" />
+      <p class="compact-note">Lege hier Kontaktdaten und Adresse an. Diese Angaben können später direkt bei Tierarten, Arztterminen und einzelnen Tieren verwendet werden.</p>
       <label>
         <span>Name</span>
         <input type="text" name="name" required value="<%= item?.name || '' %>" />
@@ -66,6 +69,7 @@
         <span>Notizen</span>
         <textarea name="notes" rows="4"><%= item?.notes || '' %></textarea>
       </label>
+      <small class="compact-note">Tipp: In die Notizen passen z. B. Sprechzeiten, Bereitschaft, Spezialgebiete oder Hinweise zur Erreichbarkeit.</small>
       <div class="button-row">
         <button type="submit" class="button"><%= isEdit ? 'Tierarzt speichern' : 'Tierarzt anlegen' %></button>
         <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
@@ -76,6 +80,7 @@
   <% if (isSpecies) { %>
     <form method="post" action="<%= isEdit ? `/admin/species/${item.id}/update` : '/admin/species' %>" class="stack form-compact" data-drawer-form="masterdata">
       <input type="hidden" name="return_to" value="<%= returnTo || '/admin/stammdaten' %>" />
+      <p class="compact-note">Tierarten vereinfachen das Anlegen neuer Tiere und sorgen für eine einheitliche Struktur in deinem Bestand.</p>
       <label>
         <span>Tierart</span>
         <input type="text" name="name" required value="<%= item?.name || '' %>" />
@@ -93,6 +98,7 @@
         <span>Notizen</span>
         <textarea name="notes" rows="4"><%= item?.notes || '' %></textarea>
       </label>
+      <small class="compact-note">Wenn hier ein Standardtierarzt hinterlegt ist, wird er beim Anlegen eines passenden Tiers automatisch vorgeschlagen.</small>
       <div class="button-row">
         <button type="submit" class="button"><%= isEdit ? 'Tierart speichern' : 'Tierart anlegen' %></button>
         <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>

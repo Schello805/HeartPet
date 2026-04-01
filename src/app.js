@@ -518,6 +518,10 @@ function renderAnimalEntryDrawer(req, res, { entryType, mode = "create", item = 
     return renderNotFound(req, res, "Tier nicht gefunden.");
   }
 
+  if (!isDrawerRequest(req)) {
+    return redirectDocumentDrawerRequest(req, res, getAnimalReturnTo(req, `/animals/${animal.id}`));
+  }
+
   const titleMap = {
     event: "Ereignis erstellen",
     condition: mode === "edit" ? "Vorerkrankung bearbeiten" : "Vorerkrankung anlegen",
@@ -630,6 +634,10 @@ app.get("/animals/:id/edit", requireAnimalEditor, (req, res) => {
     return renderNotFound(req, res, "Tier nicht gefunden.");
   }
 
+  if (!isDrawerRequest(req)) {
+    return redirectDocumentDrawerRequest(req, res, getAnimalReturnTo(req, `/animals/${req.params.id}`));
+  }
+
   res.render("pages/animal-form", {
     pageTitle: `${animal.name} bearbeiten`,
     animal,
@@ -641,7 +649,7 @@ app.get("/animals/:id/edit", requireAnimalEditor, (req, res) => {
 
 app.get("/animals/:id/update", requireAnimalEditor, (req, res) => {
   setFlash(req, "error", "Bitte Änderungen über das Formular speichern.");
-  res.redirect(`/animals/${req.params.id}/edit`);
+  redirectDocumentDrawerRequest(req, res, getAnimalReturnTo(req, `/animals/${req.params.id}`), `/animals/${req.params.id}/edit`);
 });
 
 app.post("/animals/:id/update", requireAnimalEditor, (req, res) => {
@@ -839,7 +847,12 @@ app.post("/animals/:animalId/conditions/:entryId/update", requireAnimalPermissio
 
 app.get("/animals/:animalId/conditions/:entryId/update", requireAnimalPermission("canManageHealth"), (req, res) => {
   setFlash(req, "error", "Bitte Änderungen über das Formular speichern.");
-  res.redirect(`/animals/${req.params.animalId}/conditions/${req.params.entryId}/edit`);
+  redirectDocumentDrawerRequest(
+    req,
+    res,
+    getAnimalReturnTo(req, `/animals/${req.params.animalId}`),
+    `/animals/${req.params.animalId}/conditions/${req.params.entryId}/edit`
+  );
 });
 
 app.post("/animals/:animalId/conditions/:entryId/delete", requireAnimalPermission("canManageHealth"), (req, res) => {
@@ -890,7 +903,12 @@ app.post("/animals/:animalId/medications/:entryId/update", requireAnimalPermissi
 
 app.get("/animals/:animalId/medications/:entryId/update", requireAnimalPermission("canManageHealth"), (req, res) => {
   setFlash(req, "error", "Bitte Änderungen über das Formular speichern.");
-  res.redirect(`/animals/${req.params.animalId}/medications/${req.params.entryId}/edit`);
+  redirectDocumentDrawerRequest(
+    req,
+    res,
+    getAnimalReturnTo(req, `/animals/${req.params.animalId}`),
+    `/animals/${req.params.animalId}/medications/${req.params.entryId}/edit`
+  );
 });
 
 app.post("/animals/:animalId/medications/:entryId/delete", requireAnimalPermission("canManageHealth"), (req, res) => {
@@ -938,7 +956,12 @@ app.post("/animals/:animalId/vaccinations/:entryId/update", requireAnimalPermiss
 
 app.get("/animals/:animalId/vaccinations/:entryId/update", requireAnimalPermission("canManageHealth"), (req, res) => {
   setFlash(req, "error", "Bitte Änderungen über das Formular speichern.");
-  res.redirect(`/animals/${req.params.animalId}/vaccinations/${req.params.entryId}/edit`);
+  redirectDocumentDrawerRequest(
+    req,
+    res,
+    getAnimalReturnTo(req, `/animals/${req.params.animalId}`),
+    `/animals/${req.params.animalId}/vaccinations/${req.params.entryId}/edit`
+  );
 });
 
 app.post("/animals/:animalId/vaccinations/:entryId/delete", requireAnimalPermission("canManageHealth"), (req, res) => {
@@ -990,7 +1013,12 @@ app.post("/animals/:animalId/appointments/:entryId/update", requireAnimalPermiss
 
 app.get("/animals/:animalId/appointments/:entryId/update", requireAnimalPermission("canManageHealth"), (req, res) => {
   setFlash(req, "error", "Bitte Änderungen über das Formular speichern.");
-  res.redirect(`/animals/${req.params.animalId}/appointments/${req.params.entryId}/edit`);
+  redirectDocumentDrawerRequest(
+    req,
+    res,
+    getAnimalReturnTo(req, `/animals/${req.params.animalId}`),
+    `/animals/${req.params.animalId}/appointments/${req.params.entryId}/edit`
+  );
 });
 
 app.post("/animals/:animalId/appointments/:entryId/delete", requireAnimalPermission("canManageHealth"), (req, res) => {
@@ -1038,7 +1066,12 @@ app.post("/animals/:animalId/feedings/:entryId/update", requireAnimalPermission(
 
 app.get("/animals/:animalId/feedings/:entryId/update", requireAnimalPermission("canManageFeedings"), (req, res) => {
   setFlash(req, "error", "Bitte Änderungen über das Formular speichern.");
-  res.redirect(`/animals/${req.params.animalId}/feedings/${req.params.entryId}/edit`);
+  redirectDocumentDrawerRequest(
+    req,
+    res,
+    getAnimalReturnTo(req, `/animals/${req.params.animalId}`),
+    `/animals/${req.params.animalId}/feedings/${req.params.entryId}/edit`
+  );
 });
 
 app.post("/animals/:animalId/feedings/:entryId/delete", requireAnimalPermission("canManageFeedings"), (req, res) => {
@@ -1068,7 +1101,12 @@ app.post("/animals/:animalId/notes/:entryId/update", requireAnimalPermission("ca
 
 app.get("/animals/:animalId/notes/:entryId/update", requireAnimalPermission("canManageNotes"), (req, res) => {
   setFlash(req, "error", "Bitte Änderungen über das Formular speichern.");
-  res.redirect(`/animals/${req.params.animalId}/notes/${req.params.entryId}/edit`);
+  redirectDocumentDrawerRequest(
+    req,
+    res,
+    getAnimalReturnTo(req, `/animals/${req.params.animalId}`),
+    `/animals/${req.params.animalId}/notes/${req.params.entryId}/edit`
+  );
 });
 
 app.post("/animals/:animalId/notes/:entryId/delete", requireAnimalPermission("canManageNotes"), (req, res) => {
@@ -1125,7 +1163,12 @@ app.post("/animals/:animalId/reminders/:entryId/update", requireAnimalPermission
 
 app.get("/animals/:animalId/reminders/:entryId/update", requireAnimalPermission("canManageReminders"), (req, res) => {
   setFlash(req, "error", "Bitte Änderungen über das Formular speichern.");
-  res.redirect(`/animals/${req.params.animalId}/reminders/${req.params.entryId}/edit`);
+  redirectDocumentDrawerRequest(
+    req,
+    res,
+    getAnimalReturnTo(req, `/animals/${req.params.animalId}`),
+    `/animals/${req.params.animalId}/reminders/${req.params.entryId}/edit`
+  );
 });
 
 app.post("/animals/:animalId/reminders/:entryId/delete", requireAnimalPermission("canManageReminders"), (req, res) => {
@@ -1262,7 +1305,12 @@ app.post("/animals/:animalId/documents/:entryId/update", requireAnimalPermission
 
 app.get("/animals/:animalId/documents/:entryId/update", requireAnimalPermission("canManageDocuments"), (req, res) => {
   setFlash(req, "error", "Bitte Änderungen über das Formular speichern.");
-  res.redirect(`/animals/${req.params.animalId}/documents/${req.params.entryId}/edit`);
+  redirectDocumentDrawerRequest(
+    req,
+    res,
+    getAnimalReturnTo(req, `/animals/${req.params.animalId}`),
+    `/animals/${req.params.animalId}/documents/${req.params.entryId}/edit`
+  );
 });
 
 app.post("/animals/:animalId/documents/:entryId/delete", requireAnimalPermission("canManageDocuments"), (req, res) => {
@@ -1491,6 +1539,9 @@ app.get("/admin/stammdaten", requireAdmin, (req, res) => {
 });
 
 app.get("/admin/categories/new", requireAdmin, (req, res) => {
+  if (!isDrawerRequest(req)) {
+    return redirectDocumentDrawerRequest(req, res, "/admin/stammdaten");
+  }
   res.render("pages/admin-masterdata-drawer", {
     pageTitle: "Neue Dokumentkategorie",
     entityType: "category",
@@ -1501,6 +1552,9 @@ app.get("/admin/categories/new", requireAdmin, (req, res) => {
 });
 
 app.get("/admin/categories/:id/edit", requireAdmin, (req, res) => {
+  if (!isDrawerRequest(req)) {
+    return redirectDocumentDrawerRequest(req, res, "/admin/stammdaten");
+  }
   const item = db.prepare("SELECT * FROM document_categories WHERE id = ?").get(req.params.id);
   if (!item) {
     return renderNotFound(req, res, "Dokumentkategorie nicht gefunden.");
@@ -1515,6 +1569,9 @@ app.get("/admin/categories/:id/edit", requireAdmin, (req, res) => {
 });
 
 app.get("/admin/veterinarians/new", requireAdmin, (req, res) => {
+  if (!isDrawerRequest(req)) {
+    return redirectDocumentDrawerRequest(req, res, "/admin/stammdaten");
+  }
   res.render("pages/admin-masterdata-drawer", {
     pageTitle: "Neuer Tierarzt",
     entityType: "veterinarian",
@@ -1525,6 +1582,9 @@ app.get("/admin/veterinarians/new", requireAdmin, (req, res) => {
 });
 
 app.get("/admin/veterinarians/:id/edit", requireAdmin, (req, res) => {
+  if (!isDrawerRequest(req)) {
+    return redirectDocumentDrawerRequest(req, res, "/admin/stammdaten");
+  }
   const item = db.prepare("SELECT * FROM veterinarians WHERE id = ?").get(req.params.id);
   if (!item) {
     return renderNotFound(req, res, "Tierarzt nicht gefunden.");
@@ -1539,6 +1599,9 @@ app.get("/admin/veterinarians/:id/edit", requireAdmin, (req, res) => {
 });
 
 app.get("/admin/species/new", requireAdmin, (req, res) => {
+  if (!isDrawerRequest(req)) {
+    return redirectDocumentDrawerRequest(req, res, "/admin/stammdaten");
+  }
   res.render("pages/admin-masterdata-drawer", {
     pageTitle: "Neue Tierart",
     entityType: "species",
@@ -1549,6 +1612,9 @@ app.get("/admin/species/new", requireAdmin, (req, res) => {
 });
 
 app.get("/admin/species/:id/edit", requireAdmin, (req, res) => {
+  if (!isDrawerRequest(req)) {
+    return redirectDocumentDrawerRequest(req, res, "/admin/stammdaten");
+  }
   const item = db.prepare("SELECT * FROM species WHERE id = ?").get(req.params.id);
   if (!item) {
     return renderNotFound(req, res, "Tierart nicht gefunden.");
@@ -1564,17 +1630,17 @@ app.get("/admin/species/:id/edit", requireAdmin, (req, res) => {
 
 app.get("/admin/categories/:id/update", requireAdmin, (req, res) => {
   setFlash(req, "error", "Bitte Änderungen über das Formular speichern.");
-  res.redirect(`/admin/categories/${req.params.id}/edit`);
+  redirectDocumentDrawerRequest(req, res, "/admin/stammdaten", `/admin/categories/${req.params.id}/edit`);
 });
 
 app.get("/admin/species/:id/update", requireAdmin, (req, res) => {
   setFlash(req, "error", "Bitte Änderungen über das Formular speichern.");
-  res.redirect(`/admin/species/${req.params.id}/edit`);
+  redirectDocumentDrawerRequest(req, res, "/admin/stammdaten", `/admin/species/${req.params.id}/edit`);
 });
 
 app.get("/admin/veterinarians/:id/update", requireAdmin, (req, res) => {
   setFlash(req, "error", "Bitte Änderungen über das Formular speichern.");
-  res.redirect(`/admin/veterinarians/${req.params.id}/edit`);
+  redirectDocumentDrawerRequest(req, res, "/admin/stammdaten", `/admin/veterinarians/${req.params.id}/edit`);
 });
 
 app.get("/admin/benutzer", requireAdmin, (req, res) => {
@@ -1596,6 +1662,9 @@ app.get("/admin/benutzer", requireAdmin, (req, res) => {
 });
 
 app.get("/admin/users/new", requireAdmin, (req, res) => {
+  if (!isDrawerRequest(req)) {
+    return redirectDocumentDrawerRequest(req, res, "/admin/benutzer");
+  }
   res.render("pages/admin-user-drawer", {
     pageTitle: "Benutzer anlegen",
     mode: "create",
@@ -1615,6 +1684,9 @@ app.get("/admin/benutzer/neu", requireAdmin, (req, res) => {
 });
 
 app.get("/admin/users/:id/edit", requireAdmin, (req, res) => {
+  if (!isDrawerRequest(req)) {
+    return redirectDocumentDrawerRequest(req, res, "/admin/benutzer");
+  }
   const item = db.prepare(`
     SELECT
       id, name, email, role, must_change_password,
@@ -1642,12 +1714,12 @@ app.get("/admin/users/:id/edit", requireAdmin, (req, res) => {
 
 app.get("/admin/users/:id/update", requireAdmin, (req, res) => {
   setFlash(req, "error", "Bitte Änderungen über das Formular speichern.");
-  res.redirect(`/admin/users/${req.params.id}/edit`);
+  redirectDocumentDrawerRequest(req, res, "/admin/benutzer", `/admin/users/${req.params.id}/edit`);
 });
 
 app.get("/admin/users/:id/save", requireAdmin, (req, res) => {
   setFlash(req, "error", "Bitte Änderungen über das Formular speichern.");
-  res.redirect(`/admin/users/${req.params.id}/edit`);
+  redirectDocumentDrawerRequest(req, res, "/admin/benutzer", `/admin/users/${req.params.id}/edit`);
 });
 
 app.get("/admin/import", requireAdmin, (req, res) => {
@@ -3937,6 +4009,27 @@ function backTo(req, fallback) {
   } catch {
     return fallback;
   }
+}
+
+function isDrawerRequest(req) {
+  return String(req.get("X-Requested-With") || "").trim().toLowerCase() === "heartpet-drawer";
+}
+
+function buildDrawerRedirectPath(basePath, drawerPath) {
+  const safeBasePath = safeLocalReturnPath(basePath, "/");
+  const safeDrawerPath = safeLocalReturnPath(drawerPath, "");
+  if (!safeDrawerPath) {
+    return safeBasePath;
+  }
+
+  const url = new URL(safeBasePath, "http://heartpet.local");
+  url.searchParams.set("drawer", safeDrawerPath);
+  return `${url.pathname}${url.search}${url.hash}`;
+}
+
+function redirectDocumentDrawerRequest(req, res, fallbackPath, explicitDrawerPath = "") {
+  const target = buildDrawerRedirectPath(fallbackPath, explicitDrawerPath || req.originalUrl);
+  return res.redirect(target);
 }
 
 function safeLocalReturnPath(value, fallback) {

@@ -7,6 +7,7 @@
 
   <form method="post" action="<%= animal ? `/animals/${animal.id}/update` : '/animals' %>" class="form-grid" data-drawer-form="animal">
     <input type="hidden" name="return_to" value="<%= typeof returnTo !== 'undefined' ? returnTo : '/animals' %>" />
+    <p class="compact-note full-width">Hier legst du die wichtigsten Stammdaten für das Tier an. Pflicht sind nur Name und Tierart, alles andere kannst du auch später ergänzen.</p>
     <label>
       <span>Name</span>
       <input type="text" name="name" required value="<%= animal?.name || '' %>" />
@@ -22,6 +23,7 @@
         autocomplete="off"
         value="<%= animal?.species_name || '' %>"
         placeholder="Tierart suchen, z. B. Hund, Koi, Schlange"
+        title="Beginne zu tippen. Wenn die Tierart noch nicht existiert, kann sie später in den Stammdaten ergänzt werden."
       />
       <datalist id="species-suggestions">
         <% species.forEach((item) => { %>
@@ -75,7 +77,7 @@
     </label>
     <label>
       <span>Tierarzt für dieses Tier</span>
-      <select name="veterinarian_id">
+      <select name="veterinarian_id" title="Wenn du hier nichts auswählst, verwendet HeartPet automatisch den Standardtierarzt der hinterlegten Tierart.">
         <option value="">Standard je Tierart verwenden</option>
         <% veterinarians.forEach((item) => { %>
           <option value="<%= item.id %>" <%= String(animal?.veterinarian_id || '') === String(item.id) ? 'selected' : '' %>><%= item.name %><%= item.city ? ` (${item.city})` : '' %></option>
@@ -86,6 +88,7 @@
       <span>Allgemeine Notizen</span>
       <textarea name="notes" rows="5"><%= animal?.notes || '' %></textarea>
     </label>
+    <small class="compact-note full-width">Typische Inhalte für Notizen sind Besonderheiten im Verhalten, Haltungsdetails, bisherige Erfahrungen oder Hinweise für andere Nutzer.</small>
     <div class="full-width form-actions">
       <button type="submit" class="button"><%= animal ? 'Änderungen speichern' : 'Tier anlegen' %></button>
       <% if (animal) { %>

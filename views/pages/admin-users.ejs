@@ -5,6 +5,7 @@
   <details class="accordion-item" open>
     <summary>Profil & Sicherheit</summary>
     <div class="accordion-content">
+      <p class="compact-note">Hier geht es nur um dein eigenes Konto. Namen, E-Mail-Adresse und Passwort für weitere Nutzer verwaltest du im unteren Bereich separat.</p>
       <div class="list-card static-card compact-card">
         <div class="list-card-main">
           <strong><%= me.name || 'Administrator' %></strong>
@@ -51,6 +52,7 @@
       <details class="sub-accordion" open>
         <summary>Nutzer hinzufügen</summary>
         <div class="sub-accordion-content">
+          <p class="compact-note">Lege hier weitere Zugänge für Familie, Mitarbeitende oder Helfer an. Rechte lassen sich später jederzeit anpassen.</p>
           <a href="/admin/users/new" class="button" data-drawer="admin-user">Benutzer anlegen</a>
         </div>
       </details>
@@ -58,6 +60,7 @@
       <details class="sub-accordion">
         <summary>Bestehende Nutzer (<%= managedUsers.length %>)</summary>
         <div class="sub-accordion-content">
+          <p class="compact-note">Hier siehst du alle bereits angelegten Zugänge. Über den Stift kannst du Rollen, Rechte und Kontaktdaten anpassen.</p>
           <div class="stack compact-list">
             <% managedUsers.forEach((user) => { %>
               <div class="stack form-compact user-permissions-card">

@@ -202,6 +202,7 @@ test("Tierarzt-Speichern aus eingeblendetem Formular landet sauber zurück", asy
 
   const drawerGet = await agent
     .get(`/admin/veterinarians/${vetMatch[1]}/edit`)
+    .set("X-Requested-With", "heartpet-drawer")
     .query({ return_to: "/admin/stammdaten" });
   assert.equal(drawerGet.status, 200);
   assert.match(drawerGet.text, /Tierarzt bearbeiten/i);
@@ -260,11 +261,11 @@ test("Falsche GET-Aufrufe auf Admin-Speicherpfade liefern kein 404", async () =>
     [`/admin/users/${userId}/save`, /Benutzer bearbeiten/i],
   ];
 
-  for (const [href, marker] of routes) {
-    const response = await agent.get(href).redirects(2);
+  for (const [href] of routes) {
+    const response = await agent.get(href);
     assert.notEqual(response.status, 404, href);
-    assert.equal(response.status, 200, href);
-    assert.match(response.text, marker, href);
+    assert.equal(response.status, 302, href);
+    assert.match(response.headers.location || "", /\?drawer=/, href);
   }
 });
 
@@ -312,11 +313,11 @@ test("Falsche GET-Aufrufe auf Tier-Speicherpfade liefern kein 404", async () => 
     [`/animals/1/reminders/${reminderId}/update`, /Erinnerung bearbeiten/i],
   ];
 
-  for (const [href, marker] of routes) {
-    const response = await agent.get(href).redirects(2);
+  for (const [href] of routes) {
+    const response = await agent.get(href);
     assert.notEqual(response.status, 404, href);
-    assert.equal(response.status, 200, href);
-    assert.match(response.text, marker, href);
+    assert.equal(response.status, 302, href);
+    assert.match(response.headers.location || "", /\?drawer=/, href);
   }
 });
 
@@ -359,30 +360,48 @@ test("Speichern über alte Admin-Rückwege landet nicht auf 404", async () => {
 });
 
 test("Admin-Drawer-Routen sind erreichbar", async () => {
-  const userDrawer = await agent.get("/admin/users/new");
+  const userDrawer = await agent.get("/admin/users/new").set("X-Requested-With", "heartpet-drawer");
   assert.equal(userDrawer.status, 200);
   assert.match(userDrawer.text, /Benutzer anlegen/i);
   assert.match(userDrawer.text, /data-drawer-fragment="admin-user"/i);
 
-  const categoryDrawer = await agent.get("/admin/categories/new");
+  const categoryDrawer = await agent.get("/admin/categories/new").set("X-Requested-With", "heartpet-drawer");
   assert.equal(categoryDrawer.status, 200);
   assert.match(categoryDrawer.text, /Neue Dokumentkategorie/i);
   assert.match(categoryDrawer.text, /data-drawer-fragment="masterdata-form"/i);
 });
 
 test("Tierakten-Drawer-Routen sind erreichbar", async () => {
-  const eventDrawer = await agent.get("/animals/1/events/new");
+  const eventDrawer = await agent.get("/animals/1/events/new").set("X-Requested-With", "heartpet-drawer");
   assert.equal(eventDrawer.status, 200);
   assert.match(eventDrawer.text, /Ereignis erstellen/i);
   assert.match(eventDrawer.text, /data-drawer-fragment="animal-entry"/i);
 
-  const noteDrawer = await agent.get("/animals/1/notes/new");
+  const noteDrawer = await agent.get("/animals/1/notes/new").set("X-Requested-With", "heartpet-drawer");
   assert.equal(noteDrawer.status, 200);
   assert.match(noteDrawer.text, /Protokoll anlegen/i);
 
-  const documentDrawer = await agent.get("/animals/1/documents/new");
+  const documentDrawer = await agent.get("/animals/1/documents/new").set("X-Requested-With", "heartpet-drawer");
   assert.equal(documentDrawer.status, 200);
   assert.match(documentDrawer.text, /Dokument hochladen/i);
+});
+
+test("Direkte Seitenaufrufe von eingeblendeten Formularen leiten in den Kontext zurück", async () => {
+  const vetCreate = await agent.get("/admin/veterinarians/new");
+  assert.equal(vetCreate.status, 302);
+  assert.match(vetCreate.headers.location || "", /^\/admin\/stammdaten\?drawer=/);
+
+  const vetEdit = await agent.get("/admin/veterinarians/1/edit");
+  assert.equal(vetEdit.status, 302);
+  assert.match(vetEdit.headers.location || "", /^\/admin\/stammdaten\?drawer=/);
+
+  const animalEdit = await agent.get("/animals/1/edit");
+  assert.equal(animalEdit.status, 302);
+  assert.match(animalEdit.headers.location || "", /^\/animals\/1\?drawer=/);
+
+  const eventCreate = await agent.get("/animals/1/events/new");
+  assert.equal(eventCreate.status, 302);
+  assert.match(eventCreate.headers.location || "", /^\/animals\/1\?drawer=/);
 });
 
 test("Alle Tierakten-Aktionen liefern keine 404", async () => {
@@ -435,7 +454,7 @@ test("Alle Tierakten-Aktionen liefern keine 404", async () => {
   ];
 
   for (const url of urls) {
-    const response = await agent.get(url).query({ return_to: "/animals/1" });
+    const response = await agent.get(url).set("X-Requested-With", "heartpet-drawer").query({ return_to: "/animals/1" });
     assert.notEqual(response.status, 404, url);
     assert.equal(response.status, 200, url);
   }

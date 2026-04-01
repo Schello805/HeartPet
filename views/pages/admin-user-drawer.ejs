@@ -5,6 +5,7 @@
 
   <form method="post" action="<%= mode === 'edit' ? `/admin/users/${item.id}/save` : '/admin/users' %>" class="stack form-compact" data-drawer-form="admin-user">
     <input type="hidden" name="return_to" value="<%= returnTo || '/admin/benutzer' %>" />
+    <p class="compact-note">Jeder Nutzer bekommt sein eigenes Login. Über Rolle und Rechte legst du fest, ob jemand nur lesen oder auch aktiv mitarbeiten darf.</p>
     <div class="form-grid">
       <label>
         <span>Name</span>
@@ -25,18 +26,20 @@
         <input type="checkbox" name="send_invite_email" value="1" checked />
         Einladungs-Mail mit Login-Link senden
       </label>
+      <small class="compact-note">Wenn aktiviert, erhält der neue Nutzer direkt eine E-Mail mit den ersten Schritten. Ohne Haken kannst du die Zugangsdaten auch manuell weitergeben.</small>
     <% } else { %>
       <small>E-Mail-Änderungen werden erst nach Bestätigung durch den Nutzer wirksam.</small>
     <% } %>
 
     <label>
       <span>Rolle</span>
-      <select name="role">
+      <select name="role" title="Admin hat Zugriff auf die Verwaltung. Benutzer darf unter Tiere arbeiten. Nur Lesen kann Inhalte ansehen, aber nichts ändern.">
         <option value="admin" <%= (item?.role || 'viewer') === 'admin' ? 'selected' : '' %>>Admin</option>
         <option value="user" <%= (item?.role || 'viewer') === 'user' ? 'selected' : '' %>>Benutzer</option>
         <option value="viewer" <%= (item?.role || 'viewer') === 'viewer' ? 'selected' : '' %>>Nur Lesen</option>
       </select>
     </label>
+    <small class="compact-note">Rollen geben die grobe Richtung vor. Die einzelnen Rechte darunter machen den Zugang noch feiner steuerbar.</small>
 
     <div class="permission-grid">
       <label class="checkbox-line"><input type="checkbox" name="can_edit_animals" <%= mode === 'edit' ? (item?.can_edit_animals ? 'checked' : '') : 'checked' %> /> Tier-Stammdaten</label>
