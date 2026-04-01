@@ -79,6 +79,15 @@ function initMobileNavToggle() {
       document.body.classList.remove("nav-open");
       setExpandedState(false);
     });
+
+    document.addEventListener("click", (event) => {
+      const navLink = event.target.closest(".sidebar a[href]");
+      if (!navLink || !window.matchMedia("(max-width: 960px)").matches) {
+        return;
+      }
+      document.body.classList.remove("nav-open");
+      setExpandedState(false);
+    });
   }
 }
 
@@ -232,7 +241,8 @@ function initDrawerForms(scope = document) {
         navigateTo(targetUrl, { push: targetUrl.toString() !== window.location.href, scrollTop: false });
       } catch (error) {
         console.error("Drawer-Formular konnte nicht gespeichert werden", error);
-        window.location.href = form.action;
+        form.dataset.bound = "fallback";
+        HTMLFormElement.prototype.submit.call(form);
       }
     });
   });

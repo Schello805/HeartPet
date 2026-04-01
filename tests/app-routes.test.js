@@ -12,6 +12,16 @@ process.env.HEARTPET_SESSION_SECRET = "test-secret";
 const app = require("../src/app");
 const agent = request.agent(app);
 
+function collectInternalLinks(html) {
+  return [...html.matchAll(/href="([^"]+)"/g)]
+    .map((match) => match[1])
+    .filter((href) => href && href.startsWith("/") && !href.startsWith("//") && !href.startsWith("/media/"))
+    .filter((href) => !href.startsWith("/documents/"))
+    .filter((href) => !href.startsWith("/logout"))
+    .filter((href) => !href.startsWith("/confirm-email-change"))
+    .filter((href) => !href.includes("#"));
+}
+
 test.after(() => {
   fs.rmSync(tempDataDir, { recursive: true, force: true });
 });
@@ -184,6 +194,38 @@ test("CRUD-Updates für Stammdaten funktionieren", async () => {
   assert.equal(updateVet.status, 302);
 });
 
+test("Tierarzt-Speichern aus eingeblendetem Formular landet sauber zurück", async () => {
+  const master = await agent.get("/admin/stammdaten");
+  assert.equal(master.status, 200);
+  const vetMatch = master.text.match(/\/admin\/veterinarians\/(\d+)\/edit/);
+  assert.ok(vetMatch?.[1]);
+
+  const drawerGet = await agent
+    .get(`/admin/veterinarians/${vetMatch[1]}/edit`)
+    .query({ return_to: "/admin/stammdaten" });
+  assert.equal(drawerGet.status, 200);
+  assert.match(drawerGet.text, /Tierarzt bearbeiten/i);
+
+  const save = await agent
+    .post(`/admin/veterinarians/${vetMatch[1]}/update`)
+    .set("X-Requested-With", "heartpet-drawer")
+    .type("form")
+    .send({
+      name: "Praxis Mitte Final",
+      street: "Tierweg 7",
+      postal_code: "50667",
+      city: "Koeln",
+      country: "Deutschland",
+      phone: "",
+      email: "",
+      notes: "",
+      return_to: "/admin/stammdaten",
+    })
+    .redirects(2);
+  assert.equal(save.status, 200);
+  assert.match(save.text, /Stammdaten/i);
+});
+
 test("Speichern über alte Admin-Rückwege landet nicht auf 404", async () => {
   const createCategory = await agent.post("/admin/categories").type("form").send({
     name: "Rueckweg Kategorie",
@@ -319,4 +361,36 @@ test("Tiere-Arbeitsansicht kann die rechte Akte separat laden", async () => {
   assert.match(response.text, /data-animal-workspace-panel/);
   assert.match(response.text, /Ausgewähltes Tier/);
   assert.match(response.text, /Minka/);
+});
+
+test("Wichtige interne Links liefern keine 404", async () => {
+  const pages = [
+    "/",
+    "/animals",
+    "/animals/1",
+    "/admin/allgemein",
+    "/admin/benachrichtigungen",
+    "/admin/stammdaten",
+    "/admin/benutzer",
+    "/admin/import",
+    "/admin/systemlog",
+    "/hilfe",
+  ];
+
+  const checked = new Set();
+
+  for (const page of pages) {
+    const response = await agent.get(page);
+    assert.equal(response.status, 200, page);
+
+    const links = collectInternalLinks(response.text);
+    for (const href of links) {
+      if (checked.has(href)) {
+        continue;
+      }
+      checked.add(href);
+      const target = await agent.get(href).redirects(3);
+      assert.notEqual(target.status, 404, href);
+    }
+  }
 });
