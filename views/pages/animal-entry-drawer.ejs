@@ -1,0 +1,358 @@
+<%
+  const isEdit = mode === 'edit';
+  const isEvent = entryType === 'event';
+  const isCondition = entryType === 'condition';
+  const isFeeding = entryType === 'feeding';
+  const isNote = entryType === 'note';
+  const isMedication = entryType === 'medication';
+  const isVaccination = entryType === 'vaccination';
+  const isAppointment = entryType === 'appointment';
+  const isReminder = entryType === 'reminder';
+  const isDocument = entryType === 'document';
+  const isImage = entryType === 'image';
+  const defaultReturnTo = returnTo || `/animals/${animal.id}`;
+%>
+
+<section class="panel drawer-fragment" data-drawer-fragment="animal-entry" data-drawer-title="<%= pageTitle %>">
+  <div class="panel-head">
+    <h2><%= pageTitle %></h2>
+    <p><%= animal.name %> · <%= animal.species_name || 'Tier' %></p>
+  </div>
+
+  <% if (isEvent) { %>
+    <form method="post" action="/animals/<%= animal.id %>/events" class="stack form-compact event-form" data-drawer-form="animal-entry" data-event-form>
+      <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
+      <div class="form-grid event-grid event-grid-row-1">
+        <label>
+          <span>Typ</span>
+          <select name="event_kind" required data-event-kind-select>
+            <% if (permissions.canManageHealth) { %>
+              <option value="medication">Medikament</option>
+              <option value="vaccination">Impfung</option>
+              <option value="appointment">Arzttermin</option>
+            <% } %>
+            <% if (permissions.canManageReminders) { %>
+              <option value="reminder">Freie Erinnerung</option>
+            <% } %>
+          </select>
+        </label>
+        <label>
+          <span>Bezeichnung</span>
+          <input type="text" name="title" required placeholder="z. B. Wurmkur, Tollwut, Nachkontrolle" />
+        </label>
+      </div>
+
+      <div class="form-grid event-grid event-grid-row-2">
+        <label>
+          <span>Datum</span>
+          <input type="date" name="event_date" required data-event-date />
+        </label>
+        <label data-event-time-wrap>
+          <span>Uhrzeit</span>
+          <input type="time" name="event_time" data-event-time />
+        </label>
+      </div>
+
+      <div class="form-grid event-grid event-grid-row-3">
+        <div data-veterinarian-fields hidden>
+          <label>
+            <span>Tierarzt</span>
+            <select name="veterinarian_id">
+              <option value="">Tierarzt auswählen</option>
+              <% veterinarians.forEach((vet) => { %>
+                <option value="<%= vet.id %>"><%= vet.name %></option>
+              <% }) %>
+            </select>
+          </label>
+        </div>
+        <label class="checkbox-line subtle-toggle compact-toggle">
+          <input type="checkbox" name="handled_by_veterinarian" value="1" data-handled-by-vet />
+          <span>Durch Tierarzt</span>
+        </label>
+        <label class="checkbox-line subtle-toggle compact-toggle" data-reminder-inline-wrap>
+          <input type="checkbox" name="create_reminder" value="1" data-create-reminder />
+          <span>Erinnern</span>
+        </label>
+      </div>
+
+      <label>
+        <span>Bemerkung (optional)</span>
+        <textarea name="notes" rows="3" placeholder="Optionaler Hinweis"></textarea>
+      </label>
+
+      <div class="button-row">
+        <button type="submit" class="button">Ereignis speichern</button>
+        <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
+      </div>
+    </form>
+  <% } %>
+
+  <% if (isCondition) { %>
+    <form method="post" action="<%= isEdit ? `/animals/${animal.id}/conditions/${item.id}/update` : `/animals/${animal.id}/conditions` %>" class="stack form-compact" data-drawer-form="animal-entry">
+      <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
+      <label>
+        <span>Bezeichnung</span>
+        <input type="text" name="title" required value="<%= item?.title || '' %>" />
+      </label>
+      <label>
+        <span>Beschreibung</span>
+        <textarea name="details" rows="4"><%= item?.details || '' %></textarea>
+      </label>
+      <div class="button-row">
+        <button type="submit" class="button"><%= isEdit ? 'Vorerkrankung speichern' : 'Vorerkrankung anlegen' %></button>
+        <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
+      </div>
+    </form>
+  <% } %>
+
+  <% if (isFeeding) { %>
+    <form method="post" action="<%= isEdit ? `/animals/${animal.id}/feedings/${item.id}/update` : `/animals/${animal.id}/feedings` %>" class="stack form-compact" data-drawer-form="animal-entry">
+      <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
+      <div class="mini-grid">
+        <label>
+          <span>Bezeichnung</span>
+          <input type="text" name="label" required value="<%= item?.label || '' %>" />
+        </label>
+        <label>
+          <span>Uhrzeit</span>
+          <input type="time" name="time_of_day" value="<%= item?.time_of_day || '' %>" />
+        </label>
+      </div>
+      <div class="mini-grid">
+        <label>
+          <span>Futter</span>
+          <input type="text" name="food" value="<%= item?.food || '' %>" />
+        </label>
+        <label>
+          <span>Menge</span>
+          <input type="text" name="amount" value="<%= item?.amount || '' %>" />
+        </label>
+      </div>
+      <label>
+        <span>Notizen</span>
+        <textarea name="notes" rows="3"><%= item?.notes || '' %></textarea>
+      </label>
+      <div class="button-row">
+        <button type="submit" class="button"><%= isEdit ? 'Fütterung speichern' : 'Fütterung anlegen' %></button>
+        <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
+      </div>
+    </form>
+  <% } %>
+
+  <% if (isNote) { %>
+    <form method="post" action="<%= isEdit ? `/animals/${animal.id}/notes/${item.id}/update` : `/animals/${animal.id}/notes` %>" class="stack form-compact" data-drawer-form="animal-entry">
+      <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
+      <label>
+        <span>Titel</span>
+        <input type="text" name="title" required value="<%= item?.title || '' %>" />
+      </label>
+      <label>
+        <span>Inhalt</span>
+        <textarea name="content" rows="5" required><%= item?.content || '' %></textarea>
+      </label>
+      <div class="button-row">
+        <button type="submit" class="button"><%= isEdit ? 'Protokoll speichern' : 'Protokoll anlegen' %></button>
+        <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
+      </div>
+    </form>
+  <% } %>
+
+  <% if (isMedication) { %>
+    <form method="post" action="/animals/<%= animal.id %>/medications/<%= item.id %>/update" class="stack form-compact" data-drawer-form="animal-entry">
+      <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
+      <label>
+        <span>Name</span>
+        <input type="text" name="name" required value="<%= item?.name || '' %>" />
+      </label>
+      <div class="mini-grid">
+        <label>
+          <span>Dosis</span>
+          <input type="text" name="dosage" value="<%= item?.dosage || '' %>" />
+        </label>
+        <label>
+          <span>Plan</span>
+          <input type="text" name="schedule" value="<%= item?.schedule || '' %>" />
+        </label>
+      </div>
+      <div class="mini-grid">
+        <label>
+          <span>Startdatum</span>
+          <input type="date" name="start_date" value="<%= item?.start_date || '' %>" />
+        </label>
+        <label>
+          <span>Enddatum</span>
+          <input type="date" name="end_date" value="<%= item?.end_date || '' %>" />
+        </label>
+      </div>
+      <label>
+        <span>Notizen</span>
+        <textarea name="notes" rows="4"><%= item?.notes || '' %></textarea>
+      </label>
+      <div class="button-row">
+        <button type="submit" class="button">Medikament speichern</button>
+        <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
+      </div>
+    </form>
+  <% } %>
+
+  <% if (isVaccination) { %>
+    <form method="post" action="/animals/<%= animal.id %>/vaccinations/<%= item.id %>/update" class="stack form-compact" data-drawer-form="animal-entry">
+      <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
+      <label>
+        <span>Impfung</span>
+        <input type="text" name="name" required value="<%= item?.name || '' %>" />
+      </label>
+      <div class="mini-grid">
+        <label>
+          <span>Impfdatum</span>
+          <input type="date" name="vaccination_date" value="<%= item?.vaccination_date || '' %>" />
+        </label>
+        <label>
+          <span>Nächste Fälligkeit</span>
+          <input type="date" name="next_due_date" value="<%= item?.next_due_date || '' %>" />
+        </label>
+      </div>
+      <label>
+        <span>Notizen</span>
+        <textarea name="notes" rows="4"><%= item?.notes || '' %></textarea>
+      </label>
+      <div class="button-row">
+        <button type="submit" class="button">Impfung speichern</button>
+        <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
+      </div>
+    </form>
+  <% } %>
+
+  <% if (isAppointment) { %>
+    <form method="post" action="/animals/<%= animal.id %>/appointments/<%= item.id %>/update" class="stack form-compact" data-drawer-form="animal-entry">
+      <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
+      <label>
+        <span>Titel</span>
+        <input type="text" name="title" required value="<%= item?.title || '' %>" />
+      </label>
+      <label>
+        <span>Termin</span>
+        <input type="datetime-local" name="appointment_at" required value="<%= item?.appointment_at || '' %>" />
+      </label>
+      <div class="mini-grid">
+        <label>
+          <span>Ort</span>
+          <select name="location_mode">
+            <option value="praxis" <%= item?.location_mode === 'praxis' ? 'selected' : '' %>>Tier zum Arzt</option>
+            <option value="vor_ort" <%= item?.location_mode === 'vor_ort' ? 'selected' : '' %>>Tierarzt kommt vor Ort</option>
+          </select>
+        </label>
+        <label>
+          <span>Tierarzt</span>
+          <select name="veterinarian_id">
+            <option value="">Tierarzt auswählen</option>
+            <% veterinarians.forEach((vet) => { %>
+              <option value="<%= vet.id %>" <%= String(item?.veterinarian_id || '') === String(vet.id) ? 'selected' : '' %>><%= vet.name %></option>
+            <% }) %>
+          </select>
+        </label>
+      </div>
+      <label>
+        <span>Ort / Adresse</span>
+        <input type="text" name="location_text" value="<%= item?.location_text || '' %>" />
+      </label>
+      <label>
+        <span>Notizen</span>
+        <textarea name="notes" rows="4"><%= item?.notes || '' %></textarea>
+      </label>
+      <div class="button-row">
+        <button type="submit" class="button">Arzttermin speichern</button>
+        <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
+      </div>
+    </form>
+  <% } %>
+
+  <% if (isReminder) { %>
+    <form method="post" action="/animals/<%= animal.id %>/reminders/<%= item.id %>/update" class="stack form-compact" data-drawer-form="animal-entry">
+      <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
+      <label>
+        <span>Titel</span>
+        <input type="text" name="title" required value="<%= item?.title || '' %>" />
+      </label>
+      <div class="mini-grid">
+        <label>
+          <span>Typ</span>
+          <input type="text" name="reminder_type" value="<%= item?.reminder_type || '' %>" />
+        </label>
+        <label>
+          <span>Fällig am</span>
+          <input type="datetime-local" name="due_at" required value="<%= item?.due_at || '' %>" />
+        </label>
+      </div>
+      <label>
+        <span>Wiederholung in Tagen</span>
+        <input type="number" min="0" step="1" name="repeat_interval_days" value="<%= item?.repeat_interval_days || 0 %>" />
+      </label>
+      <div class="mini-grid">
+        <label class="checkbox-line">
+          <input type="checkbox" name="channel_email" <%= item?.channel_email ? 'checked' : '' %> />
+          E-Mail senden
+        </label>
+        <label class="checkbox-line">
+          <input type="checkbox" name="channel_telegram" <%= item?.channel_telegram ? 'checked' : '' %> />
+          Telegram senden
+        </label>
+      </div>
+      <label>
+        <span>Notizen</span>
+        <textarea name="notes" rows="4"><%= item?.notes || '' %></textarea>
+      </label>
+      <div class="button-row">
+        <button type="submit" class="button">Erinnerung speichern</button>
+        <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
+      </div>
+    </form>
+  <% } %>
+
+  <% if (isDocument) { %>
+    <form method="post" action="<%= isEdit ? `/animals/${animal.id}/documents/${item.id}/update` : `/animals/${animal.id}/documents` %>" <%= isEdit ? '' : 'enctype="multipart/form-data"' %> class="stack form-compact" data-drawer-form="animal-entry">
+      <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
+      <label>
+        <span>Titel</span>
+        <input type="text" name="title" <%= isEdit ? 'required' : '' %> value="<%= item?.title || '' %>" placeholder="z. B. Impfpass 2026" />
+      </label>
+      <label>
+        <span>Kategorie</span>
+        <select name="category_id">
+          <option value="">Keine Kategorie</option>
+          <% categories.forEach((category) => { %>
+            <option value="<%= category.id %>" <%= String(item?.category_id || '') === String(category.id) ? 'selected' : '' %>><%= category.name %><%= category.is_required ? ' (Pflicht)' : '' %></option>
+          <% }) %>
+        </select>
+      </label>
+      <% if (!isEdit) { %>
+        <label>
+          <span>Datei</span>
+          <input type="file" name="document" required />
+        </label>
+      <% } %>
+      <div class="button-row">
+        <button type="submit" class="button"><%= isEdit ? 'Dokument speichern' : 'Dokument hochladen' %></button>
+        <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
+      </div>
+    </form>
+  <% } %>
+
+  <% if (isImage) { %>
+    <form method="post" action="/animals/<%= animal.id %>/images" enctype="multipart/form-data" class="stack form-compact" data-drawer-form="animal-entry">
+      <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
+      <label>
+        <span>Titel</span>
+        <input type="text" name="title" placeholder="z. B. Sommer 2026" />
+      </label>
+      <label>
+        <span>Bilddatei</span>
+        <input type="file" name="image" accept="image/*" required />
+      </label>
+      <div class="button-row">
+        <button type="submit" class="button">Bild hochladen</button>
+        <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
+      </div>
+    </form>
+  <% } %>
+</section>

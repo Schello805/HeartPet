@@ -1094,6 +1094,36 @@ textarea {
   line-height: 1.6;
 }
 
+.animal-workbench-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 12px;
+}
+
+.workbench-stat {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(247, 255, 251, 0.92));
+  border: 1px solid rgba(167, 243, 208, 0.28);
+  box-shadow: 0 10px 22px rgba(6, 78, 59, 0.06);
+}
+
+.workbench-label {
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.workbench-stat strong {
+  font-family: "Outfit", "Inter", sans-serif;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
 .detail-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1231,6 +1261,16 @@ textarea {
   gap: 10px;
 }
 
+.compact-section-head {
+  align-items: center;
+  padding: 2px 0 4px;
+}
+
+.compact-section-head .compact-note {
+  flex: 1;
+  min-width: 0;
+}
+
 .compact-note {
   margin: 0;
   color: var(--muted);
@@ -1341,6 +1381,14 @@ textarea {
 
 .inline-reminder form {
   margin: 0;
+}
+
+.compact-wrap {
+  align-items: center;
+}
+
+.compact-wrap .compact-note {
+  flex: 1 1 260px;
 }
 
 .reminder-buckets {
@@ -1767,6 +1815,7 @@ small {
   .dashboard-grid,
   .content-grid,
   .quick-actions,
+  .animal-workbench-strip,
   .form-grid,
   .communication-grid,
   .filter-row,

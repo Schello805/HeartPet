@@ -55,6 +55,25 @@
   </div>
 </section>
 
+<section class="animal-workbench-strip">
+  <article class="workbench-stat">
+    <span class="workbench-label">Dokumente</span>
+    <strong><%= related.documents.length %></strong>
+  </article>
+  <article class="workbench-stat">
+    <span class="workbench-label">Fotos</span>
+    <strong><%= related.images.length %></strong>
+  </article>
+  <article class="workbench-stat">
+    <span class="workbench-label">Offene Erinnerungen</span>
+    <strong><%= reminderBuckets.overdue.length + reminderBuckets.open.length %></strong>
+  </article>
+  <article class="workbench-stat">
+    <span class="workbench-label">Nächste Termine</span>
+    <strong><%= (related.appointments || []).length + related.vaccinations.length %></strong>
+  </article>
+</section>
+
 <section class="accordion-stack">
   <details class="accordion-item" open>
     <summary>Stammdaten</summary>
@@ -75,58 +94,37 @@
       <details class="sub-accordion">
         <summary>Fütterung</summary>
         <div class="sub-accordion-content stack compact-stack">
-          <% related.feedings.forEach((item) => { %>
-            <% if (permissions.canManageFeedings && editState.type === 'feeding' && editState.id === item.id) { %>
-              <form method="post" action="/animals/<%= animal.id %>/feedings/<%= item.id %>/update" class="stack form-compact edit-card compact-card">
-                <input type="text" name="label" required value="<%= item.label %>" />
-                <div class="mini-grid">
-                  <input type="time" name="time_of_day" value="<%= item.time_of_day || '' %>" />
-                  <input type="text" name="food" value="<%= item.food || '' %>" placeholder="Futter" />
-                </div>
-                <input type="text" name="amount" value="<%= item.amount || '' %>" placeholder="Menge" />
-                <textarea name="notes" rows="2"><%= item.notes || '' %></textarea>
-                <div class="inline-actions">
-                  <button type="submit" class="button">Speichern</button>
-                  <a href="/animals/<%= animal.id %>" class="button button-secondary">Abbrechen</a>
-                </div>
-              </form>
-            <% } else { %>
-              <div class="list-card static-card compact-card">
-                <div class="list-card-main">
-                  <strong><%= item.label %></strong>
-                  <p><%= item.time_of_day || '-' %> | <%= item.food || '-' %> | <%= item.amount || '-' %></p>
-                  <% if (item.notes) { %><small><%= item.notes %></small><% } %>
-                </div>
-                <% if (permissions.canManageFeedings) { %>
-                  <div class="inline-actions">
-                    <a href="/animals/<%= animal.id %>?editType=feeding&editId=<%= item.id %>" class="button button-secondary icon-button" aria-label="Fütterung bearbeiten" title="Bearbeiten">
-                      <span aria-hidden="true">✎</span>
-                      <span class="visually-hidden">Bearbeiten</span>
-                    </a>
-                    <form method="post" action="/animals/<%= animal.id %>/feedings/<%= item.id %>/delete" data-confirm="Eintrag wirklich löschen?">
-                      <button type="submit" class="button button-danger icon-button" aria-label="Fütterung löschen" title="Löschen">
-                        <span aria-hidden="true">🗑</span>
-                        <span class="visually-hidden">Löschen</span>
-                      </button>
-                    </form>
-                  </div>
-                <% } %>
-              </div>
+          <div class="section-head compact-section-head">
+            <p class="compact-note">Zeiten, Futter und Mengen an einem Ort.</p>
+            <% if (permissions.canManageFeedings) { %>
+              <a href="/animals/<%= animal.id %>/feedings/new" class="button button-secondary" data-drawer="animal-entry">Fütterung anlegen</a>
             <% } %>
+          </div>
+          <% related.feedings.forEach((item) => { %>
+            <div class="list-card static-card compact-card">
+              <div class="list-card-main">
+                <strong><%= item.label %></strong>
+                <p><%= item.time_of_day || '-' %> | <%= item.food || '-' %> | <%= item.amount || '-' %></p>
+                <% if (item.notes) { %><small><%= item.notes %></small><% } %>
+              </div>
+              <% if (permissions.canManageFeedings) { %>
+                <div class="inline-actions">
+                  <a href="/animals/<%= animal.id %>/feedings/<%= item.id %>/edit" class="button button-secondary icon-button" aria-label="Fütterung bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
+                    <span aria-hidden="true">✎</span>
+                    <span class="visually-hidden">Bearbeiten</span>
+                  </a>
+                  <form method="post" action="/animals/<%= animal.id %>/feedings/<%= item.id %>/delete" data-confirm="Eintrag wirklich löschen?">
+                    <button type="submit" class="button button-danger icon-button" aria-label="Fütterung löschen" title="Löschen">
+                      <span aria-hidden="true">🗑</span>
+                      <span class="visually-hidden">Löschen</span>
+                    </button>
+                  </form>
+                </div>
+              <% } %>
+            </div>
           <% }) %>
-          <% if (permissions.canManageFeedings) { %>
-            <form method="post" action="/animals/<%= animal.id %>/feedings" class="stack form-compact compact-form">
-              <div class="mini-grid">
-                <input type="text" name="label" required placeholder="Bezeichnung" />
-                <input type="time" name="time_of_day" />
-              </div>
-              <div class="mini-grid">
-                <input type="text" name="food" placeholder="Futter" />
-                <input type="text" name="amount" placeholder="Menge" />
-              </div>
-              <textarea name="notes" rows="2" placeholder="Notizen"></textarea>
-              <button type="submit" class="button">Fütterung speichern</button>
-            </form>
+          <% if (related.feedings.length === 0) { %>
+            <p class="empty-state">Noch kein Fütterungsplan hinterlegt.</p>
           <% } %>
         </div>
       </details>
@@ -134,46 +132,37 @@
       <details class="sub-accordion">
         <summary>Protokolle</summary>
         <div class="sub-accordion-content stack compact-stack">
-          <% related.notes.forEach((item) => { %>
-            <% if (permissions.canManageNotes && editState.type === 'note' && editState.id === item.id) { %>
-              <form method="post" action="/animals/<%= animal.id %>/notes/<%= item.id %>/update" class="stack form-compact edit-card compact-card">
-                <input type="text" name="title" required value="<%= item.title %>" />
-                <textarea name="content" rows="3" required><%= item.content %></textarea>
-                <div class="inline-actions">
-                  <button type="submit" class="button">Speichern</button>
-                  <a href="/animals/<%= animal.id %>" class="button button-secondary">Abbrechen</a>
-                </div>
-              </form>
-            <% } else { %>
-              <div class="list-card static-card compact-card">
-                <div class="list-card-main">
-                  <strong><%= item.title %></strong>
-                  <p><%= item.content %></p>
-                  <small><%= formatDateTime(item.created_at) %></small>
-                </div>
-                <% if (permissions.canManageNotes) { %>
-                  <div class="inline-actions">
-                    <a href="/animals/<%= animal.id %>?editType=note&editId=<%= item.id %>" class="button button-secondary icon-button" aria-label="Protokoll bearbeiten" title="Bearbeiten">
-                      <span aria-hidden="true">✎</span>
-                      <span class="visually-hidden">Bearbeiten</span>
-                    </a>
-                    <form method="post" action="/animals/<%= animal.id %>/notes/<%= item.id %>/delete" data-confirm="Eintrag wirklich löschen?">
-                      <button type="submit" class="button button-danger icon-button" aria-label="Protokoll löschen" title="Löschen">
-                        <span aria-hidden="true">🗑</span>
-                        <span class="visually-hidden">Löschen</span>
-                      </button>
-                    </form>
-                  </div>
-                <% } %>
-              </div>
+          <div class="section-head compact-section-head">
+            <p class="compact-note">Kurze Einträge für Verlauf, Beobachtungen und Nachweise.</p>
+            <% if (permissions.canManageNotes) { %>
+              <a href="/animals/<%= animal.id %>/notes/new" class="button button-secondary" data-drawer="animal-entry">Protokoll anlegen</a>
             <% } %>
+          </div>
+          <% related.notes.forEach((item) => { %>
+            <div class="list-card static-card compact-card">
+              <div class="list-card-main">
+                <strong><%= item.title %></strong>
+                <p><%= item.content %></p>
+                <small><%= formatDateTime(item.created_at) %></small>
+              </div>
+              <% if (permissions.canManageNotes) { %>
+                <div class="inline-actions">
+                  <a href="/animals/<%= animal.id %>/notes/<%= item.id %>/edit" class="button button-secondary icon-button" aria-label="Protokoll bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
+                    <span aria-hidden="true">✎</span>
+                    <span class="visually-hidden">Bearbeiten</span>
+                  </a>
+                  <form method="post" action="/animals/<%= animal.id %>/notes/<%= item.id %>/delete" data-confirm="Eintrag wirklich löschen?">
+                    <button type="submit" class="button button-danger icon-button" aria-label="Protokoll löschen" title="Löschen">
+                      <span aria-hidden="true">🗑</span>
+                      <span class="visually-hidden">Löschen</span>
+                    </button>
+                  </form>
+                </div>
+              <% } %>
+            </div>
           <% }) %>
-          <% if (permissions.canManageNotes) { %>
-            <form method="post" action="/animals/<%= animal.id %>/notes" class="stack form-compact compact-form">
-              <input type="text" name="title" required placeholder="Titel" />
-              <textarea name="content" rows="3" required placeholder="Eintrag"></textarea>
-              <button type="submit" class="button">Protokoll speichern</button>
-            </form>
+          <% if (related.notes.length === 0) { %>
+            <p class="empty-state">Noch keine Protokolle vorhanden.</p>
           <% } %>
         </div>
       </details>
@@ -184,71 +173,15 @@
     <summary>Ereignis erstellen</summary>
     <div class="accordion-content compact-layout">
       <% if (permissions.canManageHealth || permissions.canManageReminders) { %>
-        <form method="post" action="/animals/<%= animal.id %>/events" class="stack form-compact compact-form event-form" data-event-form>
-          <div class="form-grid event-grid event-grid-row-1">
-            <label>
-              <span>Typ</span>
-              <select name="event_kind" required data-event-kind-select>
-                <% if (permissions.canManageHealth) { %>
-                  <option value="medication">Medikament</option>
-                  <option value="vaccination">Impfung</option>
-                  <option value="appointment">Arzttermin</option>
-                <% } %>
-                <% if (permissions.canManageReminders) { %>
-                  <option value="reminder">Freie Erinnerung</option>
-                <% } %>
-              </select>
-            </label>
-            <label>
-              <span>Bezeichnung</span>
-              <input type="text" name="title" required placeholder="z. B. Wurmkur, Tollwut, Nachkontrolle" />
-            </label>
+        <div class="list-card static-card compact-card">
+          <div class="list-card-main">
+            <strong>Schneller neuer Eintrag</strong>
+            <p>Medikament, Impfung, Arzttermin oder freie Erinnerung im Drawer anlegen und direkt in der Akte weiterarbeiten.</p>
           </div>
-
-          <div class="form-grid event-grid event-grid-row-2">
-            <label>
-              <span>Datum</span>
-              <input type="date" name="event_date" required data-event-date />
-            </label>
-            <label data-event-time-wrap>
-              <span>Uhrzeit</span>
-              <input type="time" name="event_time" data-event-time />
-            </label>
+          <div class="inline-actions">
+            <a href="/animals/<%= animal.id %>/events/new" class="button" data-drawer="animal-entry">Ereignis anlegen</a>
           </div>
-
-          <div class="form-grid event-grid event-grid-row-3">
-            <div data-veterinarian-fields hidden>
-              <label>
-                <span>Tierarzt</span>
-                <select name="veterinarian_id">
-                  <option value="">Tierarzt auswählen</option>
-                  <% veterinarians.forEach((vet) => { %>
-                    <option value="<%= vet.id %>"><%= vet.name %></option>
-                  <% }) %>
-                </select>
-              </label>
-            </div>
-            <label class="checkbox-line subtle-toggle compact-toggle">
-              <input type="checkbox" name="handled_by_veterinarian" value="1" data-handled-by-vet />
-              <span>Durch Tierarzt</span>
-            </label>
-            <label class="checkbox-line subtle-toggle compact-toggle" data-reminder-inline-wrap>
-              <input type="checkbox" name="create_reminder" value="1" data-create-reminder />
-              <span>Erinnern</span>
-            </label>
-          </div>
-
-          <div class="form-grid event-grid event-grid-row-4">
-            <label>
-              <span>Bemerkung (optional)</span>
-              <textarea name="notes" rows="2" placeholder="Optionaler Hinweis"></textarea>
-            </label>
-          </div>
-
-          <div class="event-form-actions">
-            <button type="submit" class="button">Ereignis speichern</button>
-          </div>
-        </form>
+        </div>
       <% } else { %>
         <p class="empty-state">Für neue Ereignisse fehlen die erforderlichen Rechte.</p>
       <% } %>
@@ -258,143 +191,110 @@
   <details class="accordion-item">
     <summary>Medizin</summary>
     <div class="accordion-content compact-layout">
-      <details class="sub-accordion" <%= editState.type === 'condition' ? 'open' : '' %>>
+      <details class="sub-accordion">
         <summary>Vorerkrankungen</summary>
         <div class="sub-accordion-content stack compact-stack">
-          <% related.conditions.forEach((item) => { %>
-            <% if (permissions.canManageHealth && editState.type === 'condition' && editState.id === item.id) { %>
-              <form method="post" action="/animals/<%= animal.id %>/conditions/<%= item.id %>/update" class="stack form-compact edit-card compact-card">
-                <input type="text" name="title" required value="<%= item.title %>" />
-                <textarea name="details" rows="2"><%= item.details || '' %></textarea>
-                <div class="inline-actions">
-                  <button type="submit" class="button">Speichern</button>
-                  <a href="/animals/<%= animal.id %>" class="button button-secondary">Abbrechen</a>
-                </div>
-              </form>
-            <% } else { %>
-              <div class="list-card static-card compact-card">
-                <div class="list-card-main">
-                  <strong><%= item.title %></strong>
-                  <p><%= item.details || 'Keine Details' %></p>
-                </div>
-                <% if (permissions.canManageHealth) { %>
-                  <div class="inline-actions">
-                    <a href="/animals/<%= animal.id %>?editType=condition&editId=<%= item.id %>" class="button button-secondary icon-button" aria-label="Vorerkrankung bearbeiten" title="Bearbeiten">
-                      <span aria-hidden="true">✎</span>
-                      <span class="visually-hidden">Bearbeiten</span>
-                    </a>
-                    <form method="post" action="/animals/<%= animal.id %>/conditions/<%= item.id %>/delete" data-confirm="Eintrag wirklich löschen?">
-                      <button type="submit" class="button button-danger icon-button" aria-label="Vorerkrankung löschen" title="Löschen">
-                        <span aria-hidden="true">🗑</span>
-                        <span class="visually-hidden">Löschen</span>
-                      </button>
-                    </form>
-                  </div>
-                <% } %>
-              </div>
+          <div class="section-head compact-section-head">
+            <p class="compact-note">Dauerhafte oder bekannte Vorerkrankungen mit kurzem Kontext.</p>
+            <% if (permissions.canManageHealth) { %>
+              <a href="/animals/<%= animal.id %>/conditions/new" class="button button-secondary" data-drawer="animal-entry">Vorerkrankung anlegen</a>
             <% } %>
+          </div>
+          <% related.conditions.forEach((item) => { %>
+            <div class="list-card static-card compact-card">
+              <div class="list-card-main">
+                <strong><%= item.title %></strong>
+                <p><%= item.details || 'Keine Details' %></p>
+              </div>
+              <% if (permissions.canManageHealth) { %>
+                <div class="inline-actions">
+                  <a href="/animals/<%= animal.id %>/conditions/<%= item.id %>/edit" class="button button-secondary icon-button" aria-label="Vorerkrankung bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
+                    <span aria-hidden="true">✎</span>
+                    <span class="visually-hidden">Bearbeiten</span>
+                  </a>
+                  <form method="post" action="/animals/<%= animal.id %>/conditions/<%= item.id %>/delete" data-confirm="Eintrag wirklich löschen?">
+                    <button type="submit" class="button button-danger icon-button" aria-label="Vorerkrankung löschen" title="Löschen">
+                      <span aria-hidden="true">🗑</span>
+                      <span class="visually-hidden">Löschen</span>
+                    </button>
+                  </form>
+                </div>
+              <% } %>
+            </div>
           <% }) %>
-          <% if (permissions.canManageHealth) { %>
-            <form method="post" action="/animals/<%= animal.id %>/conditions" class="stack form-compact compact-form">
-              <input type="text" name="title" required placeholder="Bezeichnung" />
-              <textarea name="details" rows="2" placeholder="Beschreibung"></textarea>
-              <button type="submit" class="button">Eintrag speichern</button>
-            </form>
+          <% if (related.conditions.length === 0) { %>
+            <p class="empty-state">Noch keine Vorerkrankungen hinterlegt.</p>
           <% } %>
         </div>
       </details>
 
-      <details class="sub-accordion" <%= editState.type === 'medication' ? 'open' : '' %>>
+      <details class="sub-accordion">
         <summary>Medikamente</summary>
         <div class="sub-accordion-content stack compact-stack">
+          <div class="section-head compact-section-head">
+            <p class="compact-note">Wirkstoff, Dosis, Zeitplan und offene Erinnerungen.</p>
+          </div>
           <% related.medications.forEach((item) => { %>
             <% const medicationReminders = reminderSourceMap[`medication:${item.id}`] || []; %>
-            <% if (permissions.canManageHealth && editState.type === 'medication' && editState.id === item.id) { %>
-              <form method="post" action="/animals/<%= animal.id %>/medications/<%= item.id %>/update" class="stack form-compact edit-card compact-card">
-                <input type="text" name="name" required value="<%= item.name %>" />
-                <div class="mini-grid">
-                  <input type="text" name="dosage" value="<%= item.dosage || '' %>" placeholder="Dosis" />
-                  <input type="text" name="schedule" value="<%= item.schedule || '' %>" placeholder="Plan" />
-                </div>
-                <div class="mini-grid">
-                  <input type="date" name="start_date" value="<%= item.start_date || '' %>" />
-                  <input type="date" name="end_date" value="<%= item.end_date || '' %>" />
-                </div>
-                <textarea name="notes" rows="2"><%= item.notes || '' %></textarea>
-                <div class="inline-actions">
-                  <button type="submit" class="button">Speichern</button>
-                  <a href="/animals/<%= animal.id %>" class="button button-secondary">Abbrechen</a>
-                </div>
-              </form>
-            <% } else { %>
-              <div class="list-card static-card compact-card">
-                <div class="list-card-main">
-                  <strong><%= item.name %></strong>
-                  <p>Dosis: <%= item.dosage || '-' %> | Plan: <%= item.schedule || '-' %></p>
-                  <small>Start: <%= formatDate(item.start_date) %> | Ende: <%= formatDate(item.end_date) %></small>
-                  <% if (item.notes) { %><small><%= item.notes %></small><% } %>
-                  <% if (medicationReminders.length > 0) { %>
-                    <div class="inline-reminder-list">
-                      <% medicationReminders.forEach((reminder) => { %>
-                        <div class="inline-reminder">
-                          <span><%= formatDateTime(reminder.due_at) %></span>
-                          <span class="status-chip status-<%= reminder.last_delivery_status || 'pending' %>"><%= reminder.completed_at ? 'erledigt' : 'offen' %></span>
-                          <% if (permissions.canManageReminders) { %>
-                            <% if (!reminder.completed_at) { %>
-                              <form method="post" action="/reminders/<%= reminder.id %>/complete">
-                                <button type="submit" class="button button-secondary">Erledigt</button>
-                              </form>
-                            <% } else { %>
-                              <form method="post" action="/reminders/<%= reminder.id %>/reopen">
-                                <button type="submit" class="button button-secondary">Wieder öffnen</button>
-                              </form>
-                            <% } %>
+            <div class="list-card static-card compact-card">
+              <div class="list-card-main">
+                <strong><%= item.name %></strong>
+                <p>Dosis: <%= item.dosage || '-' %> | Plan: <%= item.schedule || '-' %></p>
+                <small>Start: <%= formatDate(item.start_date) %> | Ende: <%= formatDate(item.end_date) %></small>
+                <% if (item.notes) { %><small><%= item.notes %></small><% } %>
+                <% if (medicationReminders.length > 0) { %>
+                  <div class="inline-reminder-list">
+                    <% medicationReminders.forEach((reminder) => { %>
+                      <div class="inline-reminder">
+                        <span><%= formatDateTime(reminder.due_at) %></span>
+                        <span class="status-chip status-<%= reminder.last_delivery_status || 'pending' %>"><%= reminder.completed_at ? 'erledigt' : 'offen' %></span>
+                        <% if (permissions.canManageReminders) { %>
+                          <% if (!reminder.completed_at) { %>
+                            <form method="post" action="/reminders/<%= reminder.id %>/complete">
+                              <button type="submit" class="button button-secondary">Erledigt</button>
+                            </form>
+                          <% } else { %>
+                            <form method="post" action="/reminders/<%= reminder.id %>/reopen">
+                              <button type="submit" class="button button-secondary">Wieder öffnen</button>
+                            </form>
                           <% } %>
-                        </div>
-                      <% }) %>
-                    </div>
-                  <% } %>
-                </div>
-                <% if (permissions.canManageHealth) { %>
-                  <div class="inline-actions">
-                    <a href="/animals/<%= animal.id %>?editType=medication&editId=<%= item.id %>" class="button button-secondary icon-button" aria-label="Medikament bearbeiten" title="Bearbeiten">
-                      <span aria-hidden="true">✎</span>
-                      <span class="visually-hidden">Bearbeiten</span>
-                    </a>
-                    <form method="post" action="/animals/<%= animal.id %>/medications/<%= item.id %>/delete" data-confirm="Eintrag wirklich löschen?">
-                      <button type="submit" class="button button-danger icon-button" aria-label="Medikament löschen" title="Löschen">
-                        <span aria-hidden="true">🗑</span>
-                        <span class="visually-hidden">Löschen</span>
-                      </button>
-                    </form>
+                        <% } %>
+                      </div>
+                    <% }) %>
                   </div>
                 <% } %>
               </div>
-            <% } %>
+              <% if (permissions.canManageHealth) { %>
+                <div class="inline-actions">
+                  <a href="/animals/<%= animal.id %>/medications/<%= item.id %>/edit" class="button button-secondary icon-button" aria-label="Medikament bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
+                    <span aria-hidden="true">✎</span>
+                    <span class="visually-hidden">Bearbeiten</span>
+                  </a>
+                  <form method="post" action="/animals/<%= animal.id %>/medications/<%= item.id %>/delete" data-confirm="Eintrag wirklich löschen?">
+                    <button type="submit" class="button button-danger icon-button" aria-label="Medikament löschen" title="Löschen">
+                      <span aria-hidden="true">🗑</span>
+                      <span class="visually-hidden">Löschen</span>
+                    </button>
+                  </form>
+                </div>
+              <% } %>
+            </div>
           <% }) %>
+          <% if (related.medications.length === 0) { %>
+            <p class="empty-state">Noch keine Medikamente vorhanden.</p>
+          <% } %>
         </div>
       </details>
 
-      <details class="sub-accordion" <%= editState.type === 'vaccination' ? 'open' : '' %>>
+      <details class="sub-accordion">
         <summary>Impfungen</summary>
         <div class="sub-accordion-content stack compact-stack">
+          <div class="section-head compact-section-head">
+            <p class="compact-note">Vergangene Impfungen, nächste Fälligkeiten und Erinnerungen.</p>
+          </div>
           <% related.vaccinations.forEach((item) => { %>
             <% const vaccinationReminders = reminderSourceMap[`vaccination:${item.id}`] || []; %>
-            <% if (permissions.canManageHealth && editState.type === 'vaccination' && editState.id === item.id) { %>
-              <form method="post" action="/animals/<%= animal.id %>/vaccinations/<%= item.id %>/update" class="stack form-compact edit-card compact-card">
-                <input type="text" name="name" required value="<%= item.name %>" />
-                <div class="mini-grid">
-                  <input type="date" name="vaccination_date" value="<%= item.vaccination_date || '' %>" />
-                  <input type="date" name="next_due_date" value="<%= item.next_due_date || '' %>" />
-                </div>
-                <textarea name="notes" rows="2"><%= item.notes || '' %></textarea>
-                <div class="inline-actions">
-                  <button type="submit" class="button">Speichern</button>
-                  <a href="/animals/<%= animal.id %>" class="button button-secondary">Abbrechen</a>
-                </div>
-              </form>
-            <% } else { %>
-              <div class="list-card static-card compact-card">
+            <div class="list-card static-card compact-card">
                 <div class="list-card-main">
                   <strong><%= item.name %></strong>
                   <p>Geimpft: <%= formatDate(item.vaccination_date) %> | Nächste Fälligkeit: <%= formatDate(item.next_due_date) %></p>
@@ -423,7 +323,7 @@
                 </div>
                 <% if (permissions.canManageHealth) { %>
                   <div class="inline-actions">
-                    <a href="/animals/<%= animal.id %>?editType=vaccination&editId=<%= item.id %>" class="button button-secondary icon-button" aria-label="Impfung bearbeiten" title="Bearbeiten">
+                    <a href="/animals/<%= animal.id %>/vaccinations/<%= item.id %>/edit" class="button button-secondary icon-button" aria-label="Impfung bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
                       <span aria-hidden="true">✎</span>
                       <span class="visually-hidden">Bearbeiten</span>
                     </a>
@@ -435,42 +335,23 @@
                     </form>
                   </div>
                 <% } %>
-              </div>
-            <% } %>
+            </div>
           <% }) %>
+          <% if (related.vaccinations.length === 0) { %>
+            <p class="empty-state">Noch keine Impfungen vorhanden.</p>
+          <% } %>
         </div>
       </details>
 
-      <details class="sub-accordion" <%= editState.type === 'appointment' ? 'open' : '' %>>
+      <details class="sub-accordion">
         <summary>Arzttermine</summary>
         <div class="sub-accordion-content stack compact-stack">
+          <div class="section-head compact-section-head">
+            <p class="compact-note">Praxis- und Vor-Ort-Termine mit Tierarzt und Zeitpunkt.</p>
+          </div>
           <% (related.appointments || []).forEach((item) => { %>
             <% const appointmentReminders = reminderSourceMap[`appointment:${item.id}`] || []; %>
-            <% if (permissions.canManageHealth && editState.type === 'appointment' && editState.id === item.id) { %>
-              <form method="post" action="/animals/<%= animal.id %>/appointments/<%= item.id %>/update" class="stack form-compact edit-card compact-card">
-                <input type="text" name="title" required value="<%= item.title %>" />
-                <input type="datetime-local" name="appointment_at" required value="<%= item.appointment_at || '' %>" />
-                <div class="mini-grid">
-                  <select name="location_mode">
-                    <option value="praxis" <%= item.location_mode === 'praxis' ? 'selected' : '' %>>Tier zum Arzt</option>
-                    <option value="vor_ort" <%= item.location_mode === 'vor_ort' ? 'selected' : '' %>>Tierarzt kommt vor Ort</option>
-                  </select>
-                  <select name="veterinarian_id">
-                    <option value="">Tierarzt auswählen</option>
-                    <% veterinarians.forEach((vet) => { %>
-                      <option value="<%= vet.id %>" <%= Number(item.veterinarian_id || 0) === Number(vet.id) ? 'selected' : '' %>><%= vet.name %></option>
-                    <% }) %>
-                  </select>
-                </div>
-                <input type="text" name="location_text" value="<%= item.location_text || '' %>" placeholder="Ort / Adresse" />
-                <textarea name="notes" rows="2"><%= item.notes || '' %></textarea>
-                <div class="inline-actions">
-                  <button type="submit" class="button">Speichern</button>
-                  <a href="/animals/<%= animal.id %>" class="button button-secondary">Abbrechen</a>
-                </div>
-              </form>
-            <% } else { %>
-              <div class="list-card static-card compact-card">
+            <div class="list-card static-card compact-card">
                 <div class="list-card-main">
                   <strong><%= item.title %></strong>
                   <p><%= formatDateTime(item.appointment_at) %> | <%= item.location_mode === 'vor_ort' ? 'Tierarzt kommt vor Ort' : 'Tier wird zur Praxis gebracht' %></p>
@@ -500,7 +381,7 @@
                 </div>
                 <% if (permissions.canManageHealth) { %>
                   <div class="inline-actions">
-                    <a href="/animals/<%= animal.id %>?editType=appointment&editId=<%= item.id %>" class="button button-secondary icon-button" aria-label="Arzttermin bearbeiten" title="Bearbeiten">
+                    <a href="/animals/<%= animal.id %>/appointments/<%= item.id %>/edit" class="button button-secondary icon-button" aria-label="Arzttermin bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
                       <span aria-hidden="true">✎</span>
                       <span class="visually-hidden">Bearbeiten</span>
                     </a>
@@ -512,15 +393,20 @@
                     </form>
                   </div>
                 <% } %>
-              </div>
-            <% } %>
+            </div>
           <% }) %>
+          <% if ((related.appointments || []).length === 0) { %>
+            <p class="empty-state">Noch keine Arzttermine vorhanden.</p>
+          <% } %>
         </div>
       </details>
 
-      <details class="sub-accordion" <%= editState.type === 'reminder' ? 'open' : '' %>>
+      <details class="sub-accordion">
         <summary>Freie Erinnerungen</summary>
         <div class="sub-accordion-content stack compact-stack">
+          <div class="section-head compact-section-head">
+            <p class="compact-note">Unabhängige Erinnerungen, die nicht an ein medizinisches Ereignis gebunden sind.</p>
+          </div>
           <% if (permissions.canManageReminders && freeReminders.length > 0) { %>
             <div class="stack form-compact compact-card">
               <div class="mini-grid">
@@ -536,24 +422,7 @@
             </div>
           <% } %>
           <% freeReminders.forEach((item) => { %>
-            <% if (permissions.canManageReminders && editState.type === 'reminder' && editState.id === item.id) { %>
-              <form method="post" action="/animals/<%= animal.id %>/reminders/<%= item.id %>/update" class="stack form-compact edit-card compact-card">
-                <input type="text" name="title" required value="<%= item.title %>" />
-                <div class="mini-grid">
-                  <input type="text" name="reminder_type" value="<%= item.reminder_type || '' %>" placeholder="Typ" />
-                  <input type="datetime-local" name="due_at" required value="<%= item.due_at || '' %>" />
-                </div>
-                <input type="number" min="0" step="1" name="repeat_interval_days" value="<%= item.repeat_interval_days || 0 %>" placeholder="Wiederholung in Tagen" />
-                <label class="checkbox-line"><input type="checkbox" name="channel_email" <%= item.channel_email ? 'checked' : '' %> /> E-Mail senden</label>
-                <label class="checkbox-line"><input type="checkbox" name="channel_telegram" <%= item.channel_telegram ? 'checked' : '' %> /> Telegram senden</label>
-                <textarea name="notes" rows="2"><%= item.notes || '' %></textarea>
-                <div class="inline-actions">
-                  <button type="submit" class="button">Speichern</button>
-                  <a href="/animals/<%= animal.id %>" class="button button-secondary">Abbrechen</a>
-                </div>
-              </form>
-            <% } else { %>
-              <div class="list-card static-card compact-card">
+            <div class="list-card static-card compact-card">
                 <div class="list-card-main">
                   <% if (permissions.canManageReminders) { %>
                     <label class="checkbox-line">
@@ -576,7 +445,7 @@
                         <button type="submit" class="button button-secondary">Wieder öffnen</button>
                       </form>
                     <% } %>
-                    <a href="/animals/<%= animal.id %>?editType=reminder&editId=<%= item.id %>" class="button button-secondary icon-button" aria-label="Erinnerung bearbeiten" title="Bearbeiten">
+                    <a href="/animals/<%= animal.id %>/reminders/<%= item.id %>/edit" class="button button-secondary icon-button" aria-label="Erinnerung bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
                       <span aria-hidden="true">✎</span>
                       <span class="visually-hidden">Bearbeiten</span>
                     </a>
@@ -588,11 +457,13 @@
                     </form>
                   </div>
                 <% } %>
-              </div>
-            <% } %>
+            </div>
           <% }) %>
           <% if (permissions.canManageReminders && freeReminders.length > 0) { %>
             <form id="bulk-reminders-<%= animal.id %>" method="post" action="/animals/<%= animal.id %>/reminders/bulk" class="hidden-form" data-confirm="Ausgewählte Erinnerungen wirklich ändern?"></form>
+          <% } %>
+          <% if (freeReminders.length === 0) { %>
+            <p class="empty-state">Noch keine freien Erinnerungen vorhanden.</p>
           <% } %>
         </div>
       </details>
@@ -626,6 +497,12 @@
       <details class="sub-accordion" open>
         <summary>Fotos</summary>
         <div class="sub-accordion-content">
+          <div class="section-head compact-section-head">
+            <p class="compact-note">Galerie, Profilbild und visuelle Dokumentation.</p>
+            <% if (permissions.canManageGallery) { %>
+              <a href="/animals/<%= animal.id %>/images/new" class="button button-secondary" data-drawer="animal-entry">Foto hochladen</a>
+            <% } %>
+          </div>
           <% if (related.images.length === 0) { %>
             <p class="empty-state">Noch keine Galeriebilder vorhanden.</p>
           <% } else { %>
@@ -656,13 +533,6 @@
               <% }) %>
             </div>
           <% } %>
-          <% if (permissions.canManageGallery) { %>
-            <form method="post" action="/animals/<%= animal.id %>/images" enctype="multipart/form-data" class="stack form-compact compact-form">
-              <input type="text" name="title" placeholder="z. B. Sommer 2026" />
-              <input type="file" name="image" accept="image/*" required />
-              <button type="submit" class="button">Galeriebild hochladen</button>
-            </form>
-          <% } %>
         </div>
       </details>
 
@@ -675,9 +545,12 @@
               <strong><%= missingRequiredCategories.map((item) => item.name).join(', ') %></strong>
             </div>
           <% } %>
-          <form method="get" action="/animals/<%= animal.id %>" class="filter-row compact-filter-row">
-            <input type="hidden" name="editType" value="<%= editState.type || '' %>" />
-            <input type="hidden" name="editId" value="<%= editState.id || '' %>" />
+          <div class="button-row compact-wrap">
+            <p class="compact-note">Impfnachweise, Verträge und weitere Unterlagen mit Filter.</p>
+            <% if (permissions.canManageDocuments) { %>
+              <a href="/animals/<%= animal.id %>/documents/new" class="button button-secondary" data-drawer="animal-entry">Dokument hochladen</a>
+            <% } %>
+            <form method="get" action="/animals/<%= animal.id %>" class="filter-row compact-filter-row">
             <label>
               <span>Kategorie</span>
               <select name="documentCategory">
@@ -696,67 +569,39 @@
               </select>
             </label>
             <button type="submit" class="button button-secondary">Filter anwenden</button>
-          </form>
+            </form>
+          </div>
           <% if (related.documents.length === 0) { %>
             <p class="empty-state">Noch keine Dokumente hochgeladen.</p>
           <% } else { %>
             <div class="stack compact-stack">
               <% related.documents.forEach((item) => { %>
-                <% if (permissions.canManageDocuments && editState.type === 'document' && editState.id === item.id) { %>
-                  <form method="post" action="/animals/<%= animal.id %>/documents/<%= item.id %>/update" class="stack form-compact edit-card compact-card">
-                    <input type="text" name="title" required value="<%= item.title %>" />
-                    <select name="category_id">
-                      <option value="">Keine Kategorie</option>
-                      <% categories.forEach((category) => { %>
-                        <option value="<%= category.id %>" <%= String(item.category_id || '') === String(category.id) ? 'selected' : '' %>><%= category.name %><%= category.is_required ? ' (Pflicht)' : '' %></option>
-                      <% }) %>
-                    </select>
-                    <div class="inline-actions">
-                      <button type="submit" class="button">Speichern</button>
-                      <a href="/animals/<%= animal.id %>" class="button button-secondary">Abbrechen</a>
-                    </div>
-                  </form>
-                <% } else { %>
-                  <div class="list-card static-card compact-card">
-                    <a class="list-card-main" href="/documents/<%= item.id %>/download">
-                      <strong><%= item.title %></strong>
-                      <p><%= item.category_name || 'Ohne Kategorie' %></p>
-                      <% if ((item.mime_type || '').startsWith('image/')) { %>
-                        <img class="document-preview-image" src="/media/<%= item.stored_name %>" alt="<%= item.title %>" />
-                      <% } %>
-                      <small><%= formatDateTime(item.uploaded_at) %></small>
-                    </a>
-                    <% if (permissions.canManageDocuments) { %>
-                      <div class="inline-actions">
-                        <a href="/animals/<%= animal.id %>?editType=document&editId=<%= item.id %>" class="button button-secondary icon-button" aria-label="Dokument bearbeiten" title="Bearbeiten">
-                          <span aria-hidden="true">✎</span>
-                          <span class="visually-hidden">Bearbeiten</span>
-                        </a>
-                        <form method="post" action="/animals/<%= animal.id %>/documents/<%= item.id %>/delete" data-confirm="Dokument wirklich löschen?">
-                          <button type="submit" class="button button-danger icon-button" aria-label="Dokument löschen" title="Löschen">
-                            <span aria-hidden="true">🗑</span>
-                            <span class="visually-hidden">Löschen</span>
-                          </button>
-                        </form>
-                      </div>
+                <div class="list-card static-card compact-card">
+                  <a class="list-card-main" href="/documents/<%= item.id %>/download">
+                    <strong><%= item.title %></strong>
+                    <p><%= item.category_name || 'Ohne Kategorie' %></p>
+                    <% if ((item.mime_type || '').startsWith('image/')) { %>
+                      <img class="document-preview-image" src="/media/<%= item.stored_name %>" alt="<%= item.title %>" />
                     <% } %>
-                  </div>
-                <% } %>
+                    <small><%= formatDateTime(item.uploaded_at) %></small>
+                  </a>
+                  <% if (permissions.canManageDocuments) { %>
+                    <div class="inline-actions">
+                      <a href="/animals/<%= animal.id %>/documents/<%= item.id %>/edit" class="button button-secondary icon-button" aria-label="Dokument bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
+                        <span aria-hidden="true">✎</span>
+                        <span class="visually-hidden">Bearbeiten</span>
+                      </a>
+                      <form method="post" action="/animals/<%= animal.id %>/documents/<%= item.id %>/delete" data-confirm="Dokument wirklich löschen?">
+                        <button type="submit" class="button button-danger icon-button" aria-label="Dokument löschen" title="Löschen">
+                          <span aria-hidden="true">🗑</span>
+                          <span class="visually-hidden">Löschen</span>
+                        </button>
+                      </form>
+                    </div>
+                  <% } %>
+                </div>
               <% }) %>
             </div>
-          <% } %>
-          <% if (permissions.canManageDocuments) { %>
-            <form method="post" action="/animals/<%= animal.id %>/documents" enctype="multipart/form-data" class="stack form-compact compact-form">
-              <input type="text" name="title" placeholder="z. B. Impfpass 2026" />
-              <select name="category_id">
-                <option value="">Keine Kategorie</option>
-                <% categories.forEach((category) => { %>
-                  <option value="<%= category.id %>"><%= category.name %><%= category.is_required ? ' (Pflicht)' : '' %></option>
-                <% }) %>
-              </select>
-              <input type="file" name="document" required />
-              <button type="submit" class="button">Dokument hochladen</button>
-            </form>
           <% } %>
         </div>
       </details>

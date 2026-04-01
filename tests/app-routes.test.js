@@ -173,3 +173,18 @@ test("Admin-Drawer-Routen sind erreichbar", async () => {
   assert.match(categoryDrawer.text, /Neue Dokumentkategorie/i);
   assert.match(categoryDrawer.text, /data-drawer-fragment="masterdata-form"/i);
 });
+
+test("Tierakten-Drawer-Routen sind erreichbar", async () => {
+  const eventDrawer = await agent.get("/animals/1/events/new");
+  assert.equal(eventDrawer.status, 200);
+  assert.match(eventDrawer.text, /Ereignis erstellen/i);
+  assert.match(eventDrawer.text, /data-drawer-fragment="animal-entry"/i);
+
+  const noteDrawer = await agent.get("/animals/1/notes/new");
+  assert.equal(noteDrawer.status, 200);
+  assert.match(noteDrawer.text, /Protokoll anlegen/i);
+
+  const documentDrawer = await agent.get("/animals/1/documents/new");
+  assert.equal(documentDrawer.status, 200);
+  assert.match(documentDrawer.text, /Dokument hochladen/i);
+});

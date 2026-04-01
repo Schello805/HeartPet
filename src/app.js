@@ -518,6 +518,118 @@ app.get("/animals/:id", (req, res) => {
   });
 });
 
+function renderAnimalEntryDrawer(req, res, { entryType, mode = "create", item = null }) {
+  const animal = findAnimal(req.params.id || req.params.animalId);
+  if (!animal) {
+    return renderNotFound(req, res, "Tier nicht gefunden.");
+  }
+
+  const titleMap = {
+    event: "Ereignis erstellen",
+    condition: mode === "edit" ? "Vorerkrankung bearbeiten" : "Vorerkrankung anlegen",
+    feeding: mode === "edit" ? "Fütterung bearbeiten" : "Fütterung anlegen",
+    note: mode === "edit" ? "Protokoll bearbeiten" : "Protokoll anlegen",
+    medication: "Medikament bearbeiten",
+    vaccination: "Impfung bearbeiten",
+    appointment: "Arzttermin bearbeiten",
+    reminder: "Erinnerung bearbeiten",
+    document: mode === "edit" ? "Dokument bearbeiten" : "Dokument hochladen",
+    image: "Foto hochladen",
+  };
+
+  res.render("pages/animal-entry-drawer", {
+    pageTitle: titleMap[entryType] || "Eintrag bearbeiten",
+    animal,
+    entryType,
+    mode,
+    item,
+    permissions: buildPermissions(getCurrentUserRecord(req)),
+    categories: db.prepare("SELECT * FROM document_categories ORDER BY name ASC").all(),
+    veterinarians: db.prepare("SELECT * FROM veterinarians ORDER BY name ASC").all(),
+    returnTo: safeLocalReturnPath(req.query.return_to, `/animals/${animal.id}`),
+  });
+}
+
+app.get("/animals/:id/events/new", (req, res) => {
+  const permissions = buildPermissions(getCurrentUserRecord(req));
+  if (!permissions.canManageHealth && !permissions.canManageReminders) {
+    setFlash(req, "error", "Für neue Ereignisse fehlen die erforderlichen Rechte.");
+    return res.redirect(safeLocalReturnPath(req.query.return_to, `/animals/${req.params.id}`));
+  }
+
+  return renderAnimalEntryDrawer(req, res, { entryType: "event" });
+});
+
+app.get("/animals/:id/conditions/new", requireAnimalPermission("canManageHealth"), (req, res) => renderAnimalEntryDrawer(req, res, { entryType: "condition" }));
+app.get("/animals/:animalId/conditions/:entryId/edit", requireAnimalPermission("canManageHealth"), (req, res) => {
+  const item = db.prepare("SELECT * FROM animal_conditions WHERE id = ? AND animal_id = ?").get(req.params.entryId, req.params.animalId);
+  if (!item) {
+    return renderNotFound(req, res, "Vorerkrankung nicht gefunden.");
+  }
+  return renderAnimalEntryDrawer(req, res, { entryType: "condition", mode: "edit", item });
+});
+
+app.get("/animals/:id/feedings/new", requireAnimalPermission("canManageFeedings"), (req, res) => renderAnimalEntryDrawer(req, res, { entryType: "feeding" }));
+app.get("/animals/:animalId/feedings/:entryId/edit", requireAnimalPermission("canManageFeedings"), (req, res) => {
+  const item = db.prepare("SELECT * FROM animal_feedings WHERE id = ? AND animal_id = ?").get(req.params.entryId, req.params.animalId);
+  if (!item) {
+    return renderNotFound(req, res, "Fütterung nicht gefunden.");
+  }
+  return renderAnimalEntryDrawer(req, res, { entryType: "feeding", mode: "edit", item });
+});
+
+app.get("/animals/:id/notes/new", requireAnimalPermission("canManageNotes"), (req, res) => renderAnimalEntryDrawer(req, res, { entryType: "note" }));
+app.get("/animals/:animalId/notes/:entryId/edit", requireAnimalPermission("canManageNotes"), (req, res) => {
+  const item = db.prepare("SELECT * FROM animal_notes WHERE id = ? AND animal_id = ?").get(req.params.entryId, req.params.animalId);
+  if (!item) {
+    return renderNotFound(req, res, "Protokolleintrag nicht gefunden.");
+  }
+  return renderAnimalEntryDrawer(req, res, { entryType: "note", mode: "edit", item });
+});
+
+app.get("/animals/:animalId/medications/:entryId/edit", requireAnimalPermission("canManageHealth"), (req, res) => {
+  const item = db.prepare("SELECT * FROM animal_medications WHERE id = ? AND animal_id = ?").get(req.params.entryId, req.params.animalId);
+  if (!item) {
+    return renderNotFound(req, res, "Medikament nicht gefunden.");
+  }
+  return renderAnimalEntryDrawer(req, res, { entryType: "medication", mode: "edit", item });
+});
+
+app.get("/animals/:animalId/vaccinations/:entryId/edit", requireAnimalPermission("canManageHealth"), (req, res) => {
+  const item = db.prepare("SELECT * FROM animal_vaccinations WHERE id = ? AND animal_id = ?").get(req.params.entryId, req.params.animalId);
+  if (!item) {
+    return renderNotFound(req, res, "Impfung nicht gefunden.");
+  }
+  return renderAnimalEntryDrawer(req, res, { entryType: "vaccination", mode: "edit", item });
+});
+
+app.get("/animals/:animalId/appointments/:entryId/edit", requireAnimalPermission("canManageHealth"), (req, res) => {
+  const item = db.prepare("SELECT * FROM animal_appointments WHERE id = ? AND animal_id = ?").get(req.params.entryId, req.params.animalId);
+  if (!item) {
+    return renderNotFound(req, res, "Arzttermin nicht gefunden.");
+  }
+  return renderAnimalEntryDrawer(req, res, { entryType: "appointment", mode: "edit", item });
+});
+
+app.get("/animals/:animalId/reminders/:entryId/edit", requireAnimalPermission("canManageReminders"), (req, res) => {
+  const item = db.prepare("SELECT * FROM reminders WHERE id = ? AND animal_id = ?").get(req.params.entryId, req.params.animalId);
+  if (!item) {
+    return renderNotFound(req, res, "Erinnerung nicht gefunden.");
+  }
+  return renderAnimalEntryDrawer(req, res, { entryType: "reminder", mode: "edit", item });
+});
+
+app.get("/animals/:id/documents/new", requireAnimalPermission("canManageDocuments"), (req, res) => renderAnimalEntryDrawer(req, res, { entryType: "document" }));
+app.get("/animals/:animalId/documents/:entryId/edit", requireAnimalPermission("canManageDocuments"), (req, res) => {
+  const item = db.prepare("SELECT * FROM documents WHERE id = ? AND animal_id = ?").get(req.params.entryId, req.params.animalId);
+  if (!item) {
+    return renderNotFound(req, res, "Dokument nicht gefunden.");
+  }
+  return renderAnimalEntryDrawer(req, res, { entryType: "document", mode: "edit", item });
+});
+
+app.get("/animals/:id/images/new", requireAnimalPermission("canManageGallery"), (req, res) => renderAnimalEntryDrawer(req, res, { entryType: "image" }));
+
 app.get("/animals/:id/edit", requireAnimalEditor, (req, res) => {
   const animal = findAnimal(req.params.id);
   if (!animal) {
@@ -576,20 +688,21 @@ app.post("/animals/:id/events", (req, res) => {
   const eventKind = String(req.body.event_kind || "").trim();
   const title = String(req.body.title || "").trim();
   const notes = appendVeterinarianNote(req.body.notes, req.body.handled_by_veterinarian, req.body.veterinarian_id);
+  const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.id}`);
 
   if (!["medication", "vaccination", "appointment", "reminder"].includes(eventKind)) {
     setFlash(req, "error", "Bitte wähle einen gültigen Ereignistyp aus.");
-    return res.redirect(`/animals/${req.params.id}`);
+    return res.redirect(`/animals/${req.params.id}/events/new?return_to=${encodeURIComponent(returnTo)}`);
   }
 
   if (!title) {
     setFlash(req, "error", "Bitte gib eine Bezeichnung für das Ereignis an.");
-    return res.redirect(`/animals/${req.params.id}`);
+    return res.redirect(`/animals/${req.params.id}/events/new?return_to=${encodeURIComponent(returnTo)}`);
   }
 
   if (req.body.handled_by_veterinarian && !req.body.veterinarian_id) {
     setFlash(req, "error", "Bitte wähle einen Tierarzt aus.");
-    return res.redirect(`/animals/${req.params.id}`);
+    return res.redirect(`/animals/${req.params.id}/events/new?return_to=${encodeURIComponent(returnTo)}`);
   }
 
   if (eventKind === "reminder" && !permissions.canManageReminders) {
@@ -624,7 +737,7 @@ app.post("/animals/:id/events", (req, res) => {
       );
       syncMedicationReminders(req.params.id, result.lastInsertRowid);
       setFlash(req, "success", "Medikament gespeichert.");
-      return res.redirect(`/animals/${req.params.id}`);
+      return res.redirect(returnTo);
     }
 
     if (eventKind === "vaccination") {
@@ -647,7 +760,7 @@ app.post("/animals/:id/events", (req, res) => {
       );
       syncVaccinationReminders(req.params.id, result.lastInsertRowid);
       setFlash(req, "success", "Impfung gespeichert.");
-      return res.redirect(`/animals/${req.params.id}`);
+      return res.redirect(returnTo);
     }
 
     if (eventKind === "appointment") {
@@ -671,7 +784,7 @@ app.post("/animals/:id/events", (req, res) => {
       );
       syncAppointmentReminders(req.params.id, result.lastInsertRowid);
       setFlash(req, "success", "Arzttermin gespeichert.");
-      return res.redirect(`/animals/${req.params.id}`);
+      return res.redirect(returnTo);
     }
 
     const dueAt = combineDateAndTime(req.body.event_date, req.body.event_time, "09:00");
@@ -699,28 +812,30 @@ app.post("/animals/:id/events", (req, res) => {
       ""
     );
     setFlash(req, "success", "Freie Erinnerung gespeichert.");
-    return res.redirect(`/animals/${req.params.id}`);
+    return res.redirect(returnTo);
   } catch (error) {
     setFlash(req, "error", error.message || "Das Ereignis konnte nicht gespeichert werden.");
-    return res.redirect(`/animals/${req.params.id}`);
+    return res.redirect(`/animals/${req.params.id}/events/new?return_to=${encodeURIComponent(returnTo)}`);
   }
 });
 
 app.post("/animals/:id/conditions", requireAnimalPermission("canManageHealth"), (req, res) => {
+  const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.id}`);
   db.prepare("INSERT INTO animal_conditions (animal_id, title, details) VALUES (?, ?, ?)")
     .run(req.params.id, req.body.title, req.body.details || "");
   setFlash(req, "success", "Vorerkrankung gespeichert.");
-  res.redirect(`/animals/${req.params.id}`);
+  res.redirect(returnTo);
 });
 
 app.post("/animals/:animalId/conditions/:entryId/update", requireAnimalPermission("canManageHealth"), (req, res) => {
+  const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.animalId}`);
   db.prepare(`
     UPDATE animal_conditions
     SET title = ?, details = ?
     WHERE id = ? AND animal_id = ?
   `).run(req.body.title, req.body.details || "", req.params.entryId, req.params.animalId);
   setFlash(req, "success", "Vorerkrankung aktualisiert.");
-  res.redirect(`/animals/${req.params.animalId}`);
+  res.redirect(returnTo);
 });
 
 app.post("/animals/:animalId/conditions/:entryId/delete", requireAnimalPermission("canManageHealth"), (req, res) => {
@@ -730,6 +845,7 @@ app.post("/animals/:animalId/conditions/:entryId/delete", requireAnimalPermissio
 });
 
 app.post("/animals/:id/medications", requireAnimalPermission("canManageHealth"), (req, res) => {
+  const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.id}`);
   const result = db.prepare(`
     INSERT INTO animal_medications (animal_id, name, dosage, schedule, start_date, end_date, notes)
     VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -744,10 +860,11 @@ app.post("/animals/:id/medications", requireAnimalPermission("canManageHealth"),
   );
   syncMedicationReminders(req.params.id, result.lastInsertRowid);
   setFlash(req, "success", "Medikation gespeichert.");
-  res.redirect(`/animals/${req.params.id}`);
+  res.redirect(returnTo);
 });
 
 app.post("/animals/:animalId/medications/:entryId/update", requireAnimalPermission("canManageHealth"), (req, res) => {
+  const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.animalId}`);
   db.prepare(`
     UPDATE animal_medications
     SET name = ?, dosage = ?, schedule = ?, start_date = ?, end_date = ?, notes = ?
@@ -764,7 +881,7 @@ app.post("/animals/:animalId/medications/:entryId/update", requireAnimalPermissi
   );
   syncMedicationReminders(req.params.animalId, req.params.entryId);
   setFlash(req, "success", "Medikation aktualisiert.");
-  res.redirect(`/animals/${req.params.animalId}`);
+  res.redirect(returnTo);
 });
 
 app.post("/animals/:animalId/medications/:entryId/delete", requireAnimalPermission("canManageHealth"), (req, res) => {
@@ -775,6 +892,7 @@ app.post("/animals/:animalId/medications/:entryId/delete", requireAnimalPermissi
 });
 
 app.post("/animals/:id/vaccinations", requireAnimalPermission("canManageHealth"), (req, res) => {
+  const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.id}`);
   const result = db.prepare(`
     INSERT INTO animal_vaccinations (animal_id, name, vaccination_date, next_due_date, notes)
     VALUES (?, ?, ?, ?, ?)
@@ -787,10 +905,11 @@ app.post("/animals/:id/vaccinations", requireAnimalPermission("canManageHealth")
   );
   syncVaccinationReminders(req.params.id, result.lastInsertRowid);
   setFlash(req, "success", "Impfung gespeichert.");
-  res.redirect(`/animals/${req.params.id}`);
+  res.redirect(returnTo);
 });
 
 app.post("/animals/:animalId/vaccinations/:entryId/update", requireAnimalPermission("canManageHealth"), (req, res) => {
+  const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.animalId}`);
   db.prepare(`
     UPDATE animal_vaccinations
     SET name = ?, vaccination_date = ?, next_due_date = ?, notes = ?
@@ -805,7 +924,7 @@ app.post("/animals/:animalId/vaccinations/:entryId/update", requireAnimalPermiss
   );
   syncVaccinationReminders(req.params.animalId, req.params.entryId);
   setFlash(req, "success", "Impfung aktualisiert.");
-  res.redirect(`/animals/${req.params.animalId}`);
+  res.redirect(returnTo);
 });
 
 app.post("/animals/:animalId/vaccinations/:entryId/delete", requireAnimalPermission("canManageHealth"), (req, res) => {
@@ -816,6 +935,7 @@ app.post("/animals/:animalId/vaccinations/:entryId/delete", requireAnimalPermiss
 });
 
 app.post("/animals/:id/appointments", requireAnimalPermission("canManageHealth"), (req, res) => {
+  const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.id}`);
   const result = db.prepare(`
     INSERT INTO animal_appointments (animal_id, title, appointment_at, location_mode, location_text, veterinarian_id, notes)
     VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -830,10 +950,11 @@ app.post("/animals/:id/appointments", requireAnimalPermission("canManageHealth")
   );
   syncAppointmentReminders(req.params.id, result.lastInsertRowid);
   setFlash(req, "success", "Arzttermin gespeichert.");
-  res.redirect(`/animals/${req.params.id}`);
+  res.redirect(returnTo);
 });
 
 app.post("/animals/:animalId/appointments/:entryId/update", requireAnimalPermission("canManageHealth"), (req, res) => {
+  const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.animalId}`);
   db.prepare(`
     UPDATE animal_appointments
     SET title = ?, appointment_at = ?, location_mode = ?, location_text = ?, veterinarian_id = ?, notes = ?
@@ -850,7 +971,7 @@ app.post("/animals/:animalId/appointments/:entryId/update", requireAnimalPermiss
   );
   syncAppointmentReminders(req.params.animalId, req.params.entryId);
   setFlash(req, "success", "Arzttermin aktualisiert.");
-  res.redirect(`/animals/${req.params.animalId}`);
+  res.redirect(returnTo);
 });
 
 app.post("/animals/:animalId/appointments/:entryId/delete", requireAnimalPermission("canManageHealth"), (req, res) => {
@@ -861,6 +982,7 @@ app.post("/animals/:animalId/appointments/:entryId/delete", requireAnimalPermiss
 });
 
 app.post("/animals/:id/feedings", requireAnimalPermission("canManageFeedings"), (req, res) => {
+  const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.id}`);
   db.prepare(`
     INSERT INTO animal_feedings (animal_id, label, time_of_day, food, amount, notes)
     VALUES (?, ?, ?, ?, ?, ?)
@@ -873,10 +995,11 @@ app.post("/animals/:id/feedings", requireAnimalPermission("canManageFeedings"), 
     req.body.notes || ""
   );
   setFlash(req, "success", "Fütterungsplan gespeichert.");
-  res.redirect(`/animals/${req.params.id}`);
+  res.redirect(returnTo);
 });
 
 app.post("/animals/:animalId/feedings/:entryId/update", requireAnimalPermission("canManageFeedings"), (req, res) => {
+  const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.animalId}`);
   db.prepare(`
     UPDATE animal_feedings
     SET label = ?, time_of_day = ?, food = ?, amount = ?, notes = ?
@@ -891,7 +1014,7 @@ app.post("/animals/:animalId/feedings/:entryId/update", requireAnimalPermission(
     req.params.animalId
   );
   setFlash(req, "success", "Fütterungsplan aktualisiert.");
-  res.redirect(`/animals/${req.params.animalId}`);
+  res.redirect(returnTo);
 });
 
 app.post("/animals/:animalId/feedings/:entryId/delete", requireAnimalPermission("canManageFeedings"), (req, res) => {
@@ -901,20 +1024,22 @@ app.post("/animals/:animalId/feedings/:entryId/delete", requireAnimalPermission(
 });
 
 app.post("/animals/:id/notes", requireAnimalPermission("canManageNotes"), (req, res) => {
+  const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.id}`);
   db.prepare("INSERT INTO animal_notes (animal_id, title, content) VALUES (?, ?, ?)")
     .run(req.params.id, req.body.title, req.body.content);
   setFlash(req, "success", "Protokolleintrag gespeichert.");
-  res.redirect(`/animals/${req.params.id}`);
+  res.redirect(returnTo);
 });
 
 app.post("/animals/:animalId/notes/:entryId/update", requireAnimalPermission("canManageNotes"), (req, res) => {
+  const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.animalId}`);
   db.prepare(`
     UPDATE animal_notes
     SET title = ?, content = ?
     WHERE id = ? AND animal_id = ?
   `).run(req.body.title, req.body.content, req.params.entryId, req.params.animalId);
   setFlash(req, "success", "Protokolleintrag aktualisiert.");
-  res.redirect(`/animals/${req.params.animalId}`);
+  res.redirect(returnTo);
 });
 
 app.post("/animals/:animalId/notes/:entryId/delete", requireAnimalPermission("canManageNotes"), (req, res) => {
@@ -924,6 +1049,7 @@ app.post("/animals/:animalId/notes/:entryId/delete", requireAnimalPermission("ca
 });
 
 app.post("/animals/:id/reminders", requireAnimalPermission("canManageReminders"), (req, res) => {
+  const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.id}`);
   db.prepare(`
     INSERT INTO reminders (
       animal_id, title, reminder_type, due_at, channel_email, channel_telegram, repeat_interval_days, notes,
@@ -943,10 +1069,11 @@ app.post("/animals/:id/reminders", requireAnimalPermission("canManageReminders")
     ""
   );
   setFlash(req, "success", "Erinnerung angelegt.");
-  res.redirect(`/animals/${req.params.id}`);
+  res.redirect(returnTo);
 });
 
 app.post("/animals/:animalId/reminders/:entryId/update", requireAnimalPermission("canManageReminders"), (req, res) => {
+  const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.animalId}`);
   db.prepare(`
     UPDATE reminders
     SET title = ?, reminder_type = ?, due_at = ?, channel_email = ?, channel_telegram = ?, repeat_interval_days = ?, notes = ?,
@@ -964,7 +1091,7 @@ app.post("/animals/:animalId/reminders/:entryId/update", requireAnimalPermission
     req.params.animalId
   );
   setFlash(req, "success", "Erinnerung aktualisiert.");
-  res.redirect(`/animals/${req.params.animalId}`);
+  res.redirect(returnTo);
 });
 
 app.post("/animals/:animalId/reminders/:entryId/delete", requireAnimalPermission("canManageReminders"), (req, res) => {
@@ -1065,9 +1192,10 @@ app.post("/reminders/:id/reopen", requireAnimalPermission("canManageReminders"),
 });
 
 app.post("/animals/:id/documents", requireAnimalPermission("canManageDocuments"), upload.single("document"), (req, res) => {
+  const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.id}`);
   if (!req.file) {
     setFlash(req, "error", "Bitte wähle eine Datei aus.");
-    return res.redirect(`/animals/${req.params.id}`);
+    return res.redirect(`/animals/${req.params.id}/documents/new?return_to=${encodeURIComponent(returnTo)}`);
   }
 
   db.prepare(`
@@ -1084,17 +1212,18 @@ app.post("/animals/:id/documents", requireAnimalPermission("canManageDocuments")
   );
 
   setFlash(req, "success", "Dokument hochgeladen.");
-  res.redirect(`/animals/${req.params.id}`);
+  res.redirect(returnTo);
 });
 
 app.post("/animals/:animalId/documents/:entryId/update", requireAnimalPermission("canManageDocuments"), (req, res) => {
+  const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.animalId}`);
   db.prepare(`
     UPDATE documents
     SET title = ?, category_id = ?
     WHERE id = ? AND animal_id = ?
   `).run(req.body.title, req.body.category_id || null, req.params.entryId, req.params.animalId);
   setFlash(req, "success", "Dokument aktualisiert.");
-  res.redirect(`/animals/${req.params.animalId}`);
+  res.redirect(returnTo);
 });
 
 app.post("/animals/:animalId/documents/:entryId/delete", requireAnimalPermission("canManageDocuments"), (req, res) => {
@@ -1164,15 +1293,16 @@ app.post("/animals/:id/profile-image/delete", requireAnimalPermission("canManage
 });
 
 app.post("/animals/:id/images", requireAnimalPermission("canManageGallery"), upload.single("image"), (req, res) => {
+  const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.id}`);
   if (!req.file) {
     setFlash(req, "error", "Bitte ein Bild auswählen.");
-    return res.redirect(`/animals/${req.params.id}`);
+    return res.redirect(`/animals/${req.params.id}/images/new?return_to=${encodeURIComponent(returnTo)}`);
   }
 
   if (!String(req.file.mimetype || "").startsWith("image/")) {
     fs.unlinkSync(req.file.path);
     setFlash(req, "error", "Es können nur Bilddateien hochgeladen werden.");
-    return res.redirect(`/animals/${req.params.id}`);
+    return res.redirect(`/animals/${req.params.id}/images/new?return_to=${encodeURIComponent(returnTo)}`);
   }
 
   db.prepare(`
@@ -1188,7 +1318,7 @@ app.post("/animals/:id/images", requireAnimalPermission("canManageGallery"), upl
   );
 
   setFlash(req, "success", "Bild zur Galerie hinzugefügt.");
-  res.redirect(`/animals/${req.params.id}`);
+  res.redirect(returnTo);
 });
 
 app.post("/animals/:animalId/images/:entryId/delete", requireAnimalPermission("canManageGallery"), (req, res) => {
@@ -2582,7 +2712,7 @@ function requireAdmin(req, res, next) {
 }
 
 function requireAnimalEditor(req, res, next) {
-  const user = req.session.user ? db.prepare("SELECT * FROM users WHERE id = ?").get(req.session.user.id) : null;
+  const user = getCurrentUserRecord(req);
   if (!buildPermissions(user).canEditAnimals) {
     setFlash(req, "error", "Für diese Aktion fehlen die erforderlichen Rechte.");
     return res.redirect(req.get("referer") || "/");
@@ -2592,13 +2722,20 @@ function requireAnimalEditor(req, res, next) {
 
 function requireAnimalPermission(permissionKey) {
   return (req, res, next) => {
-    const user = req.session.user ? db.prepare("SELECT * FROM users WHERE id = ?").get(req.session.user.id) : null;
+    const user = getCurrentUserRecord(req);
     if (!buildPermissions(user)[permissionKey]) {
       setFlash(req, "error", "Für diese Aktion fehlen die erforderlichen Rechte.");
       return res.redirect(req.get("referer") || "/");
     }
     next();
   };
+}
+
+function getCurrentUserRecord(req) {
+  if (!req.session?.user?.id) {
+    return null;
+  }
+  return db.prepare("SELECT * FROM users WHERE id = ?").get(req.session.user.id);
 }
 
 function setFlash(req, type, message) {

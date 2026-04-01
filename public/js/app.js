@@ -219,9 +219,11 @@ function initDrawerForms(scope = document) {
           if (drawerTitle) {
             drawerTitle.textContent = title.replace(/\s+\|.*$/, "");
           }
+          initDrawerNavigation();
           initDrawerForms(drawerBody);
           initSpeciesAutocomplete();
           initRequiredMarks();
+          initEventFormBehavior(drawerBody);
           return;
         }
 
@@ -280,9 +282,11 @@ async function openDrawer(urlLike) {
     drawerBody.innerHTML = "";
     drawerBody.appendChild(fragment.cloneNode(true));
     drawerTitle.textContent = fragment.getAttribute("data-drawer-title") || "Bearbeiten";
+    initDrawerNavigation();
     initDrawerForms(drawerBody);
     initSpeciesAutocomplete();
     initRequiredMarks();
+    initEventFormBehavior(drawerBody);
   } catch (error) {
     console.error("Drawer konnte nicht geladen werden", error);
     window.location.href = urlLike;
@@ -413,64 +417,65 @@ function initProfileUploadAutoSubmit() {
   });
 }
 
-function initEventFormBehavior() {
-  const form = document.querySelector("[data-event-form]");
-  if (!form || form.dataset.bound === "1") {
-    return;
-  }
-  form.dataset.bound = "1";
-
-  const kindSelect = form.querySelector("[data-event-kind-select]");
-  const timeWrap = form.querySelector("[data-event-time-wrap]");
-  const timeInput = form.querySelector("[data-event-time]");
-  const handledByVet = form.querySelector("[data-handled-by-vet]");
-  const veterinarianFields = form.querySelector("[data-veterinarian-fields]");
-  const veterinarianSelect = form.querySelector('select[name="veterinarian_id"]');
-  const createReminder = form.querySelector("[data-create-reminder]");
-  const reminderInlineWrap = form.querySelector("[data-reminder-inline-wrap]");
-
-  function updateEventForm() {
-    const kind = kindSelect?.value || "medication";
-    const needsTime = kind === "appointment" || kind === "reminder";
-    const showVeterinarian = Boolean(handledByVet?.checked);
-    const canHaveReminder = kind !== "reminder";
-
-    if (timeWrap) {
-      timeWrap.hidden = !needsTime;
+function initEventFormBehavior(scope = document) {
+  scope.querySelectorAll("[data-event-form]").forEach((form) => {
+    if (form.dataset.bound === "1") {
+      return;
     }
-    if (timeInput) {
-      timeInput.required = needsTime;
-      if (!needsTime) {
-        timeInput.value = "";
+    form.dataset.bound = "1";
+
+    const kindSelect = form.querySelector("[data-event-kind-select]");
+    const timeWrap = form.querySelector("[data-event-time-wrap]");
+    const timeInput = form.querySelector("[data-event-time]");
+    const handledByVet = form.querySelector("[data-handled-by-vet]");
+    const veterinarianFields = form.querySelector("[data-veterinarian-fields]");
+    const veterinarianSelect = form.querySelector('select[name="veterinarian_id"]');
+    const createReminder = form.querySelector("[data-create-reminder]");
+    const reminderInlineWrap = form.querySelector("[data-reminder-inline-wrap]");
+
+    function updateEventForm() {
+      const kind = kindSelect?.value || "medication";
+      const needsTime = kind === "appointment" || kind === "reminder";
+      const showVeterinarian = Boolean(handledByVet?.checked);
+      const canHaveReminder = kind !== "reminder";
+
+      if (timeWrap) {
+        timeWrap.hidden = !needsTime;
+      }
+      if (timeInput) {
+        timeInput.required = needsTime;
+        if (!needsTime) {
+          timeInput.value = "";
+        }
+      }
+
+      if (veterinarianFields) {
+        veterinarianFields.hidden = !showVeterinarian;
+      }
+      if (veterinarianSelect) {
+        veterinarianSelect.disabled = !showVeterinarian;
+        veterinarianSelect.required = showVeterinarian;
+        if (!showVeterinarian) {
+          veterinarianSelect.value = "";
+        }
+      }
+
+      if (createReminder) {
+        createReminder.disabled = !canHaveReminder;
+        if (!canHaveReminder) {
+          createReminder.checked = false;
+        }
+      }
+
+      if (reminderInlineWrap) {
+        reminderInlineWrap.hidden = !canHaveReminder;
       }
     }
 
-    if (veterinarianFields) {
-      veterinarianFields.hidden = !showVeterinarian;
-    }
-    if (veterinarianSelect) {
-      veterinarianSelect.disabled = !showVeterinarian;
-      veterinarianSelect.required = showVeterinarian;
-      if (!showVeterinarian) {
-        veterinarianSelect.value = "";
-      }
-    }
-
-    if (createReminder) {
-      createReminder.disabled = !canHaveReminder;
-      if (!canHaveReminder) {
-        createReminder.checked = false;
-      }
-    }
-
-    if (reminderInlineWrap) {
-      reminderInlineWrap.hidden = !canHaveReminder;
-    }
-  }
-
-  kindSelect?.addEventListener("change", updateEventForm);
-  handledByVet?.addEventListener("change", updateEventForm);
-  updateEventForm();
+    kindSelect?.addEventListener("change", updateEventForm);
+    handledByVet?.addEventListener("change", updateEventForm);
+    updateEventForm();
+  });
 }
 
 function initGlobalSearchAutocomplete() {
