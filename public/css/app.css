@@ -1250,7 +1250,7 @@ small {
 }
 
 .masterdata-layout {
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.95fr);
+  grid-template-columns: 1fr;
   gap: 12px;
   align-items: start;
 }
@@ -1260,7 +1260,7 @@ small {
 }
 
 .masterdata-section-wide {
-  grid-column: 1 / -1;
+  grid-column: auto;
 }
 
 .masterdata-card-grid {
