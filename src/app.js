@@ -1472,6 +1472,13 @@ app.get("/admin/benachrichtigungen/test-smtp-connection", requireAdmin, (req, re
   setFlash(req, "error", "SMTP-Test bitte über den Button im Bereich Benachrichtigungen starten.");
   res.redirect("/admin/benachrichtigungen");
 });
+app.all(/^\/.*test-smtp-connection.*$/, requireAdmin, async (req, res) => {
+  if (req.method === "POST") {
+    return handleSmtpConnectionTest(req, res);
+  }
+  setFlash(req, "error", "SMTP-Test bitte über den Button im Bereich Benachrichtigungen starten.");
+  return res.redirect("/admin/benachrichtigungen");
+});
 
 app.post("/admin/test-telegram", requireAdmin, async (req, res) => {
   try {
