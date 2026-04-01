@@ -1,4 +1,5 @@
 <%- include('../partials/top', { pageTitle }) %>
+<% const masterEditState = typeof masterEdit !== 'undefined' && masterEdit ? masterEdit : { categoryId: null, speciesId: null, veterinarianId: null }; %>
 
 <section class="accordion-stack">
   <details class="accordion-item" open>
@@ -6,7 +7,7 @@
     <div class="accordion-content">
       <div class="stack compact-list">
         <% categories.forEach((category) => { %>
-          <% if (masterEdit?.categoryId === category.id) { %>
+          <% if (masterEditState.categoryId === category.id) { %>
             <form method="post" action="/admin/categories/<%= category.id %>/update" class="stack form-compact list-card static-card">
               <input type="text" name="name" required value="<%= category.name %>" />
               <label class="checkbox-line">
@@ -50,7 +51,7 @@
     <div class="accordion-content">
       <div class="stack compact-list">
         <% veterinarians.forEach((vet) => { %>
-          <% if (masterEdit?.veterinarianId === vet.id) { %>
+          <% if (masterEditState.veterinarianId === vet.id) { %>
             <form method="post" action="/admin/veterinarians/<%= vet.id %>/update" class="stack form-compact list-card static-card">
               <input type="text" name="name" required value="<%= vet.name %>" />
               <input type="text" name="street" placeholder="Straße und Hausnummer" minlength="3" maxlength="120" pattern="[A-Za-zÄÖÜäöüß0-9 .,\-\/]{3,120}" value="<%= vet.street || '' %>" />
@@ -113,7 +114,7 @@
     <div class="accordion-content">
       <div class="stack compact-list">
         <% species.forEach((item) => { %>
-          <% if (masterEdit?.speciesId === item.id) { %>
+          <% if (masterEditState.speciesId === item.id) { %>
             <form method="post" action="/admin/species/<%= item.id %>/update" class="stack form-compact list-card static-card">
               <input type="text" name="name" required value="<%= item.name %>" />
               <select name="default_veterinarian_id">
