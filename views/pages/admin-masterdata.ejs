@@ -56,9 +56,15 @@
                 <p><%= category.is_required ? 'Pflichtkategorie' : 'Optional' %></p>
               </div>
               <div class="inline-actions masterdata-category-actions">
-                <a href="/admin/stammdaten?editCategory=<%= category.id %>#stammdaten-kategorien" data-no-soft-nav="true" class="button button-secondary">Bearbeiten</a>
+                <a href="/admin/stammdaten?editCategory=<%= category.id %>#stammdaten-kategorien" data-no-soft-nav="true" class="button button-secondary icon-button" aria-label="Dokumentkategorie bearbeiten" title="Bearbeiten">
+                  <span aria-hidden="true">✎</span>
+                  <span class="visually-hidden">Bearbeiten</span>
+                </a>
                 <form method="post" action="/admin/categories/<%= category.id %>/delete" data-confirm="Dokumentkategorie wirklich löschen?">
-                  <button type="submit" class="button button-danger">Löschen</button>
+                  <button type="submit" class="button button-danger icon-button" aria-label="Dokumentkategorie löschen" title="Löschen">
+                    <span aria-hidden="true">🗑</span>
+                    <span class="visually-hidden">Löschen</span>
+                  </button>
                 </form>
               </div>
             </div>
@@ -101,14 +107,20 @@
                 <p><%= vet.phone || '-' %> | <%= vet.email || '-' %></p>
               </div>
               <div class="inline-actions">
-                <a href="/admin/stammdaten?editVeterinarian=<%= vet.id %>#stammdaten-tieraerzte" data-no-soft-nav="true" class="button button-secondary">Bearbeiten</a>
+                <a href="/admin/stammdaten?editVeterinarian=<%= vet.id %>#stammdaten-tieraerzte" data-no-soft-nav="true" class="button button-secondary icon-button" aria-label="Tierarzt bearbeiten" title="Bearbeiten">
+                  <span aria-hidden="true">✎</span>
+                  <span class="visually-hidden">Bearbeiten</span>
+                </a>
                 <% if (defaultVetIdState !== String(vet.id)) { %>
                   <form method="post" action="/admin/veterinarians/<%= vet.id %>/set-default">
                     <button type="submit" class="button button-secondary">Als Standard markieren</button>
                   </form>
                 <% } %>
                 <form method="post" action="/admin/veterinarians/<%= vet.id %>/delete" data-confirm="Tierarzt wirklich löschen?">
-                  <button type="submit" class="button button-danger">Löschen</button>
+                  <button type="submit" class="button button-danger icon-button" aria-label="Tierarzt löschen" title="Löschen">
+                    <span aria-hidden="true">🗑</span>
+                    <span class="visually-hidden">Löschen</span>
+                  </button>
                 </form>
               </div>
             </div>
@@ -158,9 +170,15 @@
                 <p>Standard Tierarzt: <%= item.veterinarian_name || '-' %></p>
               </div>
               <div class="inline-actions">
-                <a href="/admin/stammdaten?editSpecies=<%= item.id %>#stammdaten-tierarten" data-no-soft-nav="true" class="button button-secondary">Bearbeiten</a>
+                <a href="/admin/stammdaten?editSpecies=<%= item.id %>#stammdaten-tierarten" data-no-soft-nav="true" class="button button-secondary icon-button" aria-label="Tierart bearbeiten" title="Bearbeiten">
+                  <span aria-hidden="true">✎</span>
+                  <span class="visually-hidden">Bearbeiten</span>
+                </a>
                 <form method="post" action="/admin/species/<%= item.id %>/delete" data-confirm="Tierart wirklich löschen?">
-                  <button type="submit" class="button button-danger">Löschen</button>
+                  <button type="submit" class="button button-danger icon-button" aria-label="Tierart löschen" title="Löschen">
+                    <span aria-hidden="true">🗑</span>
+                    <span class="visually-hidden">Löschen</span>
+                  </button>
                 </form>
               </div>
             </div>

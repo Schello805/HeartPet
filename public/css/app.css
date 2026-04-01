@@ -248,6 +248,24 @@ textarea {
   background: var(--danger);
 }
 
+.icon-button {
+  min-width: 42px;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.icon-button span[aria-hidden="true"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .button-full {
   width: 100%;
 }
