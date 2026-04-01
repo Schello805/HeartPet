@@ -226,6 +226,100 @@ test("Tierarzt-Speichern aus eingeblendetem Formular landet sauber zurück", asy
   assert.match(save.text, /Stammdaten/i);
 });
 
+test("Falsche GET-Aufrufe auf Admin-Speicherpfade liefern kein 404", async () => {
+  const master = await agent.get("/admin/stammdaten");
+  assert.equal(master.status, 200);
+
+  const categoryId = master.text.match(/\/admin\/categories\/(\d+)\/edit/)?.[1];
+  const speciesId = master.text.match(/\/admin\/species\/(\d+)\/edit/)?.[1];
+  const vetId = master.text.match(/\/admin\/veterinarians\/(\d+)\/edit/)?.[1];
+  assert.ok(categoryId);
+  assert.ok(speciesId);
+  assert.ok(vetId);
+
+  const usersPage = await agent.get("/admin/benutzer");
+  assert.equal(usersPage.status, 200);
+  let userId = usersPage.text.match(/\/admin\/users\/(\d+)\/edit/)?.[1];
+  if (!userId) {
+    await agent.post("/admin/users").type("form").send({
+      name: "Linktest Nutzer",
+      email: "linktest@test.local",
+      password: "passwort123",
+      role: "viewer",
+    });
+    const nextUsersPage = await agent.get("/admin/benutzer");
+    userId = nextUsersPage.text.match(/\/admin\/users\/(\d+)\/edit/)?.[1];
+  }
+  assert.ok(userId);
+
+  const routes = [
+    [`/admin/categories/${categoryId}/update`, /Dokumentkategorie bearbeiten/i],
+    [`/admin/species/${speciesId}/update`, /Tierart bearbeiten/i],
+    [`/admin/veterinarians/${vetId}/update`, /Tierarzt bearbeiten/i],
+    [`/admin/users/${userId}/update`, /Benutzer bearbeiten/i],
+    [`/admin/users/${userId}/save`, /Benutzer bearbeiten/i],
+  ];
+
+  for (const [href, marker] of routes) {
+    const response = await agent.get(href).redirects(2);
+    assert.notEqual(response.status, 404, href);
+    assert.equal(response.status, 200, href);
+    assert.match(response.text, marker, href);
+  }
+});
+
+test("Falsche GET-Aufrufe auf Tier-Speicherpfade liefern kein 404", async () => {
+  await agent.post("/animals/1/conditions").type("form").send({
+    title: "Alias Arthrose",
+    details: "Test",
+    return_to: "/animals/1",
+  });
+  await agent.post("/animals/1/feedings").type("form").send({
+    label: "Alias Futter",
+    food: "Futter",
+    amount: "10 g",
+    return_to: "/animals/1",
+  });
+  await agent.post("/animals/1/notes").type("form").send({
+    title: "Alias Notiz",
+    content: "Test",
+    return_to: "/animals/1",
+  });
+  await agent.post("/animals/1/reminders").type("form").send({
+    title: "Alias Erinnerung",
+    reminder_type: "Allgemein",
+    due_at: "2026-04-06T09:00",
+    return_to: "/animals/1",
+  });
+
+  const animalPage = await agent.get("/animals/1");
+  assert.equal(animalPage.status, 200);
+
+  const conditionId = animalPage.text.match(/\/animals\/1\/conditions\/(\d+)\/edit/)?.[1];
+  const feedingId = animalPage.text.match(/\/animals\/1\/feedings\/(\d+)\/edit/)?.[1];
+  const noteId = animalPage.text.match(/\/animals\/1\/notes\/(\d+)\/edit/)?.[1];
+  const reminderId = animalPage.text.match(/\/animals\/1\/reminders\/(\d+)\/edit/)?.[1];
+  assert.ok(conditionId);
+  assert.ok(feedingId);
+  assert.ok(noteId);
+  assert.ok(reminderId);
+
+  const routes = [
+    ["/animals/1/update", /bearbeiten/i],
+    [`/animals/1/conditions/${conditionId}/update`, /Vorerkrankung bearbeiten/i],
+    [`/animals/1/feedings/${feedingId}/update`, /Fütterung bearbeiten/i],
+    [`/animals/1/notes/${noteId}/update`, /Protokoll bearbeiten/i],
+    [`/animals/1/reminders/${reminderId}/update`, /Erinnerung bearbeiten/i],
+  ];
+
+  for (const [href, marker] of routes) {
+    const response = await agent.get(href).redirects(2);
+    assert.notEqual(response.status, 404, href);
+    assert.equal(response.status, 200, href);
+    assert.match(response.text, marker, href);
+  }
+});
+
 test("Speichern über alte Admin-Rückwege landet nicht auf 404", async () => {
   const createCategory = await agent.post("/admin/categories").type("form").send({
     name: "Rueckweg Kategorie",
