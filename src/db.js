@@ -303,6 +303,7 @@ function seedDefaults(db) {
     vaccination_reminder_repeat_count: "1",
     appointment_reminder_lead_days: "1",
     appointment_reminder_repeat_count: "1",
+    default_veterinarian_id: "",
     daily_digest_enabled: "false",
     daily_digest_time: "07:30",
     daily_digest_only_when_open: "true",

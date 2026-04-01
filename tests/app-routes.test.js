@@ -81,3 +81,83 @@ test("Benachrichtigungen Alias ist erreichbar", async () => {
   assert.equal(alias.status, 302);
   assert.equal(alias.headers.location, "/admin/benachrichtigungen");
 });
+
+test("Tierarzt kann als Standard markiert werden", async () => {
+  const createVet = await agent.post("/admin/veterinarians").type("form").send({
+    name: "Praxis Mitte",
+    street: "Musterstraße 10",
+    postal_code: "12345",
+    city: "Berlin",
+    country: "Deutschland",
+  });
+  assert.equal(createVet.status, 302);
+
+  const masterData = await agent.get("/admin/stammdaten");
+  assert.equal(masterData.status, 200);
+  const match = masterData.text.match(/\/admin\/veterinarians\/(\d+)\/set-default/);
+  assert.ok(match && match[1]);
+
+  const setDefault = await agent.post(`/admin/veterinarians/${match[1]}/set-default`).type("form").send({});
+  assert.equal(setDefault.status, 302);
+  assert.equal(setDefault.headers.location, "/admin/stammdaten");
+});
+
+test("Adressvalidierung für Tierarzt greift", async () => {
+  const invalid = await agent.post("/admin/veterinarians").type("form").send({
+    name: "Ungültig",
+    street: "X",
+    postal_code: "12",
+    city: "!",
+    country: "1",
+  });
+  assert.equal(invalid.status, 302);
+  assert.equal(invalid.headers.location, "/admin/stammdaten");
+});
+
+test("CRUD-Updates für Stammdaten funktionieren", async () => {
+  const createCategory = await agent.post("/admin/categories").type("form").send({
+    name: "Labor",
+    is_required: "on",
+  });
+  assert.equal(createCategory.status, 302);
+
+  const createSpecies = await agent.post("/admin/species").type("form").send({
+    name: "Pony",
+    notes: "Testart",
+  });
+  assert.equal(createSpecies.status, 302);
+
+  const master = await agent.get("/admin/stammdaten");
+  assert.equal(master.status, 200);
+  const categoryMatch = master.text.match(/\/admin\/categories\/(\d+)\/delete/);
+  const speciesMatch = master.text.match(/\/admin\/species\/(\d+)\/delete/);
+  const vetMatch = master.text.match(/\/admin\/veterinarians\/(\d+)\/delete/);
+  assert.ok(categoryMatch?.[1]);
+  assert.ok(speciesMatch?.[1]);
+  assert.ok(vetMatch?.[1]);
+
+  const updateCategory = await agent.post(`/admin/categories/${categoryMatch[1]}/update`).type("form").send({
+    name: "Laborbericht",
+    is_required: "on",
+  });
+  assert.equal(updateCategory.status, 302);
+
+  const updateSpecies = await agent.post(`/admin/species/${speciesMatch[1]}/update`).type("form").send({
+    name: "Mini-Pony",
+    default_veterinarian_id: "",
+    notes: "Aktualisiert",
+  });
+  assert.equal(updateSpecies.status, 302);
+
+  const updateVet = await agent.post(`/admin/veterinarians/${vetMatch[1]}/update`).type("form").send({
+    name: "Praxis Mitte Neu",
+    street: "Hauptstraße 5",
+    postal_code: "10115",
+    city: "Berlin",
+    country: "Deutschland",
+    phone: "",
+    email: "",
+    notes: "",
+  });
+  assert.equal(updateVet.status, 302);
+});

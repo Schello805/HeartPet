@@ -148,6 +148,13 @@ app.post("/setup", (req, res) => {
     return res.redirect("/setup");
   }
 
+  const veterinarianPayload = normalizeVeterinarianPayload(req.body, "veterinarian_");
+  const addressError = validateVeterinarianAddress(veterinarianPayload);
+  if (addressError) {
+    setFlash(req, "error", addressError);
+    return res.redirect("/setup");
+  }
+
   const setupTx = db.transaction(() => {
     const userResult = db.prepare(`
       INSERT INTO users (
@@ -163,13 +170,13 @@ app.post("/setup", (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       veterinarianName,
-      req.body.veterinarian_street || "",
-      req.body.veterinarian_postal_code || "",
-      req.body.veterinarian_city || "",
-      req.body.veterinarian_country || "",
-      req.body.veterinarian_email || "",
-      req.body.veterinarian_phone || "",
-      req.body.veterinarian_notes || ""
+      veterinarianPayload.street,
+      veterinarianPayload.postal_code,
+      veterinarianPayload.city,
+      veterinarianPayload.country,
+      veterinarianPayload.email,
+      veterinarianPayload.phone,
+      veterinarianPayload.notes
     );
 
     const species = ensureSpeciesExists(speciesName);
@@ -1287,7 +1294,13 @@ app.get(/^\/.+\/benachrichtigungen$/, requireAdmin, (req, res) => {
 });
 
 app.get("/admin/stammdaten", requireAdmin, (req, res) => {
-  res.render("pages/admin-masterdata", getAdminViewData("Stammdaten", "/admin/stammdaten"));
+  const viewData = getAdminViewData("Stammdaten", "/admin/stammdaten");
+  viewData.masterEdit = {
+    categoryId: Number(req.query.editCategory || 0) || null,
+    speciesId: Number(req.query.editSpecies || 0) || null,
+    veterinarianId: Number(req.query.editVeterinarian || 0) || null,
+  };
+  res.render("pages/admin-masterdata", viewData);
 });
 
 app.get("/admin/benutzer", requireAdmin, (req, res) => {
@@ -1470,9 +1483,27 @@ app.post("/admin/test-telegram", requireAdmin, async (req, res) => {
 });
 
 app.post("/admin/categories", requireAdmin, (req, res) => {
-  db.prepare("INSERT INTO document_categories (name, is_required) VALUES (?, ?)")
-    .run(req.body.name, req.body.is_required ? 1 : 0);
-  setFlash(req, "success", "Dokumentkategorie angelegt.");
+  try {
+    db.prepare("INSERT INTO document_categories (name, is_required) VALUES (?, ?)")
+      .run(String(req.body.name || "").trim(), req.body.is_required ? 1 : 0);
+    setFlash(req, "success", "Dokumentkategorie angelegt.");
+  } catch (error) {
+    setFlash(req, "error", "Dokumentkategorie konnte nicht angelegt werden (Name ggf. bereits vorhanden).");
+  }
+  res.redirect(backTo(req, "/admin/stammdaten"));
+});
+
+app.post("/admin/categories/:id/update", requireAdmin, (req, res) => {
+  try {
+    db.prepare(`
+      UPDATE document_categories
+      SET name = ?, is_required = ?
+      WHERE id = ?
+    `).run(String(req.body.name || "").trim(), req.body.is_required ? 1 : 0, req.params.id);
+    setFlash(req, "success", "Dokumentkategorie aktualisiert.");
+  } catch (error) {
+    setFlash(req, "error", "Dokumentkategorie konnte nicht aktualisiert werden.");
+  }
   res.redirect(backTo(req, "/admin/stammdaten"));
 });
 
@@ -1483,9 +1514,36 @@ app.post("/admin/categories/:id/delete", requireAdmin, (req, res) => {
 });
 
 app.post("/admin/species", requireAdmin, (req, res) => {
-  db.prepare("INSERT INTO species (name, default_veterinarian_id, notes) VALUES (?, ?, ?)")
-    .run(req.body.name, req.body.default_veterinarian_id || null, req.body.notes || "");
-  setFlash(req, "success", "Tierart angelegt.");
+  try {
+    db.prepare("INSERT INTO species (name, default_veterinarian_id, notes) VALUES (?, ?, ?)")
+      .run(
+        String(req.body.name || "").trim(),
+        req.body.default_veterinarian_id || null,
+        String(req.body.notes || "").trim()
+      );
+    setFlash(req, "success", "Tierart angelegt.");
+  } catch (error) {
+    setFlash(req, "error", "Tierart konnte nicht angelegt werden (Name ggf. bereits vorhanden).");
+  }
+  res.redirect(backTo(req, "/admin/stammdaten"));
+});
+
+app.post("/admin/species/:id/update", requireAdmin, (req, res) => {
+  try {
+    db.prepare(`
+      UPDATE species
+      SET name = ?, default_veterinarian_id = ?, notes = ?
+      WHERE id = ?
+    `).run(
+      String(req.body.name || "").trim(),
+      req.body.default_veterinarian_id || null,
+      String(req.body.notes || "").trim(),
+      req.params.id
+    );
+    setFlash(req, "success", "Tierart aktualisiert.");
+  } catch (error) {
+    setFlash(req, "error", "Tierart konnte nicht aktualisiert werden.");
+  }
   res.redirect(backTo(req, "/admin/stammdaten"));
 });
 
@@ -1496,24 +1554,80 @@ app.post("/admin/species/:id/delete", requireAdmin, (req, res) => {
 });
 
 app.post("/admin/veterinarians", requireAdmin, (req, res) => {
-  db.prepare(`
-    INSERT INTO veterinarians (name, street, postal_code, city, country, email, phone, notes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    req.body.name,
-    req.body.street || "",
-    req.body.postal_code || "",
-    req.body.city || "",
-    req.body.country || "",
-    req.body.email || "",
-    req.body.phone || "",
-    req.body.notes || ""
-  );
-  setFlash(req, "success", "Tierarzt gespeichert.");
+  const payload = normalizeVeterinarianPayload(req.body);
+  const addressError = validateVeterinarianAddress(payload);
+  if (addressError) {
+    setFlash(req, "error", addressError);
+    return res.redirect(backTo(req, "/admin/stammdaten"));
+  }
+
+  try {
+    db.prepare(`
+      INSERT INTO veterinarians (name, street, postal_code, city, country, email, phone, notes)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      String(req.body.name || "").trim(),
+      payload.street,
+      payload.postal_code,
+      payload.city,
+      payload.country,
+      payload.email,
+      payload.phone,
+      payload.notes
+    );
+    setFlash(req, "success", "Tierarzt gespeichert.");
+  } catch (error) {
+    setFlash(req, "error", "Tierarzt konnte nicht gespeichert werden.");
+  }
+  res.redirect(backTo(req, "/admin/stammdaten"));
+});
+
+app.post("/admin/veterinarians/:id/update", requireAdmin, (req, res) => {
+  const payload = normalizeVeterinarianPayload(req.body);
+  const addressError = validateVeterinarianAddress(payload);
+  if (addressError) {
+    setFlash(req, "error", addressError);
+    return res.redirect(backTo(req, "/admin/stammdaten"));
+  }
+
+  try {
+    db.prepare(`
+      UPDATE veterinarians
+      SET name = ?, street = ?, postal_code = ?, city = ?, country = ?, email = ?, phone = ?, notes = ?
+      WHERE id = ?
+    `).run(
+      String(req.body.name || "").trim(),
+      payload.street,
+      payload.postal_code,
+      payload.city,
+      payload.country,
+      payload.email,
+      payload.phone,
+      payload.notes,
+      req.params.id
+    );
+    setFlash(req, "success", "Tierarzt aktualisiert.");
+  } catch (error) {
+    setFlash(req, "error", "Tierarzt konnte nicht aktualisiert werden.");
+  }
+  res.redirect(backTo(req, "/admin/stammdaten"));
+});
+
+app.post("/admin/veterinarians/:id/set-default", requireAdmin, (req, res) => {
+  const vet = db.prepare("SELECT id FROM veterinarians WHERE id = ?").get(req.params.id);
+  if (!vet) {
+    setFlash(req, "error", "Tierarzt nicht gefunden.");
+    return res.redirect(backTo(req, "/admin/stammdaten"));
+  }
+  upsertSetting(db, "default_veterinarian_id", String(vet.id));
+  setFlash(req, "success", "Standardtierarzt gesetzt.");
   res.redirect(backTo(req, "/admin/stammdaten"));
 });
 
 app.post("/admin/veterinarians/:id/delete", requireAdmin, (req, res) => {
+  if (String(getSettingsObject(db).default_veterinarian_id || "") === String(req.params.id)) {
+    upsertSetting(db, "default_veterinarian_id", "");
+  }
   db.prepare("DELETE FROM veterinarians WHERE id = ?").run(req.params.id);
   setFlash(req, "success", "Tierarzt entfernt.");
   res.redirect(backTo(req, "/admin/stammdaten"));
@@ -2391,9 +2505,11 @@ function splitReminders(reminders) {
 
 function normalizeAnimalPayload(body) {
   const speciesName = String(body.species_name || "").trim();
+  const speciesId = speciesName ? ensureSpeciesExists(speciesName).id : null;
+  const selectedVeterinarianId = String(body.veterinarian_id || "").trim();
   return {
     name: String(body.name || "").trim(),
-    species_id: speciesName ? ensureSpeciesExists(speciesName).id : null,
+    species_id: speciesId,
     species_name: speciesName,
     sex: body.sex || "",
     birth_date: body.birth_date || null,
@@ -2404,9 +2520,52 @@ function normalizeAnimalPayload(body) {
     color: body.color || "",
     breed: body.breed || "",
     weight_kg: body.weight_kg || null,
-    veterinarian_id: body.veterinarian_id || null,
+    veterinarian_id: selectedVeterinarianId || resolveDefaultVeterinarianId(speciesId),
     notes: body.notes || "",
   };
+}
+
+function resolveDefaultVeterinarianId(speciesId) {
+  if (speciesId) {
+    const fromSpecies = db.prepare("SELECT default_veterinarian_id FROM species WHERE id = ?").get(speciesId);
+    if (fromSpecies?.default_veterinarian_id) {
+      return fromSpecies.default_veterinarian_id;
+    }
+  }
+  const fallback = String(getSettingsObject(db).default_veterinarian_id || "").trim();
+  return fallback || null;
+}
+
+function normalizeVeterinarianPayload(source, prefix = "") {
+  const get = (field) => String(source?.[`${prefix}${field}`] || "").trim();
+  return {
+    street: get("street"),
+    postal_code: get("postal_code"),
+    city: get("city"),
+    country: get("country"),
+    email: get("email"),
+    phone: get("phone"),
+    notes: get("notes"),
+  };
+}
+
+function validateVeterinarianAddress(payload) {
+  if (payload.street && payload.street.length < 3) {
+    return "Straße/Hausnummer ist zu kurz.";
+  }
+  if (payload.street && !/^[A-Za-zÄÖÜäöüß0-9 .,\-\/]{3,120}$/.test(payload.street)) {
+    return "Straße/Hausnummer enthält ungültige Zeichen.";
+  }
+  if (payload.postal_code && !/^[A-Za-z0-9 -]{3,12}$/.test(payload.postal_code)) {
+    return "PLZ ist ungültig.";
+  }
+  if (payload.city && !/^[A-Za-zÄÖÜäöüß0-9 .'\-]{2,80}$/.test(payload.city)) {
+    return "Ort ist ungültig.";
+  }
+  if (payload.country && !/^[A-Za-zÄÖÜäöüß .'\-]{2,80}$/.test(payload.country)) {
+    return "Land ist ungültig.";
+  }
+  return "";
 }
 
 function formatDate(value) {
@@ -3249,6 +3408,7 @@ function getAdminViewData(pageTitle, adminPath) {
       emailReady: isEmailEnabled(settings),
       telegramReady: isTelegramEnabled(settings),
     },
+    defaultVeterinarianId: String(settings.default_veterinarian_id || ""),
     categories: db.prepare("SELECT * FROM document_categories ORDER BY name ASC").all(),
     species: db.prepare(`
       SELECT species.*, veterinarians.name AS veterinarian_name
