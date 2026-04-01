@@ -14,6 +14,14 @@
   <details id="stammdaten-kategorien" class="accordion-item" <%= isVeterinarianEdit || isSpeciesEdit ? '' : 'open' %>>
     <summary>Dokumentkategorien</summary>
     <div class="accordion-content">
+      <form method="post" action="/admin/categories" class="stack form-compact">
+        <input type="text" name="name" required placeholder="Neue Kategorie" />
+        <label class="checkbox-line">
+          <input type="checkbox" name="is_required" />
+          Als Pflichtkategorie markieren
+        </label>
+        <button type="submit" class="button">Anlegen</button>
+      </form>
       <div class="masterdata-category-grid compact-list">
         <% categories.forEach((category) => { %>
           <% if (masterEditState.categoryId === category.id) { %>
@@ -44,14 +52,6 @@
           <% } %>
         <% }) %>
       </div>
-      <form method="post" action="/admin/categories" class="stack form-compact">
-        <input type="text" name="name" required placeholder="Neue Kategorie" />
-        <label class="checkbox-line">
-          <input type="checkbox" name="is_required" />
-          Als Pflichtkategorie markieren
-        </label>
-        <button type="submit" class="button">Anlegen</button>
-      </form>
     </div>
   </details>
 
