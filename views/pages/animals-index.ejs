@@ -2,6 +2,28 @@
 
 <section class="animals-workspace">
   <aside class="animals-list-pane">
+    <section class="panel animals-list-summary">
+      <div class="animals-list-summary-head">
+        <div>
+          <p class="eyebrow">Arbeitsansicht</p>
+          <h2>Tierbestand</h2>
+        </div>
+        <span class="counter"><%= pagination.totalCount %> Einträge</span>
+      </div>
+      <div class="animals-summary-grid">
+        <article class="animals-summary-card">
+          <span>Aktuelle Auswahl</span>
+          <strong><%= selectedAnimal ? selectedAnimal.name : 'Kein Tier' %></strong>
+          <small><%= selectedAnimal ? (selectedAnimal.species_name || 'Tier') : 'Bitte links ein Tier auswählen' %></small>
+        </article>
+        <article class="animals-summary-card">
+          <span>Nächster Termin</span>
+          <strong><%= selectedAnimal?.next_term?.type || 'Offen' %></strong>
+          <small><%= selectedAnimal?.next_term?.displayLabel || 'Noch kein Termin hinterlegt' %></small>
+        </article>
+      </div>
+    </section>
+
     <section class="panel animals-filter-panel">
       <form method="get" action="/animals" class="filter-row animals-filter-grid">
         <label class="search-autocomplete-field full-width">
@@ -49,8 +71,8 @@
 
     <section class="panel animals-list-panel">
       <div class="panel-head">
-        <h2>Tierbestand</h2>
-        <span class="counter"><%= pagination.totalCount %> Einträge</span>
+        <h2>Liste</h2>
+        <span class="counter"><%= animals.length %> sichtbar</span>
       </div>
 
       <% if (animals.length === 0) { %>
@@ -107,6 +129,18 @@
 
   <section class="animals-detail-pane">
     <% if (selectedAnimal && selectedAnimalView) { %>
+      <section class="panel animals-detail-intro">
+        <div class="animals-detail-intro-head">
+          <div>
+            <p class="eyebrow">Ausgewähltes Tier</p>
+            <h2><%= selectedAnimal.name %></h2>
+          </div>
+          <div class="animals-detail-intro-meta">
+            <span class="pill"><%= selectedAnimal.status %></span>
+            <span><%= selectedAnimal.species_name || 'Tier' %></span>
+          </div>
+        </div>
+      </section>
       <%- include('./animal-show', { pageTitle: selectedAnimal.name, embedded: true, ...selectedAnimalView }) %>
     <% } else { %>
       <section class="panel animals-empty-detail">
