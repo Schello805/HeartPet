@@ -1,12 +1,17 @@
 <%- include('../partials/top', { pageTitle }) %>
-<% const masterEditState = typeof masterEdit !== 'undefined' && masterEdit ? masterEdit : { categoryId: null, speciesId: null, veterinarianId: null }; %>
+<% const queryEditState = typeof currentQuery !== 'undefined' && currentQuery ? currentQuery : {}; %>
+<% const masterEditState = typeof masterEdit !== 'undefined' && masterEdit ? masterEdit : {
+  categoryId: Number(queryEditState.editCategory || 0) || null,
+  speciesId: Number(queryEditState.editSpecies || 0) || null,
+  veterinarianId: Number(queryEditState.editVeterinarian || 0) || null
+}; %>
 <% const defaultVetIdState = typeof defaultVeterinarianId !== 'undefined' && defaultVeterinarianId ? String(defaultVeterinarianId) : ''; %>
 <% const isCategoryEdit = Boolean(masterEditState.categoryId); %>
 <% const isVeterinarianEdit = Boolean(masterEditState.veterinarianId); %>
 <% const isSpeciesEdit = Boolean(masterEditState.speciesId); %>
 
 <section class="accordion-stack">
-  <details class="accordion-item" <%= isVeterinarianEdit || isSpeciesEdit ? '' : 'open' %>>
+  <details id="stammdaten-kategorien" class="accordion-item" <%= isVeterinarianEdit || isSpeciesEdit ? '' : 'open' %>>
     <summary>Dokumentkategorien</summary>
     <div class="accordion-content">
       <div class="stack compact-list">
@@ -30,7 +35,7 @@
                 <p><%= category.is_required ? 'Pflichtkategorie' : 'Optional' %></p>
               </div>
               <div class="inline-actions">
-                <a href="/admin/stammdaten?editCategory=<%= category.id %>" class="button button-secondary">Bearbeiten</a>
+                <a href="/admin/stammdaten?editCategory=<%= category.id %>#stammdaten-kategorien" data-no-soft-nav="true" class="button button-secondary">Bearbeiten</a>
                 <form method="post" action="/admin/categories/<%= category.id %>/delete" data-confirm="Dokumentkategorie wirklich löschen?">
                   <button type="submit" class="button button-danger">Löschen</button>
                 </form>
@@ -50,7 +55,7 @@
     </div>
   </details>
 
-  <details class="accordion-item" <%= isVeterinarianEdit ? 'open' : '' %>>
+  <details id="stammdaten-tieraerzte" class="accordion-item" <%= isVeterinarianEdit ? 'open' : '' %>>
     <summary>Tierärzte</summary>
     <div class="accordion-content">
       <div class="stack compact-list">
@@ -83,7 +88,7 @@
                 <p><%= vet.phone || '-' %> | <%= vet.email || '-' %></p>
               </div>
               <div class="inline-actions">
-                <a href="/admin/stammdaten?editVeterinarian=<%= vet.id %>" class="button button-secondary">Bearbeiten</a>
+                <a href="/admin/stammdaten?editVeterinarian=<%= vet.id %>#stammdaten-tieraerzte" data-no-soft-nav="true" class="button button-secondary">Bearbeiten</a>
                 <% if (defaultVetIdState !== String(vet.id)) { %>
                   <form method="post" action="/admin/veterinarians/<%= vet.id %>/set-default">
                     <button type="submit" class="button button-secondary">Als Standard markieren</button>
@@ -113,7 +118,7 @@
     </div>
   </details>
 
-  <details class="accordion-item" <%= isSpeciesEdit ? 'open' : '' %>>
+  <details id="stammdaten-tierarten" class="accordion-item" <%= isSpeciesEdit ? 'open' : '' %>>
     <summary>Tierarten</summary>
     <div class="accordion-content">
       <div class="stack compact-list">
@@ -140,7 +145,7 @@
                 <p>Standard Tierarzt: <%= item.veterinarian_name || '-' %></p>
               </div>
               <div class="inline-actions">
-                <a href="/admin/stammdaten?editSpecies=<%= item.id %>" class="button button-secondary">Bearbeiten</a>
+                <a href="/admin/stammdaten?editSpecies=<%= item.id %>#stammdaten-tierarten" data-no-soft-nav="true" class="button button-secondary">Bearbeiten</a>
                 <form method="post" action="/admin/species/<%= item.id %>/delete" data-confirm="Tierart wirklich löschen?">
                   <button type="submit" class="button button-danger">Löschen</button>
                 </form>
