@@ -1423,7 +1423,7 @@ app.post("/admin/test-email", requireAdmin, async (req, res) => {
   res.redirect("/admin/benachrichtigungen");
 });
 
-app.post("/admin/test-smtp-connection", requireAdmin, async (req, res) => {
+async function handleSmtpConnectionTest(req, res) {
   try {
     await verifySmtpConnection(getSettingsObject(db));
     createNotificationLog({
@@ -1449,6 +1449,27 @@ app.post("/admin/test-smtp-connection", requireAdmin, async (req, res) => {
     });
     setFlash(req, "error", `SMTP-Verbindung fehlgeschlagen: ${error.message}`);
   }
+  res.redirect("/admin/benachrichtigungen");
+}
+
+[
+  "/admin/test-smtp-connection",
+  "/test-smtp-connection",
+  "/admin/benachrichtigungen/test-smtp-connection",
+].forEach((path) => {
+  app.post(path, requireAdmin, handleSmtpConnectionTest);
+});
+
+app.get("/admin/test-smtp-connection", requireAdmin, (req, res) => {
+  setFlash(req, "error", "SMTP-Test bitte über den Button im Bereich Benachrichtigungen starten.");
+  res.redirect("/admin/benachrichtigungen");
+});
+app.get("/test-smtp-connection", requireAdmin, (req, res) => {
+  setFlash(req, "error", "SMTP-Test bitte über den Button im Bereich Benachrichtigungen starten.");
+  res.redirect("/admin/benachrichtigungen");
+});
+app.get("/admin/benachrichtigungen/test-smtp-connection", requireAdmin, (req, res) => {
+  setFlash(req, "error", "SMTP-Test bitte über den Button im Bereich Benachrichtigungen starten.");
   res.redirect("/admin/benachrichtigungen");
 });
 
