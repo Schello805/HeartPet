@@ -1,5 +1,6 @@
 <%- include('../partials/top', { pageTitle }) %>
 <% const masterEditState = typeof masterEdit !== 'undefined' && masterEdit ? masterEdit : { categoryId: null, speciesId: null, veterinarianId: null }; %>
+<% const defaultVetIdState = typeof defaultVeterinarianId !== 'undefined' && defaultVeterinarianId ? String(defaultVeterinarianId) : ''; %>
 
 <section class="accordion-stack">
   <details class="accordion-item" open>
@@ -72,7 +73,7 @@
             <div class="list-card static-card">
               <div>
                 <strong><%= vet.name %></strong>
-                <% if (String(defaultVeterinarianId || '') === String(vet.id)) { %>
+                <% if (defaultVetIdState === String(vet.id)) { %>
                   <p><span class="status-chip status-ok">Standardtierarzt</span></p>
                 <% } %>
                 <p><%= [vet.street, vet.postal_code, vet.city, vet.country].filter(Boolean).join(', ') || 'Keine Adresse' %></p>
@@ -80,7 +81,7 @@
               </div>
               <div class="inline-actions">
                 <a href="/admin/stammdaten?editVeterinarian=<%= vet.id %>" class="button button-secondary">Bearbeiten</a>
-                <% if (String(defaultVeterinarianId || '') !== String(vet.id)) { %>
+                <% if (defaultVetIdState !== String(vet.id)) { %>
                   <form method="post" action="/admin/veterinarians/<%= vet.id %>/set-default">
                     <button type="submit" class="button button-secondary">Als Standard markieren</button>
                   </form>
