@@ -1,9 +1,12 @@
 <%- include('../partials/top', { pageTitle }) %>
 <% const masterEditState = typeof masterEdit !== 'undefined' && masterEdit ? masterEdit : { categoryId: null, speciesId: null, veterinarianId: null }; %>
 <% const defaultVetIdState = typeof defaultVeterinarianId !== 'undefined' && defaultVeterinarianId ? String(defaultVeterinarianId) : ''; %>
+<% const isCategoryEdit = Boolean(masterEditState.categoryId); %>
+<% const isVeterinarianEdit = Boolean(masterEditState.veterinarianId); %>
+<% const isSpeciesEdit = Boolean(masterEditState.speciesId); %>
 
 <section class="accordion-stack">
-  <details class="accordion-item" open>
+  <details class="accordion-item" <%= isVeterinarianEdit || isSpeciesEdit ? '' : 'open' %>>
     <summary>Dokumentkategorien</summary>
     <div class="accordion-content">
       <div class="stack compact-list">
@@ -47,7 +50,7 @@
     </div>
   </details>
 
-  <details class="accordion-item">
+  <details class="accordion-item" <%= isVeterinarianEdit ? 'open' : '' %>>
     <summary>Tierärzte</summary>
     <div class="accordion-content">
       <div class="stack compact-list">
@@ -110,7 +113,7 @@
     </div>
   </details>
 
-  <details class="accordion-item">
+  <details class="accordion-item" <%= isSpeciesEdit ? 'open' : '' %>>
     <summary>Tierarten</summary>
     <div class="accordion-content">
       <div class="stack compact-list">
