@@ -161,3 +161,15 @@ test("CRUD-Updates für Stammdaten funktionieren", async () => {
   });
   assert.equal(updateVet.status, 302);
 });
+
+test("Admin-Drawer-Routen sind erreichbar", async () => {
+  const userDrawer = await agent.get("/admin/users/new");
+  assert.equal(userDrawer.status, 200);
+  assert.match(userDrawer.text, /Benutzer anlegen/i);
+  assert.match(userDrawer.text, /data-drawer-fragment="admin-user"/i);
+
+  const categoryDrawer = await agent.get("/admin/categories/new");
+  assert.equal(categoryDrawer.status, 200);
+  assert.match(categoryDrawer.text, /Neue Dokumentkategorie/i);
+  assert.match(categoryDrawer.text, /data-drawer-fragment="masterdata-form"/i);
+});

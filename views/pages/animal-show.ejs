@@ -46,7 +46,10 @@
   </div>
   <div class="hero-actions">
     <% if (permissions.canEditAnimals) { %>
-      <a href="/animals/<%= animal.id %>/edit" class="button">Bearbeiten</a>
+      <a href="/animals/<%= animal.id %>/edit" class="button icon-button" aria-label="Tier bearbeiten" title="Bearbeiten" data-drawer="animal-form">
+        <span aria-hidden="true">✎</span>
+        <span class="visually-hidden">Bearbeiten</span>
+      </a>
     <% } %>
     <a href="/animals/<%= animal.id %>/export/pdf" class="button button-secondary">PDF Export</a>
   </div>
@@ -96,9 +99,15 @@
                 </div>
                 <% if (permissions.canManageFeedings) { %>
                   <div class="inline-actions">
-                    <a href="/animals/<%= animal.id %>?editType=feeding&editId=<%= item.id %>" class="button button-secondary">Bearbeiten</a>
+                    <a href="/animals/<%= animal.id %>?editType=feeding&editId=<%= item.id %>" class="button button-secondary icon-button" aria-label="Fütterung bearbeiten" title="Bearbeiten">
+                      <span aria-hidden="true">✎</span>
+                      <span class="visually-hidden">Bearbeiten</span>
+                    </a>
                     <form method="post" action="/animals/<%= animal.id %>/feedings/<%= item.id %>/delete" data-confirm="Eintrag wirklich löschen?">
-                      <button type="submit" class="button button-danger">Löschen</button>
+                      <button type="submit" class="button button-danger icon-button" aria-label="Fütterung löschen" title="Löschen">
+                        <span aria-hidden="true">🗑</span>
+                        <span class="visually-hidden">Löschen</span>
+                      </button>
                     </form>
                   </div>
                 <% } %>
@@ -144,9 +153,15 @@
                 </div>
                 <% if (permissions.canManageNotes) { %>
                   <div class="inline-actions">
-                    <a href="/animals/<%= animal.id %>?editType=note&editId=<%= item.id %>" class="button button-secondary">Bearbeiten</a>
+                    <a href="/animals/<%= animal.id %>?editType=note&editId=<%= item.id %>" class="button button-secondary icon-button" aria-label="Protokoll bearbeiten" title="Bearbeiten">
+                      <span aria-hidden="true">✎</span>
+                      <span class="visually-hidden">Bearbeiten</span>
+                    </a>
                     <form method="post" action="/animals/<%= animal.id %>/notes/<%= item.id %>/delete" data-confirm="Eintrag wirklich löschen?">
-                      <button type="submit" class="button button-danger">Löschen</button>
+                      <button type="submit" class="button button-danger icon-button" aria-label="Protokoll löschen" title="Löschen">
+                        <span aria-hidden="true">🗑</span>
+                        <span class="visually-hidden">Löschen</span>
+                      </button>
                     </form>
                   </div>
                 <% } %>
@@ -264,9 +279,15 @@
                 </div>
                 <% if (permissions.canManageHealth) { %>
                   <div class="inline-actions">
-                    <a href="/animals/<%= animal.id %>?editType=condition&editId=<%= item.id %>" class="button button-secondary">Bearbeiten</a>
+                    <a href="/animals/<%= animal.id %>?editType=condition&editId=<%= item.id %>" class="button button-secondary icon-button" aria-label="Vorerkrankung bearbeiten" title="Bearbeiten">
+                      <span aria-hidden="true">✎</span>
+                      <span class="visually-hidden">Bearbeiten</span>
+                    </a>
                     <form method="post" action="/animals/<%= animal.id %>/conditions/<%= item.id %>/delete" data-confirm="Eintrag wirklich löschen?">
-                      <button type="submit" class="button button-danger">Löschen</button>
+                      <button type="submit" class="button button-danger icon-button" aria-label="Vorerkrankung löschen" title="Löschen">
+                        <span aria-hidden="true">🗑</span>
+                        <span class="visually-hidden">Löschen</span>
+                      </button>
                     </form>
                   </div>
                 <% } %>
@@ -336,9 +357,15 @@
                 </div>
                 <% if (permissions.canManageHealth) { %>
                   <div class="inline-actions">
-                    <a href="/animals/<%= animal.id %>?editType=medication&editId=<%= item.id %>" class="button button-secondary">Bearbeiten</a>
+                    <a href="/animals/<%= animal.id %>?editType=medication&editId=<%= item.id %>" class="button button-secondary icon-button" aria-label="Medikament bearbeiten" title="Bearbeiten">
+                      <span aria-hidden="true">✎</span>
+                      <span class="visually-hidden">Bearbeiten</span>
+                    </a>
                     <form method="post" action="/animals/<%= animal.id %>/medications/<%= item.id %>/delete" data-confirm="Eintrag wirklich löschen?">
-                      <button type="submit" class="button button-danger">Löschen</button>
+                      <button type="submit" class="button button-danger icon-button" aria-label="Medikament löschen" title="Löschen">
+                        <span aria-hidden="true">🗑</span>
+                        <span class="visually-hidden">Löschen</span>
+                      </button>
                     </form>
                   </div>
                 <% } %>
@@ -396,9 +423,15 @@
                 </div>
                 <% if (permissions.canManageHealth) { %>
                   <div class="inline-actions">
-                    <a href="/animals/<%= animal.id %>?editType=vaccination&editId=<%= item.id %>" class="button button-secondary">Bearbeiten</a>
+                    <a href="/animals/<%= animal.id %>?editType=vaccination&editId=<%= item.id %>" class="button button-secondary icon-button" aria-label="Impfung bearbeiten" title="Bearbeiten">
+                      <span aria-hidden="true">✎</span>
+                      <span class="visually-hidden">Bearbeiten</span>
+                    </a>
                     <form method="post" action="/animals/<%= animal.id %>/vaccinations/<%= item.id %>/delete" data-confirm="Eintrag wirklich löschen?">
-                      <button type="submit" class="button button-danger">Löschen</button>
+                      <button type="submit" class="button button-danger icon-button" aria-label="Impfung löschen" title="Löschen">
+                        <span aria-hidden="true">🗑</span>
+                        <span class="visually-hidden">Löschen</span>
+                      </button>
                     </form>
                   </div>
                 <% } %>
@@ -467,9 +500,15 @@
                 </div>
                 <% if (permissions.canManageHealth) { %>
                   <div class="inline-actions">
-                    <a href="/animals/<%= animal.id %>?editType=appointment&editId=<%= item.id %>" class="button button-secondary">Bearbeiten</a>
+                    <a href="/animals/<%= animal.id %>?editType=appointment&editId=<%= item.id %>" class="button button-secondary icon-button" aria-label="Arzttermin bearbeiten" title="Bearbeiten">
+                      <span aria-hidden="true">✎</span>
+                      <span class="visually-hidden">Bearbeiten</span>
+                    </a>
                     <form method="post" action="/animals/<%= animal.id %>/appointments/<%= item.id %>/delete" data-confirm="Arzttermin wirklich löschen?">
-                      <button type="submit" class="button button-danger">Löschen</button>
+                      <button type="submit" class="button button-danger icon-button" aria-label="Arzttermin löschen" title="Löschen">
+                        <span aria-hidden="true">🗑</span>
+                        <span class="visually-hidden">Löschen</span>
+                      </button>
                     </form>
                   </div>
                 <% } %>
@@ -537,9 +576,15 @@
                         <button type="submit" class="button button-secondary">Wieder öffnen</button>
                       </form>
                     <% } %>
-                    <a href="/animals/<%= animal.id %>?editType=reminder&editId=<%= item.id %>" class="button button-secondary">Bearbeiten</a>
+                    <a href="/animals/<%= animal.id %>?editType=reminder&editId=<%= item.id %>" class="button button-secondary icon-button" aria-label="Erinnerung bearbeiten" title="Bearbeiten">
+                      <span aria-hidden="true">✎</span>
+                      <span class="visually-hidden">Bearbeiten</span>
+                    </a>
                     <form method="post" action="/animals/<%= animal.id %>/reminders/<%= item.id %>/delete" data-confirm="Erinnerung wirklich löschen?">
-                      <button type="submit" class="button button-danger">Löschen</button>
+                      <button type="submit" class="button button-danger icon-button" aria-label="Erinnerung löschen" title="Löschen">
+                        <span aria-hidden="true">🗑</span>
+                        <span class="visually-hidden">Löschen</span>
+                      </button>
                     </form>
                   </div>
                 <% } %>
@@ -600,7 +645,10 @@
                         <button type="submit" class="button button-secondary">Als Profilbild</button>
                       </form>
                       <form method="post" action="/animals/<%= animal.id %>/images/<%= item.id %>/delete" data-confirm="Galeriebild wirklich löschen?">
-                        <button type="submit" class="button button-danger">Löschen</button>
+                        <button type="submit" class="button button-danger icon-button" aria-label="Galeriebild löschen" title="Löschen">
+                          <span aria-hidden="true">🗑</span>
+                          <span class="visually-hidden">Löschen</span>
+                        </button>
                       </form>
                     </div>
                   <% } %>
@@ -680,9 +728,15 @@
                     </a>
                     <% if (permissions.canManageDocuments) { %>
                       <div class="inline-actions">
-                        <a href="/animals/<%= animal.id %>?editType=document&editId=<%= item.id %>" class="button button-secondary">Bearbeiten</a>
+                        <a href="/animals/<%= animal.id %>?editType=document&editId=<%= item.id %>" class="button button-secondary icon-button" aria-label="Dokument bearbeiten" title="Bearbeiten">
+                          <span aria-hidden="true">✎</span>
+                          <span class="visually-hidden">Bearbeiten</span>
+                        </a>
                         <form method="post" action="/animals/<%= animal.id %>/documents/<%= item.id %>/delete" data-confirm="Dokument wirklich löschen?">
-                          <button type="submit" class="button button-danger">Löschen</button>
+                          <button type="submit" class="button button-danger icon-button" aria-label="Dokument löschen" title="Löschen">
+                            <span aria-hidden="true">🗑</span>
+                            <span class="visually-hidden">Löschen</span>
+                          </button>
                         </form>
                       </div>
                     <% } %>

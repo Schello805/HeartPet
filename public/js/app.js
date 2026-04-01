@@ -121,41 +121,258 @@ function initSidebarGroups() {
   });
 }
 
-function initSpeciesAutocomplete() {
-  const input = document.querySelector("[data-species-autocomplete='true']");
-  const datalist = document.querySelector("#species-suggestions");
-  if (!input || !datalist || input.dataset.bound === "1") {
+function closeToast(toast) {
+  if (!toast || toast.dataset.closing === "1") {
     return;
   }
 
-  input.dataset.bound = "1";
-  let timer = null;
-  input.addEventListener("input", () => {
-    window.clearTimeout(timer);
-    const query = input.value.trim();
-    if (query.length < 2) {
+  toast.dataset.closing = "1";
+  toast.classList.add("is-closing");
+  window.setTimeout(() => {
+    toast.remove();
+  }, 180);
+}
+
+function mountToast({ type = "success", message = "", title = "" }) {
+  const viewport = document.querySelector(".toast-viewport");
+  if (!viewport || !message) {
+    return;
+  }
+
+  const toast = document.createElement("div");
+  toast.className = `flash toast flash-${type}`;
+  toast.setAttribute("data-toast", "");
+  toast.innerHTML = `
+    <div class="toast-body">
+      <strong class="toast-title">${title || (type === "error" ? "Fehler" : "Erfolg")}</strong>
+      <div class="toast-message"></div>
+    </div>
+    <button type="button" class="toast-close" data-toast-close aria-label="Meldung schließen">×</button>
+  `;
+  toast.querySelector(".toast-message").textContent = message;
+  viewport.appendChild(toast);
+  bindToast(toast);
+}
+
+function bindToast(toast) {
+  if (!toast || toast.dataset.bound === "1") {
+    return;
+  }
+
+  toast.dataset.bound = "1";
+  const closeButton = toast.querySelector("[data-toast-close]");
+  closeButton?.addEventListener("click", () => closeToast(toast));
+
+  const type = toast.classList.contains("flash-error") ? "error" : "success";
+  const timeout = type === "error" ? 7000 : 4200;
+  window.setTimeout(() => closeToast(toast), timeout);
+}
+
+function initToasts() {
+  document.querySelectorAll("[data-toast]").forEach((toast) => bindToast(toast));
+}
+
+function initDrawerForms(scope = document) {
+  scope.querySelectorAll("form[data-drawer-form]").forEach((form) => {
+    if (form.dataset.bound === "1") {
       return;
     }
 
-    timer = window.setTimeout(async () => {
-      try {
-        const response = await fetch(`/api/species/search?q=${encodeURIComponent(query)}`);
-        if (!response.ok) {
-          return;
-        }
-
-        const payload = await response.json();
-        if (!Array.isArray(payload.results)) {
-          return;
-        }
-
-        datalist.innerHTML = payload.results
-          .map((name) => `<option value="${String(name).replace(/"/g, "&quot;")}"></option>`)
-          .join("");
-      } catch (error) {
-        console.error("Tierarten-Autovervollständigung konnte nicht geladen werden", error);
+    form.dataset.bound = "1";
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      resetCustomValidation(form);
+      const invalidField = applyGermanValidationMessages(form);
+      if (invalidField) {
+        invalidField.reportValidity();
+        return;
       }
-    }, 180);
+
+      try {
+        const response = await fetch(form.action, {
+          method: form.method || "POST",
+          body: new FormData(form),
+          headers: {
+            "X-Requested-With": "heartpet-drawer",
+          },
+          credentials: "same-origin",
+        });
+
+        const text = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, "text/html");
+        const fragment = doc.querySelector("[data-drawer-fragment]");
+        const flash = doc.querySelector(".flash");
+        const drawerBody = document.querySelector("[data-drawer-body]");
+
+        if (fragment && drawerBody) {
+          drawerBody.innerHTML = "";
+          if (flash) {
+            const type = flash.classList.contains("flash-error") ? "error" : "success";
+            const message = flash.querySelector(".toast-message")?.textContent?.trim() || flash.textContent.trim();
+            const title = flash.querySelector(".toast-title")?.textContent?.trim() || "";
+            mountToast({ type, message, title });
+          }
+          drawerBody.appendChild(fragment.cloneNode(true));
+          const title = fragment.getAttribute("data-drawer-title") || doc.title || "Bearbeiten";
+          const drawerTitle = document.querySelector("#drawer-title");
+          if (drawerTitle) {
+            drawerTitle.textContent = title.replace(/\s+\|.*$/, "");
+          }
+          initDrawerForms(drawerBody);
+          initSpeciesAutocomplete();
+          initRequiredMarks();
+          return;
+        }
+
+        closeDrawer();
+        const targetUrl = new URL(response.url || window.location.href, window.location.href);
+        navigateTo(targetUrl, { push: targetUrl.toString() !== window.location.href, scrollTop: false });
+      } catch (error) {
+        console.error("Drawer-Formular konnte nicht gespeichert werden", error);
+        window.location.href = form.action;
+      }
+    });
+  });
+}
+
+async function openDrawer(urlLike) {
+  const drawer = document.getElementById("app-drawer");
+  const drawerBody = drawer?.querySelector("[data-drawer-body]");
+  const drawerTitle = drawer?.querySelector("#drawer-title");
+  if (!drawer || !drawerBody || !drawerTitle) {
+    window.location.href = urlLike;
+    return;
+  }
+
+  try {
+    const targetUrl = new URL(urlLike, window.location.href);
+    if (!targetUrl.searchParams.get("return_to")) {
+      targetUrl.searchParams.set("return_to", `${window.location.pathname}${window.location.search}${window.location.hash}`);
+    }
+
+    drawer.classList.add("open");
+    drawer.setAttribute("aria-hidden", "false");
+    document.body.classList.add("drawer-open");
+    drawerBody.innerHTML = '<div class="panel"><p class="empty-state">Lade Formular ...</p></div>';
+
+    const response = await fetch(targetUrl.toString(), {
+      headers: {
+        "X-Requested-With": "heartpet-drawer",
+      },
+      credentials: "same-origin",
+    });
+
+    if (!response.ok) {
+      window.location.href = targetUrl.toString();
+      return;
+    }
+
+    const html = await response.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const fragment = doc.querySelector("[data-drawer-fragment]");
+    if (!fragment) {
+      window.location.href = targetUrl.toString();
+      return;
+    }
+
+    drawerBody.innerHTML = "";
+    drawerBody.appendChild(fragment.cloneNode(true));
+    drawerTitle.textContent = fragment.getAttribute("data-drawer-title") || "Bearbeiten";
+    initDrawerForms(drawerBody);
+    initSpeciesAutocomplete();
+    initRequiredMarks();
+  } catch (error) {
+    console.error("Drawer konnte nicht geladen werden", error);
+    window.location.href = urlLike;
+  }
+}
+
+function closeDrawer() {
+  const drawer = document.getElementById("app-drawer");
+  const drawerBody = drawer?.querySelector("[data-drawer-body]");
+  if (!drawer || !drawerBody) {
+    return;
+  }
+
+  drawer.classList.remove("open");
+  drawer.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("drawer-open");
+  window.setTimeout(() => {
+    if (!drawer.classList.contains("open")) {
+      drawerBody.innerHTML = "";
+    }
+  }, 180);
+}
+
+function initDrawerNavigation() {
+  document.querySelectorAll("a[data-drawer]").forEach((anchor) => {
+    if (anchor.dataset.bound === "1") {
+      return;
+    }
+    anchor.dataset.bound = "1";
+    anchor.dataset.noSoftNav = "true";
+    anchor.addEventListener("click", (event) => {
+      event.preventDefault();
+      openDrawer(anchor.href);
+    });
+  });
+
+  document.querySelectorAll("[data-drawer-close]").forEach((button) => {
+    if (button.dataset.bound === "1") {
+      return;
+    }
+    button.dataset.bound = "1";
+    button.addEventListener("click", () => closeDrawer());
+  });
+
+  if (!document.body.dataset.drawerEscBound) {
+    document.body.dataset.drawerEscBound = "1";
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        closeDrawer();
+      }
+    });
+  }
+}
+
+function initSpeciesAutocomplete() {
+  document.querySelectorAll("[data-species-autocomplete='true']").forEach((input) => {
+    const datalist = input.parentElement?.querySelector("#species-suggestions") || document.querySelector("#species-suggestions");
+    if (!datalist || input.dataset.bound === "1") {
+      return;
+    }
+
+    input.dataset.bound = "1";
+    let timer = null;
+    input.addEventListener("input", () => {
+      window.clearTimeout(timer);
+      const query = input.value.trim();
+      if (query.length < 2) {
+        return;
+      }
+
+      timer = window.setTimeout(async () => {
+        try {
+          const response = await fetch(`/api/species/search?q=${encodeURIComponent(query)}`);
+          if (!response.ok) {
+            return;
+          }
+
+          const payload = await response.json();
+          if (!Array.isArray(payload.results)) {
+            return;
+          }
+
+          datalist.innerHTML = payload.results
+            .map((name) => `<option value="${String(name).replace(/"/g, "&quot;")}"></option>`)
+            .join("");
+        } catch (error) {
+          console.error("Tierarten-Autovervollständigung konnte nicht geladen werden", error);
+        }
+      }, 180);
+    });
   });
 }
 
@@ -421,6 +638,9 @@ function canSoftNavigate(url, anchor) {
   if (url.origin !== window.location.origin) {
     return false;
   }
+  if (anchor.dataset.drawer) {
+    return false;
+  }
   if (anchor.target && anchor.target !== "_self") {
     return false;
   }
@@ -535,6 +755,9 @@ function initPage() {
   initSoftNavigation();
   initMobileNavToggle();
   initSidebarGroups();
+  initToasts();
+  initDrawerNavigation();
+  initDrawerForms();
   initSpeciesAutocomplete();
   initRequiredMarks();
   initProfileUploadAutoSubmit();

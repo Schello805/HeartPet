@@ -1,0 +1,56 @@
+<section class="panel drawer-fragment" data-drawer-fragment="admin-user" data-drawer-title="<%= mode === 'edit' ? 'Benutzer bearbeiten' : 'Benutzer anlegen' %>">
+  <div class="panel-head">
+    <h2><%= mode === 'edit' ? 'Benutzer bearbeiten' : 'Benutzer anlegen' %></h2>
+  </div>
+
+  <form method="post" action="<%= mode === 'edit' ? `/admin/users/${item.id}/save` : '/admin/users' %>" class="stack form-compact" data-drawer-form="admin-user">
+    <input type="hidden" name="return_to" value="<%= returnTo || '/admin/benutzer' %>" />
+    <div class="form-grid">
+      <label>
+        <span>Name</span>
+        <input type="text" name="name" required value="<%= item?.name || '' %>" />
+      </label>
+      <label>
+        <span>E-Mail</span>
+        <input type="email" name="email" required value="<%= item?.email || '' %>" />
+      </label>
+    </div>
+
+    <% if (mode !== 'edit') { %>
+      <label>
+        <span>Startpasswort</span>
+        <input type="password" name="password" required placeholder="Temporäres Passwort" />
+      </label>
+      <label class="checkbox-line">
+        <input type="checkbox" name="send_invite_email" value="1" checked />
+        Einladungs-Mail mit Login-Link senden
+      </label>
+    <% } else { %>
+      <small>E-Mail-Änderungen werden erst nach Bestätigung durch den Nutzer wirksam.</small>
+    <% } %>
+
+    <label>
+      <span>Rolle</span>
+      <select name="role">
+        <option value="admin" <%= (item?.role || 'viewer') === 'admin' ? 'selected' : '' %>>Admin</option>
+        <option value="user" <%= (item?.role || 'viewer') === 'user' ? 'selected' : '' %>>Benutzer</option>
+        <option value="viewer" <%= (item?.role || 'viewer') === 'viewer' ? 'selected' : '' %>>Nur Lesen</option>
+      </select>
+    </label>
+
+    <div class="permission-grid">
+      <label class="checkbox-line"><input type="checkbox" name="can_edit_animals" <%= mode === 'edit' ? (item?.can_edit_animals ? 'checked' : '') : 'checked' %> /> Tier-Stammdaten</label>
+      <label class="checkbox-line"><input type="checkbox" name="can_manage_documents" <%= mode === 'edit' ? (item?.can_manage_documents ? 'checked' : '') : 'checked' %> /> Dokumente</label>
+      <label class="checkbox-line"><input type="checkbox" name="can_manage_gallery" <%= mode === 'edit' ? (item?.can_manage_gallery ? 'checked' : '') : 'checked' %> /> Galerie & Profilbilder</label>
+      <label class="checkbox-line"><input type="checkbox" name="can_manage_health" <%= mode === 'edit' ? (item?.can_manage_health ? 'checked' : '') : 'checked' %> /> Medikamente, Impfungen, Krankheiten</label>
+      <label class="checkbox-line"><input type="checkbox" name="can_manage_feedings" <%= mode === 'edit' ? (item?.can_manage_feedings ? 'checked' : '') : 'checked' %> /> Fütterungen</label>
+      <label class="checkbox-line"><input type="checkbox" name="can_manage_notes" <%= mode === 'edit' ? (item?.can_manage_notes ? 'checked' : '') : 'checked' %> /> Protokolle</label>
+      <label class="checkbox-line"><input type="checkbox" name="can_manage_reminders" <%= mode === 'edit' ? (item?.can_manage_reminders ? 'checked' : '') : 'checked' %> /> Erinnerungen</label>
+    </div>
+
+    <div class="button-row">
+      <button type="submit" class="button"><%= mode === 'edit' ? 'Benutzer speichern' : 'Benutzer anlegen' %></button>
+      <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
+    </div>
+  </form>
+</section>

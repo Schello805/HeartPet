@@ -454,14 +454,16 @@ app.get("/animals/new", requireAnimalEditor, (req, res) => {
     animal: null,
     species: db.prepare("SELECT * FROM species ORDER BY name ASC").all(),
     veterinarians: db.prepare("SELECT * FROM veterinarians ORDER BY name ASC").all(),
+    returnTo: getAnimalReturnTo(req, "/animals"),
   });
 });
 
 app.post("/animals", requireAnimalEditor, (req, res) => {
   const payload = normalizeAnimalPayload(req.body);
+  const returnTo = safeLocalReturnPath(req.body.return_to, "/animals");
   if (!payload.name || !payload.species_id) {
     setFlash(req, "error", "Name und Tierart sind Pflichtfelder.");
-    return res.redirect("/animals/new");
+    return res.redirect(`/animals/new?return_to=${encodeURIComponent(returnTo)}`);
   }
 
   const result = db.prepare(`
@@ -476,7 +478,7 @@ app.post("/animals", requireAnimalEditor, (req, res) => {
   `).run(payload);
 
   setFlash(req, "success", "Tier wurde angelegt.");
-  res.redirect(`/animals/${result.lastInsertRowid}`);
+  res.redirect(returnTo || `/animals/${result.lastInsertRowid}`);
 });
 
 app.get("/animals/:id", (req, res) => {
@@ -527,6 +529,7 @@ app.get("/animals/:id/edit", requireAnimalEditor, (req, res) => {
     animal,
     species: db.prepare("SELECT * FROM species ORDER BY name ASC").all(),
     veterinarians: db.prepare("SELECT * FROM veterinarians ORDER BY name ASC").all(),
+    returnTo: getAnimalReturnTo(req, `/animals/${req.params.id}`),
   });
 });
 
@@ -537,9 +540,10 @@ app.post("/animals/:id/update", requireAnimalEditor, (req, res) => {
   }
 
   const payload = normalizeAnimalPayload(req.body);
+  const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.id}`);
   if (!payload.name || !payload.species_id) {
     setFlash(req, "error", "Name und Tierart sind Pflichtfelder.");
-    return res.redirect(`/animals/${req.params.id}/edit`);
+    return res.redirect(`/animals/${req.params.id}/edit?return_to=${encodeURIComponent(returnTo)}`);
   }
   payload.id = req.params.id;
 
@@ -563,7 +567,7 @@ app.post("/animals/:id/update", requireAnimalEditor, (req, res) => {
   `).run(payload);
 
   setFlash(req, "success", "Tierdaten wurden aktualisiert.");
-  res.redirect(`/animals/${req.params.id}`);
+  res.redirect(returnTo);
 });
 
 app.post("/animals/:id/events", (req, res) => {
@@ -1303,6 +1307,78 @@ app.get("/admin/stammdaten", requireAdmin, (req, res) => {
   res.render("pages/admin-masterdata", viewData);
 });
 
+app.get("/admin/categories/new", requireAdmin, (req, res) => {
+  res.render("pages/admin-masterdata-drawer", {
+    pageTitle: "Neue Dokumentkategorie",
+    entityType: "category",
+    item: null,
+    veterinarians: [],
+    returnTo: safeLocalReturnPath(req.query.return_to, backTo(req, "/admin/stammdaten")),
+  });
+});
+
+app.get("/admin/categories/:id/edit", requireAdmin, (req, res) => {
+  const item = db.prepare("SELECT * FROM document_categories WHERE id = ?").get(req.params.id);
+  if (!item) {
+    return renderNotFound(req, res, "Dokumentkategorie nicht gefunden.");
+  }
+  res.render("pages/admin-masterdata-drawer", {
+    pageTitle: "Dokumentkategorie bearbeiten",
+    entityType: "category",
+    item,
+    veterinarians: [],
+    returnTo: safeLocalReturnPath(req.query.return_to, backTo(req, "/admin/stammdaten")),
+  });
+});
+
+app.get("/admin/veterinarians/new", requireAdmin, (req, res) => {
+  res.render("pages/admin-masterdata-drawer", {
+    pageTitle: "Neuer Tierarzt",
+    entityType: "veterinarian",
+    item: null,
+    veterinarians: [],
+    returnTo: safeLocalReturnPath(req.query.return_to, backTo(req, "/admin/stammdaten")),
+  });
+});
+
+app.get("/admin/veterinarians/:id/edit", requireAdmin, (req, res) => {
+  const item = db.prepare("SELECT * FROM veterinarians WHERE id = ?").get(req.params.id);
+  if (!item) {
+    return renderNotFound(req, res, "Tierarzt nicht gefunden.");
+  }
+  res.render("pages/admin-masterdata-drawer", {
+    pageTitle: "Tierarzt bearbeiten",
+    entityType: "veterinarian",
+    item,
+    veterinarians: [],
+    returnTo: safeLocalReturnPath(req.query.return_to, backTo(req, "/admin/stammdaten")),
+  });
+});
+
+app.get("/admin/species/new", requireAdmin, (req, res) => {
+  res.render("pages/admin-masterdata-drawer", {
+    pageTitle: "Neue Tierart",
+    entityType: "species",
+    item: null,
+    veterinarians: db.prepare("SELECT * FROM veterinarians ORDER BY name ASC").all(),
+    returnTo: safeLocalReturnPath(req.query.return_to, backTo(req, "/admin/stammdaten")),
+  });
+});
+
+app.get("/admin/species/:id/edit", requireAdmin, (req, res) => {
+  const item = db.prepare("SELECT * FROM species WHERE id = ?").get(req.params.id);
+  if (!item) {
+    return renderNotFound(req, res, "Tierart nicht gefunden.");
+  }
+  res.render("pages/admin-masterdata-drawer", {
+    pageTitle: "Tierart bearbeiten",
+    entityType: "species",
+    item,
+    veterinarians: db.prepare("SELECT * FROM veterinarians ORDER BY name ASC").all(),
+    returnTo: safeLocalReturnPath(req.query.return_to, backTo(req, "/admin/stammdaten")),
+  });
+});
+
 app.get("/admin/benutzer", requireAdmin, (req, res) => {
   const viewData = getAdminViewData("Benutzer", "/admin/benutzer");
   viewData.selfUser = db.prepare(`
@@ -1312,6 +1388,51 @@ app.get("/admin/benutzer", requireAdmin, (req, res) => {
   `).get(req.session.user.id);
   viewData.users = (viewData.users || []).filter((user) => String(user.id) !== String(req.session.user.id));
   res.render("pages/admin-users", viewData);
+});
+
+app.get("/admin/users/new", requireAdmin, (req, res) => {
+  res.render("pages/admin-user-drawer", {
+    pageTitle: "Benutzer anlegen",
+    mode: "create",
+    item: null,
+    returnTo: safeLocalReturnPath(req.query.return_to, backTo(req, "/admin/benutzer")),
+  });
+});
+
+app.get("/admin/benutzer/neu", requireAdmin, (req, res) => {
+  const query = new URLSearchParams();
+  const returnTo = safeLocalReturnPath(req.query.return_to, "");
+  if (returnTo) {
+    query.set("return_to", returnTo);
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  res.redirect(`/admin/users/new${suffix}`);
+});
+
+app.get("/admin/users/:id/edit", requireAdmin, (req, res) => {
+  const item = db.prepare(`
+    SELECT
+      id, name, email, role, must_change_password,
+      can_edit_animals, can_manage_documents, can_manage_gallery, can_manage_health,
+      can_manage_feedings, can_manage_notes, can_manage_reminders
+    FROM users
+    WHERE id = ?
+  `).get(req.params.id);
+  if (!item) {
+    return renderNotFound(req, res, "Benutzer nicht gefunden.");
+  }
+
+  if (String(req.session.user.id) === String(req.params.id)) {
+    setFlash(req, "error", "Deinen eigenen Admin-Account verwaltest du im Profilbereich.");
+    return res.redirect("/admin/benutzer");
+  }
+
+  res.render("pages/admin-user-drawer", {
+    pageTitle: "Benutzer bearbeiten",
+    mode: "edit",
+    item,
+    returnTo: safeLocalReturnPath(req.query.return_to, backTo(req, "/admin/benutzer")),
+  });
 });
 
 app.get("/admin/import", requireAdmin, (req, res) => {
@@ -1511,6 +1632,7 @@ app.post("/admin/test-telegram", requireAdmin, async (req, res) => {
 });
 
 app.post("/admin/categories", requireAdmin, (req, res) => {
+  const returnTo = safeLocalReturnPath(req.body.return_to, backTo(req, "/admin/stammdaten"));
   try {
     db.prepare("INSERT INTO document_categories (name, is_required) VALUES (?, ?)")
       .run(String(req.body.name || "").trim(), req.body.is_required ? 1 : 0);
@@ -1518,10 +1640,11 @@ app.post("/admin/categories", requireAdmin, (req, res) => {
   } catch (error) {
     setFlash(req, "error", "Dokumentkategorie konnte nicht angelegt werden (Name ggf. bereits vorhanden).");
   }
-  res.redirect(backTo(req, "/admin/stammdaten"));
+  res.redirect(returnTo);
 });
 
 app.post("/admin/categories/:id/update", requireAdmin, (req, res) => {
+  const returnTo = safeLocalReturnPath(req.body.return_to, backTo(req, "/admin/stammdaten"));
   try {
     db.prepare(`
       UPDATE document_categories
@@ -1532,7 +1655,7 @@ app.post("/admin/categories/:id/update", requireAdmin, (req, res) => {
   } catch (error) {
     setFlash(req, "error", "Dokumentkategorie konnte nicht aktualisiert werden.");
   }
-  res.redirect(backTo(req, "/admin/stammdaten"));
+  res.redirect(returnTo);
 });
 
 app.post("/admin/categories/:id/delete", requireAdmin, (req, res) => {
@@ -1542,6 +1665,7 @@ app.post("/admin/categories/:id/delete", requireAdmin, (req, res) => {
 });
 
 app.post("/admin/species", requireAdmin, (req, res) => {
+  const returnTo = safeLocalReturnPath(req.body.return_to, backTo(req, "/admin/stammdaten"));
   try {
     db.prepare("INSERT INTO species (name, default_veterinarian_id, notes) VALUES (?, ?, ?)")
       .run(
@@ -1553,10 +1677,11 @@ app.post("/admin/species", requireAdmin, (req, res) => {
   } catch (error) {
     setFlash(req, "error", "Tierart konnte nicht angelegt werden (Name ggf. bereits vorhanden).");
   }
-  res.redirect(backTo(req, "/admin/stammdaten"));
+  res.redirect(returnTo);
 });
 
 app.post("/admin/species/:id/update", requireAdmin, (req, res) => {
+  const returnTo = safeLocalReturnPath(req.body.return_to, backTo(req, "/admin/stammdaten"));
   try {
     db.prepare(`
       UPDATE species
@@ -1572,7 +1697,7 @@ app.post("/admin/species/:id/update", requireAdmin, (req, res) => {
   } catch (error) {
     setFlash(req, "error", "Tierart konnte nicht aktualisiert werden.");
   }
-  res.redirect(backTo(req, "/admin/stammdaten"));
+  res.redirect(returnTo);
 });
 
 app.post("/admin/species/:id/delete", requireAdmin, (req, res) => {
@@ -1583,10 +1708,11 @@ app.post("/admin/species/:id/delete", requireAdmin, (req, res) => {
 
 app.post("/admin/veterinarians", requireAdmin, (req, res) => {
   const payload = normalizeVeterinarianPayload(req.body);
+  const returnTo = safeLocalReturnPath(req.body.return_to, backTo(req, "/admin/stammdaten"));
   const addressError = validateVeterinarianAddress(payload);
   if (addressError) {
     setFlash(req, "error", addressError);
-    return res.redirect(backTo(req, "/admin/stammdaten"));
+    return res.redirect(returnTo);
   }
 
   try {
@@ -1607,15 +1733,16 @@ app.post("/admin/veterinarians", requireAdmin, (req, res) => {
   } catch (error) {
     setFlash(req, "error", "Tierarzt konnte nicht gespeichert werden.");
   }
-  res.redirect(backTo(req, "/admin/stammdaten"));
+  res.redirect(returnTo);
 });
 
 app.post("/admin/veterinarians/:id/update", requireAdmin, (req, res) => {
   const payload = normalizeVeterinarianPayload(req.body);
+  const returnTo = safeLocalReturnPath(req.body.return_to, backTo(req, "/admin/stammdaten"));
   const addressError = validateVeterinarianAddress(payload);
   if (addressError) {
     setFlash(req, "error", addressError);
-    return res.redirect(backTo(req, "/admin/stammdaten"));
+    return res.redirect(returnTo);
   }
 
   try {
@@ -1638,7 +1765,7 @@ app.post("/admin/veterinarians/:id/update", requireAdmin, (req, res) => {
   } catch (error) {
     setFlash(req, "error", "Tierarzt konnte nicht aktualisiert werden.");
   }
-  res.redirect(backTo(req, "/admin/stammdaten"));
+  res.redirect(returnTo);
 });
 
 app.post("/admin/veterinarians/:id/set-default", requireAdmin, (req, res) => {
@@ -1662,6 +1789,7 @@ app.post("/admin/veterinarians/:id/delete", requireAdmin, (req, res) => {
 });
 
 app.post("/admin/users", requireAdmin, async (req, res) => {
+  const returnTo = safeLocalReturnPath(req.body.return_to, backTo(req, "/admin/benutzer"));
   const name = String(req.body.name || "").trim();
   const email = String(req.body.email || "").trim().toLowerCase();
   const password = String(req.body.password || "");
@@ -1669,13 +1797,13 @@ app.post("/admin/users", requireAdmin, async (req, res) => {
 
   if (!name || !email || !password) {
     setFlash(req, "error", "Name, E-Mail und Startpasswort sind Pflichtfelder.");
-    return res.redirect(backTo(req, "/admin/benutzer"));
+    return res.redirect(returnTo);
   }
 
   const duplicate = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
   if (duplicate) {
     setFlash(req, "error", "Diese E-Mail-Adresse wird bereits verwendet.");
-    return res.redirect(backTo(req, "/admin/benutzer"));
+    return res.redirect(returnTo);
   }
 
   const passwordHash = bcrypt.hashSync(password, 10);
@@ -1722,7 +1850,7 @@ app.post("/admin/users", requireAdmin, async (req, res) => {
         details: { target_user_id: userResult.lastInsertRowid },
       });
       setFlash(req, "success", `Benutzer angelegt und Einladungs-Mail an ${email} versendet.`);
-      return res.redirect(backTo(req, "/admin/benutzer"));
+      return res.redirect(returnTo);
     } catch (error) {
       console.error("[HeartPet] Einladungs-Mail fehlgeschlagen:", error.message);
       createNotificationLog({
@@ -1736,12 +1864,12 @@ app.post("/admin/users", requireAdmin, async (req, res) => {
         details: { target_user_id: userResult.lastInsertRowid },
       });
       setFlash(req, "error", `Benutzer angelegt, Einladungs-Mail an ${email} fehlgeschlagen: ${error.message}`);
-      return res.redirect(backTo(req, "/admin/benutzer"));
+      return res.redirect(returnTo);
     }
   }
 
   setFlash(req, "success", "Benutzer angelegt.");
-  res.redirect(backTo(req, "/admin/benutzer"));
+  res.redirect(returnTo);
 });
 
 app.post("/admin/users/:id/permissions", requireAdmin, (req, res) => {
@@ -1833,6 +1961,84 @@ app.post("/admin/users/:id/update", requireAdmin, async (req, res) => {
   setFlash(req, "success", "Benutzerdaten aktualisiert.");
   createAuditLog(req, "user.profile_update", { target_user_id: req.params.id, name }, { entityType: "user", entityId: req.params.id });
   res.redirect("/admin/benutzer");
+});
+
+app.post("/admin/users/:id/save", requireAdmin, async (req, res) => {
+  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.params.id);
+  if (!user) {
+    return renderNotFound(req, res, "Benutzer nicht gefunden.");
+  }
+
+  if (String(req.session.user.id) === String(req.params.id)) {
+    setFlash(req, "error", "Deinen eigenen Admin-Account verwaltest du im Profilbereich.");
+    return res.redirect("/admin/benutzer");
+  }
+
+  const returnTo = safeLocalReturnPath(req.body.return_to, "/admin/benutzer");
+  const name = String(req.body.name || "").trim();
+  const email = String(req.body.email || "").trim().toLowerCase();
+  const nextRole = String(req.body.role || user.role || "viewer");
+
+  if (!name || !email) {
+    setFlash(req, "error", "Name und E-Mail sind Pflichtfelder.");
+    return res.redirect(returnTo);
+  }
+
+  const emailChanged = email !== String(user.email || "").trim().toLowerCase();
+  if (emailChanged) {
+    const duplicate = db.prepare("SELECT id FROM users WHERE email = ? AND id != ?").get(email, req.params.id);
+    if (duplicate) {
+      setFlash(req, "error", "Diese E-Mail-Adresse wird bereits verwendet.");
+      return res.redirect(returnTo);
+    }
+  }
+
+  const userPermissions = normalizeUserPermissions(nextRole, req.body);
+  db.prepare(`
+    UPDATE users
+    SET name = ?,
+        role = ?,
+        can_edit_animals = ?,
+        can_manage_documents = ?,
+        can_manage_gallery = ?,
+        can_manage_health = ?,
+        can_manage_feedings = ?,
+        can_manage_notes = ?,
+        can_manage_reminders = ?
+    WHERE id = ?
+  `).run(
+    name,
+    nextRole,
+    userPermissions.can_edit_animals,
+    userPermissions.can_manage_documents,
+    userPermissions.can_manage_gallery,
+    userPermissions.can_manage_health,
+    userPermissions.can_manage_feedings,
+    userPermissions.can_manage_notes,
+    userPermissions.can_manage_reminders,
+    req.params.id
+  );
+
+  if (emailChanged) {
+    try {
+      await requestEmailChangeConfirmation({
+        userId: user.id,
+        requestedByUserId: req.session.user.id,
+        newEmail: email,
+        displayName: name,
+      });
+      createAuditLog(req, "user.email_change_requested", { target_user_id: req.params.id, new_email: email, role: nextRole }, { entityType: "user", entityId: req.params.id });
+      setFlash(req, "success", `Benutzer gespeichert. E-Mail-Änderung wurde an ${email} zur Bestätigung versendet.`);
+      return res.redirect(returnTo);
+    } catch (error) {
+      setFlash(req, "error", `Benutzer gespeichert, E-Mail-Änderung fehlgeschlagen: ${error.message}`);
+      return res.redirect(returnTo);
+    }
+  }
+
+  createAuditLog(req, "user.full_update", { target_user_id: req.params.id, role: nextRole, name }, { entityType: "user", entityId: req.params.id });
+  setFlash(req, "success", "Benutzer gespeichert.");
+  return res.redirect(returnTo);
 });
 
 app.post("/admin/users/:id/delete", requireAdmin, (req, res) => {
@@ -3468,6 +3674,44 @@ function backTo(req, fallback) {
   } catch {
     return fallback;
   }
+}
+
+function safeLocalReturnPath(value, fallback) {
+  const candidate = String(value || "").trim();
+  if (!candidate.startsWith("/") || candidate.startsWith("//")) {
+    return fallback;
+  }
+
+  try {
+    const url = new URL(candidate, "http://heartpet.local");
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return fallback;
+  }
+}
+
+function getAnimalReturnTo(req, fallback) {
+  const queryTarget = safeLocalReturnPath(req.query.return_to, "");
+  if (queryTarget) {
+    return queryTarget;
+  }
+
+  const referer = req.get("referer");
+  if (!referer) {
+    return fallback;
+  }
+
+  try {
+    const url = new URL(referer);
+    const target = `${url.pathname}${url.search}${url.hash}`;
+    if (target.startsWith("/animals") || target === "/") {
+      return target;
+    }
+  } catch {
+    return fallback;
+  }
+
+  return fallback;
 }
 
 async function requestEmailChangeConfirmation({ userId, requestedByUserId, newEmail, displayName }) {

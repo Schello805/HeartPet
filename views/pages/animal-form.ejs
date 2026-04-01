@@ -1,11 +1,12 @@
 <%- include('../partials/top', { pageTitle }) %>
 
-<section class="panel">
+<section class="panel drawer-fragment" data-drawer-fragment="animal-form" data-drawer-title="<%= animal ? 'Tier bearbeiten' : 'Neues Tier anlegen' %>">
   <div class="panel-head">
     <h2><%= animal ? 'Tier bearbeiten' : 'Neues Tier anlegen' %></h2>
   </div>
 
-  <form method="post" action="<%= animal ? `/animals/${animal.id}/update` : '/animals' %>" class="form-grid">
+  <form method="post" action="<%= animal ? `/animals/${animal.id}/update` : '/animals' %>" class="form-grid" data-drawer-form="animal">
+    <input type="hidden" name="return_to" value="<%= typeof returnTo !== 'undefined' ? returnTo : '/animals' %>" />
     <label>
       <span>Name</span>
       <input type="text" name="name" required value="<%= animal?.name || '' %>" />

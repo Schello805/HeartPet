@@ -51,30 +51,7 @@
       <details class="sub-accordion" open>
         <summary>Nutzer hinzufügen</summary>
         <div class="sub-accordion-content">
-          <form method="post" action="/admin/users" class="stack form-compact">
-            <input type="text" name="name" required placeholder="Name" />
-            <input type="email" name="email" required placeholder="E-Mail" />
-            <input type="password" name="password" required placeholder="Startpasswort" />
-            <label class="checkbox-line">
-              <input type="checkbox" name="send_invite_email" value="1" checked />
-              Einladungs-Mail mit Login-Link senden
-            </label>
-            <select name="role">
-              <option value="admin">Admin</option>
-              <option value="user">Benutzer</option>
-              <option value="viewer">Nur Lesen</option>
-            </select>
-            <div class="permission-grid">
-              <label class="checkbox-line"><input type="checkbox" name="can_edit_animals" checked /> Tier-Stammdaten</label>
-              <label class="checkbox-line"><input type="checkbox" name="can_manage_documents" checked /> Dokumente</label>
-              <label class="checkbox-line"><input type="checkbox" name="can_manage_gallery" checked /> Galerie & Profilbilder</label>
-              <label class="checkbox-line"><input type="checkbox" name="can_manage_health" checked /> Medikamente, Impfungen, Krankheiten</label>
-              <label class="checkbox-line"><input type="checkbox" name="can_manage_feedings" checked /> Fütterungen</label>
-              <label class="checkbox-line"><input type="checkbox" name="can_manage_notes" checked /> Protokolle</label>
-              <label class="checkbox-line"><input type="checkbox" name="can_manage_reminders" checked /> Erinnerungen</label>
-            </div>
-            <button type="submit" class="button">Benutzer anlegen</button>
-          </form>
+          <a href="/admin/users/new" class="button" data-drawer="admin-user">Benutzer anlegen</a>
         </div>
       </details>
 
@@ -83,49 +60,38 @@
         <div class="sub-accordion-content">
           <div class="stack compact-list">
             <% managedUsers.forEach((user) => { %>
-              <form method="post" action="/admin/users/<%= user.id %>/permissions" class="stack form-compact user-permissions-card">
+              <div class="stack form-compact user-permissions-card">
                 <div class="list-card static-card compact-card">
                   <div class="list-card-main">
                     <strong><%= user.name %></strong>
                     <p><%= user.email %> | <%= getRoleLabel(user.role) %></p>
+                    <small>
+                      Rechte:
+                      <%= [
+                        user.can_edit_animals ? 'Tiere' : null,
+                        user.can_manage_documents ? 'Dokumente' : null,
+                        user.can_manage_gallery ? 'Galerie' : null,
+                        user.can_manage_health ? 'Medizin' : null,
+                        user.can_manage_feedings ? 'Fütterung' : null,
+                        user.can_manage_notes ? 'Protokolle' : null,
+                        user.can_manage_reminders ? 'Erinnerungen' : null
+                      ].filter(Boolean).join(', ') || 'Keine Zusatzrechte' %>
+                    </small>
                   </div>
                   <span><%= user.must_change_password ? 'Passwortwechsel offen' : 'Aktiv' %></span>
                 </div>
-                <div class="form-grid">
-                  <label>
-                    <span>Name</span>
-                    <input type="text" name="name" form="user-profile-<%= user.id %>" required value="<%= user.name %>" />
-                  </label>
-                  <label>
-                    <span>E-Mail</span>
-                    <input type="email" name="email" form="user-profile-<%= user.id %>" required value="<%= user.email %>" />
-                  </label>
-                </div>
-                <label>
-                  <span>Rolle</span>
-                  <select name="role">
-                    <option value="admin" <%= user.role === 'admin' ? 'selected' : '' %>>Admin</option>
-                    <option value="user" <%= user.role === 'user' ? 'selected' : '' %>>Benutzer</option>
-                    <option value="viewer" <%= user.role === 'viewer' ? 'selected' : '' %>>Nur Lesen</option>
-                  </select>
-                </label>
-                <div class="permission-grid">
-                  <label class="checkbox-line"><input type="checkbox" name="can_edit_animals" <%= user.can_edit_animals ? 'checked' : '' %> /> Tier-Stammdaten</label>
-                  <label class="checkbox-line"><input type="checkbox" name="can_manage_documents" <%= user.can_manage_documents ? 'checked' : '' %> /> Dokumente</label>
-                  <label class="checkbox-line"><input type="checkbox" name="can_manage_gallery" <%= user.can_manage_gallery ? 'checked' : '' %> /> Galerie & Profilbilder</label>
-                  <label class="checkbox-line"><input type="checkbox" name="can_manage_health" <%= user.can_manage_health ? 'checked' : '' %> /> Medikamente, Impfungen, Krankheiten</label>
-                  <label class="checkbox-line"><input type="checkbox" name="can_manage_feedings" <%= user.can_manage_feedings ? 'checked' : '' %> /> Fütterungen</label>
-                  <label class="checkbox-line"><input type="checkbox" name="can_manage_notes" <%= user.can_manage_notes ? 'checked' : '' %> /> Protokolle</label>
-                  <label class="checkbox-line"><input type="checkbox" name="can_manage_reminders" <%= user.can_manage_reminders ? 'checked' : '' %> /> Erinnerungen</label>
-                </div>
                 <div class="button-row">
-                  <button type="submit" class="button button-secondary">Rechte speichern</button>
-                  <button type="submit" class="button button-secondary" form="user-profile-<%= user.id %>">Name & E-Mail speichern</button>
-                  <button type="submit" class="button button-danger" form="user-delete-<%= user.id %>">Löschen</button>
+                  <a href="/admin/users/<%= user.id %>/edit" class="button button-secondary icon-button" data-drawer="admin-user" aria-label="Benutzer bearbeiten" title="Bearbeiten">
+                    <span aria-hidden="true">✎</span>
+                    <span class="visually-hidden">Bearbeiten</span>
+                  </a>
+                  <button type="submit" class="button button-danger icon-button" form="user-delete-<%= user.id %>" aria-label="Benutzer löschen" title="Löschen">
+                    <span aria-hidden="true">🗑</span>
+                    <span class="visually-hidden">Löschen</span>
+                  </button>
                 </div>
                 <small>E-Mail-Änderungen werden erst nach Bestätigung durch den Nutzer aktiv.</small>
-              </form>
-              <form method="post" action="/admin/users/<%= user.id %>/update" id="user-profile-<%= user.id %>" class="hidden-form"></form>
+              </div>
               <form method="post" action="/admin/users/<%= user.id %>/delete" id="user-delete-<%= user.id %>" class="hidden-form" data-confirm="Benutzer wirklich löschen?"></form>
             <% }) %>
             <% if (managedUsers.length === 0) { %>

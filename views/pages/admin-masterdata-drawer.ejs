@@ -1,0 +1,102 @@
+<%
+  const isCategory = entityType === 'category';
+  const isVeterinarian = entityType === 'veterinarian';
+  const isSpecies = entityType === 'species';
+  const isEdit = Boolean(item);
+%>
+<section class="panel drawer-fragment" data-drawer-fragment="masterdata-form" data-drawer-title="<%= pageTitle %>">
+  <div class="panel-head">
+    <h2><%= pageTitle %></h2>
+  </div>
+
+  <% if (isCategory) { %>
+    <form method="post" action="<%= isEdit ? `/admin/categories/${item.id}/update` : '/admin/categories' %>" class="stack form-compact" data-drawer-form="masterdata">
+      <input type="hidden" name="return_to" value="<%= returnTo || '/admin/stammdaten' %>" />
+      <label>
+        <span>Name</span>
+        <input type="text" name="name" required value="<%= item?.name || '' %>" />
+      </label>
+      <label class="checkbox-line">
+        <input type="checkbox" name="is_required" <%= item?.is_required ? 'checked' : '' %> />
+        Als Pflichtkategorie markieren
+      </label>
+      <div class="button-row">
+        <button type="submit" class="button"><%= isEdit ? 'Kategorie speichern' : 'Kategorie anlegen' %></button>
+        <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
+      </div>
+    </form>
+  <% } %>
+
+  <% if (isVeterinarian) { %>
+    <form method="post" action="<%= isEdit ? `/admin/veterinarians/${item.id}/update` : '/admin/veterinarians' %>" class="stack form-compact" data-drawer-form="masterdata">
+      <input type="hidden" name="return_to" value="<%= returnTo || '/admin/stammdaten' %>" />
+      <label>
+        <span>Name</span>
+        <input type="text" name="name" required value="<%= item?.name || '' %>" />
+      </label>
+      <label>
+        <span>Straße und Hausnummer</span>
+        <input type="text" name="street" minlength="3" maxlength="120" pattern="[A-Za-zÄÖÜäöüß0-9 .,\-\/]{3,120}" value="<%= item?.street || '' %>" />
+      </label>
+      <div class="mini-grid">
+        <label>
+          <span>PLZ</span>
+          <input type="text" name="postal_code" minlength="3" maxlength="12" pattern="[A-Za-z0-9 -]{3,12}" value="<%= item?.postal_code || '' %>" />
+        </label>
+        <label>
+          <span>Ort</span>
+          <input type="text" name="city" minlength="2" maxlength="80" pattern="[A-Za-zÄÖÜäöüß0-9 .'\-]{2,80}" value="<%= item?.city || '' %>" />
+        </label>
+      </div>
+      <label>
+        <span>Land</span>
+        <input type="text" name="country" minlength="2" maxlength="80" pattern="[A-Za-zÄÖÜäöüß .'\-]{2,80}" value="<%= item?.country || '' %>" />
+      </label>
+      <div class="mini-grid">
+        <label>
+          <span>Telefon</span>
+          <input type="text" name="phone" value="<%= item?.phone || '' %>" />
+        </label>
+        <label>
+          <span>E-Mail</span>
+          <input type="email" name="email" value="<%= item?.email || '' %>" />
+        </label>
+      </div>
+      <label>
+        <span>Notizen</span>
+        <textarea name="notes" rows="4"><%= item?.notes || '' %></textarea>
+      </label>
+      <div class="button-row">
+        <button type="submit" class="button"><%= isEdit ? 'Tierarzt speichern' : 'Tierarzt anlegen' %></button>
+        <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
+      </div>
+    </form>
+  <% } %>
+
+  <% if (isSpecies) { %>
+    <form method="post" action="<%= isEdit ? `/admin/species/${item.id}/update` : '/admin/species' %>" class="stack form-compact" data-drawer-form="masterdata">
+      <input type="hidden" name="return_to" value="<%= returnTo || '/admin/stammdaten' %>" />
+      <label>
+        <span>Tierart</span>
+        <input type="text" name="name" required value="<%= item?.name || '' %>" />
+      </label>
+      <label>
+        <span>Standard-Tierarzt</span>
+        <select name="default_veterinarian_id">
+          <option value="">Kein Standard-Tierarzt</option>
+          <% veterinarians.forEach((vet) => { %>
+            <option value="<%= vet.id %>" <%= String(item?.default_veterinarian_id || '') === String(vet.id) ? 'selected' : '' %>><%= vet.name %></option>
+          <% }) %>
+        </select>
+      </label>
+      <label>
+        <span>Notizen</span>
+        <textarea name="notes" rows="4"><%= item?.notes || '' %></textarea>
+      </label>
+      <div class="button-row">
+        <button type="submit" class="button"><%= isEdit ? 'Tierart speichern' : 'Tierart anlegen' %></button>
+        <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
+      </div>
+    </form>
+  <% } %>
+</section>

@@ -77,6 +77,18 @@
       </aside>
 
       <main class="main-content">
+        <div class="toast-viewport" aria-live="polite" aria-atomic="true">
+          <% if (flash) { %>
+            <div class="flash toast flash-<%= flash.type %>" data-toast>
+              <div class="toast-body">
+                <strong class="toast-title"><%= flash.type === 'error' ? 'Fehler' : 'Erfolg' %></strong>
+                <div class="toast-message"><%= flash.message %></div>
+              </div>
+              <button type="button" class="toast-close" data-toast-close aria-label="Meldung schließen">×</button>
+            </div>
+          <% } %>
+        </div>
+
         <header class="page-header">
           <div>
             <p class="eyebrow">HeartPet</p>
@@ -84,7 +96,7 @@
           </div>
           <div class="header-actions">
             <% if (permissions.canEditAnimals) { %>
-              <a href="/animals/new" class="button">Neues Tier</a>
+              <a href="/animals/new" class="button" data-drawer="animal-form">Neues Tier</a>
             <% } %>
           </div>
         </header>
@@ -96,6 +108,3 @@
         <% } %>
 
         <div class="main-content-inner">
-          <% if (flash) { %>
-            <div class="flash flash-<%= flash.type %>"><%= flash.message %></div>
-          <% } %>
