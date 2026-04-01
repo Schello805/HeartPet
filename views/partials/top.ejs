@@ -30,26 +30,34 @@
         <nav class="sidebar-nav">
           <% const animalMenu = typeof animalSpeciesMenu !== 'undefined' ? animalSpeciesMenu : []; %>
           <% const queryState = typeof currentQuery !== 'undefined' ? currentQuery : {}; %>
+          <% const activeSpeciesId = String(queryState.species_id || ''); %>
           <a class="<%= currentPath === '/' ? 'active' : '' %>" href="/">Dashboard</a>
-          <a class="<%= currentPath.startsWith('/animals') ? 'active' : '' %>" href="/animals">Tiere</a>
-          <% if (animalMenu.length > 0) { %>
-            <div class="sidebar-subnav">
-              <% const activeSpeciesId = String(queryState.species_id || ''); %>
-              <a class="<%= !activeSpeciesId ? 'active' : '' %>" href="/animals">Alle Tiere</a>
-              <% animalMenu.forEach((item) => { %>
-                <a class="<%= activeSpeciesId === String(item.id) ? 'active' : '' %>" href="/animals?species_id=<%= item.id %>"><%= item.name %></a>
-              <% }) %>
-            </div>
-          <% } %>
+          <div class="sidebar-group <%= currentPath.startsWith('/animals') ? 'group-active' : '' %>" data-sidebar-group="animals">
+            <button type="button" class="sidebar-group-toggle <%= currentPath.startsWith('/animals') ? 'active' : '' %>" aria-expanded="false">
+              <span>Tiere</span>
+            </button>
+            <% if (animalMenu.length > 0) { %>
+              <div class="sidebar-subnav">
+                <a class="<%= !activeSpeciesId ? 'active' : '' %>" href="/animals">Alle Tiere</a>
+                <% animalMenu.forEach((item) => { %>
+                  <a class="<%= activeSpeciesId === String(item.id) ? 'active' : '' %>" href="/animals?species_id=<%= item.id %>"><%= item.name %></a>
+                <% }) %>
+              </div>
+            <% } %>
+          </div>
           <% if (permissions.canManageAdmin) { %>
-            <a class="<%= currentPath.startsWith('/admin') ? 'active' : '' %>" href="/admin/allgemein">Verwaltung</a>
-            <div class="sidebar-subnav">
-              <a class="<%= currentPath === '/admin/allgemein' ? 'active' : '' %>" href="/admin/allgemein">Allgemein</a>
-              <a class="<%= currentPath === '/admin/benachrichtigungen' || currentPath === '/admin/kommunikation' ? 'active' : '' %>" href="/admin/benachrichtigungen">Benachrichtigungen</a>
-              <a class="<%= currentPath === '/admin/stammdaten' ? 'active' : '' %>" href="/admin/stammdaten">Stammdaten</a>
-              <a class="<%= currentPath === '/admin/benutzer' ? 'active' : '' %>" href="/admin/benutzer">Benutzer</a>
-              <a class="<%= currentPath === '/admin/import' ? 'active' : '' %>" href="/admin/import">Import</a>
-              <a class="<%= currentPath === '/admin/systemlog' ? 'active' : '' %>" href="/admin/systemlog">Systemlog</a>
+            <div class="sidebar-group <%= currentPath.startsWith('/admin') ? 'group-active' : '' %>" data-sidebar-group="admin">
+              <button type="button" class="sidebar-group-toggle <%= currentPath.startsWith('/admin') ? 'active' : '' %>" aria-expanded="false">
+                <span>Verwaltung</span>
+              </button>
+              <div class="sidebar-subnav">
+                <a class="<%= currentPath === '/admin/allgemein' ? 'active' : '' %>" href="/admin/allgemein">Allgemein</a>
+                <a class="<%= currentPath === '/admin/benachrichtigungen' || currentPath === '/admin/kommunikation' ? 'active' : '' %>" href="/admin/benachrichtigungen">Benachrichtigungen</a>
+                <a class="<%= currentPath === '/admin/stammdaten' ? 'active' : '' %>" href="/admin/stammdaten">Stammdaten</a>
+                <a class="<%= currentPath === '/admin/benutzer' ? 'active' : '' %>" href="/admin/benutzer">Benutzer</a>
+                <a class="<%= currentPath === '/admin/import' ? 'active' : '' %>" href="/admin/import">Import</a>
+                <a class="<%= currentPath === '/admin/systemlog' ? 'active' : '' %>" href="/admin/systemlog">Systemlog</a>
+              </div>
             </div>
           <% } %>
           <a class="<%= currentPath === '/hilfe' ? 'active' : '' %>" href="/hilfe">Hilfe</a>

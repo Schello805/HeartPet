@@ -82,6 +82,45 @@ function initMobileNavToggle() {
   }
 }
 
+function initSidebarGroups() {
+  const storageKey = "heartpet-sidebar-groups";
+  let openGroups = {};
+  try {
+    openGroups = JSON.parse(sessionStorage.getItem(storageKey) || "{}");
+  } catch (error) {
+    openGroups = {};
+  }
+
+  document.querySelectorAll("[data-sidebar-group]").forEach((group) => {
+    const key = group.dataset.sidebarGroup;
+    const toggle = group.querySelector(".sidebar-group-toggle");
+    if (!key || !toggle) {
+      return;
+    }
+
+    const applyState = (isOpen) => {
+      group.classList.toggle("open", isOpen);
+      toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    };
+
+    applyState(Boolean(openGroups[key]));
+
+    if (toggle.dataset.bound === "1") {
+      return;
+    }
+
+    toggle.dataset.bound = "1";
+    toggle.addEventListener("click", () => {
+      const nextState = !group.classList.contains("open");
+      applyState(nextState);
+      openGroups[key] = nextState;
+      try {
+        sessionStorage.setItem(storageKey, JSON.stringify(openGroups));
+      } catch (error) {}
+    });
+  });
+}
+
 function initSpeciesAutocomplete() {
   const input = document.querySelector("[data-species-autocomplete='true']");
   const datalist = document.querySelector("#species-suggestions");
@@ -495,6 +534,7 @@ function initPage() {
 
   initSoftNavigation();
   initMobileNavToggle();
+  initSidebarGroups();
   initSpeciesAutocomplete();
   initRequiredMarks();
   initProfileUploadAutoSubmit();
