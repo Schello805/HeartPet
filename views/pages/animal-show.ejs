@@ -30,20 +30,31 @@
       <% } %>
     </div>
   </div>
-  <div>
+  <div class="animal-hero-content">
     <p class="eyebrow"><%= animal.species_name || 'Tier' %></p>
     <h2><%= animal.name %></h2>
-    <p class="hero-copy">
-      Alter: <strong><%= getAnimalAge(animal.birth_date) %></strong> |
-      Aufnahme: <strong><%= formatDate(animal.intake_date) %></strong> |
-      Status: <strong><%= animal.status %></strong>
-    </p>
-    <p class="hero-copy">
-      Tierarzt: <strong><%= animal.veterinarian_name || animal.species_veterinarian_name || '-' %></strong>
-    </p>
+    <div class="animal-hero-meta-grid">
+      <article class="animal-hero-meta-card">
+        <span>Alter</span>
+        <strong><%= getAnimalAge(animal.birth_date) %></strong>
+      </article>
+      <article class="animal-hero-meta-card">
+        <span>Aufnahme</span>
+        <strong><%= formatDate(animal.intake_date) %></strong>
+      </article>
+      <article class="animal-hero-meta-card">
+        <span>Status</span>
+        <strong><%= animal.status %></strong>
+      </article>
+      <article class="animal-hero-meta-card">
+        <span>Tierarzt</span>
+        <strong><%= animal.veterinarian_name || animal.species_veterinarian_name || '-' %></strong>
+      </article>
+    </div>
     <% if (animal.veterinarian_name && (animal.veterinarian_street || animal.veterinarian_city || animal.veterinarian_country)) { %>
-      <p class="hero-copy">
-        Adresse: <strong><%= [animal.veterinarian_street, animal.veterinarian_postal_code, animal.veterinarian_city, animal.veterinarian_country].filter(Boolean).join(', ') %></strong>
+      <p class="hero-copy animal-hero-address">
+        <span>Adresse</span>
+        <strong><%= [animal.veterinarian_street, animal.veterinarian_postal_code, animal.veterinarian_city, animal.veterinarian_country].filter(Boolean).join(', ') %></strong>
       </p>
     <% } %>
   </div>
@@ -77,9 +88,20 @@
   </article>
 </section>
 
+<nav class="animal-section-nav" aria-label="Bereiche der Tierakte">
+  <a href="#animal-stammdaten" class="animal-section-link">Stammdaten</a>
+  <a href="#animal-neu" class="animal-section-link">Neuer Eintrag</a>
+  <a href="#animal-medizin" class="animal-section-link">Medizin</a>
+  <a href="#animal-timeline" class="animal-section-link">Timeline</a>
+  <a href="#animal-dokumente" class="animal-section-link">Dokumente & Fotos</a>
+</nav>
+
 <section class="accordion-stack">
-  <details class="accordion-item" open>
-    <summary>Stammdaten</summary>
+  <details class="accordion-item" id="animal-stammdaten" open>
+    <summary>
+      <span class="accordion-summary-main">Stammdaten</span>
+      <span class="accordion-summary-meta">Basis, Fütterung, Protokolle</span>
+    </summary>
     <div class="accordion-content compact-layout">
       <div class="section-block">
         <h3>Basisdaten</h3>
@@ -172,8 +194,11 @@
     </div>
   </details>
 
-  <details class="accordion-item" open>
-    <summary>Ereignis erstellen</summary>
+  <details class="accordion-item" id="animal-neu" open>
+    <summary>
+      <span class="accordion-summary-main">Neuer Eintrag</span>
+      <span class="accordion-summary-meta">Schnell Medikamente, Impfungen, Termine oder Erinnerungen erfassen</span>
+    </summary>
     <div class="accordion-content compact-layout">
       <% if (permissions.canManageHealth || permissions.canManageReminders) { %>
         <div class="list-card static-card compact-card">
@@ -191,8 +216,11 @@
     </div>
   </details>
 
-  <details class="accordion-item">
-    <summary>Medizin</summary>
+  <details class="accordion-item" id="animal-medizin">
+    <summary>
+      <span class="accordion-summary-main">Medizin</span>
+      <span class="accordion-summary-meta"><%= related.conditions.length + related.medications.length + related.vaccinations.length + (related.appointments || []).length + freeReminders.length %> Einträge</span>
+    </summary>
     <div class="accordion-content compact-layout">
       <details class="sub-accordion">
         <summary>Vorerkrankungen</summary>
@@ -473,8 +501,11 @@
     </div>
   </details>
 
-  <details class="accordion-item">
-    <summary>Timeline</summary>
+  <details class="accordion-item" id="animal-timeline">
+    <summary>
+      <span class="accordion-summary-main">Timeline</span>
+      <span class="accordion-summary-meta"><%= animalTimeline.length %> Verlaufseinträge</span>
+    </summary>
     <div class="accordion-content compact-layout">
       <% if (animalTimeline.length === 0) { %>
         <p class="empty-state">Noch keine Timeline-Einträge vorhanden.</p>
@@ -494,8 +525,11 @@
     </div>
   </details>
 
-  <details class="accordion-item">
-    <summary>Dokumente / Fotos</summary>
+  <details class="accordion-item" id="animal-dokumente">
+    <summary>
+      <span class="accordion-summary-main">Dokumente / Fotos</span>
+      <span class="accordion-summary-meta"><%= related.documents.length %> Dokumente · <%= related.images.length %> Fotos</span>
+    </summary>
     <div class="accordion-content compact-layout">
       <details class="sub-accordion" open>
         <summary>Fotos</summary>

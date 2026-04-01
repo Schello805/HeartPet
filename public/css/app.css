@@ -1135,8 +1135,53 @@ textarea {
   gap: 12px;
 }
 
+.animal-hero-content {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
 .animal-hero-profile {
   flex: 0 0 auto;
+}
+
+.animal-hero-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.animal-hero-meta-card {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(197, 222, 209, 0.9);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.animal-hero-meta-card span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.animal-hero-meta-card strong {
+  font-size: 0.98rem;
+}
+
+.animal-hero-address {
+  display: grid;
+  gap: 3px;
+}
+
+.animal-hero-address span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .profile-image-panel {
@@ -1252,6 +1297,32 @@ textarea {
   margin: 0 0 12px;
 }
 
+.animal-section-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.animal-section-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(197, 222, 209, 0.9);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--forest);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.animal-section-link:hover {
+  background: rgba(241, 253, 247, 0.96);
+  border-color: rgba(16, 185, 129, 0.26);
+}
+
 .workbench-stat {
   display: grid;
   gap: 4px;
@@ -1329,6 +1400,19 @@ textarea {
   font-weight: 700;
   background: linear-gradient(180deg, #f2fbf6 0%, #eaf7f0 100%);
   border-bottom: 1px solid rgba(197, 222, 209, 0.75);
+}
+
+.accordion-summary-main,
+.accordion-summary-meta {
+  display: block;
+  padding-right: 26px;
+}
+
+.accordion-summary-meta {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 
 .accordion-item summary::-webkit-details-marker {
@@ -2005,6 +2089,10 @@ small {
   }
 
   .animals-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .animal-hero-meta-grid {
     grid-template-columns: 1fr;
   }
 
