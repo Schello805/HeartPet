@@ -4,13 +4,13 @@
   <details class="accordion-item" open>
     <summary>E-Mail und allgemeine Benachrichtigungen</summary>
     <div class="accordion-content">
-      <form method="post" action="/admin/settings" class="form-grid">
+      <form method="post" action="/admin/settings" class="form-grid communication-grid">
         <input type="hidden" name="_fields" value="smtp_host,smtp_port,smtp_user,smtp_password,smtp_from,notification_email_to,smtp_secure,reminder_email_enabled,browser_notifications_enabled,daily_digest_enabled,daily_digest_time,daily_digest_only_when_open" />
         <label>
           <span>SMTP Host</span>
           <input type="text" name="smtp_host" value="<%= settings.smtp_host || '' %>" />
         </label>
-        <label>
+        <label class="field-short">
           <span>SMTP Port</span>
           <input type="number" name="smtp_port" value="<%= settings.smtp_port || '587' %>" />
         </label>
@@ -46,7 +46,7 @@
           <input type="checkbox" name="daily_digest_enabled" <%= settings.daily_digest_enabled === 'true' ? 'checked' : '' %> />
           Tägliche Erinnerungs-Zusammenfassung aktivieren
         </label>
-        <label>
+        <label class="field-short">
           <span>Tägliche Zusammenfassung um</span>
           <input type="time" name="daily_digest_time" value="<%= settings.daily_digest_time || '07:30' %>" />
         </label>
@@ -122,21 +122,23 @@
   <details class="accordion-item">
     <summary>Telegram</summary>
     <div class="accordion-content">
-      <form method="post" action="/admin/settings" class="stack">
+      <form method="post" action="/admin/settings" class="form-grid communication-grid">
         <input type="hidden" name="_fields" value="telegram_bot_token,telegram_chat_id,reminder_telegram_enabled" />
         <label>
           <span>Telegram Bot Token</span>
           <input type="text" name="telegram_bot_token" value="<%= settings.telegram_bot_token || '' %>" />
         </label>
-        <label>
+        <label class="field-short">
           <span>Telegram Chat ID</span>
           <input type="text" name="telegram_chat_id" value="<%= settings.telegram_chat_id || '' %>" />
         </label>
-        <label class="checkbox-line">
+        <label class="checkbox-line full-width">
           <input type="checkbox" name="reminder_telegram_enabled" <%= settings.reminder_telegram_enabled === 'true' ? 'checked' : '' %> />
           Erinnerungen per Telegram aktivieren
         </label>
-        <button type="submit" class="button">Telegram speichern</button>
+        <div class="full-width form-actions">
+          <button type="submit" class="button">Telegram speichern</button>
+        </div>
       </form>
 
       <div class="status-row">
