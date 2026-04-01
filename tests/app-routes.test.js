@@ -82,6 +82,28 @@ test("Benachrichtigungen Alias ist erreichbar", async () => {
   assert.equal(alias.headers.location, "/admin/benachrichtigungen");
 });
 
+test("Stammdaten Alias ist erreichbar", async () => {
+  const alias = await agent.get("/admin/masterdata");
+  assert.equal(alias.status, 302);
+  assert.equal(alias.headers.location, "/admin/stammdaten");
+});
+
+test("Weitere Admin-Aliase sind erreichbar", async () => {
+  const aliases = [
+    ["/admin/general", "/admin/allgemein"],
+    ["/admin/settings", "/admin/allgemein"],
+    ["/admin/users", "/admin/benutzer"],
+    ["/admin/user-management", "/admin/benutzer"],
+    ["/admin/imports", "/admin/import"],
+  ];
+
+  for (const [source, target] of aliases) {
+    const response = await agent.get(source);
+    assert.equal(response.status, 302, source);
+    assert.equal(response.headers.location, target, source);
+  }
+});
+
 test("Tierarzt kann als Standard markiert werden", async () => {
   const createVet = await agent.post("/admin/veterinarians").type("form").send({
     name: "Praxis Mitte",
@@ -160,6 +182,44 @@ test("CRUD-Updates für Stammdaten funktionieren", async () => {
     notes: "",
   });
   assert.equal(updateVet.status, 302);
+});
+
+test("Speichern über alte Admin-Rückwege landet nicht auf 404", async () => {
+  const createCategory = await agent.post("/admin/categories").type("form").send({
+    name: "Rueckweg Kategorie",
+    return_to: "/admin/masterdata",
+  }).redirects(2);
+  assert.equal(createCategory.status, 200);
+  assert.match(createCategory.text, /Stammdaten/i);
+
+  const createSpecies = await agent.post("/admin/species").type("form").send({
+    name: "Rueckweg Art",
+    notes: "Alias-Test",
+    return_to: "/admin/masterdata",
+  }).redirects(2);
+  assert.equal(createSpecies.status, 200);
+  assert.match(createSpecies.text, /Stammdaten/i);
+
+  const createVet = await agent.post("/admin/veterinarians").type("form").send({
+    name: "Rueckweg Praxis",
+    street: "Musterweg 1",
+    postal_code: "12345",
+    city: "Berlin",
+    country: "Deutschland",
+    return_to: "/admin/masterdata",
+  }).redirects(2);
+  assert.equal(createVet.status, 200);
+  assert.match(createVet.text, /Stammdaten/i);
+
+  const createUser = await agent.post("/admin/users").type("form").send({
+    name: "Rueckweg Nutzer",
+    email: "rueckweg@test.local",
+    password: "passwort123",
+    role: "viewer",
+    return_to: "/admin/users",
+  }).redirects(2);
+  assert.equal(createUser.status, 200);
+  assert.match(createUser.text, /Benutzer/i);
 });
 
 test("Admin-Drawer-Routen sind erreichbar", async () => {

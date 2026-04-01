@@ -1404,6 +1404,13 @@ app.get("/admin/allgemein", requireAdmin, (req, res) => {
   res.render("pages/admin-general", getAdminViewData("Allgemein", "/admin/allgemein"));
 });
 
+["/admin/general", "/admin/settings"].forEach((aliasPath) => {
+  app.get(aliasPath, requireAdmin, (req, res) => {
+    const suffix = req.originalUrl.includes("?") ? req.originalUrl.slice(req.originalUrl.indexOf("?")) : "";
+    res.redirect(`/admin/allgemein${suffix}`);
+  });
+});
+
 app.get("/admin/kommunikation", requireAdmin, (req, res) => {
   res.redirect("/admin/benachrichtigungen");
 });
@@ -1429,6 +1436,13 @@ app.get("/admin/stammdaten", requireAdmin, (req, res) => {
     veterinarianId: Number(req.query.editVeterinarian || 0) || null,
   };
   res.render("pages/admin-masterdata", viewData);
+});
+
+["/admin/masterdata", "/admin/master-data"].forEach((aliasPath) => {
+  app.get(aliasPath, requireAdmin, (req, res) => {
+    const suffix = req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : "";
+    res.redirect(`/admin/stammdaten${suffix}`);
+  });
 });
 
 app.get("/admin/categories/new", requireAdmin, (req, res) => {
@@ -1514,6 +1528,13 @@ app.get("/admin/benutzer", requireAdmin, (req, res) => {
   res.render("pages/admin-users", viewData);
 });
 
+["/admin/users", "/admin/user-management"].forEach((aliasPath) => {
+  app.get(aliasPath, requireAdmin, (req, res) => {
+    const suffix = req.originalUrl.includes("?") ? req.originalUrl.slice(req.originalUrl.indexOf("?")) : "";
+    res.redirect(`/admin/benutzer${suffix}`);
+  });
+});
+
 app.get("/admin/users/new", requireAdmin, (req, res) => {
   res.render("pages/admin-user-drawer", {
     pageTitle: "Benutzer anlegen",
@@ -1561,6 +1582,11 @@ app.get("/admin/users/:id/edit", requireAdmin, (req, res) => {
 
 app.get("/admin/import", requireAdmin, (req, res) => {
   res.render("pages/admin-import", getAdminViewData("Import", "/admin/import"));
+});
+
+app.get("/admin/imports", requireAdmin, (req, res) => {
+  const suffix = req.originalUrl.includes("?") ? req.originalUrl.slice(req.originalUrl.indexOf("?")) : "";
+  res.redirect(`/admin/import${suffix}`);
 });
 
 app.get("/admin/systemlog", requireAdmin, (req, res) => {
