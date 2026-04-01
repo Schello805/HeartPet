@@ -1156,6 +1156,26 @@ small {
   margin-bottom: 16px;
 }
 
+.masterdata-category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.masterdata-category-card {
+  min-height: 128px;
+  align-items: stretch;
+  justify-content: space-between;
+}
+
+.masterdata-category-card .inline-actions {
+  justify-content: flex-end;
+}
+
+.masterdata-category-actions {
+  margin-top: auto;
+}
+
 .checkbox-line {
   display: flex;
   align-items: center;

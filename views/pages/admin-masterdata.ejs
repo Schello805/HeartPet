@@ -14,10 +14,10 @@
   <details id="stammdaten-kategorien" class="accordion-item" <%= isVeterinarianEdit || isSpeciesEdit ? '' : 'open' %>>
     <summary>Dokumentkategorien</summary>
     <div class="accordion-content">
-      <div class="stack compact-list">
+      <div class="masterdata-category-grid compact-list">
         <% categories.forEach((category) => { %>
           <% if (masterEditState.categoryId === category.id) { %>
-            <form method="post" action="/admin/categories/<%= category.id %>/update" class="stack form-compact list-card static-card">
+            <form method="post" action="/admin/categories/<%= category.id %>/update" class="stack form-compact list-card static-card masterdata-category-card">
               <input type="text" name="name" required value="<%= category.name %>" />
               <label class="checkbox-line">
                 <input type="checkbox" name="is_required" <%= category.is_required ? 'checked' : '' %> />
@@ -29,12 +29,12 @@
               </div>
             </form>
           <% } else { %>
-            <div class="list-card static-card">
+            <div class="list-card static-card masterdata-category-card">
               <div>
                 <strong><%= category.name %></strong>
                 <p><%= category.is_required ? 'Pflichtkategorie' : 'Optional' %></p>
               </div>
-              <div class="inline-actions">
+              <div class="inline-actions masterdata-category-actions">
                 <a href="/admin/stammdaten?editCategory=<%= category.id %>#stammdaten-kategorien" data-no-soft-nav="true" class="button button-secondary">Bearbeiten</a>
                 <form method="post" action="/admin/categories/<%= category.id %>/delete" data-confirm="Dokumentkategorie wirklich löschen?">
                   <button type="submit" class="button button-danger">Löschen</button>
