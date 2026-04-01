@@ -252,3 +252,11 @@ test("Tiere-Arbeitsansicht zeigt Liste und ausgewählte Akte", async () => {
   assert.match(response.text, /Tierbestand/);
   assert.match(response.text, /Tobi|Minka/);
 });
+
+test("Tiere-Arbeitsansicht kann die rechte Akte separat laden", async () => {
+  const response = await agent.get("/animals/1/workspace-panel").query({ animal_id: "1" });
+  assert.equal(response.status, 200);
+  assert.match(response.text, /data-animal-workspace-panel/);
+  assert.match(response.text, /Ausgewähltes Tier/);
+  assert.match(response.text, /Minka/);
+});

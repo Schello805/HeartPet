@@ -1,0 +1,33 @@
+<section
+  class="animals-detail-panel"
+  data-animal-workspace-panel
+  data-animal-id="<%= selectedAnimal ? selectedAnimal.id : '' %>"
+  data-animal-name="<%= selectedAnimal ? selectedAnimal.name : '' %>"
+  data-animal-species="<%= selectedAnimal ? (selectedAnimal.species_name || 'Tier') : '' %>"
+  data-animal-status="<%= selectedAnimal ? selectedAnimal.status : '' %>"
+  data-animal-next-type="<%= selectedAnimal?.next_term?.type || 'Offen' %>"
+  data-animal-next-label="<%= selectedAnimal?.next_term?.displayLabel || 'Noch kein Termin hinterlegt' %>"
+>
+  <% if (selectedAnimal && selectedAnimalView) { %>
+    <section class="panel animals-detail-intro">
+      <div class="animals-detail-intro-head">
+        <div>
+          <p class="eyebrow">Ausgewähltes Tier</p>
+          <h2><%= selectedAnimal.name %></h2>
+        </div>
+        <div class="animals-detail-intro-meta">
+          <span class="pill"><%= selectedAnimal.status %></span>
+          <span><%= selectedAnimal.species_name || 'Tier' %></span>
+        </div>
+      </div>
+    </section>
+    <%- include('./animal-show', { pageTitle: selectedAnimal.name, embedded: true, ...selectedAnimalView }) %>
+  <% } else { %>
+    <section class="panel animals-empty-detail">
+      <div class="panel-head">
+        <h2>Tier auswählen</h2>
+      </div>
+      <p class="empty-state">Wähle links ein Tier aus, um die Akte direkt in dieser Arbeitsansicht zu öffnen.</p>
+    </section>
+  <% } %>
+</section>

@@ -13,13 +13,13 @@
       <div class="animals-summary-grid">
         <article class="animals-summary-card">
           <span>Aktuelle Auswahl</span>
-          <strong><%= selectedAnimal ? selectedAnimal.name : 'Kein Tier' %></strong>
-          <small><%= selectedAnimal ? (selectedAnimal.species_name || 'Tier') : 'Bitte links ein Tier auswählen' %></small>
+          <strong data-animals-selected-name><%= selectedAnimal ? selectedAnimal.name : 'Kein Tier' %></strong>
+          <small data-animals-selected-species><%= selectedAnimal ? (selectedAnimal.species_name || 'Tier') : 'Bitte links ein Tier auswählen' %></small>
         </article>
         <article class="animals-summary-card">
           <span>Nächster Termin</span>
-          <strong><%= selectedAnimal?.next_term?.type || 'Offen' %></strong>
-          <small><%= selectedAnimal?.next_term?.displayLabel || 'Noch kein Termin hinterlegt' %></small>
+          <strong data-animals-next-type><%= selectedAnimal?.next_term?.type || 'Offen' %></strong>
+          <small data-animals-next-label><%= selectedAnimal?.next_term?.displayLabel || 'Noch kein Termin hinterlegt' %></small>
         </article>
       </div>
     </section>
@@ -87,7 +87,13 @@
             <% if (filters.sort) rowParams.set('sort', filters.sort); %>
             <% if (pagination.currentPage > 1) rowParams.set('page', String(pagination.currentPage)); %>
             <% rowParams.set('animal_id', String(animal.id)); %>
-            <a href="/animals?<%= rowParams.toString() %>" class="animal-list-entry <%= selectedAnimal && String(selectedAnimal.id) === String(animal.id) ? 'active' : '' %>">
+            <a
+              href="/animals?<%= rowParams.toString() %>"
+              class="animal-list-entry <%= selectedAnimal && String(selectedAnimal.id) === String(animal.id) ? 'active' : '' %>"
+              data-animal-workspace-link="true"
+              data-no-soft-nav="true"
+              data-panel-url="/animals/<%= animal.id %>/workspace-panel?<%= rowParams.toString() %>"
+            >
               <div class="animal-list-entry-main">
                 <div class="animal-list-cell">
                   <% if (animal.profile_image_stored_name) { %>
@@ -127,29 +133,8 @@
     </section>
   </aside>
 
-  <section class="animals-detail-pane">
-    <% if (selectedAnimal && selectedAnimalView) { %>
-      <section class="panel animals-detail-intro">
-        <div class="animals-detail-intro-head">
-          <div>
-            <p class="eyebrow">Ausgewähltes Tier</p>
-            <h2><%= selectedAnimal.name %></h2>
-          </div>
-          <div class="animals-detail-intro-meta">
-            <span class="pill"><%= selectedAnimal.status %></span>
-            <span><%= selectedAnimal.species_name || 'Tier' %></span>
-          </div>
-        </div>
-      </section>
-      <%- include('./animal-show', { pageTitle: selectedAnimal.name, embedded: true, ...selectedAnimalView }) %>
-    <% } else { %>
-      <section class="panel animals-empty-detail">
-        <div class="panel-head">
-          <h2>Tier auswählen</h2>
-        </div>
-        <p class="empty-state">Wähle links ein Tier aus, um die Akte direkt in dieser Arbeitsansicht zu öffnen.</p>
-      </section>
-    <% } %>
+  <section class="animals-detail-pane" data-animal-workspace-target>
+    <%- include('./animal-workspace-detail', { selectedAnimal, selectedAnimalView }) %>
   </section>
 </section>
 

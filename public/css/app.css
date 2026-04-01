@@ -324,6 +324,11 @@ textarea {
   gap: 14px;
 }
 
+.animals-detail-panel {
+  display: grid;
+  gap: 14px;
+}
+
 .animals-list-summary {
   padding: 14px;
 }
@@ -432,6 +437,11 @@ textarea {
 
 .animals-detail-pane {
   min-width: 0;
+}
+
+.animals-detail-pane.loading {
+  opacity: 0.78;
+  transition: opacity 0.18s ease;
 }
 
 .animals-detail-intro {

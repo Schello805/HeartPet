@@ -499,6 +499,19 @@ app.get("/animals/:id", (req, res) => {
   });
 });
 
+app.get("/animals/:id/workspace-panel", (req, res) => {
+  const animalView = buildAnimalDetailViewData(req.params.id, req);
+  if (!animalView) {
+    return renderNotFound(req, res, "Tier nicht gefunden.");
+  }
+
+  const selectedAnimal = attachNextTermData([animalView.animal])[0] || animalView.animal;
+  res.render("pages/animal-workspace-detail", {
+    selectedAnimal,
+    selectedAnimalView: animalView,
+  });
+});
+
 function renderAnimalEntryDrawer(req, res, { entryType, mode = "create", item = null }) {
   const animal = findAnimal(req.params.id || req.params.animalId);
   if (!animal) {

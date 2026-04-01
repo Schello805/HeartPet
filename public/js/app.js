@@ -571,6 +571,111 @@ function initGlobalSearchAutocomplete() {
   });
 }
 
+function isAnimalsWorkspaceDesktop() {
+  return window.matchMedia("(min-width: 961px)").matches;
+}
+
+function syncAnimalsWorkspaceSummary(panel) {
+  if (!(panel instanceof HTMLElement)) {
+    return;
+  }
+
+  const selectedStrong = document.querySelector("[data-animals-selected-name]");
+  const selectedSmall = document.querySelector("[data-animals-selected-species]");
+  const nextStrong = document.querySelector("[data-animals-next-type]");
+  const nextSmall = document.querySelector("[data-animals-next-label]");
+
+  if (selectedStrong) {
+    selectedStrong.textContent = panel.dataset.animalName || "Kein Tier";
+  }
+  if (selectedSmall) {
+    selectedSmall.textContent = panel.dataset.animalSpecies || "Bitte links ein Tier auswählen";
+  }
+  if (nextStrong) {
+    nextStrong.textContent = panel.dataset.animalNextType || "Offen";
+  }
+  if (nextSmall) {
+    nextSmall.textContent = panel.dataset.animalNextLabel || "Noch kein Termin hinterlegt";
+  }
+}
+
+function setAnimalsWorkspaceActiveLink(activeLink) {
+  document.querySelectorAll("[data-animal-workspace-link]").forEach((link) => {
+    link.classList.toggle("active", link === activeLink);
+  });
+}
+
+async function loadAnimalWorkspacePanel(link, { push = true } = {}) {
+  if (!(link instanceof HTMLElement) || !isAnimalsWorkspaceDesktop()) {
+    return false;
+  }
+
+  const target = document.querySelector("[data-animal-workspace-target]");
+  const panelUrl = link.dataset.panelUrl;
+  if (!target || !panelUrl) {
+    return false;
+  }
+
+  target.classList.add("loading");
+  target.innerHTML = '<section class="panel animals-empty-detail"><p class="empty-state">Tierakte wird geladen ...</p></section>';
+
+  try {
+    const response = await fetch(panelUrl, {
+      headers: {
+        "X-Requested-With": "heartpet-workspace",
+      },
+      credentials: "same-origin",
+    });
+
+    if (!response.ok) {
+      window.location.href = link.href;
+      return true;
+    }
+
+    const html = await response.text();
+    target.innerHTML = html;
+    target.classList.remove("loading");
+    setAnimalsWorkspaceActiveLink(link);
+    const panel = target.querySelector("[data-animal-workspace-panel]");
+    syncAnimalsWorkspaceSummary(panel);
+
+    if (push) {
+      window.history.pushState({ animalWorkspace: true }, "", link.href);
+    }
+
+    initPage();
+    target.scrollIntoView({ block: "start", behavior: "smooth" });
+    return true;
+  } catch (error) {
+    console.error("Tierakte konnte nicht nachgeladen werden", error);
+    window.location.href = link.href;
+    return true;
+  } finally {
+    target.classList.remove("loading");
+  }
+}
+
+function initAnimalWorkspace() {
+  document.querySelectorAll("[data-animal-workspace-link]").forEach((link) => {
+    if (link.dataset.boundWorkspace === "1") {
+      return;
+    }
+
+    link.dataset.boundWorkspace = "1";
+    link.addEventListener("click", (event) => {
+      if (!isAnimalsWorkspaceDesktop()) {
+        return;
+      }
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
+        return;
+      }
+
+      event.preventDefault();
+      loadAnimalWorkspacePanel(link, { push: true });
+    });
+  });
+}
+
 function resetCustomValidation(form) {
   form.querySelectorAll("input, select, textarea").forEach((field) => {
     field.setCustomValidity("");
@@ -768,6 +873,7 @@ function initPage() {
   initProfileUploadAutoSubmit();
   initEventFormBehavior();
   initGlobalSearchAutocomplete();
+  initAnimalWorkspace();
   loadPendingReminders();
 }
 
