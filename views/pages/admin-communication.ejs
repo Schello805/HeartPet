@@ -10,7 +10,7 @@
           <span>SMTP Host</span>
           <input type="text" name="smtp_host" value="<%= settings.smtp_host || '' %>" />
         </label>
-        <label class="field-short">
+        <label>
           <span>SMTP Port</span>
           <input type="number" name="smtp_port" value="<%= settings.smtp_port || '587' %>" />
         </label>
@@ -46,7 +46,7 @@
           <input type="checkbox" name="daily_digest_enabled" <%= settings.daily_digest_enabled === 'true' ? 'checked' : '' %> />
           Tägliche Erinnerungs-Zusammenfassung aktivieren
         </label>
-        <label class="field-short">
+        <label>
           <span>Tägliche Zusammenfassung um</span>
           <input type="time" name="daily_digest_time" value="<%= settings.daily_digest_time || '07:30' %>" />
         </label>
@@ -128,7 +128,7 @@
           <span>Telegram Bot Token</span>
           <input type="text" name="telegram_bot_token" value="<%= settings.telegram_bot_token || '' %>" />
         </label>
-        <label class="field-short">
+        <label>
           <span>Telegram Chat ID</span>
           <input type="text" name="telegram_chat_id" value="<%= settings.telegram_chat_id || '' %>" />
         </label>

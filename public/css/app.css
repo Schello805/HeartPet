@@ -644,14 +644,13 @@ td {
 }
 
 .communication-grid {
-  grid-template-columns: minmax(220px, 1.1fr) minmax(120px, 0.55fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px 14px;
   align-items: end;
 }
 
-.communication-grid .field-short input,
-.communication-grid .field-short select {
-  max-width: 190px;
+.communication-grid .checkbox-line.full-width {
+  align-items: center;
 }
 
 .button-row {
