@@ -94,6 +94,7 @@ function initMobileNavToggle() {
 function initSidebarGroups() {
   const storageKey = "heartpet-sidebar-groups";
   let openGroups = {};
+  const isMobile = window.matchMedia("(max-width: 960px)").matches;
   try {
     openGroups = JSON.parse(sessionStorage.getItem(storageKey) || "{}");
   } catch (error) {
@@ -112,7 +113,8 @@ function initSidebarGroups() {
       toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
     };
 
-    applyState(Boolean(openGroups[key]));
+    const initialState = isMobile ? true : Boolean(openGroups[key]);
+    applyState(initialState);
 
     if (toggle.dataset.bound === "1") {
       return;

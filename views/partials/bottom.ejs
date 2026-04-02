@@ -13,16 +13,6 @@
       </div>
 
       <nav class="mobile-tabbar" aria-label="Mobile Navigation">
-        <button type="button" class="mobile-tabbar-action mobile-nav-toggle" aria-expanded="false" aria-controls="sidebar-navigation">
-          <span class="mobile-tabbar-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
-              <path d="M4 7h16" />
-              <path d="M4 12h16" />
-              <path d="M4 17h16" />
-            </svg>
-          </span>
-          <span class="mobile-tabbar-label">Menü</span>
-        </button>
         <a class="<%= currentPath === '/' ? 'active' : '' %>" href="/">
           <span class="mobile-tabbar-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
@@ -71,6 +61,16 @@
           </span>
           <span class="mobile-tabbar-label">Hilfe</span>
         </a>
+        <button type="button" class="mobile-tabbar-action mobile-nav-toggle" aria-expanded="false" aria-controls="sidebar-navigation">
+          <span class="mobile-tabbar-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+              <circle cx="5" cy="12" r="1.4" />
+              <circle cx="12" cy="12" r="1.4" />
+              <circle cx="19" cy="12" r="1.4" />
+            </svg>
+          </span>
+          <span class="mobile-tabbar-label">Mehr</span>
+        </button>
       </nav>
     </div>
     <footer class="app-footer">
