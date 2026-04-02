@@ -100,7 +100,7 @@
             </div>
             <% if (!reminder.completed_at && permissions.canManageReminders) { %>
               <form method="post" action="/reminders/<%= reminder.id %>/complete">
-                <button type="submit" class="button button-secondary">Erledigt</button>
+                <button type="submit" class="button button-secondary">Als erledigt markieren</button>
               </form>
             <% } %>
           </div>

@@ -3,13 +3,16 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
+const { PassThrough } = require("node:stream");
 const request = require("supertest");
+const dayjs = require("dayjs");
 
 const tempDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "heartpet-test-"));
 process.env.HEARTPET_DATA_DIR = tempDataDir;
 process.env.HEARTPET_SESSION_SECRET = "test-secret";
 
 const { initDatabase } = require("../src/db");
+const { createAnimalPdf } = require("../src/exporters");
 const { buildReminderActionToken, buildReminderEmailHtml, sendTelegramReminder } = require("../src/reminders");
 const app = require("../src/app");
 const agent = request.agent(app);
@@ -605,6 +608,29 @@ test("Tiere-Arbeitsansicht kann die rechte Akte separat laden", async () => {
   assert.match(response.text, /Minka/);
 });
 
+test("Dashboard zeigt dringende Erinnerungen nicht doppelt bei den nächsten Erinnerungen", async () => {
+  db.prepare(`
+    INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, notes)
+    VALUES (?, ?, ?, ?, 1, 0, ?)
+  `).run(1, "Heute fällig", "Impfung", dayjs().hour(16).minute(42).format("YYYY-MM-DDTHH:mm"), "dringend");
+
+  db.prepare(`
+    INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, notes)
+    VALUES (?, ?, ?, ?, 1, 0, ?)
+  `).run(1, "Morgen fällig", "Termin", dayjs().add(1, "day").hour(9).minute(0).format("YYYY-MM-DDTHH:mm"), "spaeter");
+
+  const response = await agent.get("/");
+  assert.equal(response.status, 200);
+
+  const urgentSection = response.text.match(/<article class="panel" id="dringende-erinnerungen">([\s\S]*?)<\/article>/);
+  const upcomingSection = response.text.match(/<article class="panel" id="naechste-erinnerungen">([\s\S]*?)<\/article>/);
+
+  assert.ok(urgentSection?.[1]?.includes("Heute fällig"));
+  assert.ok(!upcomingSection?.[1]?.includes("Heute fällig"));
+  assert.ok(upcomingSection?.[1]?.includes("Morgen fällig"));
+  assert.ok(upcomingSection?.[1]?.includes("Als erledigt markieren"));
+});
+
 test("Tierseite zeigt Tierarzt-Kontakt per Klick und erklärt die Schnellerfassung", async () => {
   const master = await agent.get("/admin/stammdaten");
   const vetId = master.text.match(/\/admin\/veterinarians\/(\d+)\/edit/)?.[1];
@@ -1068,4 +1094,52 @@ test("Benachrichtigungen zeigen den letzten erfolgreichen Test je Kanal an", asy
   assert.match(response.text, /Letzter erfolgreicher Test:/);
   assert.match(response.text, /02\.04\.2026 09:15/);
   assert.match(response.text, /02\.04\.2026 10:45/);
+});
+
+test("PDF-Export bleibt bei typischen Tierdaten auf einer A4-Seite", async () => {
+  const chunks = [];
+  const res = new PassThrough();
+  res.setHeader = () => {};
+  res.on("data", (chunk) => chunks.push(chunk));
+  const finished = new Promise((resolve, reject) => {
+    res.on("end", resolve);
+    res.on("error", reject);
+  });
+
+  await createAnimalPdf(
+    res,
+    {
+      id: 99,
+      name: "Tobi",
+      species_name: "Katze",
+      sex: "Weiblich",
+      birth_date: "2022-01-01",
+      intake_date: "2022-02-01",
+      status: "Aktiv",
+      source: "Tierheim",
+      breed: "EKH",
+      color: "Weiß",
+      weight_kg: "4.2",
+      veterinarian_name: "Praxis Eichelberger",
+      notes: "Kurzer Testfall für den PDF-Export.",
+    },
+    {
+      conditions: [{ title: "Chronisch", details: "Muss beobachtet werden" }],
+      medications: [{ name: "Wurmkur", dosage: "1x", schedule: "monatlich" }],
+      vaccinations: [{ name: "Impfung", next_due_date: "2026-04-03" }],
+      appointments: [{ title: "Nachkontrolle", appointment_at: "2026-04-03T10:00", location_mode: "praxis" }],
+      feedings: [{ label: "Morgens", time_of_day: "08:00", food: "Nassfutter" }],
+      reminders: [{ title: "Impfung erinnern", due_at: "2026-04-03T09:00" }],
+      documents: [{ title: "Vertrag", category_name: "Dokument" }],
+      images: [{ title: "Profilbild", original_name: "bild.jpg" }],
+      notes: [{ title: "Beobachtung", content: "Frisst gut und ist aktiv." }],
+    },
+    { domain: "heartpet.de" }
+  );
+
+  await finished;
+  const pdfText = Buffer.concat(chunks).toString("latin1");
+  const pageCount = Number(pdfText.match(/\/Type \/Pages\s*\/Count (\d+)/)?.[1] || "0");
+
+  assert.equal(pageCount, 1);
 });

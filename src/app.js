@@ -481,9 +481,10 @@ app.get("/", (req, res) => {
     FROM reminders
     LEFT JOIN animals ON animals.id = reminders.animal_id
     WHERE reminders.completed_at IS NULL
+      AND reminders.due_at > ?
     ORDER BY reminders.due_at ASC
     LIMIT 10
-  `).all();
+  `).all(dayjs().endOf("day").format("YYYY-MM-DDTHH:mm"));
 
   const urgentReminders = db.prepare(`
     SELECT reminders.*, animals.name AS animal_name,
