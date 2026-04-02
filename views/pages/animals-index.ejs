@@ -3,6 +3,58 @@
 <% const selectedAnimalViewState = typeof selectedAnimalView !== 'undefined' ? selectedAnimalView : null; %>
 <% const sectionState = typeof animalSection !== 'undefined' ? animalSection : { key: 'active', workspaceTitle: 'Tierbestand', workspaceIntro: '', totalLabel: 'Einträge', allowStatusFilter: true }; %>
 
+<% if (sectionState.key === 'resting') { %>
+<section class="panel resting-place-panel">
+  <div class="resting-place-intro">
+    <p class="eyebrow">Ruhestätte</p>
+    <h2>In liebevoller Erinnerung</h2>
+    <p class="resting-place-copy">
+      Hier bleiben verstorbene Tiere mit ihrer Akte sichtbar. Die Ansicht ist bewusst ruhig gehalten und vom aktiven Bestand getrennt.
+    </p>
+  </div>
+
+  <% if (animals.length === 0) { %>
+    <section class="panel animals-empty-detail resting-place-empty">
+      <div class="panel-head">
+        <h2>Ruhestätte</h2>
+      </div>
+      <p class="empty-state">Noch keine Tiere in der Ruhestätte vorhanden.</p>
+    </section>
+  <% } else { %>
+    <div class="resting-place-grid">
+      <% animals.forEach((animal) => { %>
+        <a href="/animals/<%= animal.id %>" class="resting-place-card">
+          <div class="resting-place-image-wrap">
+            <% if (animal.profile_image_stored_name) { %>
+              <img class="resting-place-image" src="/media/<%= animal.profile_image_stored_name %>" alt="Profilbild von <%= animal.name %>" />
+            <% } else { %>
+              <div class="resting-place-image resting-place-image-fallback"><%= getAnimalInitial(animal.name) %></div>
+            <% } %>
+          </div>
+          <div class="resting-place-body">
+            <p class="eyebrow">In Erinnerung</p>
+            <h3><%= animal.name %></h3>
+            <p class="resting-place-meta"><%= animal.species_name || 'Tier' %><%= animal.breed ? ` · ${animal.breed}` : '' %></p>
+            <div class="resting-place-facts">
+              <div>
+                <span>Geboren</span>
+                <strong><%= formatDate(animal.birth_date) %></strong>
+              </div>
+              <div>
+                <span>Bei dir seit</span>
+                <strong><%= formatDate(animal.intake_date) %></strong>
+              </div>
+            </div>
+            <% if (animal.notes) { %>
+              <p class="resting-place-note"><%= animal.notes %></p>
+            <% } %>
+          </div>
+        </a>
+      <% }) %>
+    </div>
+  <% } %>
+</section>
+<% } else { %>
 <section class="animals-workspace">
   <aside class="animals-list-pane">
     <section class="panel animals-list-summary">
@@ -150,8 +202,9 @@
   </aside>
 
   <section class="animals-detail-pane" data-animal-workspace-target>
-    <%- include('./animal-workspace-detail', { selectedAnimal: selectedAnimalState, selectedAnimalView: selectedAnimalViewState }) %>
+    <%- include('./animal-workspace-detail', { selectedAnimal: selectedAnimalState, selectedAnimalView: selectedAnimalViewState, animalSection: sectionState }) %>
   </section>
 </section>
+<% } %>
 
 <%- include('../partials/bottom') %>

@@ -1,5 +1,6 @@
 <% const selectedAnimalState = typeof selectedAnimal !== 'undefined' ? selectedAnimal : null; %>
 <% const selectedAnimalViewState = typeof selectedAnimalView !== 'undefined' ? selectedAnimalView : null; %>
+<% const sectionState = typeof animalSection !== 'undefined' ? animalSection : { key: 'active' }; %>
 <section
   class="animals-detail-panel"
   data-animal-workspace-panel
@@ -27,9 +28,21 @@
   <% } else { %>
     <section class="panel animals-empty-detail">
       <div class="panel-head">
-        <h2>Tier auswählen</h2>
+        <h2>
+          <%= sectionState.key === 'history'
+            ? 'Historie'
+            : sectionState.key === 'resting'
+              ? 'Ruhestätte'
+              : 'Tier auswählen' %>
+        </h2>
       </div>
-      <p class="empty-state">Wähle links ein Tier aus, um die Akte direkt in dieser Arbeitsansicht zu öffnen.</p>
+      <p class="empty-state">
+        <%= sectionState.key === 'history'
+          ? 'Sobald vermittelte oder verkaufte Tiere vorhanden sind, kannst du sie hier links auswählen und ihre Akten weiter einsehen.'
+          : sectionState.key === 'resting'
+            ? 'Sobald verstorbene Tiere vorhanden sind, erscheinen sie hier in der Ruhestätte und können weiter würdevoll eingesehen werden.'
+            : 'Wähle links ein Tier aus, um die Akte direkt in dieser Arbeitsansicht zu öffnen.' %>
+      </p>
     </section>
   <% } %>
 </section>

@@ -47,12 +47,16 @@
             </button>
             <% if (animalMenu.length > 0) { %>
               <div class="sidebar-subnav">
-                <a class="<%= currentPath === '/animals' && !activeSpeciesId ? 'active' : '' %>" href="/animals">Aktive Tiere</a>
+                <div class="sidebar-subgroup">
+                  <a class="<%= currentPath === '/animals' && !activeSpeciesId ? 'active' : '' %>" href="/animals">Aktive Tiere</a>
+                  <div class="sidebar-subsubnav">
+                    <% animalMenu.forEach((item) => { %>
+                      <a class="<%= currentPath === '/animals' && activeSpeciesId === String(item.id) ? 'active' : '' %>" href="/animals?species_id=<%= item.id %>"><%= item.name %></a>
+                    <% }) %>
+                  </div>
+                </div>
                 <a class="<%= currentPath === '/animals/historie' ? 'active' : '' %>" href="/animals/historie">Historie</a>
                 <a class="<%= currentPath === '/animals/ruhestaette' ? 'active' : '' %>" href="/animals/ruhestaette">Ruhestätte</a>
-                <% animalMenu.forEach((item) => { %>
-                  <a class="<%= currentPath === '/animals' && activeSpeciesId === String(item.id) ? 'active' : '' %>" href="/animals?species_id=<%= item.id %>"><%= item.name %></a>
-                <% }) %>
               </div>
             <% } %>
           </div>
