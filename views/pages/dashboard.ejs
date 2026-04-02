@@ -2,12 +2,12 @@
 <% const searchState = typeof search !== 'undefined' ? search : { q: '', searchable: false }; %>
 <% const dashboardSearchResults = typeof searchResults !== 'undefined' ? searchResults : []; %>
 
-<section class="panel dashboard-search-panel">
+<section class="panel dashboard-search-panel card border-0 shadow-sm">
   <form method="get" action="/" class="dashboard-search-form">
     <div class="search-autocomplete-field">
-      <input type="search" name="q" value="<%= searchState.q || '' %>" placeholder="Tiere, Dokumente, Ereignisse suchen ..." autocomplete="off" data-global-search-autocomplete="true" />
+      <input class="form-control" type="search" name="q" value="<%= searchState.q || '' %>" placeholder="Tiere, Dokumente, Ereignisse suchen ..." autocomplete="off" data-global-search-autocomplete="true" />
     </div>
-    <button type="submit" class="button">Suchen</button>
+    <button type="submit" class="btn btn-success">Suchen</button>
   </form>
   <% if (searchState.q && !searchState.searchable) { %>
     <p class="empty-state">Bitte mindestens 2 Zeichen eingeben.</p>
@@ -15,7 +15,7 @@
 </section>
 
 <% if (searchState.searchable) { %>
-  <section class="panel">
+  <section class="panel card border-0 shadow-sm">
     <div class="panel-head">
       <h2>Suchergebnisse</h2>
       <span class="counter"><%= dashboardSearchResults.length %> Treffer</span>
@@ -39,26 +39,26 @@
 <% } %>
 
 <section class="dashboard-grid">
-  <a class="stat-card" href="/animals">
+  <a class="stat-card card border-0 shadow-sm text-decoration-none" href="/animals">
     <span>Tiere</span>
     <strong><%= stats.animalCount %></strong>
   </a>
-  <article class="stat-card">
+  <article class="stat-card card border-0 shadow-sm">
     <span>Dokumente</span>
     <strong><%= stats.documentCount %></strong>
   </article>
-  <article class="stat-card">
+  <article class="stat-card card border-0 shadow-sm">
     <span>Offene Erinnerungen</span>
     <strong><%= stats.openReminderCount %></strong>
   </article>
-  <article class="stat-card stat-card-warning">
+  <article class="stat-card stat-card-warning card border-0 shadow-sm">
     <span>Jetzt fällig</span>
     <strong><%= stats.dueReminderCount %></strong>
   </article>
 </section>
 
 <section class="content-grid">
-  <article class="panel" id="dringende-erinnerungen">
+  <article class="panel card border-0 shadow-sm" id="dringende-erinnerungen">
     <div class="panel-head">
       <h2>Dringend: Überfällig & Heute</h2>
     </div>
@@ -83,7 +83,7 @@
     <% } %>
   </article>
 
-  <article class="panel" id="naechste-erinnerungen">
+  <article class="panel card border-0 shadow-sm" id="naechste-erinnerungen">
     <div class="panel-head">
       <h2>Nächste Erinnerungen</h2>
     </div>
@@ -100,7 +100,7 @@
             </div>
             <% if (!reminder.completed_at && permissions.canManageReminders) { %>
               <form method="post" action="/reminders/<%= reminder.id %>/complete">
-                <button type="submit" class="button button-secondary">Als erledigt markieren</button>
+                <button type="submit" class="btn btn-outline-secondary">Als erledigt markieren</button>
               </form>
             <% } %>
           </div>
@@ -109,10 +109,10 @@
     <% } %>
   </article>
 
-  <article class="panel">
+  <article class="panel card border-0 shadow-sm">
     <div class="panel-head">
       <h2>Neueste Tierakten</h2>
-      <a href="/animals" class="link-button">Alle anzeigen</a>
+      <a href="/animals" class="btn btn-outline-secondary btn-sm">Alle anzeigen</a>
     </div>
     <% if (recentAnimals.length === 0) { %>
       <p class="empty-state">Es wurden noch keine Tiere angelegt.</p>
@@ -132,7 +132,7 @@
   </article>
 </section>
 
-<section class="panel">
+<section class="panel card border-0 shadow-sm">
   <div class="panel-head">
     <h2>Schnellstart</h2>
   </div>

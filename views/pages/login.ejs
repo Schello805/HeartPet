@@ -8,9 +8,10 @@
     <link rel="icon" type="image/png" sizes="any" href="<%= resolvedAppLogoUrl %>" />
     <link rel="shortcut icon" type="image/png" href="<%= resolvedAppLogoUrl %>" />
     <link rel="apple-touch-icon" href="<%= resolvedAppLogoUrl %>" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous" />
     <link rel="stylesheet" href="/static/css/app.css" />
   </head>
-  <body class="login-body">
+  <body class="login-body bootstrap-app">
     <section class="login-panel">
       <div class="brand-lockup">
         <img class="brand-logo brand-logo-login" src="<%= resolvedAppLogoUrl %>" alt="HeartPet Logo" />
@@ -30,19 +31,20 @@
         <% } %>
         <label>
           <span>E-Mail</span>
-          <input type="email" name="email" required />
+          <input class="form-control" type="email" name="email" required />
         </label>
         <label>
           <span>Passwort</span>
-          <input type="password" name="password" required />
+          <input class="form-control" type="password" name="password" required />
         </label>
-        <button type="submit" class="button button-full">Anmelden</button>
+        <button type="submit" class="btn btn-success w-100">Anmelden</button>
       </form>
 
       <div class="note-box">
         Wenn dies eine neue Installation ist, wirst du automatisch zuerst in die Ersteinrichtung weitergeleitet.
       </div>
     </section>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js" integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q" crossorigin="anonymous"></script>
     <script src="/static/js/app.js"></script>
   </body>
 </html>

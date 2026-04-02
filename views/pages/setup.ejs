@@ -8,9 +8,10 @@
     <link rel="icon" type="image/png" sizes="any" href="<%= resolvedAppLogoUrl %>" />
     <link rel="shortcut icon" type="image/png" href="<%= resolvedAppLogoUrl %>" />
     <link rel="apple-touch-icon" href="<%= resolvedAppLogoUrl %>" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous" />
     <link rel="stylesheet" href="/static/css/app.css" />
   </head>
-  <body class="login-body">
+  <body class="login-body bootstrap-app">
     <section class="login-panel setup-panel card">
       <div class="brand-lockup">
         <img class="brand-logo brand-logo-login" src="<%= resolvedAppLogoUrl %>" alt="HeartPet Logo" />
@@ -31,19 +32,19 @@
             <div class="form-grid">
               <label>
                 <span>Name</span>
-                <input type="text" name="admin_name" required />
+                <input class="form-control" type="text" name="admin_name" required />
               </label>
               <label>
                 <span>E-Mail</span>
-                <input type="email" name="admin_email" required />
+                <input class="form-control" type="email" name="admin_email" required />
               </label>
               <label class="full-width">
                 <span>Passwort</span>
-                <input type="password" name="admin_password" required minlength="8" />
+                <input class="form-control" type="password" name="admin_password" required minlength="8" />
               </label>
               <label class="full-width">
                 <span>Name der Haltung / Organisation</span>
-                <input type="text" name="organization_name" placeholder="optional" />
+                <input class="form-control" type="text" name="organization_name" placeholder="optional" />
               </label>
             </div>
           </div>
@@ -55,31 +56,31 @@
             <div class="form-grid">
               <label class="full-width">
                 <span>Name</span>
-                <input type="text" name="veterinarian_name" required />
+                <input class="form-control" type="text" name="veterinarian_name" required />
               </label>
               <label class="full-width">
                 <span>Straße</span>
-                <input type="text" name="veterinarian_street" />
+                <input class="form-control" type="text" name="veterinarian_street" />
               </label>
               <label>
                 <span>PLZ</span>
-                <input type="text" name="veterinarian_postal_code" />
+                <input class="form-control" type="text" name="veterinarian_postal_code" />
               </label>
               <label>
                 <span>Ort</span>
-                <input type="text" name="veterinarian_city" />
+                <input class="form-control" type="text" name="veterinarian_city" />
               </label>
               <label>
                 <span>Land</span>
-                <input type="text" name="veterinarian_country" value="Deutschland" />
+                <input class="form-control" type="text" name="veterinarian_country" value="Deutschland" />
               </label>
               <label>
                 <span>Telefon</span>
-                <input type="text" name="veterinarian_phone" />
+                <input class="form-control" type="text" name="veterinarian_phone" />
               </label>
               <label class="full-width">
                 <span>E-Mail</span>
-                <input type="email" name="veterinarian_email" />
+                <input class="form-control" type="email" name="veterinarian_email" />
               </label>
             </div>
           </div>
@@ -91,15 +92,15 @@
             <div class="form-grid">
               <label>
                 <span>Name</span>
-                <input type="text" name="animal_name" required />
+                <input class="form-control" type="text" name="animal_name" required />
               </label>
               <label>
                 <span>Tierart</span>
-                <input type="text" name="species_name" list="setup-species-options" required />
+                <input class="form-control" type="text" name="species_name" list="setup-species-options" required />
               </label>
               <label>
                 <span>Geschlecht</span>
-                <select name="animal_sex">
+                <select class="form-select" name="animal_sex">
                   <option value="">Bitte wählen</option>
                   <option value="Weiblich">Weiblich</option>
                   <option value="Männlich">Männlich</option>
@@ -108,15 +109,15 @@
               </label>
               <label>
                 <span>Aufnahmedatum</span>
-                <input type="date" name="animal_intake_date" />
+                <input class="form-control" type="date" name="animal_intake_date" />
               </label>
               <label>
                 <span>Geburtsdatum</span>
-                <input type="date" name="animal_birth_date" />
+                <input class="form-control" type="date" name="animal_birth_date" />
               </label>
               <label>
                 <span>Herkunft</span>
-                <input type="text" name="animal_source" />
+                <input class="form-control" type="text" name="animal_source" />
               </label>
             </div>
             <datalist id="setup-species-options">
@@ -127,9 +128,10 @@
           </div>
         </details>
 
-        <button type="submit" class="button button-full">Ersteinrichtung abschließen</button>
+        <button type="submit" class="btn btn-success w-100">Ersteinrichtung abschließen</button>
       </form>
     </section>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js" integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q" crossorigin="anonymous"></script>
     <script src="/static/js/app.js"></script>
   </body>
 </html>

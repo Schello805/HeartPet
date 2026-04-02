@@ -90,6 +90,21 @@ async function loadPendingReminders() {
 }
 
 function initMobileNavToggle() {
+  const offcanvasElement = document.getElementById("mobileNavOffcanvas");
+  if (offcanvasElement && window.bootstrap?.Offcanvas) {
+    const offcanvas = window.bootstrap.Offcanvas.getOrCreateInstance(offcanvasElement);
+    if (!document.body.dataset.mobileNavBound) {
+      document.body.dataset.mobileNavBound = "1";
+      document.addEventListener("click", (event) => {
+        const navLink = event.target.closest("#mobileNavOffcanvas a[href]");
+        if (navLink) {
+          offcanvas.hide();
+        }
+      });
+    }
+    return;
+  }
+
   const toggles = Array.from(document.querySelectorAll(".mobile-nav-toggle"));
   if (!toggles.length) {
     return;
@@ -947,6 +962,10 @@ async function navigateTo(url, options = {}) {
     }
 
     document.body.classList.remove("nav-open");
+    const offcanvasElement = document.getElementById("mobileNavOffcanvas");
+    if (offcanvasElement && window.bootstrap?.Offcanvas) {
+      window.bootstrap.Offcanvas.getOrCreateInstance(offcanvasElement).hide();
+    }
     initPage();
   } catch (error) {
     console.error("Soft-Navigation fehlgeschlagen", error);

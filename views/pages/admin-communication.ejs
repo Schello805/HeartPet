@@ -65,31 +65,31 @@
         </div>
         <label>
           <span>Medikamente: Tage vorher</span>
-          <input type="number" min="0" step="1" name="medication_reminder_lead_days" value="<%= settings.medication_reminder_lead_days || '0' %>" />
+          <input class="form-control" type="number" min="0" step="1" name="medication_reminder_lead_days" value="<%= settings.medication_reminder_lead_days || '0' %>" />
         </label>
         <label>
           <span>Medikamente: Anzahl Erinnerungen</span>
-          <input type="number" min="0" step="1" name="medication_reminder_repeat_count" value="<%= settings.medication_reminder_repeat_count || '0' %>" />
+          <input class="form-control" type="number" min="0" step="1" name="medication_reminder_repeat_count" value="<%= settings.medication_reminder_repeat_count || '0' %>" />
         </label>
         <label>
           <span>Impfungen: Tage vorher</span>
-          <input type="number" min="0" step="1" name="vaccination_reminder_lead_days" value="<%= settings.vaccination_reminder_lead_days || '30' %>" />
+          <input class="form-control" type="number" min="0" step="1" name="vaccination_reminder_lead_days" value="<%= settings.vaccination_reminder_lead_days || '30' %>" />
         </label>
         <label>
           <span>Impfungen: Anzahl Erinnerungen</span>
-          <input type="number" min="0" step="1" name="vaccination_reminder_repeat_count" value="<%= settings.vaccination_reminder_repeat_count || '1' %>" />
+          <input class="form-control" type="number" min="0" step="1" name="vaccination_reminder_repeat_count" value="<%= settings.vaccination_reminder_repeat_count || '1' %>" />
         </label>
         <label>
           <span>Arzttermine: Tage vorher</span>
-          <input type="number" min="0" step="1" name="appointment_reminder_lead_days" value="<%= settings.appointment_reminder_lead_days || '1' %>" />
+          <input class="form-control" type="number" min="0" step="1" name="appointment_reminder_lead_days" value="<%= settings.appointment_reminder_lead_days || '1' %>" />
         </label>
         <label>
           <span>Arzttermine: Anzahl Erinnerungen</span>
-          <input type="number" min="0" step="1" name="appointment_reminder_repeat_count" value="<%= settings.appointment_reminder_repeat_count || '1' %>" />
+          <input class="form-control" type="number" min="0" step="1" name="appointment_reminder_repeat_count" value="<%= settings.appointment_reminder_repeat_count || '1' %>" />
         </label>
         <div class="full-width note-box">Die Anzahl steuert, wie viele Erinnerungen automatisch erzeugt werden. Bei mehreren Erinnerungen wird ab dem Vorlauf täglich erinnert.</div>
         <div class="full-width form-actions">
-          <button type="submit" class="button">Erinnerungsregeln speichern</button>
+          <button type="submit" class="btn btn-success">Erinnerungsregeln speichern</button>
         </div>
       </form>
     </div>
@@ -113,34 +113,34 @@
         <input type="hidden" name="_fields" value="smtp_host,smtp_port,smtp_user,smtp_password,smtp_from,notification_email_to,smtp_secure" />
         <label>
           <span>SMTP Host</span>
-          <input type="text" name="smtp_host" value="<%= settings.smtp_host || '' %>" />
+          <input class="form-control" type="text" name="smtp_host" value="<%= settings.smtp_host || '' %>" />
         </label>
         <label>
           <span>SMTP Port</span>
-          <input type="number" name="smtp_port" value="<%= settings.smtp_port || '587' %>" />
+          <input class="form-control" type="number" name="smtp_port" value="<%= settings.smtp_port || '587' %>" />
         </label>
         <label>
           <span>SMTP Benutzer</span>
-          <input type="email" name="smtp_user" value="<%= settings.smtp_user || '' %>" />
+          <input class="form-control" type="email" name="smtp_user" value="<%= settings.smtp_user || '' %>" />
         </label>
         <label>
           <span>SMTP Passwort</span>
-          <input type="password" name="smtp_password" value="<%= settings.smtp_password || '' %>" />
+          <input class="form-control" type="password" name="smtp_password" value="<%= settings.smtp_password || '' %>" />
         </label>
         <label>
           <span>Absenderadresse</span>
-          <input type="email" name="smtp_from" value="<%= settings.smtp_from || '' %>" />
+          <input class="form-control" type="email" name="smtp_from" value="<%= settings.smtp_from || '' %>" />
         </label>
         <label>
           <span>Empfänger für Erinnerungen / Tests</span>
-          <input type="email" name="notification_email_to" value="<%= settings.notification_email_to || '' %>" placeholder="leer = SMTP Benutzer verwenden" />
+          <input class="form-control" type="email" name="notification_email_to" value="<%= settings.notification_email_to || '' %>" placeholder="leer = SMTP Benutzer verwenden" />
         </label>
         <label class="checkbox-line">
           <input type="checkbox" name="smtp_secure" <%= settings.smtp_secure === 'true' ? 'checked' : '' %> />
           SMTPS / SSL direkt verwenden
         </label>
         <div class="full-width form-actions">
-          <button type="submit" class="button">E-Mail speichern</button>
+          <button type="submit" class="btn btn-success">E-Mail speichern</button>
         </div>
       </form>
 
@@ -153,10 +153,10 @@
         </div>
         <div class="status-row">
           <form method="post" action="/admin/test-smtp-connection">
-            <button type="submit" class="button button-secondary">SMTP-Verbindung prüfen</button>
+            <button type="submit" class="btn btn-outline-secondary">SMTP-Verbindung prüfen</button>
           </form>
           <form method="post" action="/admin/test-email">
-            <button type="submit" class="button button-secondary">SMTP-Testmail senden</button>
+            <button type="submit" class="btn btn-outline-secondary">SMTP-Testmail senden</button>
           </form>
         </div>
         <div class="note-box">
@@ -218,11 +218,11 @@
           <div class="form-grid communication-grid">
             <label>
               <span>Telegram Bot Token</span>
-              <input type="text" name="telegram_bot_token" value="<%= settings.telegram_bot_token || '' %>" />
+              <input class="form-control" type="text" name="telegram_bot_token" value="<%= settings.telegram_bot_token || '' %>" />
             </label>
             <label>
               <span>Telegram Chat ID</span>
-              <input type="text" name="telegram_chat_id" value="<%= settings.telegram_chat_id || '' %>" />
+              <input class="form-control" type="text" name="telegram_chat_id" value="<%= settings.telegram_chat_id || '' %>" />
             </label>
             <div class="full-width note-box">
               Nur den echten Token aus BotFather eintragen. Das Wort <strong>bot</strong> gehört nicht zum gespeicherten Token dazu.
@@ -235,7 +235,7 @@
             Oben im Akkordeon-Kopf kannst du Telegram jederzeit direkt aktivieren oder deaktivieren, ohne die restlichen Einstellungen zu ändern.
           </div>
           <div class="form-actions">
-            <button type="submit" class="button">Telegram speichern</button>
+            <button type="submit" class="btn btn-success">Telegram speichern</button>
           </div>
         </div>
       </form>
@@ -249,7 +249,7 @@
         </div>
         <div class="status-row">
           <form id="telegram-test-form" method="post" action="/admin/test-telegram">
-            <button type="submit" class="button button-secondary">Telegram-Test senden</button>
+            <button type="submit" class="btn btn-outline-secondary">Telegram-Test senden</button>
           </form>
         </div>
         <div class="note-box">

@@ -9,15 +9,15 @@
         <input type="hidden" name="_fields" value="app_name,app_domain,organization_name,help_contact,legal_responsible_name,legal_content_responsible_name,legal_contact_street,legal_contact_postal_city,legal_contact_country,legal_contact_phone,legal_contact_email" />
         <label>
           <span>App-Name</span>
-          <input type="text" name="app_name" value="<%= settings.app_name || '' %>" />
+          <input class="form-control" type="text" name="app_name" value="<%= settings.app_name || '' %>" />
         </label>
         <label>
           <span>Domain</span>
-          <input type="text" name="app_domain" value="<%= settings.app_domain || '' %>" />
+          <input class="form-control" type="text" name="app_domain" value="<%= settings.app_domain || '' %>" />
         </label>
         <label class="full-width">
           <span>Name der Haltung / Organisation</span>
-          <input type="text" name="organization_name" value="<%= settings.organization_name || '' %>" />
+          <input class="form-control" type="text" name="organization_name" value="<%= settings.organization_name || '' %>" />
         </label>
         <div class="full-width logo-upload-panel">
           <div class="logo-upload-preview">
@@ -29,43 +29,43 @@
           </div>
           <label class="full-width">
             <span>Neues Logo hochladen</span>
-            <input type="file" name="app_logo" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/x-icon,image/vnd.microsoft.icon" />
+            <input class="form-control" type="file" name="app_logo" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/x-icon,image/vnd.microsoft.icon" />
           </label>
         </div>
         <label>
           <span>Verantwortliche Person / Betreiber für Rechtstexte</span>
-          <input type="text" name="legal_responsible_name" value="<%= settings.legal_responsible_name || '' %>" placeholder="z. B. Max Mustermann oder Musterhof GmbH" />
+          <input class="form-control" type="text" name="legal_responsible_name" value="<%= settings.legal_responsible_name || '' %>" placeholder="z. B. Max Mustermann oder Musterhof GmbH" />
         </label>
         <label>
           <span>Abweichende Inhaltsverantwortung</span>
-          <input type="text" name="legal_content_responsible_name" value="<%= settings.legal_content_responsible_name || '' %>" placeholder="Optional, falls nicht identisch mit dem Betreiber" />
+          <input class="form-control" type="text" name="legal_content_responsible_name" value="<%= settings.legal_content_responsible_name || '' %>" placeholder="Optional, falls nicht identisch mit dem Betreiber" />
         </label>
         <label>
           <span>Kontakt für Hilfe</span>
-          <input type="text" name="help_contact" value="<%= settings.help_contact || '' %>" />
+          <input class="form-control" type="text" name="help_contact" value="<%= settings.help_contact || '' %>" />
         </label>
         <label>
           <span>Kontakt E-Mail für Rechtstexte</span>
-          <input type="email" name="legal_contact_email" value="<%= settings.legal_contact_email || '' %>" placeholder="z. B. recht@deinedomain.de" />
+          <input class="form-control" type="email" name="legal_contact_email" value="<%= settings.legal_contact_email || '' %>" placeholder="z. B. recht@deinedomain.de" />
         </label>
         <label>
           <span>Straße und Hausnummer für Rechtstexte</span>
-          <input type="text" name="legal_contact_street" value="<%= settings.legal_contact_street || '' %>" placeholder="z. B. Musterstraße 12" />
+          <input class="form-control" type="text" name="legal_contact_street" value="<%= settings.legal_contact_street || '' %>" placeholder="z. B. Musterstraße 12" />
         </label>
         <label>
           <span>PLZ und Ort für Rechtstexte</span>
-          <input type="text" name="legal_contact_postal_city" value="<%= settings.legal_contact_postal_city || '' %>" placeholder="z. B. 12345 Musterstadt" />
+          <input class="form-control" type="text" name="legal_contact_postal_city" value="<%= settings.legal_contact_postal_city || '' %>" placeholder="z. B. 12345 Musterstadt" />
         </label>
         <label>
           <span>Land für Rechtstexte</span>
-          <input type="text" name="legal_contact_country" value="<%= settings.legal_contact_country || '' %>" placeholder="z. B. Deutschland" />
+          <input class="form-control" type="text" name="legal_contact_country" value="<%= settings.legal_contact_country || '' %>" placeholder="z. B. Deutschland" />
         </label>
         <label>
           <span>Telefon für Rechtstexte</span>
-          <input type="text" name="legal_contact_phone" value="<%= settings.legal_contact_phone || '' %>" placeholder="z. B. +49 123 456789" />
+          <input class="form-control" type="text" name="legal_contact_phone" value="<%= settings.legal_contact_phone || '' %>" placeholder="z. B. +49 123 456789" />
         </label>
         <div class="full-width form-actions">
-          <button type="submit" class="button">Allgemeine Einstellungen speichern</button>
+          <button type="submit" class="btn btn-success">Allgemeine Einstellungen speichern</button>
         </div>
       </form>
     </div>
@@ -76,8 +76,8 @@
     <div class="accordion-content">
       <form method="post" action="/admin/settings" class="stack form-compact">
         <input type="hidden" name="_fields" value="imprint_text" />
-        <textarea name="imprint_text" rows="10" placeholder="Impressumstext"><%= applyInfoPageContent(settings.imprint_text || '') %></textarea>
-        <button type="submit" class="button">Impressum speichern</button>
+        <textarea class="form-control" name="imprint_text" rows="10" placeholder="Impressumstext"><%= applyInfoPageContent(settings.imprint_text || '') %></textarea>
+        <button type="submit" class="btn btn-success">Impressum speichern</button>
       </form>
     </div>
   </details>
@@ -87,8 +87,8 @@
     <div class="accordion-content">
       <form method="post" action="/admin/settings" class="stack form-compact">
         <input type="hidden" name="_fields" value="privacy_text" />
-        <textarea name="privacy_text" rows="12" placeholder="Datenschutzerklärung"><%= applyInfoPageContent(settings.privacy_text || '') %></textarea>
-        <button type="submit" class="button">Datenschutzerklärung speichern</button>
+        <textarea class="form-control" name="privacy_text" rows="12" placeholder="Datenschutzerklärung"><%= applyInfoPageContent(settings.privacy_text || '') %></textarea>
+        <button type="submit" class="btn btn-success">Datenschutzerklärung speichern</button>
       </form>
     </div>
   </details>
@@ -98,8 +98,8 @@
     <div class="accordion-content">
       <form method="post" action="/admin/settings" class="stack form-compact">
         <input type="hidden" name="_fields" value="contact_text" />
-        <textarea name="contact_text" rows="8" placeholder="Kontaktinformationen"><%= applyInfoPageContent(settings.contact_text || '') %></textarea>
-        <button type="submit" class="button">Kontaktseite speichern</button>
+        <textarea class="form-control" name="contact_text" rows="8" placeholder="Kontaktinformationen"><%= applyInfoPageContent(settings.contact_text || '') %></textarea>
+        <button type="submit" class="btn btn-success">Kontaktseite speichern</button>
       </form>
     </div>
   </details>
@@ -109,8 +109,8 @@
     <div class="accordion-content">
       <form method="post" action="/admin/settings" class="stack form-compact">
         <input type="hidden" name="_fields" value="cookies_text" />
-        <textarea name="cookies_text" rows="8" placeholder="Cookie-Hinweise"><%= applyInfoPageContent(settings.cookies_text || '') %></textarea>
-        <button type="submit" class="button">Cookie-Hinweise speichern</button>
+        <textarea class="form-control" name="cookies_text" rows="8" placeholder="Cookie-Hinweise"><%= applyInfoPageContent(settings.cookies_text || '') %></textarea>
+        <button type="submit" class="btn btn-success">Cookie-Hinweise speichern</button>
       </form>
     </div>
   </details>

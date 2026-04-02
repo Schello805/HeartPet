@@ -4,7 +4,7 @@
 <% const sectionState = typeof animalSection !== 'undefined' ? animalSection : { key: 'active', workspaceTitle: 'Tierbestand', workspaceIntro: '', totalLabel: 'Einträge', allowStatusFilter: true }; %>
 
 <% if (sectionState.key === 'resting') { %>
-<section class="panel resting-place-panel">
+<section class="panel resting-place-panel card border-0 shadow-sm">
   <div class="resting-place-intro">
     <p class="eyebrow">Ruhestätte</p>
     <h2>In liebevoller Erinnerung</h2>
@@ -14,7 +14,7 @@
   </div>
 
   <% if (animals.length === 0) { %>
-    <section class="panel animals-empty-detail resting-place-empty">
+    <section class="panel animals-empty-detail resting-place-empty card border-0 shadow-sm">
       <div class="panel-head">
         <h2>Ruhestätte</h2>
       </div>
@@ -57,7 +57,7 @@
 <% } else { %>
 <section class="animals-workspace">
   <aside class="animals-list-pane">
-    <section class="panel animals-list-summary">
+    <section class="panel animals-list-summary card border-0 shadow-sm">
       <div class="animals-list-summary-head">
         <div>
           <p class="eyebrow">Arbeitsansicht</p>
@@ -82,15 +82,15 @@
       </div>
     </section>
 
-    <section class="panel animals-filter-panel">
+    <section class="panel animals-filter-panel card border-0 shadow-sm">
       <form method="get" action="/animals" class="filter-row animals-filter-grid">
         <label class="search-autocomplete-field full-width">
           <span>Suche</span>
-          <input type="text" name="q" value="<%= filters.search %>" placeholder="Name, Herkunft, Rasse" data-global-search-autocomplete="true" />
+          <input class="form-control" type="text" name="q" value="<%= filters.search %>" placeholder="Name, Herkunft, Rasse" data-global-search-autocomplete="true" />
         </label>
         <label>
           <span>Status</span>
-          <select name="status">
+          <select class="form-select" name="status">
             <% if (sectionState.allowStatusFilter) { %>
               <option value="">Alle</option>
               <option value="Vermittelt" <%= filters.status === 'Vermittelt' ? 'selected' : '' %>>Vermittelt</option>
@@ -104,7 +104,7 @@
         </label>
         <label>
           <span>Tierart</span>
-          <select name="species_id">
+          <select class="form-select" name="species_id">
             <option value="">Alle</option>
             <% speciesOptions.forEach((item) => { %>
               <option value="<%= item.id %>" <%= String(filters.speciesId || '') === String(item.id) ? 'selected' : '' %>><%= item.name %></option>
@@ -113,7 +113,7 @@
         </label>
         <label class="full-width">
           <span>Sortierung</span>
-          <select name="sort">
+          <select class="form-select" name="sort">
             <option value="name_asc" <%= filters.sort === 'name_asc' ? 'selected' : '' %>>Name A-Z</option>
             <option value="name_desc" <%= filters.sort === 'name_desc' ? 'selected' : '' %>>Name Z-A</option>
             <option value="intake_desc" <%= filters.sort === 'intake_desc' ? 'selected' : '' %>>Aufnahme neu zuerst</option>
@@ -126,12 +126,12 @@
         <% if (selectedAnimalState) { %>
           <input type="hidden" name="animal_id" value="<%= selectedAnimalState.id %>" />
         <% } %>
-        <button type="submit" class="button">Filtern</button>
-        <a href="<%= sectionState.key === 'history' ? '/animals/historie' : sectionState.key === 'resting' ? '/animals/ruhestaette' : '/animals' %>" class="button button-secondary">Zurücksetzen</a>
+        <button type="submit" class="btn btn-success">Filtern</button>
+        <a href="<%= sectionState.key === 'history' ? '/animals/historie' : sectionState.key === 'resting' ? '/animals/ruhestaette' : '/animals' %>" class="btn btn-outline-secondary">Zurücksetzen</a>
       </form>
     </section>
 
-    <section class="panel animals-list-panel">
+    <section class="panel animals-list-panel card border-0 shadow-sm">
       <div class="panel-head">
         <h2>Liste</h2>
         <span class="counter"><%= animals.length %> sichtbar</span>

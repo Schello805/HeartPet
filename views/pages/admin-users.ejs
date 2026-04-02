@@ -26,23 +26,23 @@
         <div class="form-grid">
           <label>
             <span>Name</span>
-            <input type="text" name="name" required value="<%= me.name || '' %>" />
+            <input class="form-control" type="text" name="name" required value="<%= me.name || '' %>" />
           </label>
           <label>
             <span>E-Mail</span>
-            <input type="email" name="email" required value="<%= me.email || '' %>" />
+            <input class="form-control" type="email" name="email" required value="<%= me.email || '' %>" />
           </label>
         </div>
         <small>E-Mail-Änderungen werden erst nach Klick auf den Bestätigungslink wirksam.</small>
-        <button type="submit" class="button button-secondary">Profil speichern</button>
+        <button type="submit" class="btn btn-outline-secondary">Profil speichern</button>
       </form>
 
       <h3>Eigenes Passwort ändern</h3>
       <form method="post" action="/admin/password" class="stack form-compact">
-        <input type="password" name="current_password" required placeholder="Aktuelles Passwort" />
-        <input type="password" name="new_password" required placeholder="Neues Passwort" />
-        <input type="password" name="new_password_confirm" required placeholder="Neues Passwort wiederholen" />
-        <button type="submit" class="button">Passwort aktualisieren</button>
+        <input class="form-control" type="password" name="current_password" required placeholder="Aktuelles Passwort" />
+        <input class="form-control" type="password" name="new_password" required placeholder="Neues Passwort" />
+        <input class="form-control" type="password" name="new_password_confirm" required placeholder="Neues Passwort wiederholen" />
+        <button type="submit" class="btn btn-success">Passwort aktualisieren</button>
       </form>
     </div>
   </details>
@@ -60,7 +60,7 @@
         <summary>Nutzer hinzufügen</summary>
         <div class="sub-accordion-content">
           <p class="compact-note">Lege hier weitere Zugänge für Familie, Mitarbeitende oder Helfer an. Rechte lassen sich später jederzeit anpassen.</p>
-          <a href="/admin/users/new" class="button" data-drawer="admin-user">Benutzer anlegen</a>
+          <a href="/admin/users/new" class="btn btn-success" data-drawer="admin-user">Benutzer anlegen</a>
         </div>
       </details>
 
@@ -91,11 +91,11 @@
                   <span><%= user.must_change_password ? 'Passwortwechsel offen' : 'Aktiv' %></span>
                 </div>
                 <div class="button-row">
-                  <a href="/admin/users/<%= user.id %>/edit" class="button button-secondary icon-button" data-drawer="admin-user" aria-label="Benutzer bearbeiten" title="Bearbeiten">
+                  <a href="/admin/users/<%= user.id %>/edit" class="btn btn-outline-secondary icon-button" data-drawer="admin-user" aria-label="Benutzer bearbeiten" title="Bearbeiten">
                     <span aria-hidden="true">✎</span>
                     <span class="visually-hidden">Bearbeiten</span>
                   </a>
-                  <button type="submit" class="button button-danger icon-button" form="user-delete-<%= user.id %>" aria-label="Benutzer löschen" title="Löschen">
+                  <button type="submit" class="btn btn-outline-danger icon-button" form="user-delete-<%= user.id %>" aria-label="Benutzer löschen" title="Löschen">
                     <span aria-hidden="true">🗑</span>
                     <span class="visually-hidden">Löschen</span>
                   </button>

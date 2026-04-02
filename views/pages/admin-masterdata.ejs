@@ -1,7 +1,7 @@
 <%- include('../partials/top', { pageTitle }) %>
 <% const defaultVetIdState = typeof defaultVeterinarianId !== 'undefined' && defaultVeterinarianId ? String(defaultVeterinarianId) : ''; %>
 
-<section class="masterdata-hero panel admin-intro-card">
+<section class="masterdata-hero panel admin-intro-card card border-0 shadow-sm">
   <div>
     <p class="eyebrow">Verwaltung</p>
     <h2>Stammdaten kompakt verwalten</h2>
@@ -20,22 +20,22 @@
     <div class="accordion-content">
       <p class="compact-note">Hier legst du fest, wie hochgeladene Unterlagen einsortiert werden. Pflichtkategorien helfen dabei, wichtige Nachweise später schneller wiederzufinden.</p>
       <div class="button-row">
-        <a href="/admin/categories/new" class="button" data-drawer="masterdata-form">Neue Kategorie</a>
+        <a href="/admin/categories/new" class="btn btn-success" data-drawer="masterdata-form">Neue Kategorie</a>
       </div>
       <div class="masterdata-category-grid compact-list">
         <% categories.forEach((category) => { %>
-          <div class="list-card static-card masterdata-category-card">
+          <div class="list-card static-card masterdata-category-card card border-0 shadow-sm">
             <div>
               <strong><%= category.name %></strong>
               <p><%= category.is_required ? 'Pflichtkategorie' : 'Optional' %></p>
             </div>
             <div class="inline-actions masterdata-category-actions">
-              <a href="/admin/categories/<%= category.id %>/edit" data-drawer="masterdata-form" class="button button-secondary icon-button" aria-label="Dokumentkategorie bearbeiten" title="Bearbeiten">
+              <a href="/admin/categories/<%= category.id %>/edit" data-drawer="masterdata-form" class="btn btn-outline-secondary icon-button" aria-label="Dokumentkategorie bearbeiten" title="Bearbeiten">
                 <span aria-hidden="true">✎</span>
                 <span class="visually-hidden">Bearbeiten</span>
               </a>
               <form method="post" action="/admin/categories/<%= category.id %>/delete" data-confirm="Dokumentkategorie wirklich löschen?">
-                <button type="submit" class="button button-danger icon-button" aria-label="Dokumentkategorie löschen" title="Löschen">
+                <button type="submit" class="btn btn-outline-danger icon-button" aria-label="Dokumentkategorie löschen" title="Löschen">
                   <span aria-hidden="true">🗑</span>
                   <span class="visually-hidden">Löschen</span>
                 </button>
@@ -52,11 +52,11 @@
     <div class="accordion-content">
       <p class="compact-note">Tierärzte können global hinterlegt und später einzelnen Tierarten oder direkt einem Tier zugeordnet werden. Der Standardtierarzt dient als Fallback, wenn beim Tier selbst nichts ausgewählt ist.</p>
       <div class="button-row">
-        <a href="/admin/veterinarians/new" class="button" data-drawer="masterdata-form">Neuer Tierarzt</a>
+        <a href="/admin/veterinarians/new" class="btn btn-success" data-drawer="masterdata-form">Neuer Tierarzt</a>
       </div>
       <div class="masterdata-card-grid compact-list">
         <% veterinarians.forEach((vet) => { %>
-          <div class="list-card static-card masterdata-entity-card">
+          <div class="list-card static-card masterdata-entity-card card border-0 shadow-sm">
             <div>
               <strong><%= vet.name %></strong>
               <% if (defaultVetIdState === String(vet.id)) { %>
@@ -66,17 +66,17 @@
               <p><%= vet.phone || '-' %> | <%= vet.email || '-' %></p>
             </div>
             <div class="inline-actions">
-              <a href="/admin/veterinarians/<%= vet.id %>/edit" data-drawer="masterdata-form" class="button button-secondary icon-button" aria-label="Tierarzt bearbeiten" title="Bearbeiten">
+              <a href="/admin/veterinarians/<%= vet.id %>/edit" data-drawer="masterdata-form" class="btn btn-outline-secondary icon-button" aria-label="Tierarzt bearbeiten" title="Bearbeiten">
                 <span aria-hidden="true">✎</span>
                 <span class="visually-hidden">Bearbeiten</span>
               </a>
               <% if (defaultVetIdState !== String(vet.id)) { %>
                 <form method="post" action="/admin/veterinarians/<%= vet.id %>/set-default">
-                  <button type="submit" class="button button-secondary" title="Wird automatisch verwendet, wenn bei einer Tierart oder einem Tier kein eigener Tierarzt hinterlegt ist.">Als Standard markieren</button>
+                  <button type="submit" class="btn btn-outline-secondary" title="Wird automatisch verwendet, wenn bei einer Tierart oder einem Tier kein eigener Tierarzt hinterlegt ist.">Als Standard markieren</button>
                 </form>
               <% } %>
               <form method="post" action="/admin/veterinarians/<%= vet.id %>/delete" data-confirm="Tierarzt wirklich löschen?">
-                <button type="submit" class="button button-danger icon-button" aria-label="Tierarzt löschen" title="Löschen">
+                <button type="submit" class="btn btn-outline-danger icon-button" aria-label="Tierarzt löschen" title="Löschen">
                   <span aria-hidden="true">🗑</span>
                   <span class="visually-hidden">Löschen</span>
                 </button>
@@ -93,22 +93,22 @@
     <div class="accordion-content">
       <p class="compact-note">Tierarten helfen dir bei der sauberen Struktur. Du kannst hier pro Art einen Standardtierarzt hinterlegen, der beim Anlegen neuer Tiere automatisch vorgeschlagen wird.</p>
       <div class="button-row">
-        <a href="/admin/species/new" class="button" data-drawer="masterdata-form">Neue Tierart</a>
+        <a href="/admin/species/new" class="btn btn-success" data-drawer="masterdata-form">Neue Tierart</a>
       </div>
       <div class="masterdata-card-grid compact-list">
         <% species.forEach((item) => { %>
-          <div class="list-card static-card masterdata-entity-card">
+          <div class="list-card static-card masterdata-entity-card card border-0 shadow-sm">
             <div>
               <strong><%= item.name %></strong>
               <p>Standard Tierarzt: <%= item.veterinarian_name || '-' %></p>
             </div>
             <div class="inline-actions">
-              <a href="/admin/species/<%= item.id %>/edit" data-drawer="masterdata-form" class="button button-secondary icon-button" aria-label="Tierart bearbeiten" title="Bearbeiten">
+              <a href="/admin/species/<%= item.id %>/edit" data-drawer="masterdata-form" class="btn btn-outline-secondary icon-button" aria-label="Tierart bearbeiten" title="Bearbeiten">
                 <span aria-hidden="true">✎</span>
                 <span class="visually-hidden">Bearbeiten</span>
               </a>
               <form method="post" action="/admin/species/<%= item.id %>/delete" data-confirm="Tierart wirklich löschen?">
-                <button type="submit" class="button button-danger icon-button" aria-label="Tierart löschen" title="Löschen">
+                <button type="submit" class="btn btn-outline-danger icon-button" aria-label="Tierart löschen" title="Löschen">
                   <span aria-hidden="true">🗑</span>
                   <span class="visually-hidden">Löschen</span>
                 </button>

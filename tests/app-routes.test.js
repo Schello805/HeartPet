@@ -649,8 +649,8 @@ test("Dashboard zeigt dringende Erinnerungen nicht doppelt bei den nächsten Eri
   const response = await agent.get("/");
   assert.equal(response.status, 200);
 
-  const urgentSection = response.text.match(/<article class="panel" id="dringende-erinnerungen">([\s\S]*?)<\/article>/);
-  const upcomingSection = response.text.match(/<article class="panel" id="naechste-erinnerungen">([\s\S]*?)<\/article>/);
+  const urgentSection = response.text.match(/<article class="[^"]*" id="dringende-erinnerungen">([\s\S]*?)<\/article>/);
+  const upcomingSection = response.text.match(/<article class="[^"]*" id="naechste-erinnerungen">([\s\S]*?)<\/article>/);
 
   assert.ok(urgentSection?.[1]?.includes("Heute fällig"));
   assert.ok(!upcomingSection?.[1]?.includes("Heute fällig"));
@@ -664,7 +664,7 @@ test("Dashboard verlinkt die Tier-Karte auf die Tierübersicht und zeigt die ein
   const expectedAnimalCount = db.prepare("SELECT COUNT(DISTINCT id) AS count FROM animals WHERE status = 'Aktiv'").get().count;
   assert.match(
     response.text,
-    new RegExp(`<a class="stat-card" href="\\/animals">[\\s\\S]*?<span>Tiere<\\/span>[\\s\\S]*?<strong>${expectedAnimalCount}<\\/strong>[\\s\\S]*?<\\/a>`)
+    new RegExp(`<a class="[^"]*stat-card[^"]*" href="\\/animals">[\\s\\S]*?<span>Tiere<\\/span>[\\s\\S]*?<strong>${expectedAnimalCount}<\\/strong>[\\s\\S]*?<\\/a>`)
   );
 });
 
