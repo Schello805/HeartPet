@@ -9,8 +9,11 @@ const tempDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "heartpet-test-"));
 process.env.HEARTPET_DATA_DIR = tempDataDir;
 process.env.HEARTPET_SESSION_SECRET = "test-secret";
 
+const { initDatabase } = require("../src/db");
+const { buildReminderActionToken, buildReminderEmailHtml, sendTelegramReminder } = require("../src/reminders");
 const app = require("../src/app");
 const agent = request.agent(app);
+const db = initDatabase();
 
 function collectInternalLinks(html) {
   return [...html.matchAll(/href="([^"]+)"/g)]
@@ -621,4 +624,294 @@ test("App-Logo kann hochgeladen und in der Oberflaeche verwendet werden", async 
   const adminGeneral = await agent.get("/admin/allgemein");
   assert.equal(adminGeneral.status, 200);
   assert.match(adminGeneral.text, /\/media\/\d+-logo-heartpet\.png/);
+});
+
+test("Erinnerungs-Mail verwendet Umlaute und Direktlink", async () => {
+  const reminder = {
+    id: 99,
+    animal_id: 1,
+    animal_name: "Tobi",
+    title: "Impftermin: Wurmkur",
+    reminder_type: "Impfung",
+    due_at: "2026-04-05T09:00",
+    source_kind: "vaccination",
+    source_id: 1,
+  };
+
+  const html = buildReminderEmailHtml({
+    appName: "HeartPet",
+    logoUrl: "",
+    animalName: reminder.animal_name,
+    title: reminder.title,
+    type: reminder.reminder_type,
+    dueLabel: "05.04.2026 09:00",
+    notes: "Bitte Impfpass bereithalten.",
+    animalUrl: "https://heartpet.de/animals/1",
+    dashboardUrl: "https://heartpet.de/",
+    completeUrl: "https://heartpet.de/reminders/99/email-complete?token=abc",
+  });
+
+  assert.match(html, /Für <strong>Tobi<\/strong> ist eine Erinnerung eingegangen\./);
+  assert.match(html, /Fälligkeit/);
+  assert.match(html, /Als erledigt markieren/);
+});
+
+test("Testmail enthält keinen Erledigt-Link ohne echte Erinnerung", async () => {
+  const html = buildReminderEmailHtml({
+    appName: "HeartPet",
+    logoUrl: "",
+    animalName: "Testtier",
+    title: "SMTP-Test",
+    type: "Test",
+    dueLabel: "05.04.2026 09:00",
+    notes: "Dies ist eine Testnachricht.",
+    animalUrl: "",
+    dashboardUrl: "https://heartpet.de/",
+    completeUrl: "",
+  });
+
+  assert.doesNotMatch(html, /Als erledigt markieren/);
+});
+
+test("Erinnerung kann über Mail-Link als erledigt markiert werden", async () => {
+  const vaccination = db.prepare(`
+    INSERT INTO animal_vaccinations (animal_id, name, vaccination_date, next_due_date, notes)
+    VALUES (?, ?, NULL, ?, ?)
+  `).run(1, "Wurmkur", "2026-04-05", "Testeintrag");
+
+  const inserted = db.prepare(`
+    INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, repeat_interval_days, notes, source_kind, source_id)
+    VALUES (?, ?, ?, ?, 1, 0, 0, ?, ?, ?)
+  `).run(1, "Impftermin: Wurmkur", "Impfung", "2026-04-05T09:00", "Test", "vaccination", vaccination.lastInsertRowid);
+
+  const reminder = db.prepare("SELECT * FROM reminders WHERE id = ?").get(inserted.lastInsertRowid);
+  const token = buildReminderActionToken(reminder, "complete");
+
+  const response = await agent.get(`/reminders/${reminder.id}/email-complete`).query({ token });
+  assert.equal(response.status, 200);
+  assert.match(response.text, /Erinnerung bestätigt/);
+
+  const updatedReminder = db.prepare("SELECT * FROM reminders WHERE id = ?").get(reminder.id);
+  assert.ok(updatedReminder.completed_at);
+
+  const updatedVaccination = db.prepare("SELECT * FROM animal_vaccinations WHERE id = ?").get(vaccination.lastInsertRowid);
+  assert.ok(updatedVaccination.vaccination_date);
+});
+
+test("Telegram-Erinnerung enthält Aktionsbuttons", async () => {
+  const calls = [];
+  const originalFetch = global.fetch;
+  global.fetch = async (url, options) => {
+    calls.push({ url, options });
+    return { ok: true, status: 200 };
+  };
+
+  try {
+    await sendTelegramReminder({
+      app_name: "HeartPet",
+      app_domain: "heartpet.de",
+      telegram_bot_token: "123456:ABCDEF",
+      telegram_chat_id: "987654",
+    }, {
+      id: 55,
+      animal_id: 1,
+      animal_name: "Tobi",
+      title: "Impftermin: Wurmkur",
+      reminder_type: "Impfung",
+      due_at: "2026-04-05T09:00",
+      notes: "Bitte Impfpass bereithalten.",
+      source_kind: "vaccination",
+      source_id: 1,
+    });
+  } finally {
+    global.fetch = originalFetch;
+  }
+
+  assert.equal(calls.length, 1);
+  const body = JSON.parse(calls[0].options.body);
+  assert.ok(body.reply_markup);
+  const buttons = body.reply_markup.inline_keyboard.flat();
+  assert.ok(buttons.some((button) => /Als erledigt markieren/.test(button.text)));
+  assert.ok(buttons.some((button) => /\+60 Min/.test(button.text)));
+  assert.ok(buttons.some((button) => /\+6 Std/.test(button.text)));
+  assert.ok(buttons.some((button) => /\+1 Tag/.test(button.text)));
+  assert.ok(buttons.some((button) => /\+3 Tage/.test(button.text)));
+});
+
+test("Erinnerung kann über Link um 60 Minuten zurückgestellt werden", async () => {
+  const inserted = db.prepare(`
+    INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, repeat_interval_days, notes, source_kind, source_id)
+    VALUES (?, ?, ?, ?, 1, 1, 0, ?, ?, ?)
+  `).run(1, "Medikamentengabe: Test", "Medikament", "2026-04-05T09:00", "Test", "medication", 1);
+
+  const reminder = db.prepare("SELECT * FROM reminders WHERE id = ?").get(inserted.lastInsertRowid);
+  const token = buildReminderActionToken(reminder, "snooze", "60");
+
+  const response = await agent.get(`/reminders/${reminder.id}/email-snooze`).query({ token, value: "60" });
+  assert.equal(response.status, 200);
+  assert.match(response.text, /Erinnerung zurückgestellt/);
+
+  const updatedReminder = db.prepare("SELECT * FROM reminders WHERE id = ?").get(reminder.id);
+  assert.notEqual(updatedReminder.due_at, reminder.due_at);
+  assert.equal(updatedReminder.completed_at, null);
+  assert.equal(updatedReminder.last_notified_at, null);
+  assert.equal(updatedReminder.last_delivery_status, "pending");
+});
+
+test("Erinnerungs-Bestätigungsseite verwendet absolute Asset-Links", async () => {
+  const saveSettings = await agent.post("/admin/settings").type("form").send({
+    _fields: "app_domain",
+    app_domain: "heartpet.de",
+  });
+  assert.equal(saveSettings.status, 302);
+
+  const response = await agent.get("/reminders/999999/email-complete").query({ token: "ungueltig" });
+  assert.equal(response.status, 200);
+  assert.match(response.text, /https:\/\/heartpet\.de\/static\/css\/app\.css/);
+  assert.match(response.text, /https:\/\/heartpet\.de\/static\/js\/app\.js/);
+});
+
+test("Benachrichtigungskanaele lassen sich gezielt aktivieren und deaktivieren", async () => {
+  let response = await agent
+    .post("/admin/settings")
+    .type("form")
+    .send({ _fields: "reminder_email_enabled", reminder_email_enabled: "true" });
+  assert.ok([302, 303].includes(response.status));
+
+  response = await agent.get("/admin/benachrichtigungen");
+  assert.equal(response.status, 200);
+  assert.match(response.text, /E-Mail-Benachrichtigungen wurden aktiviert\./);
+  assert.match(response.text, /Aktiviert/);
+
+  response = await agent
+    .post("/admin/settings")
+    .type("form")
+    .send({ _fields: "reminder_email_enabled", reminder_email_enabled: "false" });
+  assert.ok([302, 303].includes(response.status));
+
+  response = await agent.get("/admin/benachrichtigungen");
+  assert.equal(response.status, 200);
+  assert.match(response.text, /E-Mail-Benachrichtigungen wurden deaktiviert\./);
+  assert.match(response.text, /Deaktiviert/);
+
+  response = await agent
+    .post("/admin/settings")
+    .type("form")
+    .send({ _fields: "reminder_telegram_enabled", reminder_telegram_enabled: "true" });
+  assert.ok([302, 303].includes(response.status));
+
+  response = await agent.get("/admin/benachrichtigungen");
+  assert.equal(response.status, 200);
+  assert.match(response.text, /Telegram-Benachrichtigungen wurden aktiviert\./);
+  assert.match(response.text, /Aktiviert/);
+
+  response = await agent
+    .post("/admin/settings")
+    .type("form")
+    .send({ _fields: "reminder_telegram_enabled", reminder_telegram_enabled: "false" });
+  assert.ok([302, 303].includes(response.status));
+
+  response = await agent.get("/admin/benachrichtigungen");
+  assert.equal(response.status, 200);
+  assert.match(response.text, /Telegram-Benachrichtigungen wurden deaktiviert\./);
+  assert.match(response.text, /Deaktiviert/);
+});
+
+test("Telegram-Testformular ist kein verschachteltes Formular", async () => {
+  const response = await agent.get("/admin/benachrichtigungen");
+  assert.equal(response.status, 200);
+
+  const telegramSettingsFormIndex = response.text.indexOf('id="telegram-settings-form"');
+  const telegramSettingsSaveIndex = response.text.indexOf("Telegram speichern");
+  const telegramTestFormIndex = response.text.indexOf('id="telegram-test-form"');
+  assert.ok(telegramSettingsFormIndex >= 0);
+  assert.ok(telegramSettingsSaveIndex >= 0);
+  assert.ok(telegramTestFormIndex >= 0);
+  assert.ok(
+    telegramTestFormIndex > telegramSettingsSaveIndex,
+    "Das Telegram-Testformular muss nach dem Telegram-Einstellungsformular kommen."
+  );
+});
+
+test("Normales Speichern von E-Mail und Telegram ändert den Aktiv-Status nicht", async () => {
+  let response = await agent
+    .post("/admin/settings")
+    .type("form")
+    .send({ _fields: "reminder_email_enabled", reminder_email_enabled: "true" });
+  assert.ok([302, 303].includes(response.status));
+
+  response = await agent
+    .post("/admin/settings")
+    .type("form")
+    .send({
+      _fields: "smtp_host,smtp_port,smtp_user,smtp_password,smtp_from,notification_email_to,smtp_secure",
+      smtp_host: "smtp.ionos.de",
+      smtp_port: "587",
+      smtp_user: "noreply@schellenberger.biz",
+      smtp_password: "geheim",
+      smtp_from: "noreply@schellenberger.biz",
+      notification_email_to: "admin@schellenberger.biz",
+    });
+  assert.ok([302, 303].includes(response.status));
+
+  response = await agent.get("/admin/benachrichtigungen");
+  assert.equal(response.status, 200);
+  assert.match(response.text, /Aktiviert/);
+
+  response = await agent
+    .post("/admin/settings")
+    .type("form")
+    .send({ _fields: "reminder_telegram_enabled", reminder_telegram_enabled: "true" });
+  assert.ok([302, 303].includes(response.status));
+
+  response = await agent
+    .post("/admin/settings")
+    .type("form")
+    .send({
+      _fields: "telegram_bot_token,telegram_chat_id",
+      telegram_bot_token: "123456:abc",
+      telegram_chat_id: "987654",
+    });
+  assert.ok([302, 303].includes(response.status));
+
+  response = await agent.get("/admin/benachrichtigungen");
+  assert.equal(response.status, 200);
+  assert.match(response.text, /Telegram/);
+  assert.match(response.text, /Aktiviert/);
+});
+
+test("Benachrichtigungen zeigen den letzten erfolgreichen Test je Kanal an", async () => {
+  db.prepare(`
+    INSERT INTO notification_logs (channel, notification_type, recipient, subject, status, error_message, details, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    "email",
+    "test",
+    "admin@test.local",
+    "SMTP-Testnachricht",
+    "sent",
+    "",
+    "{}",
+    "2026-04-02 09:15:00"
+  );
+
+  db.prepare(`
+    INSERT INTO notification_logs (channel, notification_type, recipient, subject, status, error_message, details, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    "telegram",
+    "test",
+    "12345",
+    "Telegram-Testnachricht",
+    "sent",
+    "",
+    "{}",
+    "2026-04-02 10:45:00"
+  );
+
+  const response = await agent.get("/admin/benachrichtigungen");
+  assert.equal(response.status, 200);
+  assert.match(response.text, /Letzter erfolgreicher Test:/);
+  assert.match(response.text, /02\.04\.2026 09:15/);
+  assert.match(response.text, /02\.04\.2026 10:45/);
 });

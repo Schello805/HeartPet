@@ -16,6 +16,10 @@
   --shadow-soft: 0 15px 35px -5px rgba(6, 78, 59, 0.08);
   --radius: 16px;
   --sidebar-width: 280px;
+  --text-base: 0.95rem;
+  --text-small: 0.86rem;
+  --accordion-title: 1.08rem;
+  --accordion-subtitle: 0.84rem;
 }
 
 * {
@@ -721,6 +725,7 @@ textarea {
 .panel,
 .hero-card {
   padding: 16px;
+  font-size: var(--text-base);
 }
 
 .panel-head {
@@ -740,6 +745,7 @@ textarea {
 .help-copy {
   color: var(--muted);
   line-height: 1.6;
+  font-size: var(--text-small);
 }
 
 .prose-block {
@@ -759,6 +765,7 @@ textarea {
   border: 1px solid rgba(255, 255, 255, 0.5);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  font-size: var(--text-base);
 }
 
 .static-card {
@@ -815,6 +822,7 @@ textarea {
   padding: 16px;
   display: grid;
   gap: 8px;
+  font-size: var(--text-base);
 }
 
 .quick-card span {
@@ -1485,10 +1493,19 @@ textarea {
   list-style: none;
   cursor: pointer;
   padding: 10px 12px;
-  font-size: 0.95rem;
+  font-size: var(--accordion-title);
   font-weight: 700;
+  line-height: 1.3;
   background: linear-gradient(180deg, #f2fbf6 0%, #eaf7f0 100%);
   border-bottom: 1px solid rgba(197, 222, 209, 0.75);
+}
+
+.accordion-item summary.summary-inline-status {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px 140px 18px;
+  align-items: center;
+  gap: 10px;
+  padding-right: 12px;
 }
 
 .accordion-summary-main,
@@ -1497,10 +1514,55 @@ textarea {
   padding-right: 26px;
 }
 
+.accordion-item summary.summary-inline-status .accordion-summary-main,
+.accordion-item summary.summary-inline-status .accordion-summary-meta,
+.accordion-item summary.summary-inline-status .accordion-summary-status {
+  padding-right: 0;
+}
+
+.accordion-item summary.summary-inline-status .accordion-summary-main {
+  min-width: 0;
+}
+
+.accordion-item summary.summary-inline-status .accordion-summary-status {
+  margin-top: 0;
+  justify-self: start;
+  width: 100%;
+  justify-content: center;
+  border-radius: 999px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.accordion-summary-toggle {
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background-color 160ms ease;
+  min-width: 140px;
+}
+
+.accordion-summary-toggle::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.85;
+}
+
+.accordion-summary-toggle:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(6, 78, 59, 0.10);
+}
+
+.accordion-summary-toggle:focus-visible {
+  outline: 2px solid rgba(16, 185, 129, 0.35);
+  outline-offset: 2px;
+}
+
 .accordion-summary-meta {
   margin-top: 2px;
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: var(--accordion-subtitle);
   font-weight: 500;
 }
 
@@ -1510,8 +1572,35 @@ textarea {
 
 .accordion-item summary::after {
   content: "+";
-  float: right;
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
   color: var(--accent-dark);
+}
+
+.accordion-item summary.summary-inline-status::after {
+  position: static;
+  right: auto;
+  top: auto;
+  transform: none;
+  justify-self: end;
+}
+
+@media (max-width: 960px) {
+  .accordion-item summary.summary-inline-status {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 8px;
+  }
+
+  .accordion-item summary.summary-inline-status .accordion-summary-status {
+    width: auto;
+  }
+
+  .accordion-item summary.summary-inline-status .accordion-summary-status:nth-of-type(2),
+  .accordion-item summary.summary-inline-status .accordion-summary-toggle {
+    grid-column: 1 / -1;
+  }
 }
 
 .accordion-item[open] summary::after {
@@ -1522,6 +1611,7 @@ textarea {
   padding: 10px;
   display: grid;
   gap: 8px;
+  font-size: var(--text-base);
 }
 
 .compact-layout {
@@ -1537,9 +1627,60 @@ textarea {
   background: rgba(245, 253, 249, 0.84);
 }
 
+.communication-section {
+  gap: 12px;
+  padding: 12px;
+  border-color: rgba(167, 243, 208, 0.55);
+  background:
+    linear-gradient(180deg, rgba(249, 255, 252, 0.96), rgba(241, 251, 246, 0.88));
+}
+
+.telegram-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(300px, 0.95fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.telegram-main,
+.telegram-side {
+  min-width: 0;
+}
+
+.telegram-main {
+  display: grid;
+  gap: 12px;
+}
+
+.telegram-main .form-actions {
+  margin-top: auto;
+}
+
+.telegram-side {
+  display: grid;
+  gap: 14px;
+}
+
+.compact-ordered-list {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
+}
+
+.compact-ordered-list li {
+  line-height: 1.45;
+}
+
+.section-divider {
+  height: 1px;
+  margin: 6px 4px;
+  background: linear-gradient(90deg, transparent 0%, rgba(16, 185, 129, 0.28) 12%, rgba(16, 185, 129, 0.22) 88%, transparent 100%);
+}
+
 .section-block h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.02rem;
 }
 
 .sub-accordion {
@@ -1553,7 +1694,9 @@ textarea {
   list-style: none;
   cursor: pointer;
   padding: 9px 11px;
+  font-size: 1rem;
   font-weight: 700;
+  line-height: 1.3;
   background: rgba(238, 250, 244, 0.94);
   border-bottom: 1px solid rgba(197, 222, 209, 0.75);
 }
@@ -1576,6 +1719,7 @@ textarea {
   display: grid;
   gap: 8px;
   padding: 8px 9px;
+  font-size: var(--text-base);
 }
 
 .section-head {
@@ -1599,6 +1743,7 @@ textarea {
   margin: 0;
   color: var(--muted);
   line-height: 1.5;
+  font-size: var(--text-small);
 }
 
 .compact-form {
@@ -1732,6 +1877,7 @@ textarea {
   margin-bottom: 14px;
   padding: 13px 15px;
   border-radius: 6px;
+  font-size: var(--text-small);
 }
 
 .toast-viewport {
@@ -2034,6 +2180,48 @@ small {
   color: var(--text);
 }
 
+.setup-status-chip {
+  min-height: 36px;
+  padding: 7px 14px;
+  font-weight: 700;
+  border-width: 1px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.55) inset;
+}
+
+.setup-status-chip.status-ok {
+  background: var(--forest);
+  border-color: var(--forest);
+  color: #ffffff;
+}
+
+.setup-status-chip.status-muted {
+  background: #eef2f4;
+  border-color: #d3dbe0;
+  color: #5b6b75;
+}
+
+.service-status-chip {
+  min-height: 36px;
+  padding: 7px 14px;
+  font-weight: 700;
+  border-width: 1px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.service-status-chip.status-active {
+  background: var(--forest);
+  border-color: var(--forest);
+  color: #ffffff;
+}
+
+.service-status-chip.status-active::before {
+  background: #ffffff;
+}
+
+.service-status-chip.status-muted::before {
+  background: #9aa8b1;
+}
+
 .status-ok,
 .status-sent {
   background: #ebfbf1;
@@ -2095,6 +2283,10 @@ small {
 @media (max-width: 960px) {
 .mobile-nav-toggle {
     display: none;
+  }
+
+  .telegram-layout {
+    grid-template-columns: 1fr;
   }
 
   .sidebar {

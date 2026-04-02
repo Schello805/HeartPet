@@ -1,5 +1,51 @@
 let softNavInitialized = false;
 let softNavInFlight = false;
+const viewStateStorageKey = "heartpet-view-state";
+
+function saveCurrentViewState() {
+  try {
+    const openDetails = Array.from(document.querySelectorAll(".main-content details")).map((detail, index) =>
+      detail.open ? index : null
+    ).filter((index) => index !== null);
+
+    sessionStorage.setItem(
+      viewStateStorageKey,
+      JSON.stringify({
+        path: `${window.location.pathname}${window.location.search}`,
+        scrollY: window.scrollY || window.pageYOffset || 0,
+        openDetails,
+        savedAt: Date.now(),
+      })
+    );
+  } catch (error) {}
+}
+
+function restoreCurrentViewState() {
+  try {
+    const raw = sessionStorage.getItem(viewStateStorageKey);
+    if (!raw) {
+      return;
+    }
+
+    const state = JSON.parse(raw);
+    const currentPath = `${window.location.pathname}${window.location.search}`;
+    if (!state || state.path !== currentPath) {
+      return;
+    }
+
+    const details = Array.from(document.querySelectorAll(".main-content details"));
+    const openSet = new Set(Array.isArray(state.openDetails) ? state.openDetails : []);
+    details.forEach((detail, index) => {
+      detail.open = openSet.has(index);
+    });
+
+    window.requestAnimationFrame(() => {
+      window.scrollTo(0, Number(state.scrollY || 0));
+    });
+
+    sessionStorage.removeItem(viewStateStorageKey);
+  } catch (error) {}
+}
 
 async function loadPendingReminders() {
   const bannerTarget = document.querySelector(".page-header");
@@ -902,6 +948,7 @@ function initPage() {
   initGlobalSearchAutocomplete();
   initAnimalWorkspace();
   loadPendingReminders();
+  restoreCurrentViewState();
 }
 
 document.addEventListener("click", (event) => {
@@ -950,6 +997,11 @@ document.addEventListener("submit", (event) => {
 
   if (message && !window.confirm(message)) {
     event.preventDefault();
+    return;
+  }
+
+  if (form.dataset.drawerForm !== "true") {
+    saveCurrentViewState();
   }
 });
 

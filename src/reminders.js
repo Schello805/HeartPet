@@ -2,6 +2,7 @@ const dayjs = require("dayjs");
 const nodemailer = require("nodemailer");
 const fs = require("node:fs");
 const path = require("node:path");
+const crypto = require("node:crypto");
 
 async function processDueReminders(db, settings, hooks = {}) {
   const now = dayjs().format("YYYY-MM-DDTHH:mm");
@@ -106,6 +107,8 @@ async function sendEmailReminder(settings, reminder) {
   const { attachments, logoUrl } = resolveEmailLogo({ logoFilePath, logoCid, appBaseUrl });
   const animalUrl = appBaseUrl && reminder.animal_id ? `${appBaseUrl}/animals/${reminder.animal_id}` : "";
   const dashboardUrl = appBaseUrl ? `${appBaseUrl}/` : "";
+  const completeUrl =
+    appBaseUrl && reminder && reminder.id ? buildReminderActionUrl(appBaseUrl, reminder, "complete") : "";
   const dueLabel = formatReminderDate(reminder.due_at);
   const html = buildReminderEmailHtml({
     appName,
@@ -117,6 +120,7 @@ async function sendEmailReminder(settings, reminder) {
     notes: reminder.notes || "",
     animalUrl,
     dashboardUrl,
+    completeUrl,
   });
   const text = [
     `${appName} Erinnerung${animalPart}`,
@@ -125,6 +129,7 @@ async function sendEmailReminder(settings, reminder) {
     `Fälligkeit: ${dueLabel}`,
     `Typ: ${reminder.reminder_type}`,
     reminder.notes ? `Notiz: ${reminder.notes}` : "",
+    completeUrl ? `Direkt als erledigt markieren: ${completeUrl}` : "",
     animalUrl ? `Direkt zur Tierakte: ${animalUrl}` : "",
     dashboardUrl ? `Dashboard: ${dashboardUrl}` : "",
     "",
@@ -258,16 +263,24 @@ async function sendEmailChangeConfirmation(settings, payload) {
 }
 
 async function sendTelegramReminder(settings, reminder) {
-  const animalPart = reminder.animal_name ? ` fuer *${escapeTelegram(reminder.animal_name)}*` : "";
+  const animalPart = reminder.animal_name ? ` für *${escapeTelegram(reminder.animal_name)}*` : "";
   const appName = settings.app_name || "HeartPet";
   const appBaseUrl = getAppBaseUrl(settings);
   const animalUrl = appBaseUrl && reminder.animal_id ? `${appBaseUrl}/animals/${reminder.animal_id}` : "";
   const dashboardUrl = appBaseUrl ? `${appBaseUrl}/` : "";
+  const completeUrl =
+    appBaseUrl && reminder && reminder.id ? buildReminderActionUrl(appBaseUrl, reminder, "complete") : "";
+  const snoozePresets = [
+    { label: "+60 Min", minutes: 60 },
+    { label: "+6 Std", minutes: 360 },
+    { label: "+1 Tag", minutes: 1440 },
+    { label: "+3 Tage", minutes: 4320 },
+  ];
   const text = [
     `*${escapeTelegram(appName)}* Erinnerung${animalPart}`,
     ``,
     `*Titel:* ${escapeTelegram(reminder.title)}`,
-    `*Faellig:* ${escapeTelegram(formatReminderDate(reminder.due_at))}`,
+    `*Fällig:* ${escapeTelegram(formatReminderDate(reminder.due_at))}`,
     `*Typ:* ${escapeTelegram(reminder.reminder_type)}`,
     reminder.notes ? `*Notiz:* ${escapeTelegram(reminder.notes)}` : "",
     animalUrl ? `*Tierakte:* ${escapeTelegram(animalUrl)}` : "",
@@ -285,6 +298,19 @@ async function sendTelegramReminder(settings, reminder) {
       chat_id: settings.telegram_chat_id,
       text,
       parse_mode: "MarkdownV2",
+      reply_markup:
+        completeUrl
+          ? {
+              inline_keyboard: [
+                [{ text: "Als erledigt markieren", url: completeUrl }],
+                snoozePresets.map((preset) => ({
+                  text: preset.label,
+                  url: buildReminderActionUrl(appBaseUrl, reminder, "snooze", preset.minutes),
+                })),
+                ...(animalUrl ? [[{ text: "Zur Tierakte", url: animalUrl }]] : []),
+              ],
+            }
+          : undefined,
     }),
   });
 
@@ -306,16 +332,28 @@ async function sendTestTelegram(settings) {
 function isEmailEnabled(settings) {
   return Boolean(
     settings.reminder_email_enabled === "true" &&
-      settings.smtp_host &&
-      settings.smtp_from &&
-      (settings.notification_email_to || settings.smtp_user)
+      isEmailConfigured(settings)
   );
 }
 
 function isTelegramEnabled(settings) {
   return Boolean(
     settings.reminder_telegram_enabled === "true" &&
-      settings.telegram_bot_token &&
+      isTelegramConfigured(settings)
+  );
+}
+
+function isEmailConfigured(settings) {
+  return Boolean(
+    settings.smtp_host &&
+      settings.smtp_from &&
+      (settings.notification_email_to || settings.smtp_user)
+  );
+}
+
+function isTelegramConfigured(settings) {
+  return Boolean(
+    settings.telegram_bot_token &&
       settings.telegram_chat_id
   );
 }
@@ -394,6 +432,7 @@ function buildReminderEmailHtml(payload) {
     notes,
     animalUrl,
     dashboardUrl,
+    completeUrl,
   } = payload;
 
   const safe = (value) =>
@@ -436,15 +475,16 @@ function buildReminderEmailHtml(payload) {
             <tr>
               <td style="padding:18px 20px;">
                 <p style="margin:0 0 12px 0;font-size:15px;line-height:1.5;color:#31483f;">
-                  Fuer <strong>${safe(animalName || "ein Tier")}</strong> ist eine Erinnerung eingegangen.
+                  Für <strong>${safe(animalName || "ein Tier")}</strong> ist eine Erinnerung eingegangen.
                 </p>
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                   ${cardRow("Titel", title)}
-                  ${cardRow("Faelligkeit", dueLabel)}
+                  ${cardRow("Fälligkeit", dueLabel)}
                   ${cardRow("Typ", type)}
                 </table>
                 ${notes ? `<div style="margin-top:14px;padding:12px;border:1px solid #d8ebdf;background:#f6fcf9;border-radius:8px;color:#395247;font-size:13px;line-height:1.5;"><strong>Hinweis:</strong><br/>${safe(notes).replaceAll("\n", "<br/>")}</div>` : ""}
                 <div style="margin-top:18px;display:flex;flex-wrap:wrap;gap:10px;">
+                  ${completeUrl ? `<a href="${safe(completeUrl)}" style="display:inline-block;padding:10px 14px;border-radius:7px;background:#edf7f2;color:#1d3128;border:1px solid #cfe5d8;text-decoration:none;font-weight:700;font-size:13px;">Als erledigt markieren</a>` : ""}
                   ${animalUrl ? `<a href="${safe(animalUrl)}" style="display:inline-block;padding:10px 14px;border-radius:7px;background:linear-gradient(180deg,#42b084 0%,#2e9a6f 100%);color:#ffffff;text-decoration:none;font-weight:700;font-size:13px;">Zur Tierakte</a>` : ""}
                   ${dashboardUrl ? `<a href="${safe(dashboardUrl)}" style="display:inline-block;padding:10px 14px;border-radius:7px;background:#edf7f2;color:#1d3128;border:1px solid #cfe5d8;text-decoration:none;font-weight:700;font-size:13px;">Dashboard</a>` : ""}
                 </div>
@@ -746,6 +786,47 @@ function buildDailyDigestEmailHtml(payload) {
   `.trim();
 }
 
+function buildReminderActionUrl(appBaseUrl, reminder, action, value = "") {
+  if (!appBaseUrl || !reminder || !reminder.id) {
+    return "";
+  }
+  const normalizedValue = value === undefined || value === null ? "" : String(value);
+  const token = buildReminderActionToken(reminder, action, normalizedValue);
+  const params = new URLSearchParams({ token });
+  if (normalizedValue) {
+    params.set("value", normalizedValue);
+  }
+  return `${appBaseUrl}/reminders/${reminder.id}/email-${action}?${params.toString()}`;
+}
+
+function buildReminderActionToken(reminder, action, value = "") {
+  const secret = process.env.HEARTPET_SESSION_SECRET || "heartpet-session-secret";
+  const payload = [
+    reminder.id,
+    action,
+    value,
+    reminder.due_at || "",
+    reminder.title || "",
+    reminder.animal_id || "",
+    reminder.source_kind || "",
+    reminder.source_id || "",
+  ].join("|");
+  return crypto.createHmac("sha256", secret).update(payload).digest("hex");
+}
+
+function verifyReminderActionToken(reminder, action, token, value = "") {
+  const expected = buildReminderActionToken(reminder, action, value);
+  const provided = String(token || "").trim();
+  if (!provided || provided.length !== expected.length) {
+    return false;
+  }
+  try {
+    return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(provided));
+  } catch {
+    return false;
+  }
+}
+
 module.exports = {
   processDueReminders,
   sendEmailReminder,
@@ -759,4 +840,9 @@ module.exports = {
   verifySmtpConnection,
   isEmailEnabled,
   isTelegramEnabled,
+  isEmailConfigured,
+  isTelegramConfigured,
+  buildReminderActionToken,
+  verifyReminderActionToken,
+  buildReminderEmailHtml,
 };

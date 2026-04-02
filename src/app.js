@@ -21,6 +21,9 @@ const {
   verifySmtpConnection,
   isEmailEnabled,
   isTelegramEnabled,
+  isEmailConfigured,
+  isTelegramConfigured,
+  verifyReminderActionToken,
 } = require("./reminders");
 const { buildAnimalExportPayload, createAnimalPdf } = require("./exporters");
 
@@ -309,6 +312,144 @@ app.get("/email-change/confirm", (req, res) => {
 
   setFlash(req, "success", "E-Mail-Adresse erfolgreich bestätigt und aktualisiert.");
   res.redirect(req.session.user ? "/admin/benutzer" : "/login");
+});
+
+app.get("/reminders/:id/email-complete", (req, res) => {
+  const reminder = db.prepare("SELECT * FROM reminders WHERE id = ?").get(req.params.id);
+  const settings = getSettingsObject(db);
+  const appBaseUrl = resolveAppBaseUrl(settings);
+  const dashboardUrl = `${appBaseUrl}/`;
+
+  if (!reminder) {
+    return res.render("pages/reminder-email-result", {
+      pageTitle: "Erinnerung nicht gefunden",
+      success: false,
+      title: "Erinnerung nicht gefunden",
+      message: "Diese Erinnerungs-Mail gehört nicht mehr zu einer vorhandenen Erinnerung oder wurde bereits gelöscht.",
+      nextUrl: dashboardUrl,
+      nextLabel: "Zum Dashboard",
+      assetBaseUrl: appBaseUrl,
+    });
+  }
+
+  if (!verifyReminderActionToken(reminder, "complete", req.query.token)) {
+    return res.render("pages/reminder-email-result", {
+      pageTitle: "Link ungültig",
+      success: false,
+      title: "Link ungültig",
+      message: "Der Bestätigungslink ist ungültig oder wurde verändert. Bitte öffne die Tierakte und markiere die Erinnerung dort.",
+      nextUrl: dashboardUrl,
+      nextLabel: "Zum Dashboard",
+      assetBaseUrl: appBaseUrl,
+    });
+  }
+
+  if (reminder.completed_at) {
+    return res.render("pages/reminder-email-result", {
+      pageTitle: "Bereits erledigt",
+      success: true,
+      title: "Erinnerung bereits erledigt",
+      message: "Diese Erinnerung war bereits als erledigt markiert. Du musst nichts weiter tun.",
+      nextUrl: dashboardUrl,
+      nextLabel: "Zum Dashboard",
+      assetBaseUrl: appBaseUrl,
+    });
+  }
+
+  applyCompletionSideEffects(reminder);
+
+  let successMessage = "Die Erinnerung wurde als erledigt markiert.";
+  if (Number(reminder.repeat_interval_days || 0) > 0) {
+    db.prepare(`
+      UPDATE reminders
+      SET due_at = ?, completed_at = NULL, last_notified_at = NULL, last_delivery_status = 'pending', last_delivery_error = ''
+      WHERE id = ?
+    `).run(dayjs(reminder.due_at).add(Number(reminder.repeat_interval_days), "day").format("YYYY-MM-DDTHH:mm"), reminder.id);
+    successMessage = "Die wiederkehrende Erinnerung wurde bestätigt und neu terminiert.";
+  } else {
+    db.prepare("UPDATE reminders SET completed_at = CURRENT_TIMESTAMP WHERE id = ?").run(reminder.id);
+  }
+
+  createAuditLog(req, "reminder.email_complete", { reminder_id: reminder.id, animal_id: reminder.animal_id }, { entityType: "reminder", entityId: reminder.id });
+
+  return res.render("pages/reminder-email-result", {
+    pageTitle: "Erinnerung bestätigt",
+    success: true,
+    title: "Erinnerung bestätigt",
+    message: successMessage,
+    nextUrl: reminder.animal_id ? `${appBaseUrl}/animals/${reminder.animal_id}` : dashboardUrl,
+    nextLabel: reminder.animal_id ? "Zur Tierakte" : "Zum Dashboard",
+    assetBaseUrl: appBaseUrl,
+  });
+});
+
+app.get("/reminders/:id/email-snooze", (req, res) => {
+  const reminder = db.prepare("SELECT * FROM reminders WHERE id = ?").get(req.params.id);
+  const settings = getSettingsObject(db);
+  const appBaseUrl = resolveAppBaseUrl(settings);
+  const dashboardUrl = `${appBaseUrl}/`;
+  const allowedMinutes = new Set(["60", "360", "1440", "4320"]);
+  const value = String(req.query.value || "").trim();
+
+  if (!reminder) {
+    return res.render("pages/reminder-email-result", {
+      pageTitle: "Erinnerung nicht gefunden",
+      success: false,
+      title: "Erinnerung nicht gefunden",
+      message: "Diese Erinnerungs-Mail gehört nicht mehr zu einer vorhandenen Erinnerung oder wurde bereits gelöscht.",
+      nextUrl: dashboardUrl,
+      nextLabel: "Zum Dashboard",
+      assetBaseUrl: appBaseUrl,
+    });
+  }
+
+  if (!allowedMinutes.has(value)) {
+    return res.render("pages/reminder-email-result", {
+      pageTitle: "Link ungültig",
+      success: false,
+      title: "Link ungültig",
+      message: "Die gewünschte Zurückstellung ist ungültig. Bitte öffne die Erinnerung direkt in HeartPet.",
+      nextUrl: reminder.animal_id ? `${appBaseUrl}/animals/${reminder.animal_id}` : dashboardUrl,
+      nextLabel: reminder.animal_id ? "Zur Tierakte" : "Zum Dashboard",
+      assetBaseUrl: appBaseUrl,
+    });
+  }
+
+  if (!verifyReminderActionToken(reminder, "snooze", req.query.token, value)) {
+    return res.render("pages/reminder-email-result", {
+      pageTitle: "Link ungültig",
+      success: false,
+      title: "Link ungültig",
+      message: "Der Zurückstellen-Link ist ungültig oder wurde verändert. Bitte öffne die Erinnerung direkt in HeartPet.",
+      nextUrl: reminder.animal_id ? `${appBaseUrl}/animals/${reminder.animal_id}` : dashboardUrl,
+      nextLabel: reminder.animal_id ? "Zur Tierakte" : "Zum Dashboard",
+      assetBaseUrl: appBaseUrl,
+    });
+  }
+
+  const minutes = Number(value);
+  const nextDueAt = dayjs().add(minutes, "minute");
+  db.prepare(`
+    UPDATE reminders
+    SET due_at = ?, completed_at = NULL, last_notified_at = NULL, last_delivery_status = 'pending', last_delivery_error = ''
+    WHERE id = ?
+  `).run(nextDueAt.format("YYYY-MM-DDTHH:mm"), reminder.id);
+
+  createAuditLog(req, "reminder.email_snooze", {
+    reminder_id: reminder.id,
+    animal_id: reminder.animal_id,
+    minutes,
+  }, { entityType: "reminder", entityId: reminder.id });
+
+  return res.render("pages/reminder-email-result", {
+    pageTitle: "Erinnerung zurückgestellt",
+    success: true,
+    title: "Erinnerung zurückgestellt",
+    message: `Die Erinnerung wurde bis ${nextDueAt.format("DD.MM.YYYY HH:mm")} zurückgestellt.`,
+    nextUrl: reminder.animal_id ? `${appBaseUrl}/animals/${reminder.animal_id}` : dashboardUrl,
+    nextLabel: reminder.animal_id ? "Zur Tierakte" : "Zum Dashboard",
+    assetBaseUrl: appBaseUrl,
+  });
 });
 
 app.use(requireAuth);
@@ -1210,8 +1351,8 @@ app.post("/animals/:id/reminders/bulk", requireAnimalPermission("canManageRemind
   if (action === "complete") {
     const update = db.prepare("UPDATE reminders SET completed_at = CURRENT_TIMESTAMP WHERE id = ?");
     reminders.forEach((item) => {
-      update.run(item.id);
       applyCompletionSideEffects(item);
+      update.run(item.id);
     });
     createAuditLog(req, "reminder.bulk_complete", { ids, animal_id: req.params.id }, { entityType: "animal", entityId: req.params.id });
     setFlash(req, "success", `${reminders.length} Erinnerung(en) als erledigt markiert.`);
@@ -1244,6 +1385,7 @@ app.post("/reminders/:id/complete", requireAnimalPermission("canManageReminders"
   }
 
   if (Number(reminder.repeat_interval_days || 0) > 0) {
+    applyCompletionSideEffects(reminder);
     db.prepare(`
       UPDATE reminders
       SET due_at = ?, completed_at = NULL, last_notified_at = NULL, last_delivery_status = 'pending', last_delivery_error = ''
@@ -1788,7 +1930,7 @@ app.post("/admin/settings", requireAdmin, upload.single("app_logo"), (req, res) 
 
   fields.forEach((key) => {
     if (booleanKeys.has(key)) {
-      upsertSetting(db, key, req.body[key] ? "true" : "false");
+      upsertSetting(db, key, parseBooleanSettingValue(req.body[key]) ? "true" : "false");
       return;
     }
 
@@ -1798,7 +1940,7 @@ app.post("/admin/settings", requireAdmin, upload.single("app_logo"), (req, res) 
   if (req.file) {
     if (!String(req.file.mimetype || "").startsWith("image/")) {
       safeDeleteUploadedFile(req.file.filename);
-      setFlash(req, "error", "Bitte lade fuer das App-Logo eine Bilddatei hoch.");
+      setFlash(req, "error", "Bitte lade für das App-Logo eine Bilddatei hoch.");
       return res.redirect(backTo(req, "/admin/allgemein"));
     }
 
@@ -1817,7 +1959,17 @@ app.post("/admin/settings", requireAdmin, upload.single("app_logo"), (req, res) 
     resyncAllGeneratedReminders();
   }
 
-  setFlash(req, "success", "Einstellungen gespeichert.");
+  if (fields.length === 1 && fields[0] === "reminder_email_enabled") {
+    setFlash(req, "success", parseBooleanSettingValue(req.body.reminder_email_enabled)
+      ? "E-Mail-Benachrichtigungen wurden aktiviert."
+      : "E-Mail-Benachrichtigungen wurden deaktiviert.");
+  } else if (fields.length === 1 && fields[0] === "reminder_telegram_enabled") {
+    setFlash(req, "success", parseBooleanSettingValue(req.body.reminder_telegram_enabled)
+      ? "Telegram-Benachrichtigungen wurden aktiviert."
+      : "Telegram-Benachrichtigungen wurden deaktiviert.");
+  } else {
+    setFlash(req, "success", "Einstellungen gespeichert.");
+  }
   res.redirect(backTo(req, "/admin/allgemein"));
 });
 
@@ -3834,6 +3986,10 @@ function normalizeSettingsInputValue(key, value) {
   return normalizedValue;
 }
 
+function parseBooleanSettingValue(value) {
+  return value === true || value === "true" || value === "1" || value === "on";
+}
+
 function getAppLogoUrl(settings) {
   const storedName = String(settings?.app_logo_stored_name || "").trim();
   return storedName ? `/media/${storedName}` : "/static/images/logo-heartpet.png";
@@ -4011,6 +4167,19 @@ function createNotificationLog({ userId = null, channel, type, recipient = "", s
   );
 }
 
+function getLastSuccessfulNotificationCheck(channel, types = ["test"]) {
+  const placeholders = types.map(() => "?").join(", ");
+  return db.prepare(`
+    SELECT created_at
+    FROM notification_logs
+    WHERE channel = ?
+      AND status = 'sent'
+      AND notification_type IN (${placeholders})
+    ORDER BY datetime(created_at) DESC, id DESC
+    LIMIT 1
+  `).get(channel, ...types) || null;
+}
+
 function buildAnimalTimeline(related) {
   const entries = [];
 
@@ -4089,6 +4258,8 @@ function buildAnimalTimeline(related) {
 
 function getAdminViewData(pageTitle, adminPath) {
   const settings = getSettingsObject(db);
+  const lastSuccessfulEmailCheck = getLastSuccessfulNotificationCheck("email", ["test", "smtp_connection_check"]);
+  const lastSuccessfulTelegramCheck = getLastSuccessfulNotificationCheck("telegram", ["test"]);
   return {
     pageTitle: `Admin · ${pageTitle}`,
     adminPageTitle: pageTitle,
@@ -4096,8 +4267,10 @@ function getAdminViewData(pageTitle, adminPath) {
     settings,
     instanceTimezone: getInstanceTimeZone(),
     communicationStatus: {
-      emailReady: isEmailEnabled(settings),
-      telegramReady: isTelegramEnabled(settings),
+      emailReady: isEmailConfigured(settings),
+      telegramReady: isTelegramConfigured(settings),
+      emailLastSuccessfulCheckAt: lastSuccessfulEmailCheck?.created_at || "",
+      telegramLastSuccessfulCheckAt: lastSuccessfulTelegramCheck?.created_at || "",
     },
     defaultVeterinarianId: String(settings.default_veterinarian_id || ""),
     categories: db.prepare("SELECT * FROM document_categories ORDER BY name ASC").all(),

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <% const resolvedAssetBaseUrl = typeof assetBaseUrl !== 'undefined' && assetBaseUrl ? assetBaseUrl.replace(/\/+$/, '') : ''; %>
+    <% const resolvedAppLogoUrl = typeof appLogoUrl !== 'undefined' && appLogoUrl ? appLogoUrl : `${resolvedAssetBaseUrl}/static/images/logo-heartpet.png`; %>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= pageTitle %> | <%= appSettings?.app_name || 'HeartPet' %></title>
+    <link rel="icon" type="image/png" sizes="any" href="<%= resolvedAppLogoUrl %>" />
+    <link rel="shortcut icon" type="image/png" href="<%= resolvedAppLogoUrl %>" />
+    <link rel="apple-touch-icon" href="<%= resolvedAppLogoUrl %>" />
+    <link rel="stylesheet" href="<%= `${resolvedAssetBaseUrl}/static/css/app.css` %>" />
+  </head>
+  <body class="login-body">
+    <section class="login-panel">
+      <div class="brand-lockup">
+        <img class="brand-logo brand-logo-login" src="<%= resolvedAppLogoUrl %>" alt="HeartPet Logo" />
+        <div>
+          <h1><%= title %></h1>
+          <p><%= message %></p>
+        </div>
+      </div>
+
+      <div class="note-box <%= success ? '' : 'note-box-error' %>">
+        <%= success ? 'Die Aktion wurde erfolgreich verarbeitet.' : 'Die Aktion konnte nicht automatisch abgeschlossen werden.' %>
+      </div>
+
+      <a href="<%= nextUrl || '/' %>" class="button button-full"><%= nextLabel || 'Weiter' %></a>
+    </section>
+    <script src="<%= `${resolvedAssetBaseUrl}/static/js/app.js` %>"></script>
+  </body>
+</html>

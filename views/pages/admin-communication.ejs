@@ -1,84 +1,56 @@
 <%- include('../partials/top', { pageTitle }) %>
+<% const resolvedInstanceTimezone = typeof instanceTimezone !== 'undefined' && instanceTimezone ? instanceTimezone : 'UTC'; %>
+
+<form id="toggle-email-enabled-form" method="post" action="/admin/settings" class="hidden-form">
+  <input type="hidden" name="_fields" value="reminder_email_enabled" />
+  <input type="hidden" name="reminder_email_enabled" value="<%= settings.reminder_email_enabled === 'true' ? 'false' : 'true' %>" />
+</form>
+
+<form id="toggle-telegram-enabled-form" method="post" action="/admin/settings" class="hidden-form">
+  <input type="hidden" name="_fields" value="reminder_telegram_enabled" />
+  <input type="hidden" name="reminder_telegram_enabled" value="<%= settings.reminder_telegram_enabled === 'true' ? 'false' : 'true' %>" />
+</form>
 
 <section class="accordion-stack">
   <details class="accordion-item" open>
-    <summary>E-Mail und allgemeine Benachrichtigungen</summary>
+    <summary>Wann und wie erinnert werden soll</summary>
     <div class="accordion-content">
       <form method="post" action="/admin/settings" class="form-grid communication-grid">
-        <input type="hidden" name="_fields" value="smtp_host,smtp_port,smtp_user,smtp_password,smtp_from,notification_email_to,smtp_secure,reminder_email_enabled,browser_notifications_enabled,daily_digest_enabled,daily_digest_time,daily_digest_only_when_open" />
-        <label>
-          <span>SMTP Host</span>
-          <input type="text" name="smtp_host" value="<%= settings.smtp_host || '' %>" />
-        </label>
-        <label>
-          <span>SMTP Port</span>
-          <input type="number" name="smtp_port" value="<%= settings.smtp_port || '587' %>" />
-        </label>
-        <label>
-          <span>SMTP Benutzer</span>
-          <input type="email" name="smtp_user" value="<%= settings.smtp_user || '' %>" />
-        </label>
-        <label>
-          <span>SMTP Passwort</span>
-          <input type="password" name="smtp_password" value="<%= settings.smtp_password || '' %>" />
-        </label>
-        <label>
-          <span>Absenderadresse</span>
-          <input type="email" name="smtp_from" value="<%= settings.smtp_from || '' %>" />
-        </label>
-        <label>
-          <span>Empfänger für Erinnerungen / Tests</span>
-          <input type="email" name="notification_email_to" value="<%= settings.notification_email_to || '' %>" placeholder="leer = SMTP Benutzer verwenden" />
-        </label>
-        <label class="checkbox-line">
-          <input type="checkbox" name="smtp_secure" <%= settings.smtp_secure === 'true' ? 'checked' : '' %> />
-          SMTPS / SSL direkt verwenden
-        </label>
-        <label class="checkbox-line full-width">
-          <input type="checkbox" name="reminder_email_enabled" <%= settings.reminder_email_enabled === 'true' ? 'checked' : '' %> />
-          Erinnerungen per E-Mail aktivieren
-        </label>
-        <label class="checkbox-line full-width">
-          <input type="checkbox" name="browser_notifications_enabled" <%= settings.browser_notifications_enabled === 'true' ? 'checked' : '' %> />
-          Browser-Hinweise für offene Erinnerungen aktivieren
-        </label>
-        <label class="checkbox-line full-width">
-          <input type="checkbox" name="daily_digest_enabled" <%= settings.daily_digest_enabled === 'true' ? 'checked' : '' %> />
-          Tägliche Erinnerungs-Zusammenfassung aktivieren
-        </label>
-        <label>
-          <span>Tägliche Zusammenfassung um</span>
-          <input type="time" name="daily_digest_time" value="<%= settings.daily_digest_time || '07:30' %>" />
-        </label>
-        <label class="checkbox-line">
-          <input type="checkbox" name="daily_digest_only_when_open" <%= settings.daily_digest_only_when_open !== 'false' ? 'checked' : '' %> />
-          Nur senden, wenn offene Erinnerungen vorhanden sind
-        </label>
-        <div class="full-width note-box">
-          Die Uhrzeit gilt in der Zeitzone dieser Instanz: <strong><%= instanceTimezone || 'UTC' %></strong>.
-          Wenn dein Server oder LXC auf <strong>Europe/Berlin</strong> läuft, bedeutet <strong>07:30</strong> also auch wirklich 07:30 Uhr deutscher Zeit.
+        <input type="hidden" name="_fields" value="browser_notifications_enabled,daily_digest_enabled,daily_digest_time,daily_digest_only_when_open" />
+        <div class="full-width section-block communication-section">
+          <div class="compact-section-head">
+            <div>
+              <strong>Allgemeine Erinnerungen</strong>
+              <p class="compact-note">Hier legst du fest, ob HeartPet offene Erinnerungen zusätzlich im Browser und als tägliche Zusammenfassung anzeigen soll.</p>
+            </div>
+          </div>
+          <div class="form-grid communication-grid">
+            <label class="checkbox-line full-width">
+              <input type="checkbox" name="browser_notifications_enabled" <%= settings.browser_notifications_enabled === 'true' ? 'checked' : '' %> />
+              Browser-Hinweise für offene Erinnerungen aktivieren
+            </label>
+            <label class="checkbox-line full-width">
+              <input type="checkbox" name="daily_digest_enabled" <%= settings.daily_digest_enabled === 'true' ? 'checked' : '' %> />
+              Tägliche Erinnerungs-Zusammenfassung aktivieren
+            </label>
+            <label>
+              <span>Tägliche Zusammenfassung um</span>
+              <input type="time" name="daily_digest_time" value="<%= settings.daily_digest_time || '07:30' %>" />
+            </label>
+            <label class="checkbox-line">
+              <input type="checkbox" name="daily_digest_only_when_open" <%= settings.daily_digest_only_when_open !== 'false' ? 'checked' : '' %> />
+              Nur senden, wenn offene Erinnerungen vorhanden sind
+            </label>
+          </div>
+          <div class="note-box">
+            Die Uhrzeit gilt in der Zeitzone dieser Instanz: <strong><%= resolvedInstanceTimezone %></strong>.
+            Wenn dein Server oder LXC auf <strong>Europe/Berlin</strong> läuft, bedeutet <strong>07:30</strong> also auch wirklich 07:30 Uhr deutscher Zeit.
+          </div>
         </div>
         <div class="full-width form-actions">
-          <button type="submit" class="button">E-Mail-Einstellungen speichern</button>
+          <button type="submit" class="button">Benachrichtigungen speichern</button>
         </div>
       </form>
-
-      <div class="note-box">
-        Zustellbarkeit (wichtig): Für stabile Zustellung sollten SPF, DKIM und DMARC für deine Absender-Domain korrekt gesetzt sein.
-        Prüfe zusätzlich regelmäßig den Versandstatus im Systemlog.
-      </div>
-
-      <div class="status-row">
-        <span class="status-chip <%= communicationStatus.emailReady ? 'status-ok' : 'status-muted' %>">
-          <%= communicationStatus.emailReady ? 'E-Mail Versand bereit' : 'E-Mail Versand noch nicht vollständig konfiguriert' %>
-        </span>
-        <form method="post" action="/admin/test-smtp-connection">
-          <button type="submit" class="button button-secondary">SMTP-Verbindung prüfen</button>
-        </form>
-        <form method="post" action="/admin/test-email">
-          <button type="submit" class="button button-secondary">SMTP-Testmail senden</button>
-        </form>
-      </div>
     </div>
   </details>
 
@@ -124,45 +96,166 @@
   </details>
 
   <details class="accordion-item">
-    <summary>Telegram</summary>
+    <summary class="summary-inline-status">
+      <span class="accordion-summary-main">E-Mail</span>
+      <span class="status-chip setup-status-chip accordion-summary-status <%= communicationStatus.emailReady ? 'status-ok' : 'status-muted' %>">
+        <%= communicationStatus.emailReady ? 'Konfiguriert' : 'Nicht konfiguriert' %>
+      </span>
+      <button
+        type="submit"
+        form="toggle-email-enabled-form"
+        class="status-chip service-status-chip accordion-summary-status accordion-summary-toggle <%= settings.reminder_email_enabled === 'true' ? 'status-active' : 'status-muted' %>"
+        onclick="event.stopPropagation()"
+      ><%= settings.reminder_email_enabled === 'true' ? 'Aktiviert' : 'Deaktiviert' %></button>
+    </summary>
     <div class="accordion-content">
       <form method="post" action="/admin/settings" class="form-grid communication-grid">
-        <input type="hidden" name="_fields" value="telegram_bot_token,telegram_chat_id,reminder_telegram_enabled" />
+        <input type="hidden" name="_fields" value="smtp_host,smtp_port,smtp_user,smtp_password,smtp_from,notification_email_to,smtp_secure" />
         <label>
-          <span>Telegram Bot Token</span>
-          <input type="text" name="telegram_bot_token" value="<%= settings.telegram_bot_token || '' %>" />
+          <span>SMTP Host</span>
+          <input type="text" name="smtp_host" value="<%= settings.smtp_host || '' %>" />
         </label>
         <label>
-          <span>Telegram Chat ID</span>
-          <input type="text" name="telegram_chat_id" value="<%= settings.telegram_chat_id || '' %>" />
+          <span>SMTP Port</span>
+          <input type="number" name="smtp_port" value="<%= settings.smtp_port || '587' %>" />
         </label>
-        <label class="checkbox-line full-width">
-          <input type="checkbox" name="reminder_telegram_enabled" <%= settings.reminder_telegram_enabled === 'true' ? 'checked' : '' %> />
-          Erinnerungen per Telegram aktivieren
+        <label>
+          <span>SMTP Benutzer</span>
+          <input type="email" name="smtp_user" value="<%= settings.smtp_user || '' %>" />
+        </label>
+        <label>
+          <span>SMTP Passwort</span>
+          <input type="password" name="smtp_password" value="<%= settings.smtp_password || '' %>" />
+        </label>
+        <label>
+          <span>Absenderadresse</span>
+          <input type="email" name="smtp_from" value="<%= settings.smtp_from || '' %>" />
+        </label>
+        <label>
+          <span>Empfänger für Erinnerungen / Tests</span>
+          <input type="email" name="notification_email_to" value="<%= settings.notification_email_to || '' %>" placeholder="leer = SMTP Benutzer verwenden" />
+        </label>
+        <label class="checkbox-line">
+          <input type="checkbox" name="smtp_secure" <%= settings.smtp_secure === 'true' ? 'checked' : '' %> />
+          SMTPS / SSL direkt verwenden
         </label>
         <div class="full-width form-actions">
-          <button type="submit" class="button">Telegram speichern</button>
+          <button type="submit" class="button">E-Mail speichern</button>
         </div>
       </form>
 
-      <div class="status-row">
-        <span class="status-chip <%= communicationStatus.telegramReady ? 'status-ok' : 'status-muted' %>">
-          <%= communicationStatus.telegramReady ? 'Telegram Versand bereit' : 'Telegram Versand noch nicht vollständig konfiguriert' %>
-        </span>
-        <form method="post" action="/admin/test-telegram">
-          <button type="submit" class="button button-secondary">Telegram-Test senden</button>
-        </form>
+      <div class="section-block communication-section">
+        <div class="compact-section-head">
+          <div>
+            <strong>Prüfen und testen</strong>
+            <p class="compact-note">Nach dem Speichern kannst du hier direkt prüfen, ob sich der SMTP-Server erreichen lässt und ob Testmails sauber ankommen.</p>
+          </div>
+        </div>
+        <div class="status-row">
+          <form method="post" action="/admin/test-smtp-connection">
+            <button type="submit" class="button button-secondary">SMTP-Verbindung prüfen</button>
+          </form>
+          <form method="post" action="/admin/test-email">
+            <button type="submit" class="button button-secondary">SMTP-Testmail senden</button>
+          </form>
+        </div>
+        <div class="note-box">
+          Letzter erfolgreicher Test:
+          <strong><%= communicationStatus.emailLastSuccessfulCheckAt ? formatDateTime(communicationStatus.emailLastSuccessfulCheckAt) : 'Noch kein erfolgreicher Test' %></strong>
+        </div>
+        <div class="note-box">
+          Zustellbarkeit: Für stabile Zustellung sollten SPF, DKIM und DMARC für deine Absender-Domain korrekt gesetzt sein.
+          Prüfe zusätzlich regelmäßig den Versandstatus im Systemlog.
+        </div>
       </div>
+    </div>
+  </details>
 
-      <div class="note-box">
-        Telegram Bot Anleitung:
-        <ol>
-          <li>In Telegram <strong>@BotFather</strong> öffnen.</li>
-          <li>Mit <strong>/newbot</strong> einen Bot erstellen und den Token kopieren.</li>
-          <li>Dem Bot einmal schreiben.</li>
-          <li>Im Browser <strong>https://api.telegram.org/botTOKEN/getUpdates</strong> aufrufen und die <strong>chat.id</strong> auslesen.</li>
-          <li>Token und Chat ID oben speichern.</li>
-        </ol>
+  <details class="accordion-item">
+    <summary class="summary-inline-status">
+      <span class="accordion-summary-main">Telegram</span>
+      <span class="status-chip setup-status-chip accordion-summary-status <%= communicationStatus.telegramReady ? 'status-ok' : 'status-muted' %>">
+        <%= communicationStatus.telegramReady ? 'Konfiguriert' : 'Nicht konfiguriert' %>
+      </span>
+      <button
+        type="submit"
+        form="toggle-telegram-enabled-form"
+        class="status-chip service-status-chip accordion-summary-status accordion-summary-toggle <%= settings.reminder_telegram_enabled === 'true' ? 'status-active' : 'status-muted' %>"
+        onclick="event.stopPropagation()"
+      ><%= settings.reminder_telegram_enabled === 'true' ? 'Aktiviert' : 'Deaktiviert' %></button>
+    </summary>
+    <div class="accordion-content">
+      <form id="telegram-settings-form" method="post" action="/admin/settings" class="stack">
+        <input type="hidden" name="_fields" value="telegram_bot_token,telegram_chat_id" />
+
+        <div class="section-block communication-section">
+          <div class="compact-section-head">
+            <div>
+              <strong>Telegram verbinden</strong>
+              <p class="compact-note">Hier hinterlegst du die Zugangsdaten deines Bots. Wenn beides gespeichert ist, kann HeartPet Erinnerungen direkt an deinen Telegram-Chat senden.</p>
+            </div>
+          </div>
+          <div class="section-divider"></div>
+          <div class="compact-section-head">
+            <div>
+              <strong>BotFather-Anleitung</strong>
+              <p class="compact-note">Wenn du Telegram zum ersten Mal einrichtest, geh diese Schritte einmal in Ruhe durch.</p>
+            </div>
+          </div>
+          <div class="note-box">
+            <ol class="compact-ordered-list">
+              <li>In Telegram <strong>@BotFather</strong> öffnen.</li>
+              <li>Mit <strong>/newbot</strong> einen Bot erstellen und den Token kopieren.</li>
+              <li>Wichtig: Oben nur den Token selbst speichern. Das Präfix <strong>bot</strong> wird von HeartPet beim API-Aufruf automatisch ergänzt.</li>
+              <li>Dem Bot einmal schreiben.</li>
+              <li>Im Browser <strong>https://api.telegram.org/botTOKEN/getUpdates</strong> aufrufen und die <strong>chat.id</strong> auslesen.</li>
+              <li>Token und Chat ID links speichern.</li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="section-block communication-section">
+          <div class="form-grid communication-grid">
+            <label>
+              <span>Telegram Bot Token</span>
+              <input type="text" name="telegram_bot_token" value="<%= settings.telegram_bot_token || '' %>" />
+            </label>
+            <label>
+              <span>Telegram Chat ID</span>
+              <input type="text" name="telegram_chat_id" value="<%= settings.telegram_chat_id || '' %>" />
+            </label>
+            <div class="full-width note-box">
+              Nur den echten Token aus BotFather eintragen. Das Wort <strong>bot</strong> gehört nicht zum gespeicherten Token dazu.
+            </div>
+          </div>
+        </div>
+
+        <div class="section-block communication-section">
+          <div class="note-box">
+            Oben im Akkordeon-Kopf kannst du Telegram jederzeit direkt aktivieren oder deaktivieren, ohne die restlichen Einstellungen zu ändern.
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="button">Telegram speichern</button>
+          </div>
+        </div>
+      </form>
+
+      <div class="section-block communication-section">
+        <div class="compact-section-head">
+          <div>
+            <strong>Prüfen und testen</strong>
+            <p class="compact-note">Wenn Token und Chat ID gespeichert sind, kannst du hier direkt eine Testnachricht an Telegram senden.</p>
+          </div>
+        </div>
+        <div class="status-row">
+          <form id="telegram-test-form" method="post" action="/admin/test-telegram">
+            <button type="submit" class="button button-secondary">Telegram-Test senden</button>
+          </form>
+        </div>
+        <div class="note-box">
+          Letzter erfolgreicher Test:
+          <strong><%= communicationStatus.telegramLastSuccessfulCheckAt ? formatDateTime(communicationStatus.telegramLastSuccessfulCheckAt) : 'Noch kein erfolgreicher Test' %></strong>
+        </div>
       </div>
     </div>
   </details>
