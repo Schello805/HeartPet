@@ -5,14 +5,21 @@
   <details class="accordion-item" open>
     <summary>Profil & Sicherheit</summary>
     <div class="accordion-content">
-      <p class="compact-note">Hier geht es nur um dein eigenes Konto. Namen, E-Mail-Adresse und Passwort für weitere Nutzer verwaltest du im unteren Bereich separat.</p>
-      <div class="list-card static-card compact-card">
-        <div class="list-card-main">
-          <strong><%= me.name || 'Administrator' %></strong>
-          <p><%= me.email || '-' %> | <%= getRoleLabel(me.role || 'admin') %></p>
-          <small>Hier verwaltest du nur dein eigenes Login und Passwort.</small>
+      <section class="admin-subsection">
+        <div class="admin-subsection-head">
+          <div>
+            <strong>Eigenes Konto</strong>
+            <p class="compact-note">Hier geht es nur um dein eigenes Konto. Namen, E-Mail-Adresse und Passwort für weitere Nutzer verwaltest du im unteren Bereich separat.</p>
+          </div>
         </div>
-      </div>
+        <div class="list-card static-card compact-card">
+          <div class="list-card-main">
+            <strong><%= me.name || 'Administrator' %></strong>
+            <p><%= me.email || '-' %> | <%= getRoleLabel(me.role || 'admin') %></p>
+            <small>Hier verwaltest du nur dein eigenes Login und Passwort.</small>
+          </div>
+        </div>
+      </section>
 
       <h3>Eigene Profildaten</h3>
       <form method="post" action="/admin/profile" class="stack form-compact">

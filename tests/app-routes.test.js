@@ -77,6 +77,14 @@ test("Einmalige Tierarten-Bereinigung entfernt ungenutzte Vorgaben und behält v
   reloadedDb.close();
 });
 
+test("Datenbank-Migrationen werden protokolliert", () => {
+  const migrationRows = db.prepare("SELECT id FROM schema_migrations ORDER BY id ASC").all();
+  assert.deepEqual(
+    migrationRows.map((row) => row.id),
+    ["001_initial_schema", "002_schema_updates"]
+  );
+});
+
 test("Systemlog ist erreichbar (inkl. Alias)", async () => {
   const systemlog = await agent.get("/admin/systemlog");
   assert.equal(systemlog.status, 200);

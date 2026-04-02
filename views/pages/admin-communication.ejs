@@ -17,8 +17,8 @@
     <div class="accordion-content">
       <form method="post" action="/admin/settings" class="form-grid communication-grid">
         <input type="hidden" name="_fields" value="browser_notifications_enabled,daily_digest_enabled,daily_digest_time,daily_digest_only_when_open" />
-        <div class="full-width section-block communication-section">
-          <div class="compact-section-head">
+        <div class="full-width section-block communication-section admin-subsection">
+          <div class="compact-section-head admin-subsection-head">
             <div>
               <strong>Allgemeine Erinnerungen</strong>
               <p class="compact-note">Hier legst du fest, ob HeartPet offene Erinnerungen zusätzlich im Browser und als tägliche Zusammenfassung anzeigen soll.</p>
@@ -144,8 +144,8 @@
         </div>
       </form>
 
-      <div class="section-block communication-section">
-        <div class="compact-section-head">
+      <div class="section-block communication-section admin-subsection">
+        <div class="compact-section-head admin-subsection-head">
           <div>
             <strong>Prüfen und testen</strong>
             <p class="compact-note">Nach dem Speichern kannst du hier direkt prüfen, ob sich der SMTP-Server erreichen lässt und ob Testmails sauber ankommen.</p>
@@ -188,15 +188,15 @@
       <form id="telegram-settings-form" method="post" action="/admin/settings" class="stack">
         <input type="hidden" name="_fields" value="telegram_bot_token,telegram_chat_id" />
 
-        <div class="section-block communication-section">
-          <div class="compact-section-head">
+        <div class="section-block communication-section admin-subsection">
+          <div class="compact-section-head admin-subsection-head">
             <div>
               <strong>Telegram verbinden</strong>
               <p class="compact-note">Hier hinterlegst du die Zugangsdaten deines Bots. Wenn beides gespeichert ist, kann HeartPet Erinnerungen direkt an deinen Telegram-Chat senden.</p>
             </div>
           </div>
           <div class="section-divider"></div>
-          <div class="compact-section-head">
+          <div class="compact-section-head admin-subsection-head">
             <div>
               <strong>BotFather-Anleitung</strong>
               <p class="compact-note">Wenn du Telegram zum ersten Mal einrichtest, geh diese Schritte einmal in Ruhe durch.</p>
@@ -214,7 +214,7 @@
           </div>
         </div>
 
-        <div class="section-block communication-section">
+        <div class="section-block communication-section admin-subsection">
           <div class="form-grid communication-grid">
             <label>
               <span>Telegram Bot Token</span>
@@ -230,7 +230,7 @@
           </div>
         </div>
 
-        <div class="section-block communication-section">
+        <div class="section-block communication-section admin-subsection">
           <div class="note-box">
             Oben im Akkordeon-Kopf kannst du Telegram jederzeit direkt aktivieren oder deaktivieren, ohne die restlichen Einstellungen zu ändern.
           </div>
@@ -240,8 +240,8 @@
         </div>
       </form>
 
-      <div class="section-block communication-section">
-        <div class="compact-section-head">
+      <div class="section-block communication-section admin-subsection">
+        <div class="compact-section-head admin-subsection-head">
           <div>
             <strong>Prüfen und testen</strong>
             <p class="compact-note">Wenn Token und Chat ID gespeichert sind, kannst du hier direkt eine Testnachricht an Telegram senden.</p>

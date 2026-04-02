@@ -5,6 +5,7 @@
   "main": "src/app.js",
   "scripts": {
     "test": "node --test tests/*.test.js",
+    "test:e2e": "playwright test",
     "start": "node src/app.js",
     "dev": "node src/app.js",
     "check:animal-view": "node scripts/render-animal-show-check.js",
@@ -28,6 +29,7 @@
     "qrcode": "^1.5.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "supertest": "^7.2.2"
   }
 }

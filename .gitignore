@@ -12,3 +12,4 @@ data/backups/*
 .DS_Store
 npm-debug.log*
 .env
+test-results/
