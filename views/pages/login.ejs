@@ -25,6 +25,9 @@
       <% } %>
 
       <form method="post" action="/login" class="stack">
+        <% if (typeof returnTo !== 'undefined' && returnTo) { %>
+          <input type="hidden" name="return_to" value="<%= returnTo %>" />
+        <% } %>
         <label>
           <span>E-Mail</span>
           <input type="email" name="email" required />

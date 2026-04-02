@@ -55,7 +55,7 @@ async function createAnimalPdf(res, animal, related, options = {}) {
   });
 
   const pageLeft = doc.page.margins.left;
-  const pageTop = 142;
+  const pageTop = 214;
   const contentWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
   const leftWidth = 224;
   const rightWidth = contentWidth - leftWidth - 12;
@@ -77,26 +77,27 @@ function drawPageBackground(doc) {
 
 async function drawCompactHeader(doc, animal, options) {
   const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
-  const imageSize = 64;
-  const qrSize = options.animalUrl ? 54 : 0;
-  const rightBlockWidth = Math.max(imageSize, qrSize);
+  const imageSize = 88;
+  const qrSize = options.animalUrl ? 62 : 0;
+  const mediaGap = qrSize ? 10 : 0;
+  const rightBlockWidth = imageSize + qrSize + mediaGap;
   const mediaX = doc.page.margins.left + pageWidth - rightBlockWidth;
   const imageY = doc.page.margins.top;
-  const textWidth = pageWidth - rightBlockWidth - 16;
+  const textWidth = pageWidth - rightBlockWidth - 22;
 
   doc.font("Helvetica");
-  doc.fontSize(9).fillColor(PAGE.muted).text(`Export aus ${options.exportDomain}`, doc.page.margins.left, doc.page.margins.top, {
+  doc.fontSize(7).fillColor(PAGE.muted).text(`Export aus ${options.exportDomain}`, doc.page.margins.left, doc.page.margins.top, {
     width: textWidth,
   });
   doc.font("Helvetica-Bold");
-  doc.fontSize(21).fillColor(PAGE.title).text("HeartPet Tierakte", {
+  doc.fontSize(13).fillColor(PAGE.title).text("HeartPet Tierakte", {
     width: textWidth,
   });
-  doc.fontSize(12).fillColor(PAGE.accent).text(animal.name || "Unbenannt", {
+  doc.fontSize(27).fillColor(PAGE.accent).text(animal.name || "Unbenannt", {
     width: textWidth,
   });
   doc.font("Helvetica");
-  doc.fontSize(9).fillColor(PAGE.muted).text(
+  doc.fontSize(10).fillColor(PAGE.muted).text(
     `${animal.species_name || "Tierart unbekannt"} · Exportiert am ${options.exportDateLabel}`,
     { width: textWidth }
   );
@@ -104,16 +105,16 @@ async function drawCompactHeader(doc, animal, options) {
   const profileImagePath = resolveProfileImagePath(animal, options.uploadsDir);
   if (profileImagePath) {
     try {
-      doc.image(profileImagePath, mediaX, imageY, {
+      doc.image(profileImagePath, mediaX + qrSize + mediaGap, imageY, {
         fit: [imageSize, imageSize],
         align: "right",
         valign: "top",
       });
     } catch {
-      drawProfileFallback(doc, animal, mediaX, imageY, imageSize);
+      drawProfileFallback(doc, animal, mediaX + qrSize + mediaGap, imageY, imageSize);
     }
   } else {
-    drawProfileFallback(doc, animal, mediaX, imageY, imageSize);
+    drawProfileFallback(doc, animal, mediaX + qrSize + mediaGap, imageY, imageSize);
   }
 
   if (options.animalUrl) {
@@ -124,15 +125,20 @@ async function drawCompactHeader(doc, animal, options) {
         margin: 0,
         width: qrSize * 4,
       });
-      doc.image(qrBuffer, mediaX + 5, imageY + imageSize + 6, {
+      doc.image(qrBuffer, mediaX, imageY + 8, {
         fit: [qrSize, qrSize],
+      });
+      doc.font("Helvetica");
+      doc.fontSize(7).fillColor(PAGE.muted).text("QR zur Tierakte", mediaX - 2, imageY + qrSize + 14, {
+        width: qrSize + 4,
+        align: "center",
       });
     } catch {}
   }
 
   doc.save();
-  doc.moveTo(doc.page.margins.left, 118)
-    .lineTo(doc.page.width - doc.page.margins.right, 118)
+  doc.moveTo(doc.page.margins.left, 190)
+    .lineTo(doc.page.width - doc.page.margins.right, 190)
     .lineWidth(1)
     .strokeColor(PAGE.border)
     .stroke();

@@ -231,14 +231,16 @@ app.post("/setup", (req, res) => {
 });
 
 app.get("/login", (req, res) => {
+  const returnTo = safeLocalReturnPath(req.query.return_to, "");
   if (req.session.user) {
-    return res.redirect("/");
+    return res.redirect(returnTo || "/");
   }
 
-  res.render("pages/login", { pageTitle: "Login" });
+  res.render("pages/login", { pageTitle: "Login", returnTo });
 });
 
 app.post("/login", (req, res) => {
+  const returnTo = safeLocalReturnPath(req.body.return_to || req.query.return_to, "");
   const { email, password } = req.body;
   const user = db.prepare("SELECT * FROM users WHERE email = ?").get(email);
 
@@ -256,7 +258,7 @@ app.post("/login", (req, res) => {
   };
 
   setFlash(req, "success", "Login erfolgreich.");
-  res.redirect("/");
+  res.redirect(returnTo || "/");
 });
 
 app.post("/logout", requireAuth, (req, res) => {
@@ -3082,7 +3084,8 @@ if (require.main === module) {
 
 function requireAuth(req, res, next) {
   if (!req.session.user) {
-    return res.redirect("/login");
+    const target = safeLocalReturnPath(`${req.path}${req.url.includes("?") ? req.url.slice(req.path.length) : ""}`, "");
+    return res.redirect(target ? `/login?return_to=${encodeURIComponent(target)}` : "/login");
   }
   next();
 }

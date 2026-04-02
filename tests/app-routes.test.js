@@ -142,6 +142,33 @@ test("Stammdaten Alias ist erreichbar", async () => {
   assert.equal(alias.headers.location, "/admin/stammdaten");
 });
 
+test("Geschützte Tierseiten merken sich das Ziel für den Login", async () => {
+  const anonymous = request(app);
+  const response = await anonymous.get("/animals/1");
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.location, "/login?return_to=%2Fanimals%2F1");
+});
+
+test("Login führt mit return_to wieder direkt zur Tierakte zurück", async () => {
+  const anonymousAgent = request.agent(app);
+  const gated = await anonymousAgent.get("/animals/1");
+  assert.equal(gated.status, 302);
+  assert.equal(gated.headers.location, "/login?return_to=%2Fanimals%2F1");
+
+  const loginPage = await anonymousAgent.get("/login").query({ return_to: "/animals/1" });
+  assert.equal(loginPage.status, 200);
+  assert.match(loginPage.text, /name="return_to" value="\/animals\/1"/);
+
+  const login = await anonymousAgent.post("/login").type("form").send({
+    email: "admin@test.local",
+    password: "passwort123",
+    return_to: "/animals/1",
+  });
+
+  assert.equal(login.status, 302);
+  assert.equal(login.headers.location, "/animals/1");
+});
+
 test("Importseite erklärt klar, was importiert wird und was nicht", async () => {
   const page = await agent.get("/admin/import");
   assert.equal(page.status, 200);

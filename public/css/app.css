@@ -1754,6 +1754,7 @@ textarea {
 .accordion-item summary {
   list-style: none;
   cursor: pointer;
+  position: relative;
   padding: 10px 12px;
   font-size: var(--accordion-title);
   font-weight: 700;
@@ -1999,6 +2000,7 @@ textarea {
 .sub-accordion summary {
   list-style: none;
   cursor: pointer;
+  position: relative;
   padding: 9px 11px;
   font-size: 1rem;
   font-weight: 700;
