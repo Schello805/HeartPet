@@ -7,7 +7,7 @@
 
   <form method="post" action="<%= animal ? `/animals/${animal.id}/update` : '/animals' %>" class="form-grid" data-drawer-form="animal">
     <input type="hidden" name="return_to" value="<%= typeof returnTo !== 'undefined' ? returnTo : '/animals' %>" />
-    <p class="compact-note full-width">Hier legst du die wichtigsten Stammdaten für das Tier an. Pflicht sind nur Name und Tierart, alles andere kannst du auch später ergänzen.</p>
+    <p class="compact-note full-width">Hier legst du die wichtigsten Stammdaten für das Tier an. Pflicht sind nur Name und Tierart. Du kannst eine vorhandene Tierart auswählen oder einfach eine neue eingeben.</p>
     <label>
       <span>Name</span>
       <input type="text" name="name" required value="<%= animal?.name || '' %>" />
@@ -22,8 +22,8 @@
         data-species-autocomplete="true"
         autocomplete="off"
         value="<%= animal?.species_name || '' %>"
-        placeholder="Tierart suchen, z. B. Hund, Koi, Schlange"
-        title="Beginne zu tippen. Wenn die Tierart noch nicht existiert, kann sie später in den Stammdaten ergänzt werden."
+        placeholder="Vorhandene Tierart wählen oder neue eingeben"
+        title="Beginne zu tippen. Bestehende Tierarten werden vorgeschlagen. Wenn die Tierart noch nicht existiert, wird sie beim Speichern automatisch angelegt."
       />
       <datalist id="species-suggestions">
         <% species.forEach((item) => { %>

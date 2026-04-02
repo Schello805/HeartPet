@@ -4,7 +4,64 @@
   <details class="accordion-item" open>
     <summary>HeartPet Import</summary>
     <div class="accordion-content">
-      <p class="help-copy">JSON-Exporte aus HeartPet können hier wieder eingelesen werden.</p>
+      <div class="note-box stack">
+        <strong>So funktioniert der Import</strong>
+        <p class="help-copy">
+          Hier kannst du einen JSON-Export aus HeartPet wieder einlesen. Der Export wird immer pro Tier erstellt und der Import
+          legt daraus immer eine <strong>neue Tierakte</strong> an. Es werden dabei keine bestehenden Tiere zusammengeführt,
+          überschrieben oder aktualisiert.
+        </p>
+      </div>
+
+      <div class="panel-subsection stack">
+        <h3>Schritt für Schritt</h3>
+        <ol class="ordered-list">
+          <li>Öffne zuerst beim gewünschten Tier den <strong>JSON-Export</strong>.</li>
+          <li>Speichere die exportierte Datei unverändert auf deinem Rechner.</li>
+          <li>Wähle diese JSON-Datei hier unter <strong>Import starten</strong> aus.</li>
+          <li>HeartPet legt daraus ein neues Tier mit allen enthaltenen Daten an.</li>
+        </ol>
+      </div>
+
+      <div class="panel-subsection stack">
+        <h3>Was exportiert und importiert werden kann</h3>
+        <p class="help-copy">Der JSON-Export eines Tiers enthält die Tierakte selbst und die dazugehörigen Inhalte.</p>
+        <ul class="ordered-list">
+          <li>Stammdaten des Tiers wie Name, Tierart, Status, Herkunft, Farbe, Rasse und Notizen</li>
+          <li>Vorerkrankungen</li>
+          <li>Medikamente</li>
+          <li>Impfungen</li>
+          <li>Arzttermine</li>
+          <li>Fütterungen</li>
+          <li>Protokolle</li>
+          <li>Erinnerungen des Tiers</li>
+          <li>Dokumente inklusive Dateiinhalt</li>
+          <li>Bilder inklusive Dateiinhalt</li>
+        </ul>
+        <p class="compact-note">
+          Falls Dokumentkategorien im Import noch nicht vorhanden sind, legt HeartPet sie beim Einlesen automatisch an.
+        </p>
+      </div>
+
+      <div class="panel-subsection stack">
+        <h3>Was bewusst nicht übernommen wird</h3>
+        <ul class="ordered-list">
+          <li>Benutzerkonten, Rollen und Passwörter</li>
+          <li>Allgemeine App-Einstellungen wie SMTP, Telegram, Logo, Rechtstexte oder Domain</li>
+          <li>Systemlog, Audit-Log und Versandprotokolle</li>
+          <li>Eine Verknüpfung zu vorhandenen Tierärzten dieser Instanz</li>
+          <li>Ein Update oder Überschreiben eines bereits vorhandenen Tiers</li>
+        </ul>
+        <p class="compact-note">
+          Nach dem Import solltest du deshalb Tierarzt-Zuordnungen, Benachrichtigungswege und allgemeine Einstellungen bei Bedarf
+          in dieser Instanz neu prüfen.
+        </p>
+      </div>
+
+      <div class="panel-subsection stack">
+        <h3>Import starten</h3>
+        <p class="help-copy">Erlaubt ist hier nur ein HeartPet-JSON-Export. PDF-Dateien oder andere Formate können nicht importiert werden.</p>
+      </div>
       <form method="post" action="/admin/import" enctype="multipart/form-data" class="stack form-compact">
         <input type="file" name="import_file" accept="application/json" required />
         <button type="submit" class="button">Import starten</button>

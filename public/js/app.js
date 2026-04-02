@@ -246,9 +246,13 @@ function initDrawerForms(scope = document) {
       }
 
       try {
+        const formData = new FormData(form);
+        const hasFileInput = form.querySelector('input[type="file"]');
+        const useMultipart = Boolean(hasFileInput);
+        const body = useMultipart ? formData : new URLSearchParams(formData);
         const response = await fetch(form.action, {
           method: form.method || "POST",
-          body: new FormData(form),
+          body,
           headers: {
             "X-Requested-With": "heartpet-drawer",
           },

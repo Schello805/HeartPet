@@ -417,6 +417,7 @@ function seedDefaults(db) {
   const settingsTx = db.transaction((rows) => rows.forEach((row) => insertSetting.run(row)));
   settingsTx(settingRows);
   normalizeLegacyPlaceholderSettings(db);
+  normalizeSpeciesCatalog(db);
 
   if (db.prepare("SELECT COUNT(*) AS count FROM document_categories").get().count === 0) {
     const categories = [
@@ -428,54 +429,6 @@ function seedDefaults(db) {
     const tx = db.transaction((items) => items.forEach((name) => insertCategory.run(name)));
     tx(categories);
   }
-
-  const species = [
-    "Hund",
-    "Katze",
-    "Koi",
-    "Goldfisch",
-    "Huhn",
-    "Ente",
-    "Gans",
-    "Kaninchen",
-    "Meerschweinchen",
-    "Hamster",
-    "Maus",
-    "Ratte",
-    "Frettchen",
-    "Pferd",
-    "Pony",
-    "Esel",
-    "Ziege",
-    "Schaf",
-    "Schwein",
-    "Minischwein",
-    "Rind",
-    "Alpaka",
-    "Lama",
-    "Wellensittich",
-    "Kanarienvogel",
-    "Nymphensittich",
-    "Papagei",
-    "Ara",
-    "Sittich",
-    "Taube",
-    "Wachtel",
-    "Truthahn",
-    "Schildkröte",
-    "Schlange",
-    "Echse",
-    "Bartagame",
-    "Gecko",
-    "Chamäleon",
-    "Leguan",
-    "Frosch",
-    "Axolotl",
-    "Igel",
-  ];
-  const insertSpecies = db.prepare("INSERT INTO species (name) VALUES (?) ON CONFLICT(name) DO NOTHING");
-  const tx = db.transaction((items) => items.forEach((name) => insertSpecies.run(name)));
-  tx(species);
 
   if (!db.prepare("SELECT 1 FROM settings WHERE key = ?").get("setup_complete")) {
     const hasUsers = db.prepare("SELECT COUNT(*) AS count FROM users").get().count > 0;
@@ -502,6 +455,63 @@ function normalizeLegacyPlaceholderSettings(db) {
       upsertSetting(db, key, "");
     }
   });
+}
+
+function normalizeSpeciesCatalog(db) {
+  const alreadyNormalized = db.prepare("SELECT value FROM settings WHERE key = ?").get("species_catalog_pruned_v1");
+  if (String(alreadyNormalized?.value || "").trim() === "true") {
+    return;
+  }
+
+  const usedSpecies = db.prepare(`
+    SELECT
+      animals.id AS animal_id,
+      species.name,
+      species.default_veterinarian_id,
+      species.notes
+    FROM animals
+    INNER JOIN species ON species.id = animals.species_id
+    WHERE species.name IS NOT NULL AND TRIM(species.name) <> ''
+    ORDER BY species.name COLLATE NOCASE ASC, animals.id ASC
+  `).all();
+
+  const rebuildCatalog = db.transaction((items) => {
+    const speciesByName = new Map();
+    items.forEach((item) => {
+      if (!speciesByName.has(item.name)) {
+        speciesByName.set(item.name, {
+          default_veterinarian_id: item.default_veterinarian_id || null,
+          notes: item.notes || "",
+        });
+      }
+    });
+
+    db.prepare("DELETE FROM species").run();
+
+    const insertSpecies = db.prepare(`
+      INSERT INTO species (name, default_veterinarian_id, notes)
+      VALUES (?, ?, ?)
+    `);
+    const updateAnimalSpecies = db.prepare("UPDATE animals SET species_id = ? WHERE id = ?");
+    const recreatedIds = new Map();
+
+    [...speciesByName.entries()]
+      .sort(([left], [right]) => left.localeCompare(right, "de"))
+      .forEach(([name, meta]) => {
+        const result = insertSpecies.run(name, meta.default_veterinarian_id, meta.notes);
+        recreatedIds.set(name, result.lastInsertRowid);
+      });
+
+    items.forEach((item) => {
+      const recreatedId = recreatedIds.get(item.name);
+      if (recreatedId) {
+        updateAnimalSpecies.run(recreatedId, item.animal_id);
+      }
+    });
+  });
+
+  rebuildCatalog(usedSpecies);
+  upsertSetting(db, "species_catalog_pruned_v1", "true");
 }
 
 function getSettingsObject(db) {

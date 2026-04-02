@@ -51,6 +51,30 @@ test("Ersteinrichtung funktioniert", async () => {
 
   assert.equal(setupResponse.status, 302);
   assert.match(setupResponse.headers.location || "", /^\/animals\/\d+$/);
+
+  const speciesRows = db.prepare("SELECT name FROM species ORDER BY name ASC").all();
+  assert.deepEqual(speciesRows.map((item) => item.name), ["Katze"]);
+});
+
+test("Einmalige Tierarten-Bereinigung entfernt ungenutzte Vorgaben und behält verwendete Arten", async () => {
+  db.prepare("INSERT INTO species (name, notes) VALUES (?, ?)").run("Hund", "Soll entfernt werden");
+  const parrotInsert = db.prepare("INSERT INTO species (name, notes) VALUES (?, ?)").run("Papagei", "Soll bleiben");
+  db.prepare("INSERT INTO animals (name, species_id, status) VALUES (?, ?, ?)").run("Kiki", parrotInsert.lastInsertRowid, "Aktiv");
+  db.prepare("DELETE FROM settings WHERE key = ?").run("species_catalog_pruned_v1");
+
+  const reloadedDb = initDatabase();
+  const speciesRows = reloadedDb.prepare("SELECT name FROM species ORDER BY name ASC").all();
+  const kiki = reloadedDb.prepare(`
+    SELECT animals.name, species.name AS species_name
+    FROM animals
+    LEFT JOIN species ON species.id = animals.species_id
+    WHERE animals.name = ?
+  `).get("Kiki");
+
+  assert.deepEqual(speciesRows.map((item) => item.name), ["Katze", "Papagei"]);
+  assert.equal(kiki?.species_name, "Papagei");
+  assert.equal(reloadedDb.prepare("SELECT value FROM settings WHERE key = ?").get("species_catalog_pruned_v1")?.value, "true");
+  reloadedDb.close();
 });
 
 test("Systemlog ist erreichbar (inkl. Alias)", async () => {
@@ -107,6 +131,15 @@ test("Stammdaten Alias ist erreichbar", async () => {
   assert.equal(alias.headers.location, "/admin/stammdaten");
 });
 
+test("Importseite erklärt klar, was importiert wird und was nicht", async () => {
+  const page = await agent.get("/admin/import");
+  assert.equal(page.status, 200);
+  assert.match(page.text, /legt daraus immer eine <strong>neue Tierakte<\/strong> an/i);
+  assert.match(page.text, /Was exportiert und importiert werden kann/i);
+  assert.match(page.text, /Was bewusst nicht übernommen wird/i);
+  assert.match(page.text, /PDF-Dateien oder andere Formate können nicht importiert werden/i);
+});
+
 test("Weitere Admin-Aliase sind erreichbar", async () => {
   const aliases = [
     ["/admin/general", "/admin/allgemein"],
@@ -153,6 +186,30 @@ test("Adressvalidierung für Tierarzt greift", async () => {
   });
   assert.ok([302, 303].includes(invalid.status));
   assert.equal(invalid.headers.location, "/admin/stammdaten");
+});
+
+test("E-Mail und Telefon beim Tierarzt werden serverseitig validiert", async () => {
+  const invalidEmail = await agent.post("/admin/veterinarians").type("form").send({
+    name: "Praxis Mailtest",
+    street: "Hauptstraße 1",
+    postal_code: "12345",
+    city: "Berlin",
+    country: "Deutschland",
+    email: "ungueltig",
+  });
+  assert.ok([302, 303].includes(invalidEmail.status));
+  assert.equal(invalidEmail.headers.location, "/admin/stammdaten");
+
+  const invalidPhone = await agent.post("/admin/veterinarians").type("form").send({
+    name: "Praxis Telefontest",
+    street: "Hauptstraße 1",
+    postal_code: "12345",
+    city: "Berlin",
+    country: "Deutschland",
+    phone: "abc",
+  });
+  assert.ok([302, 303].includes(invalidPhone.status));
+  assert.equal(invalidPhone.headers.location, "/admin/stammdaten");
 });
 
 test("CRUD-Updates für Stammdaten funktionieren", async () => {
@@ -229,6 +286,61 @@ test("Tierarzt-Speichern aus eingeblendetem Formular landet sauber zurück", asy
       phone: "",
       email: "",
       notes: "",
+      return_to: "/admin/stammdaten",
+    })
+    .redirects(2);
+  assert.equal(save.status, 200);
+  assert.match(save.text, /Stammdaten/i);
+});
+
+test("Dokumentkategorie-Speichern aus eingeblendetem Formular landet sauber zurück", async () => {
+  const master = await agent.get("/admin/stammdaten");
+  assert.equal(master.status, 200);
+  const categoryMatch = master.text.match(/\/admin\/categories\/(\d+)\/edit/);
+  assert.ok(categoryMatch?.[1]);
+
+  const drawerGet = await agent
+    .get(`/admin/categories/${categoryMatch[1]}/edit`)
+    .set("X-Requested-With", "heartpet-drawer")
+    .query({ return_to: "/admin/stammdaten" });
+  assert.equal(drawerGet.status, 200);
+  assert.match(drawerGet.text, /Dokumentkategorie bearbeiten/i);
+
+  const save = await agent
+    .post(`/admin/categories/${categoryMatch[1]}/update`)
+    .set("X-Requested-With", "heartpet-drawer")
+    .type("form")
+    .send({
+      name: "Kategorie im Drawer aktualisiert",
+      is_required: "on",
+      return_to: "/admin/stammdaten",
+    })
+    .redirects(2);
+  assert.equal(save.status, 200);
+  assert.match(save.text, /Stammdaten/i);
+});
+
+test("Tierart-Speichern aus eingeblendetem Formular landet sauber zurück", async () => {
+  const master = await agent.get("/admin/stammdaten");
+  assert.equal(master.status, 200);
+  const speciesMatch = master.text.match(/\/admin\/species\/(\d+)\/edit/);
+  assert.ok(speciesMatch?.[1]);
+
+  const drawerGet = await agent
+    .get(`/admin/species/${speciesMatch[1]}/edit`)
+    .set("X-Requested-With", "heartpet-drawer")
+    .query({ return_to: "/admin/stammdaten" });
+  assert.equal(drawerGet.status, 200);
+  assert.match(drawerGet.text, /Tierart bearbeiten/i);
+
+  const save = await agent
+    .post(`/admin/species/${speciesMatch[1]}/update`)
+    .set("X-Requested-With", "heartpet-drawer")
+    .type("form")
+    .send({
+      name: "Tierart im Drawer aktualisiert",
+      default_veterinarian_id: "",
+      notes: "Aktualisiert im Drawer",
       return_to: "/admin/stammdaten",
     })
     .redirects(2);

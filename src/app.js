@@ -2091,10 +2091,11 @@ app.post("/admin/test-telegram", requireAdmin, async (req, res) => {
 });
 
 app.post("/admin/categories", requireAdmin, (req, res) => {
-  const returnTo = safeLocalReturnPath(req.body.return_to, backTo(req, "/admin/stammdaten"));
+  const body = req.body || {};
+  const returnTo = safeLocalReturnPath(body.return_to, backTo(req, "/admin/stammdaten"));
   try {
     db.prepare("INSERT INTO document_categories (name, is_required) VALUES (?, ?)")
-      .run(String(req.body.name || "").trim(), req.body.is_required ? 1 : 0);
+      .run(String(body.name || "").trim(), body.is_required ? 1 : 0);
     setFlash(req, "success", "Dokumentkategorie angelegt.");
   } catch (error) {
     setFlash(req, "error", "Dokumentkategorie konnte nicht angelegt werden (Name ggf. bereits vorhanden).");
@@ -2103,13 +2104,14 @@ app.post("/admin/categories", requireAdmin, (req, res) => {
 });
 
 app.post("/admin/categories/:id/update", requireAdmin, (req, res) => {
-  const returnTo = safeLocalReturnPath(req.body.return_to, backTo(req, "/admin/stammdaten"));
+  const body = req.body || {};
+  const returnTo = safeLocalReturnPath(body.return_to, backTo(req, "/admin/stammdaten"));
   try {
     db.prepare(`
       UPDATE document_categories
       SET name = ?, is_required = ?
       WHERE id = ?
-    `).run(String(req.body.name || "").trim(), req.body.is_required ? 1 : 0, req.params.id);
+    `).run(String(body.name || "").trim(), body.is_required ? 1 : 0, req.params.id);
     setFlash(req, "success", "Dokumentkategorie aktualisiert.");
   } catch (error) {
     setFlash(req, "error", "Dokumentkategorie konnte nicht aktualisiert werden.");
@@ -2124,13 +2126,14 @@ app.post("/admin/categories/:id/delete", requireAdmin, (req, res) => {
 });
 
 app.post("/admin/species", requireAdmin, (req, res) => {
-  const returnTo = safeLocalReturnPath(req.body.return_to, backTo(req, "/admin/stammdaten"));
+  const body = req.body || {};
+  const returnTo = safeLocalReturnPath(body.return_to, backTo(req, "/admin/stammdaten"));
   try {
     db.prepare("INSERT INTO species (name, default_veterinarian_id, notes) VALUES (?, ?, ?)")
       .run(
-        String(req.body.name || "").trim(),
-        req.body.default_veterinarian_id || null,
-        String(req.body.notes || "").trim()
+        String(body.name || "").trim(),
+        body.default_veterinarian_id || null,
+        String(body.notes || "").trim()
       );
     setFlash(req, "success", "Tierart angelegt.");
   } catch (error) {
@@ -2140,16 +2143,17 @@ app.post("/admin/species", requireAdmin, (req, res) => {
 });
 
 app.post("/admin/species/:id/update", requireAdmin, (req, res) => {
-  const returnTo = safeLocalReturnPath(req.body.return_to, backTo(req, "/admin/stammdaten"));
+  const body = req.body || {};
+  const returnTo = safeLocalReturnPath(body.return_to, backTo(req, "/admin/stammdaten"));
   try {
     db.prepare(`
       UPDATE species
       SET name = ?, default_veterinarian_id = ?, notes = ?
       WHERE id = ?
     `).run(
-      String(req.body.name || "").trim(),
-      req.body.default_veterinarian_id || null,
-      String(req.body.notes || "").trim(),
+      String(body.name || "").trim(),
+      body.default_veterinarian_id || null,
+      String(body.notes || "").trim(),
       req.params.id
     );
     setFlash(req, "success", "Tierart aktualisiert.");
@@ -3300,6 +3304,12 @@ function validateVeterinarianAddress(payload) {
   }
   if (payload.country && !/^[A-Za-zÄÖÜäöüß .'\-]{2,80}$/.test(payload.country)) {
     return "Land ist ungültig.";
+  }
+  if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
+    return "E-Mail ist ungültig.";
+  }
+  if (payload.phone && !/^[+0-9()\/.\-\s]{6,30}$/.test(payload.phone)) {
+    return "Telefon ist ungültig.";
   }
   return "";
 }

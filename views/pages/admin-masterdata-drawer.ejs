@@ -58,11 +58,11 @@
       <div class="mini-grid">
         <label>
           <span>Telefon</span>
-          <input type="text" name="phone" value="<%= item?.phone || '' %>" />
+          <input type="tel" name="phone" minlength="6" maxlength="30" pattern="[+0-9()\/.\-\s]{6,30}" value="<%= item?.phone || '' %>" />
         </label>
         <label>
           <span>E-Mail</span>
-          <input type="email" name="email" value="<%= item?.email || '' %>" />
+          <input type="email" name="email" maxlength="120" value="<%= item?.email || '' %>" />
         </label>
       </div>
       <label>
