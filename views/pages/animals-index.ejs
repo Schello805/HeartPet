@@ -1,4 +1,6 @@
 <%- include('../partials/top', { pageTitle }) %>
+<% const selectedAnimalState = typeof selectedAnimal !== 'undefined' ? selectedAnimal : null; %>
+<% const selectedAnimalViewState = typeof selectedAnimalView !== 'undefined' ? selectedAnimalView : null; %>
 
 <section class="animals-workspace">
   <aside class="animals-list-pane">
@@ -13,13 +15,13 @@
       <div class="animals-summary-grid">
         <article class="animals-summary-card">
           <span>Aktuelle Auswahl</span>
-          <strong data-animals-selected-name><%= selectedAnimal ? selectedAnimal.name : 'Kein Tier' %></strong>
-          <small data-animals-selected-species><%= selectedAnimal ? (selectedAnimal.species_name || 'Tier') : 'Bitte links ein Tier auswählen' %></small>
+          <strong data-animals-selected-name><%= selectedAnimalState ? selectedAnimalState.name : 'Kein Tier' %></strong>
+          <small data-animals-selected-species><%= selectedAnimalState ? (selectedAnimalState.species_name || 'Tier') : 'Bitte links ein Tier auswählen' %></small>
         </article>
         <article class="animals-summary-card">
           <span>Nächster Termin</span>
-          <strong data-animals-next-type><%= selectedAnimal?.next_term?.type || 'Offen' %></strong>
-          <small data-animals-next-label><%= selectedAnimal?.next_term?.displayLabel || 'Noch kein Termin hinterlegt' %></small>
+          <strong data-animals-next-type><%= selectedAnimalState?.next_term?.type || 'Offen' %></strong>
+          <small data-animals-next-label><%= selectedAnimalState?.next_term?.displayLabel || 'Noch kein Termin hinterlegt' %></small>
         </article>
       </div>
     </section>
@@ -61,8 +63,8 @@
             <option value="next_term_asc" <%= filters.sort === 'next_term_asc' ? 'selected' : '' %>>Nächster Termin</option>
           </select>
         </label>
-        <% if (selectedAnimal) { %>
-          <input type="hidden" name="animal_id" value="<%= selectedAnimal.id %>" />
+        <% if (selectedAnimalState) { %>
+          <input type="hidden" name="animal_id" value="<%= selectedAnimalState.id %>" />
         <% } %>
         <button type="submit" class="button">Filtern</button>
         <a href="/animals" class="button button-secondary">Zurücksetzen</a>
@@ -89,7 +91,7 @@
             <% rowParams.set('animal_id', String(animal.id)); %>
             <a
               href="/animals?<%= rowParams.toString() %>"
-              class="animal-list-entry <%= selectedAnimal && String(selectedAnimal.id) === String(animal.id) ? 'active' : '' %>"
+              class="animal-list-entry <%= selectedAnimalState && String(selectedAnimalState.id) === String(animal.id) ? 'active' : '' %>"
               data-animal-workspace-link="true"
               data-no-soft-nav="true"
               data-panel-url="/animals/<%= animal.id %>/workspace-panel?<%= rowParams.toString() %>"
@@ -124,7 +126,7 @@
         <% if (pagination.totalPages > 1) { %>
           <nav class="pagination-row">
             <% for (let page = 1; page <= pagination.totalPages; page += 1) { %>
-              <% const url = `/animals?q=${encodeURIComponent(filters.search || '')}&status=${encodeURIComponent(filters.status || '')}&species_id=${encodeURIComponent(filters.speciesId || '')}&sort=${encodeURIComponent(filters.sort || 'name_asc')}&page=${page}${selectedAnimal ? `&animal_id=${selectedAnimal.id}` : ''}`; %>
+              <% const url = `/animals?q=${encodeURIComponent(filters.search || '')}&status=${encodeURIComponent(filters.status || '')}&species_id=${encodeURIComponent(filters.speciesId || '')}&sort=${encodeURIComponent(filters.sort || 'name_asc')}&page=${page}${selectedAnimalState ? `&animal_id=${selectedAnimalState.id}` : ''}`; %>
               <a href="<%= url %>" class="pagination-link <%= page === pagination.currentPage ? 'active' : '' %>"><%= page %></a>
             <% } %>
           </nav>
@@ -134,7 +136,7 @@
   </aside>
 
   <section class="animals-detail-pane" data-animal-workspace-target>
-    <%- include('./animal-workspace-detail', { selectedAnimal, selectedAnimalView }) %>
+    <%- include('./animal-workspace-detail', { selectedAnimal: selectedAnimalState, selectedAnimalView: selectedAnimalViewState }) %>
   </section>
 </section>
 

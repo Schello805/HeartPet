@@ -1,27 +1,29 @@
+<% const selectedAnimalState = typeof selectedAnimal !== 'undefined' ? selectedAnimal : null; %>
+<% const selectedAnimalViewState = typeof selectedAnimalView !== 'undefined' ? selectedAnimalView : null; %>
 <section
   class="animals-detail-panel"
   data-animal-workspace-panel
-  data-animal-id="<%= selectedAnimal ? selectedAnimal.id : '' %>"
-  data-animal-name="<%= selectedAnimal ? selectedAnimal.name : '' %>"
-  data-animal-species="<%= selectedAnimal ? (selectedAnimal.species_name || 'Tier') : '' %>"
-  data-animal-status="<%= selectedAnimal ? selectedAnimal.status : '' %>"
-  data-animal-next-type="<%= selectedAnimal?.next_term?.type || 'Offen' %>"
-  data-animal-next-label="<%= selectedAnimal?.next_term?.displayLabel || 'Noch kein Termin hinterlegt' %>"
+  data-animal-id="<%= selectedAnimalState ? selectedAnimalState.id : '' %>"
+  data-animal-name="<%= selectedAnimalState ? selectedAnimalState.name : '' %>"
+  data-animal-species="<%= selectedAnimalState ? (selectedAnimalState.species_name || 'Tier') : '' %>"
+  data-animal-status="<%= selectedAnimalState ? selectedAnimalState.status : '' %>"
+  data-animal-next-type="<%= selectedAnimalState?.next_term?.type || 'Offen' %>"
+  data-animal-next-label="<%= selectedAnimalState?.next_term?.displayLabel || 'Noch kein Termin hinterlegt' %>"
 >
-  <% if (selectedAnimal && selectedAnimalView) { %>
+  <% if (selectedAnimalState && selectedAnimalViewState) { %>
     <section class="panel animals-detail-intro">
       <div class="animals-detail-intro-head">
         <div>
           <p class="eyebrow">Ausgewähltes Tier</p>
-          <h2><%= selectedAnimal.name %></h2>
+          <h2><%= selectedAnimalState.name %></h2>
         </div>
         <div class="animals-detail-intro-meta">
-          <span class="pill"><%= selectedAnimal.status %></span>
-          <span><%= selectedAnimal.species_name || 'Tier' %></span>
+          <span class="pill"><%= selectedAnimalState.status %></span>
+          <span><%= selectedAnimalState.species_name || 'Tier' %></span>
         </div>
       </div>
     </section>
-    <%- include('./animal-show', { pageTitle: selectedAnimal.name, embedded: true, ...selectedAnimalView }) %>
+    <%- include('./animal-show', { pageTitle: selectedAnimalState.name, embedded: true, ...selectedAnimalViewState }) %>
   <% } else { %>
     <section class="panel animals-empty-detail">
       <div class="panel-head">

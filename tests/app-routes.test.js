@@ -122,7 +122,7 @@ test("Tierarzt kann als Standard markiert werden", async () => {
     city: "Berlin",
     country: "Deutschland",
   });
-  assert.equal(createVet.status, 302);
+  assert.ok([302, 303].includes(createVet.status));
 
   const masterData = await agent.get("/admin/stammdaten");
   assert.equal(masterData.status, 200);
@@ -142,7 +142,7 @@ test("Adressvalidierung für Tierarzt greift", async () => {
     city: "!",
     country: "1",
   });
-  assert.equal(invalid.status, 302);
+  assert.ok([302, 303].includes(invalid.status));
   assert.equal(invalid.headers.location, "/admin/stammdaten");
 });
 
@@ -151,13 +151,13 @@ test("CRUD-Updates für Stammdaten funktionieren", async () => {
     name: "Labor",
     is_required: "on",
   });
-  assert.equal(createCategory.status, 302);
+  assert.ok([302, 303].includes(createCategory.status));
 
   const createSpecies = await agent.post("/admin/species").type("form").send({
     name: "Pony",
     notes: "Testart",
   });
-  assert.equal(createSpecies.status, 302);
+  assert.ok([302, 303].includes(createSpecies.status));
 
   const master = await agent.get("/admin/stammdaten");
   assert.equal(master.status, 200);
@@ -172,14 +172,14 @@ test("CRUD-Updates für Stammdaten funktionieren", async () => {
     name: "Laborbericht",
     is_required: "on",
   });
-  assert.equal(updateCategory.status, 302);
+  assert.ok([302, 303].includes(updateCategory.status));
 
   const updateSpecies = await agent.post(`/admin/species/${speciesMatch[1]}/update`).type("form").send({
     name: "Mini-Pony",
     default_veterinarian_id: "",
     notes: "Aktualisiert",
   });
-  assert.equal(updateSpecies.status, 302);
+  assert.ok([302, 303].includes(updateSpecies.status));
 
   const updateVet = await agent.post(`/admin/veterinarians/${vetMatch[1]}/update`).type("form").send({
     name: "Praxis Mitte Neu",
@@ -191,7 +191,7 @@ test("CRUD-Updates für Stammdaten funktionieren", async () => {
     email: "",
     notes: "",
   });
-  assert.equal(updateVet.status, 302);
+  assert.ok([302, 303].includes(updateVet.status));
 });
 
 test("Tierarzt-Speichern aus eingeblendetem Formular landet sauber zurück", async () => {

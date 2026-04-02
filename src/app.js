@@ -1932,7 +1932,7 @@ app.post("/admin/categories", requireAdmin, (req, res) => {
   } catch (error) {
     setFlash(req, "error", "Dokumentkategorie konnte nicht angelegt werden (Name ggf. bereits vorhanden).");
   }
-  res.redirect(returnTo);
+  return redirectAfterPost(res, returnTo);
 });
 
 app.post("/admin/categories/:id/update", requireAdmin, (req, res) => {
@@ -1947,7 +1947,7 @@ app.post("/admin/categories/:id/update", requireAdmin, (req, res) => {
   } catch (error) {
     setFlash(req, "error", "Dokumentkategorie konnte nicht aktualisiert werden.");
   }
-  res.redirect(returnTo);
+  return redirectAfterPost(res, returnTo);
 });
 
 app.post("/admin/categories/:id/delete", requireAdmin, (req, res) => {
@@ -1969,7 +1969,7 @@ app.post("/admin/species", requireAdmin, (req, res) => {
   } catch (error) {
     setFlash(req, "error", "Tierart konnte nicht angelegt werden (Name ggf. bereits vorhanden).");
   }
-  res.redirect(returnTo);
+  return redirectAfterPost(res, returnTo);
 });
 
 app.post("/admin/species/:id/update", requireAdmin, (req, res) => {
@@ -1989,7 +1989,7 @@ app.post("/admin/species/:id/update", requireAdmin, (req, res) => {
   } catch (error) {
     setFlash(req, "error", "Tierart konnte nicht aktualisiert werden.");
   }
-  res.redirect(returnTo);
+  return redirectAfterPost(res, returnTo);
 });
 
 app.post("/admin/species/:id/delete", requireAdmin, (req, res) => {
@@ -2004,7 +2004,7 @@ app.post("/admin/veterinarians", requireAdmin, (req, res) => {
   const addressError = validateVeterinarianAddress(payload);
   if (addressError) {
     setFlash(req, "error", addressError);
-    return res.redirect(returnTo);
+    return redirectAfterPost(res, returnTo);
   }
 
   try {
@@ -2025,7 +2025,7 @@ app.post("/admin/veterinarians", requireAdmin, (req, res) => {
   } catch (error) {
     setFlash(req, "error", "Tierarzt konnte nicht gespeichert werden.");
   }
-  res.redirect(returnTo);
+  return redirectAfterPost(res, returnTo);
 });
 
 app.post("/admin/veterinarians/:id/update", requireAdmin, (req, res) => {
@@ -2034,7 +2034,7 @@ app.post("/admin/veterinarians/:id/update", requireAdmin, (req, res) => {
   const addressError = validateVeterinarianAddress(payload);
   if (addressError) {
     setFlash(req, "error", addressError);
-    return res.redirect(returnTo);
+    return redirectAfterPost(res, returnTo);
   }
 
   try {
@@ -2057,7 +2057,7 @@ app.post("/admin/veterinarians/:id/update", requireAdmin, (req, res) => {
   } catch (error) {
     setFlash(req, "error", "Tierarzt konnte nicht aktualisiert werden.");
   }
-  res.redirect(returnTo);
+  return redirectAfterPost(res, returnTo);
 });
 
 app.post("/admin/veterinarians/:id/set-default", requireAdmin, (req, res) => {
@@ -2089,13 +2089,13 @@ app.post("/admin/users", requireAdmin, async (req, res) => {
 
   if (!name || !email || !password) {
     setFlash(req, "error", "Name, E-Mail und Startpasswort sind Pflichtfelder.");
-    return res.redirect(returnTo);
+    return redirectAfterPost(res, returnTo);
   }
 
   const duplicate = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
   if (duplicate) {
     setFlash(req, "error", "Diese E-Mail-Adresse wird bereits verwendet.");
-    return res.redirect(returnTo);
+    return redirectAfterPost(res, returnTo);
   }
 
   const passwordHash = bcrypt.hashSync(password, 10);
@@ -2142,7 +2142,7 @@ app.post("/admin/users", requireAdmin, async (req, res) => {
         details: { target_user_id: userResult.lastInsertRowid },
       });
       setFlash(req, "success", `Benutzer angelegt und Einladungs-Mail an ${email} versendet.`);
-      return res.redirect(returnTo);
+      return redirectAfterPost(res, returnTo);
     } catch (error) {
       console.error("[HeartPet] Einladungs-Mail fehlgeschlagen:", error.message);
       createNotificationLog({
@@ -2156,12 +2156,12 @@ app.post("/admin/users", requireAdmin, async (req, res) => {
         details: { target_user_id: userResult.lastInsertRowid },
       });
       setFlash(req, "error", `Benutzer angelegt, Einladungs-Mail an ${email} fehlgeschlagen: ${error.message}`);
-      return res.redirect(returnTo);
+      return redirectAfterPost(res, returnTo);
     }
   }
 
   setFlash(req, "success", "Benutzer angelegt.");
-  res.redirect(returnTo);
+  return redirectAfterPost(res, returnTo);
 });
 
 app.post("/admin/users/:id/permissions", requireAdmin, (req, res) => {
@@ -2273,7 +2273,7 @@ app.post("/admin/users/:id/save", requireAdmin, async (req, res) => {
 
   if (!name || !email) {
     setFlash(req, "error", "Name und E-Mail sind Pflichtfelder.");
-    return res.redirect(returnTo);
+    return redirectAfterPost(res, returnTo);
   }
 
   const emailChanged = email !== String(user.email || "").trim().toLowerCase();
@@ -2281,7 +2281,7 @@ app.post("/admin/users/:id/save", requireAdmin, async (req, res) => {
     const duplicate = db.prepare("SELECT id FROM users WHERE email = ? AND id != ?").get(email, req.params.id);
     if (duplicate) {
       setFlash(req, "error", "Diese E-Mail-Adresse wird bereits verwendet.");
-      return res.redirect(returnTo);
+      return redirectAfterPost(res, returnTo);
     }
   }
 
@@ -2321,16 +2321,16 @@ app.post("/admin/users/:id/save", requireAdmin, async (req, res) => {
       });
       createAuditLog(req, "user.email_change_requested", { target_user_id: req.params.id, new_email: email, role: nextRole }, { entityType: "user", entityId: req.params.id });
       setFlash(req, "success", `Benutzer gespeichert. E-Mail-Änderung wurde an ${email} zur Bestätigung versendet.`);
-      return res.redirect(returnTo);
+      return redirectAfterPost(res, returnTo);
     } catch (error) {
       setFlash(req, "error", `Benutzer gespeichert, E-Mail-Änderung fehlgeschlagen: ${error.message}`);
-      return res.redirect(returnTo);
+      return redirectAfterPost(res, returnTo);
     }
   }
 
   createAuditLog(req, "user.full_update", { target_user_id: req.params.id, role: nextRole, name }, { entityType: "user", entityId: req.params.id });
   setFlash(req, "success", "Benutzer gespeichert.");
-  return res.redirect(returnTo);
+  return redirectAfterPost(res, returnTo);
 });
 
 app.post("/admin/users/:id/delete", requireAdmin, (req, res) => {
@@ -4030,6 +4030,10 @@ function buildDrawerRedirectPath(basePath, drawerPath) {
 function redirectDocumentDrawerRequest(req, res, fallbackPath, explicitDrawerPath = "") {
   const target = buildDrawerRedirectPath(fallbackPath, explicitDrawerPath || req.originalUrl);
   return res.redirect(target);
+}
+
+function redirectAfterPost(res, targetPath) {
+  return res.redirect(303, targetPath);
 }
 
 function safeLocalReturnPath(value, fallback) {
