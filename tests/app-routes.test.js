@@ -536,8 +536,10 @@ test("Wichtige Hauptseiten rendern ohne Template-Fehler", async () => {
 
 test("Rechtstexte verwenden hinterlegte Organisations- und Kontaktdaten", async () => {
   const saveSettings = await agent.post("/admin/settings").type("form").send({
-    _fields: "organization_name,legal_contact_street,legal_contact_postal_city,legal_contact_country,legal_contact_phone,legal_contact_email",
+    _fields: "organization_name,legal_responsible_name,legal_content_responsible_name,legal_contact_street,legal_contact_postal_city,legal_contact_country,legal_contact_phone,legal_contact_email",
     organization_name: "Schellenbergers Tiere",
+    legal_responsible_name: "Michael Schellenberger",
+    legal_content_responsible_name: "Michael Schellenberger",
     legal_contact_street: "Musterweg 7",
     legal_contact_postal_city: "12345 Berlin",
     legal_contact_country: "Deutschland",
@@ -548,7 +550,7 @@ test("Rechtstexte verwenden hinterlegte Organisations- und Kontaktdaten", async 
 
   const imprint = await agent.get("/impressum");
   assert.equal(imprint.status, 200);
-  assert.match(imprint.text, /Schellenbergers Tiere/);
+  assert.match(imprint.text, /Michael Schellenberger/);
   assert.match(imprint.text, /Musterweg 7/);
   assert.match(imprint.text, /12345 Berlin/);
   assert.match(imprint.text, /Deutschland/);
@@ -558,7 +560,7 @@ test("Rechtstexte verwenden hinterlegte Organisations- und Kontaktdaten", async 
 
   const privacy = await agent.get("/datenschutz");
   assert.equal(privacy.status, 200);
-  assert.match(privacy.text, /Schellenbergers Tiere/);
+  assert.match(privacy.text, /Michael Schellenberger/);
   assert.match(privacy.text, /Musterweg 7/);
   assert.match(privacy.text, /12345 Berlin/);
   assert.match(privacy.text, /Deutschland/);
@@ -567,7 +569,7 @@ test("Rechtstexte verwenden hinterlegte Organisations- und Kontaktdaten", async 
 
   const contact = await agent.get("/kontakt");
   assert.equal(contact.status, 200);
-  assert.match(contact.text, /Schellenbergers Tiere/);
+  assert.match(contact.text, /Michael Schellenberger/);
   assert.match(contact.text, /recht@schellenberger\.biz/);
   assert.match(contact.text, /\+49 123 456789/);
   assert.doesNotMatch(contact.text, /\[optional\]/);
@@ -575,6 +577,7 @@ test("Rechtstexte verwenden hinterlegte Organisations- und Kontaktdaten", async 
   const adminGeneral = await agent.get("/admin/allgemein");
   assert.equal(adminGeneral.status, 200);
   assert.match(adminGeneral.text, /Schellenbergers Tiere/);
+  assert.match(adminGeneral.text, /Michael Schellenberger/);
   assert.match(adminGeneral.text, /Musterweg 7/);
   assert.match(adminGeneral.text, /12345 Berlin/);
   assert.match(adminGeneral.text, /Deutschland/);
@@ -602,4 +605,20 @@ test("Rechtstext-Felder speichern keine Platzhalter als echte Daten", async () =
   assert.doesNotMatch(adminGeneral.text, /value="\[recht@beispiel\.de\]"/);
   assert.match(adminGeneral.text, /placeholder="z\. B\. Musterstraße 12"/);
   assert.match(adminGeneral.text, /placeholder="z\. B\. 12345 Musterstadt"/);
+});
+
+test("App-Logo kann hochgeladen und in der Oberflaeche verwendet werden", async () => {
+  const logoPath = path.join(process.cwd(), "public", "images", "logo-heartpet.png");
+
+  const saveLogo = await agent
+    .post("/admin/settings")
+    .field("_fields", "app_name")
+    .field("app_name", "HeartPet")
+    .attach("app_logo", logoPath);
+
+  assert.equal(saveLogo.status, 302);
+
+  const adminGeneral = await agent.get("/admin/allgemein");
+  assert.equal(adminGeneral.status, 200);
+  assert.match(adminGeneral.text, /\/media\/\d+-logo-heartpet\.png/);
 });

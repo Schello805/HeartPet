@@ -101,7 +101,7 @@ async function sendEmailReminder(settings, reminder) {
   const animalPart = reminder.animal_name ? ` für ${reminder.animal_name}` : "";
   const appName = settings.app_name || "HeartPet";
   const appBaseUrl = getAppBaseUrl(settings);
-  const logoFilePath = path.join(__dirname, "..", "public", "images", "logo-heartpet.png");
+  const logoFilePath = getAppLogoFilePath(settings);
   const logoCid = "heartpet-logo";
   const { attachments, logoUrl } = resolveEmailLogo({ logoFilePath, logoCid, appBaseUrl });
   const animalUrl = appBaseUrl && reminder.animal_id ? `${appBaseUrl}/animals/${reminder.animal_id}` : "";
@@ -156,7 +156,7 @@ async function sendUserInviteEmail(settings, payload) {
   const appName = settings.app_name || "HeartPet";
   const appBaseUrl = getAppBaseUrl(settings);
   const loginUrl = appBaseUrl ? `${appBaseUrl}/login` : "";
-  const logoFilePath = path.join(__dirname, "..", "public", "images", "logo-heartpet.png");
+  const logoFilePath = getAppLogoFilePath(settings);
   const logoCid = "heartpet-invite-logo";
   const { attachments, logoUrl } = resolveEmailLogo({ logoFilePath, logoCid, appBaseUrl });
   const html = buildUserInviteEmailHtml({
@@ -225,7 +225,7 @@ async function sendEmailChangeConfirmation(settings, payload) {
   const transporter = createSmtpTransport(settings);
   const appName = settings.app_name || "HeartPet";
   const appBaseUrl = getAppBaseUrl(settings);
-  const logoFilePath = path.join(__dirname, "..", "public", "images", "logo-heartpet.png");
+  const logoFilePath = getAppLogoFilePath(settings);
   const logoCid = "heartpet-email-change-logo";
   const { attachments, logoUrl } = resolveEmailLogo({ logoFilePath, logoCid, appBaseUrl });
   const html = buildEmailChangeConfirmationHtml({
@@ -336,7 +336,7 @@ function createSmtpTransport(settings) {
 
 function resolveEmailLogo({ logoFilePath, logoCid, appBaseUrl }) {
   const attachments = [];
-  let logoUrl = appBaseUrl ? `${appBaseUrl}/static/images/logo-heartpet.png` : "";
+  let logoUrl = getAppLogoUrl({ app_logo_stored_name: "" }, appBaseUrl);
   if (fs.existsSync(logoFilePath)) {
     attachments.push({
       filename: "logo-heartpet.png",
@@ -346,6 +346,22 @@ function resolveEmailLogo({ logoFilePath, logoCid, appBaseUrl }) {
     logoUrl = `cid:${logoCid}`;
   }
   return { attachments, logoUrl };
+}
+
+function getAppLogoFilePath(settings) {
+  const storedName = String(settings?.app_logo_stored_name || "").trim();
+  if (!storedName) {
+    return path.join(__dirname, "..", "public", "images", "logo-heartpet.png");
+  }
+  return path.join(process.cwd(), "data", "uploads", storedName);
+}
+
+function getAppLogoUrl(settings, appBaseUrl) {
+  const storedName = String(settings?.app_logo_stored_name || "").trim();
+  if (!storedName) {
+    return appBaseUrl ? `${appBaseUrl}/static/images/logo-heartpet.png` : "";
+  }
+  return appBaseUrl ? `${appBaseUrl}/media/${storedName}` : "";
 }
 
 function escapeTelegram(value) {
@@ -585,7 +601,7 @@ async function sendDailyDigestEmail(settings, payload) {
   const transporter = createSmtpTransport(settings);
   const appName = settings.app_name || "HeartPet";
   const appBaseUrl = getAppBaseUrl(settings);
-  const logoFilePath = path.join(__dirname, "..", "public", "images", "logo-heartpet.png");
+  const logoFilePath = getAppLogoFilePath(settings);
   const logoCid = "heartpet-digest-logo";
   const { attachments, logoUrl } = resolveEmailLogo({ logoFilePath, logoCid, appBaseUrl });
   const dashboardUrl = appBaseUrl ? `${appBaseUrl}/` : "";

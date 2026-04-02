@@ -177,6 +177,27 @@ textarea {
   height: 110px;
 }
 
+.logo-upload-panel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(56, 162, 118, 0.18);
+  background: rgba(255, 255, 255, 0.48);
+}
+
+.logo-upload-preview {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo-upload-preview .brand-logo {
+  width: 64px;
+  height: 64px;
+  flex: 0 0 auto;
+}
+
 .brand-text {
   margin-top: 12px;
   display: grid;

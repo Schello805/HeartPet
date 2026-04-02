@@ -54,6 +54,10 @@
           <input type="checkbox" name="daily_digest_only_when_open" <%= settings.daily_digest_only_when_open !== 'false' ? 'checked' : '' %> />
           Nur senden, wenn offene Erinnerungen vorhanden sind
         </label>
+        <div class="full-width note-box">
+          Die Uhrzeit gilt in der Zeitzone dieser Instanz: <strong><%= instanceTimezone || 'UTC' %></strong>.
+          Wenn dein Server oder LXC auf <strong>Europe/Berlin</strong> läuft, bedeutet <strong>07:30</strong> also auch wirklich 07:30 Uhr deutscher Zeit.
+        </div>
         <div class="full-width form-actions">
           <button type="submit" class="button">E-Mail-Einstellungen speichern</button>
         </div>

@@ -83,6 +83,7 @@ app.use((req, res, next) => {
   res.locals.flash = flash;
   res.locals.currentUser = req.session.user || null;
   res.locals.appSettings = getSettingsObject(db);
+  res.locals.appLogoUrl = getAppLogoUrl(res.locals.appSettings);
   res.locals.currentPath = req.path;
   res.locals.currentQuery = req.query || {};
   res.locals.animalSpeciesMenu = listActiveSpecies();
@@ -1771,7 +1772,7 @@ app.get(/^\/.+\/system-log$/, requireAdmin, (req, res) => {
   res.redirect("/admin/systemlog");
 });
 
-app.post("/admin/settings", requireAdmin, (req, res) => {
+app.post("/admin/settings", requireAdmin, upload.single("app_logo"), (req, res) => {
   const booleanKeys = new Set([
     "smtp_secure",
     "reminder_email_enabled",
@@ -1793,6 +1794,19 @@ app.post("/admin/settings", requireAdmin, (req, res) => {
 
     upsertSetting(db, key, normalizeSettingsInputValue(key, req.body[key]));
   });
+
+  if (req.file) {
+    if (!String(req.file.mimetype || "").startsWith("image/")) {
+      safeDeleteUploadedFile(req.file.filename);
+      setFlash(req, "error", "Bitte lade fuer das App-Logo eine Bilddatei hoch.");
+      return res.redirect(backTo(req, "/admin/allgemein"));
+    }
+
+    const currentSettings = getSettingsObject(db);
+    const previousLogo = String(currentSettings.app_logo_stored_name || "").trim();
+    upsertSetting(db, "app_logo_stored_name", req.file.filename);
+    safeDeleteUploadedFile(previousLogo, req.file.filename);
+  }
 
   if (fields.some((key) =>
     key.endsWith("_reminder_lead_days") ||
@@ -3746,6 +3760,10 @@ function renderInfoPage(res, title, content) {
 
 function applyInfoPagePlaceholders(content, settings) {
   const organizationName = String(settings?.organization_name || settings?.app_name || "").trim();
+  const legalResponsibleName = String(settings?.legal_responsible_name || "").trim();
+  const legalContentResponsibleName = String(settings?.legal_content_responsible_name || "").trim();
+  const responsibleName = legalResponsibleName || organizationName;
+  const contentResponsibleName = legalContentResponsibleName || responsibleName;
   const legalEmail = normalizeSettingsInputValue("legal_contact_email", settings?.legal_contact_email);
   const legalStreet = normalizeSettingsInputValue("legal_contact_street", settings?.legal_contact_street);
   const legalPostalCity = normalizeSettingsInputValue("legal_contact_postal_city", settings?.legal_contact_postal_city);
@@ -3755,12 +3773,15 @@ function applyInfoPagePlaceholders(content, settings) {
 
   let result = String(content || "");
 
-  if (organizationName) {
+  if (responsibleName) {
     result = result
-      .replace(/\[Name der verantwortlichen Person oder Organisation\]/g, organizationName)
-      .replace(/\[Name \/ Organisation\]/g, organizationName)
-      .replace(/Name \/ Organisation:\s*\[Bitte eintragen\]/g, `Name / Organisation: ${organizationName}`)
-      .replace(/\[Name der verantwortlichen Person\]/g, organizationName);
+      .replace(/\[Name der verantwortlichen Person oder Organisation\]/g, responsibleName)
+      .replace(/\[Name \/ Organisation\]/g, responsibleName)
+      .replace(/Name \/ Organisation:\s*\[Bitte eintragen\]/g, `Name / Organisation: ${responsibleName}`);
+  }
+
+  if (contentResponsibleName) {
+    result = result.replace(/\[Name der verantwortlichen Person\]/g, contentResponsibleName);
   }
 
   if (legalEmail) {
@@ -3811,6 +3832,35 @@ function normalizeSettingsInputValue(key, value) {
   }
 
   return normalizedValue;
+}
+
+function getAppLogoUrl(settings) {
+  const storedName = String(settings?.app_logo_stored_name || "").trim();
+  return storedName ? `/media/${storedName}` : "/static/images/logo-heartpet.png";
+}
+
+function getAppLogoFilePath(settings) {
+  const storedName = String(settings?.app_logo_stored_name || "").trim();
+  if (!storedName) {
+    return path.join(__dirname, "..", "public", "images", "logo-heartpet.png");
+  }
+  return path.join(process.cwd(), "data", "uploads", storedName);
+}
+
+function safeDeleteUploadedFile(storedName, ignoreName = "") {
+  const fileName = String(storedName || "").trim();
+  if (!fileName || fileName === String(ignoreName || "").trim()) {
+    return;
+  }
+
+  const fullPath = path.join(process.cwd(), "data", "uploads", fileName);
+  if (fs.existsSync(fullPath)) {
+    try {
+      fs.unlinkSync(fullPath);
+    } catch (error) {
+      console.warn("[HeartPet] Altes Logo konnte nicht geloescht werden:", error.message);
+    }
+  }
 }
 
 function ensureSpeciesExists(name) {
@@ -4044,6 +4094,7 @@ function getAdminViewData(pageTitle, adminPath) {
     adminPageTitle: pageTitle,
     adminPath,
     settings,
+    instanceTimezone: getInstanceTimeZone(),
     communicationStatus: {
       emailReady: isEmailEnabled(settings),
       telegramReady: isTelegramEnabled(settings),
@@ -4066,6 +4117,10 @@ function getAdminViewData(pageTitle, adminPath) {
       ORDER BY created_at ASC
     `).all(),
   };
+}
+
+function getInstanceTimeZone() {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || process.env.TZ || "UTC";
 }
 
 function backTo(req, fallback) {

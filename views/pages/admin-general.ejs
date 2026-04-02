@@ -5,8 +5,8 @@
   <details class="accordion-item" open>
     <summary>Organisation & App</summary>
     <div class="accordion-content">
-      <form method="post" action="/admin/settings" class="form-grid">
-        <input type="hidden" name="_fields" value="app_name,app_domain,organization_name,help_contact,legal_contact_street,legal_contact_postal_city,legal_contact_country,legal_contact_phone,legal_contact_email" />
+      <form method="post" action="/admin/settings" class="form-grid" enctype="multipart/form-data">
+        <input type="hidden" name="_fields" value="app_name,app_domain,organization_name,help_contact,legal_responsible_name,legal_content_responsible_name,legal_contact_street,legal_contact_postal_city,legal_contact_country,legal_contact_phone,legal_contact_email" />
         <label>
           <span>App-Name</span>
           <input type="text" name="app_name" value="<%= settings.app_name || '' %>" />
@@ -18,6 +18,27 @@
         <label class="full-width">
           <span>Name der Haltung / Organisation</span>
           <input type="text" name="organization_name" value="<%= settings.organization_name || '' %>" />
+        </label>
+        <div class="full-width logo-upload-panel">
+          <div class="logo-upload-preview">
+            <img class="brand-logo" src="<%= appLogoUrl || '/static/images/logo-heartpet.png' %>" alt="Aktuelles App-Logo" />
+            <div class="stack">
+              <strong>App-Logo</strong>
+              <span>Dieses Logo wird links oben, auf der Login-Seite und als Browser- bzw. Webapp-Icon verwendet.</span>
+            </div>
+          </div>
+          <label class="full-width">
+            <span>Neues Logo hochladen</span>
+            <input type="file" name="app_logo" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/x-icon,image/vnd.microsoft.icon" />
+          </label>
+        </div>
+        <label>
+          <span>Verantwortliche Person / Betreiber für Rechtstexte</span>
+          <input type="text" name="legal_responsible_name" value="<%= settings.legal_responsible_name || '' %>" placeholder="z. B. Max Mustermann oder Musterhof GmbH" />
+        </label>
+        <label>
+          <span>Abweichende Inhaltsverantwortung</span>
+          <input type="text" name="legal_content_responsible_name" value="<%= settings.legal_content_responsible_name || '' %>" placeholder="Optional, falls nicht identisch mit dem Betreiber" />
         </label>
         <label>
           <span>Kontakt für Hilfe</span>

@@ -1,15 +1,19 @@
 <!DOCTYPE html>
 <html lang="de">
   <head>
+    <% const resolvedAppLogoUrl = typeof appLogoUrl !== 'undefined' && appLogoUrl ? appLogoUrl : '/static/images/logo-heartpet.png'; %>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login | HeartPet</title>
+    <link rel="icon" type="image/png" sizes="any" href="<%= resolvedAppLogoUrl %>" />
+    <link rel="shortcut icon" type="image/png" href="<%= resolvedAppLogoUrl %>" />
+    <link rel="apple-touch-icon" href="<%= resolvedAppLogoUrl %>" />
     <link rel="stylesheet" href="/static/css/app.css" />
   </head>
   <body class="login-body">
     <section class="login-panel">
       <div class="brand-lockup">
-        <img class="brand-logo brand-logo-login" src="/static/images/logo-heartpet.png" alt="HeartPet Logo" />
+        <img class="brand-logo brand-logo-login" src="<%= resolvedAppLogoUrl %>" alt="HeartPet Logo" />
         <div>
           <h1>HeartPet</h1>
           <p>Tierakten, Dokumente, Erinnerungen und Admin-Einstellungen in einer Webapp.</p>

@@ -284,6 +284,7 @@ function seedDefaults(db) {
   const defaultSettings = {
     app_name: "HeartPet",
     app_domain: "heartpet.de",
+    app_logo_stored_name: "",
     organization_name: "Mein Tierbestand",
     smtp_host: "",
     smtp_port: "587",
@@ -309,6 +310,8 @@ function seedDefaults(db) {
     daily_digest_only_when_open: "true",
     last_daily_digest_date: "",
     help_contact: "Support-Kontakt: [Name / Organisation], [E-Mail], [Telefon optional]",
+    legal_responsible_name: "",
+    legal_content_responsible_name: "",
     legal_contact_street: "",
     legal_contact_postal_city: "",
     legal_contact_country: "",

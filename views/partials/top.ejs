@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="de">
   <head>
+    <% const resolvedAppLogoUrl = typeof appLogoUrl !== 'undefined' && appLogoUrl ? appLogoUrl : '/static/images/logo-heartpet.png'; %>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title><%= pageTitle %> | <%= appSettings.app_name || "HeartPet" %></title>
@@ -11,9 +12,9 @@
         }
       } catch (error) {}
     </script>
-    <link rel="icon" type="image/png" sizes="any" href="/static/images/logo-heartpet.png" />
-    <link rel="shortcut icon" type="image/png" href="/static/images/logo-heartpet.png" />
-    <link rel="apple-touch-icon" href="/static/images/logo-heartpet.png" />
+    <link rel="icon" type="image/png" sizes="any" href="<%= resolvedAppLogoUrl %>" />
+    <link rel="shortcut icon" type="image/png" href="<%= resolvedAppLogoUrl %>" />
+    <link rel="apple-touch-icon" href="<%= resolvedAppLogoUrl %>" />
     <link rel="stylesheet" href="/static/css/app.css" />
   </head>
   <body>
@@ -28,10 +29,10 @@
         </div>
 
         <div>
-          <img class="brand-logo" src="/static/images/logo-heartpet.png" alt="HeartPet Logo" />
+          <img class="brand-logo" src="<%= resolvedAppLogoUrl %>" alt="HeartPet Logo" />
           <div class="brand-text">
             <strong><%= appSettings.app_name || "HeartPet" %></strong>
-            <span>Tierverwaltung auf einen Blick</span>
+            <span><%= appSettings.organization_name || "Tierverwaltung auf einen Blick" %></span>
           </div>
         </div>
 
