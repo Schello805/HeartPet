@@ -231,14 +231,14 @@ textarea {
 
 .sidebar-nav {
   display: grid;
-  gap: 6px;
+  gap: 4px;
   margin: 0;
 }
 
 .sidebar-nav > a,
 .sidebar-group-toggle {
-  padding: 10px 13px;
-  border-radius: 10px;
+  padding: 8px 11px;
+  border-radius: 9px;
   background: rgba(39, 39, 42, 0.08);
   border: 1px solid rgba(39, 39, 42, 0.1);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -279,7 +279,7 @@ textarea {
 
 .sidebar-footer {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   margin-top: auto;
 }
 
@@ -754,9 +754,9 @@ textarea {
 
 .sidebar-subnav {
   display: none;
-  gap: 5px;
-  margin: 6px 0 2px 10px;
-  padding-left: 10px;
+  gap: 3px;
+  margin: 4px 0 1px 8px;
+  padding-left: 8px;
   border-left: 2px solid rgba(39, 39, 42, 0.2);
 }
 
@@ -765,11 +765,11 @@ textarea {
 }
 
 .sidebar-subnav a {
-  padding: 6px 10px;
-  border-radius: 8px;
+  padding: 5px 8px;
+  border-radius: 7px;
   background: transparent;
   color: rgba(39, 39, 42, 0.8);
-  font-size: 0.9rem;
+  font-size: 0.86rem;
   transition: all 0.2s ease;
   display: block;
 }
@@ -783,23 +783,23 @@ textarea {
 
 .sidebar-subgroup {
   display: grid;
-  gap: 4px;
+  gap: 3px;
 }
 
 .sidebar-subsubnav {
   display: grid;
-  gap: 4px;
-  margin-left: 8px;
-  padding-left: 8px;
+  gap: 3px;
+  margin-left: 6px;
+  padding-left: 6px;
   border-left: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .sidebar-subsubnav a {
-  padding: 5px 8px;
-  border-radius: 8px;
+  padding: 4px 7px;
+  border-radius: 7px;
   background: transparent;
   color: var(--text-soft);
-  font-size: 0.84rem;
+  font-size: 0.8rem;
   transition: all 0.2s ease;
   display: block;
 }
@@ -3280,7 +3280,7 @@ small {
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 1rem 0.9rem;
+  padding: 0.85rem 0.75rem;
   color: #f4f4f5;
   box-shadow: 10px 0 30px rgba(0, 0, 0, 0.4);
   position: fixed;
@@ -3294,13 +3294,13 @@ small {
 .bootstrap-app .app-sidebar-brand-mobile {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.6rem;
 }
 
 .bootstrap-app .app-sidebar .brand-logo,
 .bootstrap-app .app-mobile-offcanvas .brand-logo {
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
   object-fit: contain;
   border-radius: 1.2rem;
   background: rgba(39, 39, 42, 0.12);
@@ -3315,25 +3315,25 @@ small {
 
 .bootstrap-app .brand-text strong {
   color: var(--paper-strong);
-  font-size: 1.08rem;
+  font-size: 1rem;
   line-height: 1.1;
 }
 
 .bootstrap-app .brand-text span {
   color: rgba(244, 255, 251, 0.76);
-  font-size: 0.84rem;
+  font-size: 0.78rem;
 }
 
 .bootstrap-app 
 .app-sidebar-nav-wrap {
   flex: 1;
   overflow-y: auto;
-  margin-top: 1rem;
+  margin-top: 0.75rem;
 }
 
 
 .bootstrap-app .app-sidebar-footer {
-  padding-top: 0.8rem;
+  padding-top: 0.65rem;
   border-top: 1px solid rgba(39, 39, 42, 0.14);
 }
 
@@ -3426,7 +3426,7 @@ small {
   border-radius: 0.9rem;
   border: 1px solid transparent;
   color: rgba(244, 255, 251, 0.86);
-  padding: 0.62rem 0.82rem;
+  padding: 0.52rem 0.72rem;
   font-weight: 600;
   line-height: 1.2;
   background: transparent;
@@ -4170,7 +4170,7 @@ body.bootstrap-app {
 .bootstrap-app .app-nav-group + .app-nav-group,
 .bootstrap-app .app-nav-link + .app-nav-group,
 .bootstrap-app .app-nav-group + .app-nav-link {
-  margin-top: 0.15rem;
+  margin-top: 0.05rem;
 }
 
 .app-nav-link:hover, .app-nav-link.active, .app-nav-group-toggle.active, .app-nav-group-toggle:hover {
