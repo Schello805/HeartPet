@@ -1,11 +1,12 @@
 <%- include('../partials/top', { pageTitle }) %>
+<% const applyInfoPageContent = typeof applyInfoPagePlaceholders === 'function' ? applyInfoPagePlaceholders : (value) => String(value || ''); %>
 
 <section class="accordion-stack">
   <details class="accordion-item" open>
     <summary>Organisation & App</summary>
     <div class="accordion-content">
       <form method="post" action="/admin/settings" class="form-grid">
-        <input type="hidden" name="_fields" value="app_name,app_domain,organization_name,help_contact,legal_contact_email" />
+        <input type="hidden" name="_fields" value="app_name,app_domain,organization_name,help_contact,legal_contact_street,legal_contact_postal_city,legal_contact_country,legal_contact_phone,legal_contact_email" />
         <label>
           <span>App-Name</span>
           <input type="text" name="app_name" value="<%= settings.app_name || '' %>" />
@@ -24,7 +25,23 @@
         </label>
         <label>
           <span>Kontakt E-Mail für Rechtstexte</span>
-          <input type="email" name="legal_contact_email" value="<%= settings.legal_contact_email || '' %>" />
+          <input type="email" name="legal_contact_email" value="<%= settings.legal_contact_email || '' %>" placeholder="z. B. recht@deinedomain.de" />
+        </label>
+        <label>
+          <span>Straße und Hausnummer für Rechtstexte</span>
+          <input type="text" name="legal_contact_street" value="<%= settings.legal_contact_street || '' %>" placeholder="z. B. Musterstraße 12" />
+        </label>
+        <label>
+          <span>PLZ und Ort für Rechtstexte</span>
+          <input type="text" name="legal_contact_postal_city" value="<%= settings.legal_contact_postal_city || '' %>" placeholder="z. B. 12345 Musterstadt" />
+        </label>
+        <label>
+          <span>Land für Rechtstexte</span>
+          <input type="text" name="legal_contact_country" value="<%= settings.legal_contact_country || '' %>" placeholder="z. B. Deutschland" />
+        </label>
+        <label>
+          <span>Telefon für Rechtstexte</span>
+          <input type="text" name="legal_contact_phone" value="<%= settings.legal_contact_phone || '' %>" placeholder="z. B. +49 123 456789" />
         </label>
         <div class="full-width form-actions">
           <button type="submit" class="button">Allgemeine Einstellungen speichern</button>
@@ -38,7 +55,7 @@
     <div class="accordion-content">
       <form method="post" action="/admin/settings" class="stack form-compact">
         <input type="hidden" name="_fields" value="imprint_text" />
-        <textarea name="imprint_text" rows="10" placeholder="Impressumstext"><%= settings.imprint_text || '' %></textarea>
+        <textarea name="imprint_text" rows="10" placeholder="Impressumstext"><%= applyInfoPageContent(settings.imprint_text || '') %></textarea>
         <button type="submit" class="button">Impressum speichern</button>
       </form>
     </div>
@@ -49,7 +66,7 @@
     <div class="accordion-content">
       <form method="post" action="/admin/settings" class="stack form-compact">
         <input type="hidden" name="_fields" value="privacy_text" />
-        <textarea name="privacy_text" rows="12" placeholder="Datenschutzerklärung"><%= settings.privacy_text || '' %></textarea>
+        <textarea name="privacy_text" rows="12" placeholder="Datenschutzerklärung"><%= applyInfoPageContent(settings.privacy_text || '') %></textarea>
         <button type="submit" class="button">Datenschutzerklärung speichern</button>
       </form>
     </div>
@@ -60,7 +77,7 @@
     <div class="accordion-content">
       <form method="post" action="/admin/settings" class="stack form-compact">
         <input type="hidden" name="_fields" value="contact_text" />
-        <textarea name="contact_text" rows="8" placeholder="Kontaktinformationen"><%= settings.contact_text || '' %></textarea>
+        <textarea name="contact_text" rows="8" placeholder="Kontaktinformationen"><%= applyInfoPageContent(settings.contact_text || '') %></textarea>
         <button type="submit" class="button">Kontaktseite speichern</button>
       </form>
     </div>
@@ -71,7 +88,7 @@
     <div class="accordion-content">
       <form method="post" action="/admin/settings" class="stack form-compact">
         <input type="hidden" name="_fields" value="cookies_text" />
-        <textarea name="cookies_text" rows="8" placeholder="Cookie-Hinweise"><%= settings.cookies_text || '' %></textarea>
+        <textarea name="cookies_text" rows="8" placeholder="Cookie-Hinweise"><%= applyInfoPageContent(settings.cookies_text || '') %></textarea>
         <button type="submit" class="button">Cookie-Hinweise speichern</button>
       </form>
     </div>

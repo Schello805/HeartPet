@@ -91,6 +91,7 @@ app.use((req, res, next) => {
   res.locals.getAnimalAge = getAnimalAge;
   res.locals.getAnimalInitial = getAnimalInitial;
   res.locals.getRoleLabel = getRoleLabel;
+  res.locals.applyInfoPagePlaceholders = (content) => applyInfoPagePlaceholders(content, res.locals.appSettings);
   res.locals.permissions = buildPermissions(currentUserRecord || req.session.user);
   res.locals.editState = { type: "", id: null };
   res.locals.reminderBuckets = { overdue: [], open: [], done: [] };
@@ -1790,7 +1791,7 @@ app.post("/admin/settings", requireAdmin, (req, res) => {
       return;
     }
 
-    upsertSetting(db, key, req.body[key] || "");
+    upsertSetting(db, key, normalizeSettingsInputValue(key, req.body[key]));
   });
 
   if (fields.some((key) =>
@@ -3736,10 +3737,80 @@ function renderNotFound(req, res, message) {
 }
 
 function renderInfoPage(res, title, content) {
+  const settings = getSettingsObject(db);
   res.render("pages/info-page", {
     pageTitle: title,
-    content: content || "",
+    content: applyInfoPagePlaceholders(content || "", settings),
   });
+}
+
+function applyInfoPagePlaceholders(content, settings) {
+  const organizationName = String(settings?.organization_name || settings?.app_name || "").trim();
+  const legalEmail = normalizeSettingsInputValue("legal_contact_email", settings?.legal_contact_email);
+  const legalStreet = normalizeSettingsInputValue("legal_contact_street", settings?.legal_contact_street);
+  const legalPostalCity = normalizeSettingsInputValue("legal_contact_postal_city", settings?.legal_contact_postal_city);
+  const legalCountry = normalizeSettingsInputValue("legal_contact_country", settings?.legal_contact_country);
+  const legalPhone = normalizeSettingsInputValue("legal_contact_phone", settings?.legal_contact_phone);
+  const legalAddress = [legalStreet, legalPostalCity, legalCountry].filter(Boolean).join("\n");
+
+  let result = String(content || "");
+
+  if (organizationName) {
+    result = result
+      .replace(/\[Name der verantwortlichen Person oder Organisation\]/g, organizationName)
+      .replace(/\[Name \/ Organisation\]/g, organizationName)
+      .replace(/Name \/ Organisation:\s*\[Bitte eintragen\]/g, `Name / Organisation: ${organizationName}`)
+      .replace(/\[Name der verantwortlichen Person\]/g, organizationName);
+  }
+
+  if (legalEmail) {
+    result = result
+      .replace(/\[recht@beispiel\.de\]/g, legalEmail)
+      .replace(/\[kontakt@beispiel\.de\]/g, legalEmail);
+  }
+
+  if (legalStreet) {
+    result = result.replace(/\[Straße und Hausnummer\]/g, legalStreet);
+  }
+
+  if (legalPostalCity) {
+    result = result.replace(/\[PLZ Ort\]/g, legalPostalCity);
+  }
+
+  if (legalCountry) {
+    result = result.replace(/\[Land\]/g, legalCountry);
+  }
+
+  if (legalPhone) {
+    result = result
+      .replace(/\[Telefonnummer optional\]/g, legalPhone)
+      .replace(/\[optional\]/g, legalPhone);
+  }
+
+  if (legalAddress) {
+    result = result
+      .replace(/\[Anschrift\]/g, legalAddress)
+      .replace(/\[Anschrift, falls abweichend\]/g, legalAddress);
+  }
+
+  return result;
+}
+
+function normalizeSettingsInputValue(key, value) {
+  const normalizedValue = String(value || "").trim();
+  const placeholderValues = {
+    legal_contact_street: "[Straße und Hausnummer]",
+    legal_contact_postal_city: "[PLZ Ort]",
+    legal_contact_country: "[Land]",
+    legal_contact_phone: "[Telefonnummer optional]",
+    legal_contact_email: "[recht@beispiel.de]",
+  };
+
+  if (placeholderValues[key] && normalizedValue === placeholderValues[key]) {
+    return "";
+  }
+
+  return normalizedValue;
 }
 
 function ensureSpeciesExists(name) {

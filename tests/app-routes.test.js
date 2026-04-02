@@ -533,3 +533,73 @@ test("Wichtige Hauptseiten rendern ohne Template-Fehler", async () => {
     assertNoTemplateError(response, href);
   }
 });
+
+test("Rechtstexte verwenden hinterlegte Organisations- und Kontaktdaten", async () => {
+  const saveSettings = await agent.post("/admin/settings").type("form").send({
+    _fields: "organization_name,legal_contact_street,legal_contact_postal_city,legal_contact_country,legal_contact_phone,legal_contact_email",
+    organization_name: "Schellenbergers Tiere",
+    legal_contact_street: "Musterweg 7",
+    legal_contact_postal_city: "12345 Berlin",
+    legal_contact_country: "Deutschland",
+    legal_contact_phone: "+49 123 456789",
+    legal_contact_email: "recht@schellenberger.biz",
+  });
+  assert.equal(saveSettings.status, 302);
+
+  const imprint = await agent.get("/impressum");
+  assert.equal(imprint.status, 200);
+  assert.match(imprint.text, /Schellenbergers Tiere/);
+  assert.match(imprint.text, /Musterweg 7/);
+  assert.match(imprint.text, /12345 Berlin/);
+  assert.match(imprint.text, /Deutschland/);
+  assert.match(imprint.text, /\+49 123 456789/);
+  assert.match(imprint.text, /recht@schellenberger\.biz/);
+  assert.doesNotMatch(imprint.text, /\[Anschrift(?:, falls abweichend)?\]/);
+
+  const privacy = await agent.get("/datenschutz");
+  assert.equal(privacy.status, 200);
+  assert.match(privacy.text, /Schellenbergers Tiere/);
+  assert.match(privacy.text, /Musterweg 7/);
+  assert.match(privacy.text, /12345 Berlin/);
+  assert.match(privacy.text, /Deutschland/);
+  assert.match(privacy.text, /recht@schellenberger\.biz/);
+  assert.doesNotMatch(privacy.text, /\[Anschrift\]/);
+
+  const contact = await agent.get("/kontakt");
+  assert.equal(contact.status, 200);
+  assert.match(contact.text, /Schellenbergers Tiere/);
+  assert.match(contact.text, /recht@schellenberger\.biz/);
+  assert.match(contact.text, /\+49 123 456789/);
+  assert.doesNotMatch(contact.text, /\[optional\]/);
+
+  const adminGeneral = await agent.get("/admin/allgemein");
+  assert.equal(adminGeneral.status, 200);
+  assert.match(adminGeneral.text, /Schellenbergers Tiere/);
+  assert.match(adminGeneral.text, /Musterweg 7/);
+  assert.match(adminGeneral.text, /12345 Berlin/);
+  assert.match(adminGeneral.text, /Deutschland/);
+  assert.match(adminGeneral.text, /recht@schellenberger\.biz/);
+  assert.doesNotMatch(adminGeneral.text, /\[Anschrift\]/);
+});
+
+test("Rechtstext-Felder speichern keine Platzhalter als echte Daten", async () => {
+  const saveSettings = await agent.post("/admin/settings").type("form").send({
+    _fields: "legal_contact_street,legal_contact_postal_city,legal_contact_country,legal_contact_phone,legal_contact_email",
+    legal_contact_street: "[Straße und Hausnummer]",
+    legal_contact_postal_city: "[PLZ Ort]",
+    legal_contact_country: "[Land]",
+    legal_contact_phone: "[Telefonnummer optional]",
+    legal_contact_email: "[recht@beispiel.de]",
+  });
+  assert.equal(saveSettings.status, 302);
+
+  const adminGeneral = await agent.get("/admin/allgemein");
+  assert.equal(adminGeneral.status, 200);
+  assert.doesNotMatch(adminGeneral.text, /value="\[Straße und Hausnummer\]"/);
+  assert.doesNotMatch(adminGeneral.text, /value="\[PLZ Ort\]"/);
+  assert.doesNotMatch(adminGeneral.text, /value="\[Land\]"/);
+  assert.doesNotMatch(adminGeneral.text, /value="\[Telefonnummer optional\]"/);
+  assert.doesNotMatch(adminGeneral.text, /value="\[recht@beispiel\.de\]"/);
+  assert.match(adminGeneral.text, /placeholder="z\. B\. Musterstraße 12"/);
+  assert.match(adminGeneral.text, /placeholder="z\. B\. 12345 Musterstadt"/);
+});

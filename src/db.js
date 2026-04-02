@@ -309,7 +309,11 @@ function seedDefaults(db) {
     daily_digest_only_when_open: "true",
     last_daily_digest_date: "",
     help_contact: "Support-Kontakt: [Name / Organisation], [E-Mail], [Telefon optional]",
-    legal_contact_email: "[recht@beispiel.de]",
+    legal_contact_street: "",
+    legal_contact_postal_city: "",
+    legal_contact_country: "",
+    legal_contact_phone: "",
+    legal_contact_email: "",
     imprint_text: [
       "Wichtiger Hinweis: Dieser Text ist nur eine allgemeine Vorlage, nicht vollständig und nicht rechtssicher. Bitte vor produktivem Einsatz rechtlich prüfen lassen.",
       "",
@@ -409,6 +413,7 @@ function seedDefaults(db) {
   const settingRows = Object.entries(defaultSettings).map(([key, value]) => ({ key, value }));
   const settingsTx = db.transaction((rows) => rows.forEach((row) => insertSetting.run(row)));
   settingsTx(settingRows);
+  normalizeLegacyPlaceholderSettings(db);
 
   if (db.prepare("SELECT COUNT(*) AS count FROM document_categories").get().count === 0) {
     const categories = [
@@ -473,6 +478,27 @@ function seedDefaults(db) {
     const hasUsers = db.prepare("SELECT COUNT(*) AS count FROM users").get().count > 0;
     upsertSetting(db, "setup_complete", hasUsers ? "true" : "false");
   }
+}
+
+function normalizeLegacyPlaceholderSettings(db) {
+  const placeholderSettings = {
+    legal_contact_street: "[Straße und Hausnummer]",
+    legal_contact_postal_city: "[PLZ Ort]",
+    legal_contact_country: "[Land]",
+    legal_contact_phone: "[Telefonnummer optional]",
+    legal_contact_email: "[recht@beispiel.de]",
+  };
+
+  Object.entries(placeholderSettings).forEach(([key, legacyValue]) => {
+    const row = db.prepare("SELECT value FROM settings WHERE key = ?").get(key);
+    if (!row) {
+      return;
+    }
+
+    if (String(row.value || "").trim() === legacyValue) {
+      upsertSetting(db, key, "");
+    }
+  });
 }
 
 function getSettingsObject(db) {
