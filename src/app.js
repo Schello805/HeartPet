@@ -460,11 +460,24 @@ app.get("/", (req, res) => {
   const searchResults = searchable ? buildGlobalSearchResults(q) : [];
 
   const stats = {
-    animalCount: db.prepare("SELECT COUNT(*) AS count FROM animals").get().count,
+    animalCount: db.prepare("SELECT COUNT(DISTINCT id) AS count FROM animals WHERE status = 'Aktiv'").get().count,
     documentCount: db.prepare("SELECT COUNT(*) AS count FROM documents").get().count,
-    openReminderCount: db.prepare("SELECT COUNT(*) AS count FROM reminders WHERE completed_at IS NULL").get().count,
+    openReminderCount: db.prepare(`
+      SELECT COUNT(*) AS count
+      FROM reminders
+      INNER JOIN animals ON animals.id = reminders.animal_id
+      WHERE reminders.completed_at IS NULL
+        AND animals.status = 'Aktiv'
+    `).get().count,
     dueReminderCount: db
-      .prepare("SELECT COUNT(*) AS count FROM reminders WHERE completed_at IS NULL AND due_at <= ?")
+      .prepare(`
+        SELECT COUNT(*) AS count
+        FROM reminders
+        INNER JOIN animals ON animals.id = reminders.animal_id
+        WHERE reminders.completed_at IS NULL
+          AND reminders.due_at <= ?
+          AND animals.status = 'Aktiv'
+      `)
       .get(dayjs().format("YYYY-MM-DDTHH:mm")).count,
   };
 
@@ -472,6 +485,7 @@ app.get("/", (req, res) => {
     SELECT animals.*, species.name AS species_name
     FROM animals
     LEFT JOIN species ON species.id = animals.species_id
+    WHERE animals.status = 'Aktiv'
     ORDER BY animals.created_at DESC
     LIMIT 6
   `).all();
@@ -481,6 +495,7 @@ app.get("/", (req, res) => {
     FROM reminders
     LEFT JOIN animals ON animals.id = reminders.animal_id
     WHERE reminders.completed_at IS NULL
+      AND animals.status = 'Aktiv'
       AND reminders.due_at > ?
     ORDER BY reminders.due_at ASC
     LIMIT 10
@@ -496,6 +511,7 @@ app.get("/", (req, res) => {
     FROM reminders
     LEFT JOIN animals ON animals.id = reminders.animal_id
     WHERE reminders.completed_at IS NULL
+      AND animals.status = 'Aktiv'
       AND reminders.due_at <= ?
     ORDER BY
       CASE
@@ -524,19 +540,44 @@ app.get("/", (req, res) => {
   });
 });
 
+app.get("/animals/historie", (req, res) => {
+  renderAnimalsWorkspace(req, res, "history");
+});
+
+app.get("/animals/history", (req, res) => {
+  res.redirect("/animals/historie");
+});
+
+app.get("/animals/ruhestaette", (req, res) => {
+  renderAnimalsWorkspace(req, res, "resting");
+});
+
+app.get("/animals/ruhestatte", (req, res) => {
+  res.redirect("/animals/ruhestaette");
+});
+
 app.get("/suche", (req, res) => {
   const q = String(req.query.q || "").trim();
   return res.redirect(q ? `/?q=${encodeURIComponent(q)}` : "/");
 });
 
 app.get("/animals", (req, res) => {
+  renderAnimalsWorkspace(req, res, "active");
+});
+
+function renderAnimalsWorkspace(req, res, section = "active") {
+  const sectionConfig = getAnimalSectionConfig(section);
   const search = (req.query.q || "").trim();
-  const status = (req.query.status || "").trim();
+  const requestedStatus = (req.query.status || "").trim();
   const speciesId = (req.query.species_id || "").trim();
   const sort = (req.query.sort || "name_asc").trim();
   const selectedAnimalId = (req.query.animal_id || "").trim();
   const page = Math.max(Number.parseInt(req.query.page || "1", 10) || 1, 1);
   const pageSize = 25;
+  const allowedStatuses = sectionConfig.allowedStatuses;
+  const status = sectionConfig.allowStatusFilter && allowedStatuses.includes(requestedStatus)
+    ? requestedStatus
+    : sectionConfig.defaultStatus;
 
   let sql = `
     SELECT animals.*, species.name AS species_name, veterinarians.name AS veterinarian_name
@@ -555,6 +596,10 @@ app.get("/animals", (req, res) => {
   if (status) {
     sql += ` AND animals.status = ?`;
     params.push(status);
+  } else if (allowedStatuses.length) {
+    const placeholders = allowedStatuses.map(() => "?").join(", ");
+    sql += ` AND animals.status IN (${placeholders})`;
+    params.push(...allowedStatuses);
   }
 
   if (speciesId) {
@@ -574,11 +619,12 @@ app.get("/animals", (req, res) => {
     : animals[0] || null;
 
   res.render("pages/animals-index", {
-    pageTitle: "Tiere",
+    pageTitle: sectionConfig.pageTitle,
     animals,
     selectedAnimal,
     selectedAnimalView: selectedAnimal ? buildAnimalDetailViewData(selectedAnimal.id, req) : null,
     filters: { search, status, speciesId, sort },
+    animalSection: sectionConfig,
     speciesOptions: listActiveSpecies(),
     pagination: {
       currentPage,
@@ -587,7 +633,7 @@ app.get("/animals", (req, res) => {
       pageSize,
     },
   });
-});
+}
 
 app.get("/animals/suggest", renderSearchSuggestions);
 app.get("/admin/suggest", renderSearchSuggestions);
@@ -626,6 +672,10 @@ app.post("/animals", requireAnimalEditor, (req, res) => {
       @status, @color, @breed, @weight_kg, @veterinarian_id, @notes, CURRENT_TIMESTAMP
     )
   `).run(payload);
+
+  if (!isActiveAnimalStatus(payload.status)) {
+    closeOpenRemindersForAnimal(result.lastInsertRowid);
+  }
 
   setFlash(req, "success", "Tier wurde angelegt.");
   res.redirect(returnTo || `/animals/${result.lastInsertRowid}`);
@@ -828,6 +878,10 @@ app.post("/animals/:id/update", requireAnimalEditor, (req, res) => {
         updated_at = CURRENT_TIMESTAMP
     WHERE id = @id
   `).run(payload);
+
+  if (isActiveAnimalStatus(animal.status) && !isActiveAnimalStatus(payload.status)) {
+    closeOpenRemindersForAnimal(req.params.id);
+  }
 
   setFlash(req, "success", "Tierdaten wurden aktualisiert.");
   res.redirect(returnTo);
@@ -3400,9 +3454,65 @@ function listActiveSpecies() {
     SELECT species.id, species.name, COUNT(animals.id) AS animal_count
     FROM species
     INNER JOIN animals ON animals.species_id = species.id
+    WHERE animals.status = 'Aktiv'
     GROUP BY species.id, species.name
     ORDER BY species.name COLLATE NOCASE ASC
   `).all();
+}
+
+function getAnimalSectionConfig(section) {
+  const sectionMap = {
+    active: {
+      key: "active",
+      pageTitle: "Aktive Tiere",
+      workspaceTitle: "Aktive Tiere",
+      workspaceIntro: "Hier arbeitest du mit allen Tieren, die aktuell im Bestand sind.",
+      totalLabel: "aktive Tiere",
+      allowedStatuses: ["Aktiv"],
+      defaultStatus: "Aktiv",
+      allowStatusFilter: false,
+    },
+    history: {
+      key: "history",
+      pageTitle: "Historie",
+      workspaceTitle: "Historie",
+      workspaceIntro: "Hier findest du vermittelte oder verkaufte Tiere als Bestandsverlauf.",
+      totalLabel: "historische Tiere",
+      allowedStatuses: ["Vermittelt", "Verkauft"],
+      defaultStatus: "",
+      allowStatusFilter: true,
+    },
+    resting: {
+      key: "resting",
+      pageTitle: "Ruhestätte",
+      workspaceTitle: "Ruhestätte",
+      workspaceIntro: "Hier bleiben verstorbene Tiere würdevoll dokumentiert und getrennt vom aktiven Bestand.",
+      totalLabel: "Tiere in der Ruhestätte",
+      allowedStatuses: ["Verstorben"],
+      defaultStatus: "Verstorben",
+      allowStatusFilter: false,
+    },
+  };
+
+  return sectionMap[section] || sectionMap.active;
+}
+
+function isActiveAnimalStatus(status) {
+  return String(status || "").trim() === "Aktiv";
+}
+
+function closeOpenRemindersForAnimal(animalId) {
+  db.prepare(`
+    UPDATE reminders
+    SET completed_at = COALESCE(completed_at, CURRENT_TIMESTAMP),
+        last_delivery_status = CASE
+          WHEN source_kind IS NOT NULL THEN 'archived'
+          ELSE 'closed'
+        END,
+        last_delivery_error = ''
+    WHERE animal_id = ?
+      AND completed_at IS NULL
+  `).run(animalId);
 }
 
 function attachNextTermData(animals) {

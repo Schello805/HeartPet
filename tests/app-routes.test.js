@@ -631,6 +631,88 @@ test("Dashboard zeigt dringende Erinnerungen nicht doppelt bei den nächsten Eri
   assert.ok(upcomingSection?.[1]?.includes("Als erledigt markieren"));
 });
 
+test("Dashboard verlinkt die Tier-Karte auf die Tierübersicht und zeigt die eindeutige Tierzahl", async () => {
+  const response = await agent.get("/");
+  assert.equal(response.status, 200);
+  const expectedAnimalCount = db.prepare("SELECT COUNT(DISTINCT id) AS count FROM animals WHERE status = 'Aktiv'").get().count;
+  assert.match(
+    response.text,
+    new RegExp(`<a class="stat-card" href="\\/animals">[\\s\\S]*?<span>Tiere<\\/span>[\\s\\S]*?<strong>${expectedAnimalCount}<\\/strong>[\\s\\S]*?<\\/a>`)
+  );
+});
+
+test("Tiere, Historie und Ruhestätte trennen die Bestände sauber", async () => {
+  const speciesId = db.prepare("SELECT species_id FROM animals WHERE id = 1").get()?.species_id;
+  assert.ok(speciesId);
+  const vermittelteId = db.prepare("INSERT INTO animals (name, species_id, status) VALUES (?, ?, ?)").run("Luna", speciesId, "Vermittelt").lastInsertRowid;
+  const verstorbenId = db.prepare("INSERT INTO animals (name, species_id, status) VALUES (?, ?, ?)").run("Max", speciesId, "Verstorben").lastInsertRowid;
+
+  const activePage = await agent.get("/animals");
+  assert.equal(activePage.status, 200);
+  assert.match(activePage.text, /Aktive Tiere/);
+  assert.doesNotMatch(activePage.text, /Luna/);
+  assert.doesNotMatch(activePage.text, /Max/);
+
+  const historyPage = await agent.get("/animals/historie");
+  assert.equal(historyPage.status, 200);
+  assert.match(historyPage.text, /Historie/);
+  assert.match(historyPage.text, /Luna/);
+  assert.doesNotMatch(historyPage.text, /Max/);
+
+  const restingPage = await agent.get("/animals/ruhestaette");
+  assert.equal(restingPage.status, 200);
+  assert.match(restingPage.text, /Ruhestätte/);
+  assert.match(restingPage.text, /Max/);
+  assert.doesNotMatch(restingPage.text, /Luna/);
+
+  assert.equal(db.prepare("SELECT status FROM animals WHERE id = ?").get(vermittelteId)?.status, "Vermittelt");
+  assert.equal(db.prepare("SELECT status FROM animals WHERE id = ?").get(verstorbenId)?.status, "Verstorben");
+});
+
+test("Beim Verschieben aus dem aktiven Bestand werden offene Erinnerungen abgeschlossen", async () => {
+  db.prepare(`
+    INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, notes)
+    VALUES (?, ?, ?, ?, 1, 0, ?)
+  `).run(1, "Bestandswechsel", "Allgemein", dayjs().add(2, "day").format("YYYY-MM-DDTHH:mm"), "wird archiviert");
+
+  const speciesName = db.prepare(`
+    SELECT species.name
+    FROM animals
+    LEFT JOIN species ON species.id = animals.species_id
+    WHERE animals.id = 1
+  `).get()?.name || "Katze";
+
+  const response = await agent.post("/animals/1/update").type("form").send({
+    name: "Minka",
+    species_name: speciesName,
+    sex: "",
+    birth_date: "",
+    intake_date: "",
+    source: "",
+    microchip_number: "",
+    status: "Verstorben",
+    color: "",
+    breed: "",
+    weight_kg: "",
+    veterinarian_id: "",
+    notes: "",
+    return_to: "/animals/ruhestaette",
+  });
+
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.location, "/animals/ruhestaette");
+
+  const reminderStates = db.prepare(`
+    SELECT completed_at, last_delivery_status
+    FROM reminders
+    WHERE animal_id = ? AND title = ?
+    ORDER BY id DESC
+  `).all(1, "Bestandswechsel");
+  assert.ok(reminderStates.length >= 1);
+  assert.ok(reminderStates.every((item) => item.completed_at));
+  assert.ok(reminderStates.every((item) => ["closed", "archived"].includes(item.last_delivery_status)));
+});
+
 test("Tierseite zeigt Tierarzt-Kontakt per Klick und erklärt die Schnellerfassung", async () => {
   const master = await agent.get("/admin/stammdaten");
   const vetId = master.text.match(/\/admin\/veterinarians\/(\d+)\/edit/)?.[1];

@@ -70,7 +70,7 @@ test("Tiere-Arbeitsansicht lädt die Akte im Browser-Kontext", async ({ page }) 
   await ensureAuthenticated(page);
   await page.goto("/animals");
 
-  await expect(page.getByRole("heading", { name: "Tierbestand" })).toBeVisible();
+  await expect(page.locator("h1", { hasText: "Aktive Tiere" })).toBeVisible();
   await page.getByRole("link", { name: /Minka/i }).click();
 
   await expect(page.locator("[data-animal-workspace-target]")).toContainText("Minka");

@@ -1,6 +1,7 @@
 <%- include('../partials/top', { pageTitle }) %>
 <% const selectedAnimalState = typeof selectedAnimal !== 'undefined' ? selectedAnimal : null; %>
 <% const selectedAnimalViewState = typeof selectedAnimalView !== 'undefined' ? selectedAnimalView : null; %>
+<% const sectionState = typeof animalSection !== 'undefined' ? animalSection : { key: 'active', workspaceTitle: 'Tierbestand', workspaceIntro: '', totalLabel: 'Einträge', allowStatusFilter: true }; %>
 
 <section class="animals-workspace">
   <aside class="animals-list-pane">
@@ -8,9 +9,12 @@
       <div class="animals-list-summary-head">
         <div>
           <p class="eyebrow">Arbeitsansicht</p>
-          <h2>Tierbestand</h2>
+          <h2><%= sectionState.workspaceTitle %></h2>
+          <% if (sectionState.workspaceIntro) { %>
+            <p class="table-sub"><%= sectionState.workspaceIntro %></p>
+          <% } %>
         </div>
-        <span class="counter"><%= pagination.totalCount %> Einträge</span>
+        <span class="counter"><%= pagination.totalCount %> <%= sectionState.totalLabel %></span>
       </div>
       <div class="animals-summary-grid">
         <article class="animals-summary-card">
@@ -35,11 +39,15 @@
         <label>
           <span>Status</span>
           <select name="status">
-            <option value="">Alle</option>
-            <option value="Aktiv" <%= filters.status === 'Aktiv' ? 'selected' : '' %>>Aktiv</option>
-            <option value="Vermittelt" <%= filters.status === 'Vermittelt' ? 'selected' : '' %>>Vermittelt</option>
-            <option value="Verkauft" <%= filters.status === 'Verkauft' ? 'selected' : '' %>>Verkauft</option>
-            <option value="Verstorben" <%= filters.status === 'Verstorben' ? 'selected' : '' %>>Verstorben</option>
+            <% if (sectionState.allowStatusFilter) { %>
+              <option value="">Alle</option>
+              <option value="Vermittelt" <%= filters.status === 'Vermittelt' ? 'selected' : '' %>>Vermittelt</option>
+              <option value="Verkauft" <%= filters.status === 'Verkauft' ? 'selected' : '' %>>Verkauft</option>
+            <% } else { %>
+              <option value="<%= filters.status || (sectionState.allowedStatuses ? sectionState.allowedStatuses[0] : 'Aktiv') %>" selected>
+                <%= filters.status || (sectionState.allowedStatuses ? sectionState.allowedStatuses[0] : 'Aktiv') %>
+              </option>
+            <% } %>
           </select>
         </label>
         <label>
@@ -67,7 +75,7 @@
           <input type="hidden" name="animal_id" value="<%= selectedAnimalState.id %>" />
         <% } %>
         <button type="submit" class="button">Filtern</button>
-        <a href="/animals" class="button button-secondary">Zurücksetzen</a>
+        <a href="<%= sectionState.key === 'history' ? '/animals/historie' : sectionState.key === 'resting' ? '/animals/ruhestaette' : '/animals' %>" class="button button-secondary">Zurücksetzen</a>
       </form>
     </section>
 
@@ -78,7 +86,13 @@
       </div>
 
       <% if (animals.length === 0) { %>
-        <p class="empty-state">Noch keine Tiere vorhanden. Lege dein erstes Tier über "Neues Tier" an.</p>
+        <p class="empty-state">
+          <%= sectionState.key === 'history'
+            ? 'Noch keine vermittelten oder verkauften Tiere vorhanden.'
+            : sectionState.key === 'resting'
+              ? 'Noch keine Tiere in der Ruhestätte vorhanden.'
+              : 'Noch keine aktiven Tiere vorhanden. Lege dein erstes Tier über "Neues Tier" an.' %>
+        </p>
       <% } else { %>
         <div class="animals-list-stack">
           <% animals.forEach((animal) => { %>
