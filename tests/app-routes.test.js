@@ -22,6 +22,12 @@ function collectInternalLinks(html) {
     .filter((href) => !href.includes("#"));
 }
 
+function assertNoTemplateError(response, label) {
+  assert.equal(response.status, 200, label);
+  assert.doesNotMatch(response.text, /(ReferenceError|TypeError|SyntaxError):/i, label);
+  assert.doesNotMatch(response.text, /Seite nicht gefunden\./i, `${label} sollte keine Not-Found-Seite rendern`);
+}
+
 test.after(() => {
   fs.rmSync(tempDataDir, { recursive: true, force: true });
 });
@@ -505,5 +511,25 @@ test("Wichtige interne Links liefern keine 404", async () => {
       const target = await agent.get(href).redirects(3);
       assert.notEqual(target.status, 404, href);
     }
+  }
+});
+
+test("Wichtige Hauptseiten rendern ohne Template-Fehler", async () => {
+  const routes = [
+    "/",
+    "/animals",
+    "/animals/1",
+    "/admin/allgemein",
+    "/admin/benachrichtigungen",
+    "/admin/stammdaten",
+    "/admin/benutzer",
+    "/admin/import",
+    "/admin/systemlog",
+    "/hilfe",
+  ];
+
+  for (const href of routes) {
+    const response = await agent.get(href);
+    assertNoTemplateError(response, href);
   }
 });

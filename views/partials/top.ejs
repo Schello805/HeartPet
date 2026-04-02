@@ -39,7 +39,7 @@
           <% const animalMenu = typeof animalSpeciesMenu !== 'undefined' ? animalSpeciesMenu : []; %>
           <% const queryState = typeof currentQuery !== 'undefined' ? currentQuery : {}; %>
           <% const activeSpeciesId = String(queryState.species_id || ''); %>
-          <a class="sidebar-primary-link <%= currentPath === '/' ? 'active' : '' %>" href="/">Dashboard</a>
+          <a class="<%= currentPath === '/' ? 'active' : '' %>" href="/">Dashboard</a>
           <div class="sidebar-group <%= currentPath.startsWith('/animals') ? 'group-active' : '' %>" data-sidebar-group="animals">
             <button type="button" class="sidebar-group-toggle <%= currentPath.startsWith('/animals') ? 'active' : '' %>" aria-expanded="false">
               <span>Tiere</span>
@@ -54,7 +54,6 @@
             <% } %>
           </div>
           <% if (permissions.canManageAdmin) { %>
-            <a class="sidebar-primary-link <%= currentPath.startsWith('/admin') ? 'active' : '' %>" href="/admin/allgemein">Verwaltung</a>
             <div class="sidebar-group <%= currentPath.startsWith('/admin') ? 'group-active' : '' %>" data-sidebar-group="admin">
               <button type="button" class="sidebar-group-toggle <%= currentPath.startsWith('/admin') ? 'active' : '' %>" aria-expanded="false">
                 <span>Verwaltung</span>
@@ -69,7 +68,7 @@
               </div>
             </div>
           <% } %>
-          <a class="sidebar-primary-link <%= currentPath === '/hilfe' ? 'active' : '' %>" href="/hilfe">Hilfe</a>
+          <a class="<%= currentPath === '/hilfe' ? 'active' : '' %>" href="/hilfe">Hilfe</a>
         </nav>
 
         <div class="sidebar-mobile-extra">
