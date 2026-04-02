@@ -1258,6 +1258,11 @@ textarea {
   background: rgba(255, 255, 255, 0.72);
 }
 
+.animal-hero-meta-card.has-action {
+  padding: 0;
+  overflow: hidden;
+}
+
 .animal-hero-meta-card span {
   color: var(--muted);
   font-size: 0.76rem;
@@ -1269,9 +1274,102 @@ textarea {
   font-size: 0.98rem;
 }
 
-.animal-hero-address {
+.animal-vet-trigger {
   display: grid;
-  gap: 3px;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.animal-vet-trigger small {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.animal-vet-trigger:hover strong,
+.animal-vet-trigger:focus-visible strong {
+  text-decoration: underline;
+}
+
+.vet-contact-popover {
+  position: fixed;
+  inset: 0;
+  z-index: 85;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(6, 78, 59, 0.18);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.vet-contact-popover[hidden] {
+  display: none !important;
+}
+
+.vet-contact-card {
+  width: min(460px, 100%);
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(167, 243, 208, 0.55);
+  background:
+    radial-gradient(340px 180px at 0% 0%, rgba(193, 246, 219, 0.26), transparent 70%),
+    rgba(255, 255, 255, 0.96);
+  box-shadow: 0 30px 55px rgba(6, 78, 59, 0.22);
+}
+
+.vet-contact-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.vet-contact-head h3 {
+  margin: 0;
+}
+
+.vet-contact-close {
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(167, 243, 208, 0.55);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--text);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.vet-contact-list {
+  margin: 0;
+}
+
+.vet-contact-list a {
+  color: var(--accent-dark);
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.inline-pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.subtle-pill {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.18);
+  color: var(--muted);
 }
 
 .animal-hero-address span {
@@ -1323,6 +1421,14 @@ textarea {
   font-size: 0.82rem;
   border: 1px solid rgba(35, 115, 81, 0.2);
   cursor: pointer;
+}
+
+.profile-upload-trigger.icon-only {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 999px;
+  font-size: 1.05rem;
 }
 
 .profile-upload-trigger:hover {

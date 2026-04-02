@@ -597,6 +597,40 @@ test("Tiere-Arbeitsansicht kann die rechte Akte separat laden", async () => {
   assert.match(response.text, /Minka/);
 });
 
+test("Tierseite zeigt Tierarzt-Kontakt per Klick und erklärt die Schnellerfassung", async () => {
+  const master = await agent.get("/admin/stammdaten");
+  const vetId = master.text.match(/\/admin\/veterinarians\/(\d+)\/edit/)?.[1];
+  assert.ok(vetId);
+
+  await agent.post(`/admin/veterinarians/${vetId}/update`).type("form").send({
+    name: "Praxis Kontakt",
+    street: "Musterweg 12",
+    postal_code: "12345",
+    city: "Berlin",
+    country: "Deutschland",
+    email: "praxis@test.local",
+    phone: "+49 123 456789",
+    notes: "",
+  });
+
+  await agent.post("/animals/1/update").type("form").send({
+    name: "Minka",
+    species_name: "Katze",
+    sex: "Weiblich",
+    status: "Aktiv",
+    veterinarian_id: vetId,
+  });
+
+  const response = await agent.get("/animals/1");
+  assert.equal(response.status, 200);
+  assert.match(response.text, /Kontaktdaten anzeigen/i);
+  assert.match(response.text, /Schneller neuer Eintrag/i);
+  assert.match(response.text, /Medikament/i);
+  assert.match(response.text, /Vorerkrankung/i);
+  assert.doesNotMatch(response.text, /animal-hero-address/i);
+  assert.match(response.text, /Musterweg 12/i);
+});
+
 test("Wichtige interne Links liefern keine 404", async () => {
   const pages = [
     "/",

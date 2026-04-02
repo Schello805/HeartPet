@@ -5,6 +5,15 @@
 <% const reminderSourceMap = typeof sourceReminderMap !== 'undefined' ? sourceReminderMap : {}; %>
 <% const freeReminders = typeof manualReminders !== 'undefined' ? manualReminders : []; %>
 <% const animalTimeline = typeof timeline !== 'undefined' ? timeline : []; %>
+<%
+  const activeVeterinarianName = animal.veterinarian_name || animal.species_veterinarian_name || '';
+  const activeVeterinarianAddress = animal.veterinarian_name
+    ? [animal.veterinarian_street, animal.veterinarian_postal_code, animal.veterinarian_city, animal.veterinarian_country].filter(Boolean).join(', ')
+    : [animal.species_veterinarian_street, animal.species_veterinarian_postal_code, animal.species_veterinarian_city, animal.species_veterinarian_country].filter(Boolean).join(', ');
+  const activeVeterinarianEmail = animal.veterinarian_name ? (animal.veterinarian_email || '') : (animal.species_veterinarian_email || '');
+  const activeVeterinarianPhone = animal.veterinarian_name ? (animal.veterinarian_phone || '') : (animal.species_veterinarian_phone || '');
+  const hasVeterinarianContact = Boolean(activeVeterinarianName && (activeVeterinarianAddress || activeVeterinarianEmail || activeVeterinarianPhone));
+%>
 
 <section class="hero-card animal-hero-card">
   <div class="animal-hero-profile">
@@ -19,8 +28,8 @@
       <% if (permissions.canManageGallery) { %>
         <form method="post" action="/animals/<%= animal.id %>/profile-image" enctype="multipart/form-data" class="profile-image-inline-form">
           <input id="profile-upload-<%= animal.id %>" class="visually-hidden profile-upload-input" type="file" name="profile_image" accept="image/*" required />
-          <label for="profile-upload-<%= animal.id %>" class="profile-upload-trigger subtle">
-            <%= animal.profile_image_stored_name ? 'Profilbild ändern' : 'Profilbild hochladen' %>
+          <label for="profile-upload-<%= animal.id %>" class="profile-upload-trigger icon-only subtle" aria-label="<%= animal.profile_image_stored_name ? 'Profilbild ändern' : 'Profilbild hochladen' %>" title="<%= animal.profile_image_stored_name ? 'Profilbild ändern' : 'Profilbild hochladen' %>">
+            <span aria-hidden="true">✎</span>
           </label>
           <% if (animal.profile_image_stored_name) { %>
             <button type="submit" class="profile-delete-button subtle" form="profile-image-delete-<%= animal.id %>" aria-label="Profilbild löschen" title="Profilbild löschen">🗑</button>
@@ -43,20 +52,22 @@
         <strong><%= formatDate(animal.intake_date) %></strong>
       </article>
       <article class="animal-hero-meta-card">
-        <span>Status</span>
-        <strong><%= animal.status %></strong>
+        <span>Geburtsdatum</span>
+        <strong><%= formatDate(animal.birth_date) %></strong>
       </article>
-      <article class="animal-hero-meta-card">
-        <span>Tierarzt</span>
-        <strong><%= animal.veterinarian_name || animal.species_veterinarian_name || '-' %></strong>
+      <article class="animal-hero-meta-card <%= hasVeterinarianContact ? 'has-action' : '' %>">
+        <% if (hasVeterinarianContact) { %>
+          <button type="button" class="animal-vet-trigger" data-vet-contact-toggle="<%= animal.id %>" aria-haspopup="dialog" aria-expanded="false">
+            <span>Tierarzt</span>
+            <strong><%= activeVeterinarianName %></strong>
+            <small>Kontaktdaten anzeigen</small>
+          </button>
+        <% } else { %>
+          <span>Tierarzt</span>
+          <strong><%= activeVeterinarianName || '-' %></strong>
+        <% } %>
       </article>
     </div>
-    <% if (animal.veterinarian_name && (animal.veterinarian_street || animal.veterinarian_city || animal.veterinarian_country)) { %>
-      <p class="hero-copy animal-hero-address">
-        <span>Adresse</span>
-        <strong><%= [animal.veterinarian_street, animal.veterinarian_postal_code, animal.veterinarian_city, animal.veterinarian_country].filter(Boolean).join(', ') %></strong>
-      </p>
-    <% } %>
   </div>
   <div class="hero-actions">
     <% if (permissions.canEditAnimals) { %>
@@ -68,6 +79,43 @@
     <a href="/animals/<%= animal.id %>/export/pdf" class="button button-secondary">PDF Export</a>
   </div>
 </section>
+
+<% if (hasVeterinarianContact) { %>
+  <div class="vet-contact-popover" data-vet-contact-popover="<%= animal.id %>" hidden>
+    <div class="vet-contact-card" role="dialog" aria-modal="false" aria-label="Kontaktdaten Tierarzt">
+      <div class="vet-contact-head">
+        <div>
+          <p class="eyebrow">Tierarzt</p>
+          <h3><%= activeVeterinarianName %></h3>
+        </div>
+        <button type="button" class="vet-contact-close" data-vet-contact-close="<%= animal.id %>" aria-label="Kontaktdaten schließen">×</button>
+      </div>
+      <dl class="detail-list compact vet-contact-list">
+        <div><dt>Adresse</dt><dd><%= activeVeterinarianAddress || 'Keine Adresse hinterlegt' %></dd></div>
+        <div>
+          <dt>E-Mail</dt>
+          <dd>
+            <% if (activeVeterinarianEmail) { %>
+              <a href="mailto:<%= activeVeterinarianEmail %>"><%= activeVeterinarianEmail %></a>
+            <% } else { %>
+              Keine E-Mail hinterlegt
+            <% } %>
+          </dd>
+        </div>
+        <div>
+          <dt>Telefon</dt>
+          <dd>
+            <% if (activeVeterinarianPhone) { %>
+              <a href="tel:<%= activeVeterinarianPhone.replace(/\s+/g, '') %>"><%= activeVeterinarianPhone %></a>
+            <% } else { %>
+              Keine Telefonnummer hinterlegt
+            <% } %>
+          </dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+<% } %>
 
 <section class="animal-workbench-strip">
   <article class="workbench-stat">
@@ -204,7 +252,15 @@
         <div class="list-card static-card compact-card">
           <div class="list-card-main">
             <strong>Schneller neuer Eintrag</strong>
-            <p>Medikament, Impfung, Arzttermin oder freie Erinnerung im Drawer anlegen und direkt in der Akte weiterarbeiten.</p>
+            <p>Über diesen Einstieg legst du Medikamente, Impfungen, Termine, Fütterungen, Protokolle, Vorerkrankungen oder freie Erinnerungen direkt an, ohne den Arbeitsfluss zu verlassen.</p>
+            <div class="inline-pill-list">
+              <span class="pill subtle-pill">Medikament</span>
+              <span class="pill subtle-pill">Impfung</span>
+              <span class="pill subtle-pill">Termin</span>
+              <span class="pill subtle-pill">Fütterung</span>
+              <span class="pill subtle-pill">Notiz</span>
+              <span class="pill subtle-pill">Vorerkrankung</span>
+            </div>
           </div>
           <div class="inline-actions">
             <a href="/animals/<%= animal.id %>/events/new" class="button" data-drawer="animal-entry">Ereignis anlegen</a>

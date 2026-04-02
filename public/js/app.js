@@ -229,6 +229,59 @@ function initToasts() {
   document.querySelectorAll("[data-toast]").forEach((toast) => bindToast(toast));
 }
 
+function initVeterinarianContactPopover() {
+  const closeAll = () => {
+    document.querySelectorAll("[data-vet-contact-popover]").forEach((popover) => {
+      popover.hidden = true;
+    });
+    document.querySelectorAll("[data-vet-contact-toggle]").forEach((toggle) => {
+      toggle.setAttribute("aria-expanded", "false");
+    });
+  };
+
+  document.querySelectorAll("[data-vet-contact-toggle]").forEach((toggle) => {
+    if (toggle.dataset.bound === "1") {
+      return;
+    }
+    toggle.dataset.bound = "1";
+    toggle.addEventListener("click", (event) => {
+      event.preventDefault();
+      const id = toggle.getAttribute("data-vet-contact-toggle");
+      const popover = document.querySelector(`[data-vet-contact-popover="${id}"]`);
+      if (!popover) {
+        return;
+      }
+      const willOpen = popover.hidden;
+      closeAll();
+      popover.hidden = !willOpen;
+      toggle.setAttribute("aria-expanded", willOpen ? "true" : "false");
+    });
+  });
+
+  document.querySelectorAll("[data-vet-contact-close]").forEach((button) => {
+    if (button.dataset.bound === "1") {
+      return;
+    }
+    button.dataset.bound = "1";
+    button.addEventListener("click", () => closeAll());
+  });
+
+  if (!document.body.dataset.vetPopoverBound) {
+    document.body.dataset.vetPopoverBound = "1";
+    document.addEventListener("click", (event) => {
+      if (event.target.closest("[data-vet-contact-popover]") || event.target.closest("[data-vet-contact-toggle]")) {
+        return;
+      }
+      closeAll();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        closeAll();
+      }
+    });
+  }
+}
+
 function initDrawerForms(scope = document) {
   scope.querySelectorAll("form[data-drawer-form]").forEach((form) => {
     if (form.dataset.bound === "1") {
@@ -282,6 +335,7 @@ function initDrawerForms(scope = document) {
           }
           initDrawerNavigation();
           initDrawerForms(drawerBody);
+          initVeterinarianContactPopover();
           initSpeciesAutocomplete();
           initRequiredMarks();
           initEventFormBehavior(drawerBody);
@@ -346,6 +400,7 @@ async function openDrawer(urlLike) {
     drawerTitle.textContent = fragment.getAttribute("data-drawer-title") || "Bearbeiten";
     initDrawerNavigation();
     initDrawerForms(drawerBody);
+    initVeterinarianContactPopover();
     initSpeciesAutocomplete();
     initRequiredMarks();
     initEventFormBehavior(drawerBody);
@@ -942,6 +997,7 @@ function initPage() {
   initMobileNavToggle();
   initSidebarGroups();
   initToasts();
+  initVeterinarianContactPopover();
   initDrawerNavigation();
   initAutoDrawerOpen();
   initDrawerForms();
