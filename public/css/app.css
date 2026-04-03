@@ -2679,7 +2679,7 @@ small {
 
   .main-content {
     margin-left: 0;
-    padding: 12px 12px 96px;
+    padding: 10px 10px 88px;
   }
 
   .main-content-inner,
@@ -2688,7 +2688,7 @@ small {
   }
 
   .main-content-inner {
-    gap: 12px;
+    gap: 10px;
   }
 
   .app-footer {
@@ -2731,7 +2731,7 @@ small {
   }
 
   .sidebar-nav {
-    gap: 8px;
+    gap: 5px;
   }
 
   .sidebar-primary-link {
@@ -2739,52 +2739,52 @@ small {
   }
 
   .sidebar .brand-logo {
-    width: 58px;
-    height: 58px;
+    width: 50px;
+    height: 50px;
   }
 
   .brand-text {
-    margin-top: 8px;
-    gap: 4px;
+    margin-top: 4px;
+    gap: 2px;
   }
 
   .brand-text strong {
-    font-size: 1.08rem;
+    font-size: 0.98rem;
   }
 
   .sidebar-nav > a,
   .sidebar-group-toggle {
-    min-height: 50px;
-    border-radius: 16px;
-    font-size: 1rem;
+    min-height: 42px;
+    border-radius: 12px;
+    font-size: 0.92rem;
   }
 
   .sidebar-subnav {
-    margin: 6px 0 4px 6px;
-    padding-left: 12px;
-    gap: 6px;
+    margin: 4px 0 2px 4px;
+    padding-left: 8px;
+    gap: 4px;
   }
 
   .sidebar-subnav a {
-    padding: 9px 12px;
-    font-size: 0.92rem;
+    padding: 7px 9px;
+    font-size: 0.84rem;
     color: var(--text-soft);
   }
 
   .sidebar-subsubnav {
-    margin-left: 6px;
-    padding-left: 10px;
+    margin-left: 4px;
+    padding-left: 7px;
     gap: 4px;
   }
 
   .sidebar-subsubnav a {
-    padding: 7px 10px;
-    font-size: 0.86rem;
+    padding: 5px 7px;
+    font-size: 0.78rem;
   }
 
   .sidebar-footer {
-    margin-top: 10px;
-    padding-top: 14px;
+    margin-top: 8px;
+    padding-top: 10px;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
   }
 
@@ -2796,18 +2796,18 @@ small {
 
   .sidebar-mobile-extra a {
     display: block;
-    padding: 10px 12px;
-    border-radius: 12px;
+    padding: 8px 10px;
+    border-radius: 10px;
     background: rgba(255, 255, 255, 0.04);
     color: var(--text-soft);
-    font-size: 0.92rem;
+    font-size: 0.84rem;
   }
 
   .page-header {
     display: grid;
-    gap: 12px;
-    padding: 14px 14px 16px;
-    margin-bottom: 12px;
+    gap: 8px;
+    padding: 12px 12px 13px;
+    margin-bottom: 10px;
     background:
       radial-gradient(320px 180px at 0% 0%, rgba(193, 246, 219, 0.32), transparent 70%),
       rgba(39, 39, 42, 0.9);
@@ -2944,7 +2944,7 @@ small {
 
   .dashboard-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    gap: 8px;
   }
 
   .dashboard-grid .stat-card:first-child {
@@ -2954,7 +2954,7 @@ small {
   .content-grid,
   .quick-actions,
   .animals-workspace {
-    gap: 12px;
+    gap: 10px;
   }
 
   .quick-actions {
@@ -2962,16 +2962,17 @@ small {
   }
 
   .stat-card {
-    padding: 18px 16px;
-    gap: 8px;
+    padding: 14px 13px;
+    gap: 6px;
   }
 
   .stat-card strong {
-    font-size: 2.15rem;
+    font-size: 1.85rem;
   }
 
   .quick-card {
-    gap: 6px;
+    gap: 4px;
+    padding: 0.95rem 1rem;
   }
 
   .animals-workspace {
@@ -2999,13 +3000,13 @@ small {
   }
 
   .animals-summary-card {
-    padding: 14px;
-    border-radius: 18px;
+    padding: 11px 12px;
+    border-radius: 15px;
   }
 
   .animals-filter-grid {
     grid-template-columns: 1fr;
-    gap: 10px;
+    gap: 8px;
   }
 
   .animals-filter-grid .button,
@@ -3017,13 +3018,13 @@ small {
   }
 
   .animals-list-stack {
-    gap: 8px;
+    gap: 6px;
   }
 
   .animal-list-entry {
-    padding: 12px 14px;
-    border-radius: 18px;
-    gap: 8px;
+    padding: 10px 11px;
+    border-radius: 15px;
+    gap: 6px;
   }
 
   .animal-list-entry-main {
@@ -3031,30 +3032,30 @@ small {
   }
 
   .animal-list-entry-meta {
-    gap: 4px;
-    font-size: 0.84rem;
+    gap: 3px;
+    font-size: 0.8rem;
   }
 
   .animal-list-cell {
-    gap: 10px;
+    gap: 8px;
   }
 
   .animal-thumb {
-    width: 54px;
-    height: 54px;
-    border-radius: 14px;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
   }
 
   .animals-detail-intro {
-    padding: 14px;
-    border-radius: 20px;
+    padding: 11px 12px;
+    border-radius: 16px;
   }
 
   .animal-hero-card {
     display: grid;
-    grid-template-columns: 92px minmax(0, 1fr);
+    grid-template-columns: 82px minmax(0, 1fr);
     align-items: start;
-    gap: 12px;
+    gap: 10px;
   }
 
   .animal-hero-profile {
@@ -3065,36 +3066,37 @@ small {
   .animal-hero-content {
     grid-column: 2;
     grid-row: 1;
-    gap: 8px;
+    gap: 6px;
   }
 
   .hero-actions {
     grid-column: 1 / -1;
     display: grid;
-    grid-template-columns: 52px 1fr;
+    grid-template-columns: 46px 1fr;
     width: 100%;
-    gap: 10px;
+    gap: 8px;
   }
 
   .profile-image-panel,
   .profile-image-frame,
   .animal-profile-image {
-    width: 92px;
-    height: 92px;
+    width: 82px;
+    height: 82px;
   }
 
   .animal-profile-image {
-    border-radius: 18px;
+    border-radius: 16px;
   }
 
   .profile-upload-trigger.icon-only,
   .profile-delete-button {
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 34px;
   }
 
   .animal-hero-meta-card {
-    border-radius: 14px;
+    border-radius: 12px;
+    padding: 10px 11px;
   }
 
   .animal-vet-trigger {
@@ -3102,16 +3104,16 @@ small {
   }
 
   .animal-workbench-strip {
-    gap: 10px;
+    gap: 8px;
   }
 
   .workbench-stat {
-    padding: 12px 14px;
-    border-radius: 18px;
+    padding: 10px 11px;
+    border-radius: 15px;
   }
 
   .workbench-stat strong {
-    font-size: 1.3rem;
+    font-size: 1.12rem;
   }
 
   .animal-section-nav {
@@ -3120,8 +3122,8 @@ small {
     z-index: 12;
     flex-wrap: nowrap;
     overflow-x: auto;
-    margin: 0 -2px 10px;
-    padding: 4px 2px 6px;
+    margin: 0 -2px 8px;
+    padding: 2px 2px 4px;
     scrollbar-width: none;
   }
 
@@ -3131,9 +3133,9 @@ small {
 
   .animal-section-link {
     flex: 0 0 auto;
-    min-height: 38px;
-    padding: 8px 13px;
-    font-size: 0.86rem;
+    min-height: 34px;
+    padding: 6px 10px;
+    font-size: 0.8rem;
     white-space: nowrap;
     background: rgba(39, 39, 42, 0.88);
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
@@ -3144,16 +3146,16 @@ small {
   }
 
   .resting-place-panel {
-    gap: 14px;
-    padding: 16px;
+    gap: 10px;
+    padding: 13px;
   }
 
   .resting-place-body {
-    padding: 16px;
+    padding: 13px;
   }
 
   .resting-place-card {
-    border-radius: 24px;
+    border-radius: 18px;
   }
 
   .resting-place-facts {
@@ -3166,12 +3168,12 @@ small {
 
   .accordion-item,
   .sub-accordion {
-    border-radius: 18px;
+    border-radius: 15px;
   }
 
   .accordion-item summary,
   .sub-accordion summary {
-    padding: 13px 14px;
+    padding: 11px 12px;
   }
 
   .accordion-content,
@@ -3775,11 +3777,11 @@ body.bootstrap-app.drawer-open {
 
 @media (max-width: 991px) {
   .bootstrap-app .app-main-container {
-    padding: 0.75rem 0.75rem 5.5rem;
+    padding: 0.55rem 0.55rem 5rem;
   }
 
   .bootstrap-app .page-header .card-body {
-    padding: 1.1rem 1.15rem;
+    padding: 0.9rem 0.95rem;
   }
 
   .bootstrap-app .summary-inline-status {
@@ -3790,10 +3792,105 @@ body.bootstrap-app.drawer-open {
 @media (max-width: 767px) {
   .bootstrap-app .dashboard-search-form,
   .bootstrap-app .animals-filter-grid,
-  .bootstrap-app .dashboard-grid,
   .bootstrap-app .quick-actions,
   .bootstrap-app .content-grid {
     grid-template-columns: 1fr;
+  }
+
+  .bootstrap-app .dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+    margin: 0.8rem 0;
+  }
+
+  .bootstrap-app .dashboard-grid .stat-card:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .bootstrap-app .panel,
+  .bootstrap-app .animals-list-summary,
+  .bootstrap-app .animals-filter-panel,
+  .bootstrap-app .animals-list-panel,
+  .bootstrap-app .resting-place-panel,
+  .bootstrap-app .animal-hero-card {
+    padding: 0.9rem;
+    border-radius: 1.1rem;
+  }
+
+  .bootstrap-app .panel-head {
+    gap: 0.55rem;
+    margin-bottom: 0.7rem;
+  }
+
+  .bootstrap-app .panel-head h2 {
+    font-size: 1.12rem;
+  }
+
+  .bootstrap-app .animals-list-summary-head h2,
+  .bootstrap-app .animals-detail-intro-head h2,
+  .bootstrap-app .resting-place-intro h2,
+  .bootstrap-app .page-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .bootstrap-app .stat-card {
+    padding: 0.95rem 0.9rem;
+  }
+
+  .bootstrap-app .stat-card span {
+    font-size: 0.82rem;
+  }
+
+  .bootstrap-app .stat-card strong {
+    margin-top: 0.2rem;
+    font-size: 1.55rem;
+  }
+
+  .bootstrap-app .quick-actions,
+  .bootstrap-app .content-grid,
+  .bootstrap-app .animals-workspace {
+    gap: 0.7rem;
+  }
+
+  .bootstrap-app .quick-card {
+    padding: 0.95rem;
+  }
+
+  .bootstrap-app .animals-summary-grid,
+  .bootstrap-app .animal-workbench-strip,
+  .bootstrap-app .animal-hero-meta-grid {
+    gap: 0.55rem;
+  }
+
+  .bootstrap-app .animals-summary-card,
+  .bootstrap-app .workbench-stat,
+  .bootstrap-app .animal-hero-meta-card {
+    padding: 0.75rem 0.8rem;
+  }
+
+  .bootstrap-app .animal-list-entry {
+    padding: 0.8rem 0.85rem;
+    border-radius: 1rem;
+  }
+
+  .bootstrap-app .animal-thumb {
+    width: 46px;
+    height: 46px;
+  }
+
+  .bootstrap-app .animal-card,
+  .bootstrap-app .list-card {
+    padding: 0.85rem 0.9rem;
+    border-radius: 1rem;
+  }
+
+  .bootstrap-app .animal-hero-card {
+    gap: 0.75rem;
+  }
+
+  .bootstrap-app .hero-actions .button,
+  .bootstrap-app .hero-actions .button-secondary {
+    min-height: 40px;
   }
 
   .bootstrap-app .summary-inline-status {
