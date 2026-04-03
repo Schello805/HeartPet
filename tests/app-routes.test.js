@@ -1065,6 +1065,27 @@ test("Dashboard-Banner zaehlt nur offene Erinnerungen aktiver Tiere", async () =
   assert.equal(response.body.reminders[0].title, "Aktive Erinnerung");
 });
 
+test("Erinnerung per Complete-Route verschwindet aus der Pending-API", async () => {
+  const inserted = db.prepare(`
+    INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, notes)
+    VALUES (?, ?, ?, ?, 1, 1, ?)
+  `).run(1, "Wurmkur Abschluss", "Allgemein", dayjs().subtract(2, "hour").format("YYYY-MM-DDTHH:mm"), "offen");
+
+  let response = await agent.get("/api/reminders/pending");
+  assert.equal(response.status, 200);
+  assert.ok(response.body.reminders.some((item) => Number(item.id) === Number(inserted.lastInsertRowid)));
+
+  response = await agent.post(`/reminders/${inserted.lastInsertRowid}/complete`);
+  assert.equal(response.status, 302);
+
+  const updated = db.prepare("SELECT * FROM reminders WHERE id = ?").get(inserted.lastInsertRowid);
+  assert.ok(updated.completed_at);
+
+  response = await agent.get("/api/reminders/pending");
+  assert.equal(response.status, 200);
+  assert.ok(!response.body.reminders.some((item) => Number(item.id) === Number(inserted.lastInsertRowid)));
+});
+
 test("Dringende Dashboard-Erinnerungen sind zur Tierakte klickbar", async () => {
   db.prepare(`
     INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, notes, source_kind, source_id)
@@ -1153,7 +1174,9 @@ test("Erinnerungs-Bestätigungsseite verwendet absolute Asset-Links", async () =
 
   const response = await agent.get("/reminders/999999/email-complete").query({ token: "ungueltig" });
   assert.equal(response.status, 200);
-  assert.match(response.text, /https:\/\/heartpet\.de\/static\/css\/app\.css/);
+  assert.match(response.text, /https:\/\/heartpet\.de\/static\/css\/theme-foundation\.css/);
+  assert.match(response.text, /https:\/\/heartpet\.de\/static\/css\/theme-layout\.css/);
+  assert.match(response.text, /https:\/\/heartpet\.de\/static\/css\/theme-components\.css/);
   assert.match(response.text, /https:\/\/heartpet\.de\/static\/js\/app\.js/);
 });
 

@@ -70,17 +70,26 @@ async function loadPendingReminders() {
     }
 
     const payload = await response.json();
+    const existing = document.querySelector(".floating-reminder");
     if (!payload.count) {
+      existing?.remove();
+      try {
+        sessionStorage.removeItem("heartpet-notified");
+      } catch (error) {}
       return;
     }
 
-    const existing = document.querySelector(".floating-reminder");
+    const href = window.location.pathname === "/" ? "#dringende-erinnerungen" : "/#dringende-erinnerungen";
+    const bannerMarkup = `<strong>${payload.count} offene Erinnerung(en)</strong><span>Jetzt direkt anzeigen</span>`;
     if (!existing) {
       const banner = document.createElement("a");
       banner.className = "floating-reminder";
-      banner.href = window.location.pathname === "/" ? "#dringende-erinnerungen" : "/#dringende-erinnerungen";
-      banner.innerHTML = `<strong>${payload.count} offene Erinnerung(en)</strong><span>Jetzt direkt anzeigen</span>`;
+      banner.href = href;
+      banner.innerHTML = bannerMarkup;
       bannerTarget.after(banner);
+    } else {
+      existing.href = href;
+      existing.innerHTML = bannerMarkup;
     }
 
     if ("Notification" in window) {
