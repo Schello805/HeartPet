@@ -68,6 +68,24 @@
         </div>
         <span class="counter"><%= pagination.totalCount %> <%= sectionState.totalLabel %></span>
       </div>
+      <div class="workspace-intro-strip">
+        <article class="workspace-intro-card">
+          <span>Was du hier machen kannst</span>
+          <strong>
+            <%= sectionState.key === 'history'
+              ? 'Frühere Akten weiter einsehen'
+              : 'Tiere auswählen und direkt in der Akte weiterarbeiten' %>
+          </strong>
+        </article>
+        <article class="workspace-intro-card">
+          <span>Fokus</span>
+          <strong>
+            <%= sectionState.key === 'history'
+              ? 'Vermittelte und verkaufte Tiere'
+              : 'Aktive Tiere mit offenen Themen und nächsten Terminen' %>
+          </strong>
+        </article>
+      </div>
       <div class="animals-summary-grid">
         <article class="animals-summary-card">
           <span>Aktuelle Auswahl</span>
@@ -83,6 +101,12 @@
     </section>
 
     <section class="panel animals-filter-panel card border-0 shadow-sm">
+      <div class="panel-head compact-panel-head">
+        <div>
+          <h2>Filtern und sortieren</h2>
+          <p class="panel-subtitle">Suche gezielt nach Tier, Tierart oder Arbeitsstatus.</p>
+        </div>
+      </div>
       <form method="get" action="/animals" class="filter-row animals-filter-grid">
         <label class="search-autocomplete-field full-width">
           <span>Suche</span>
@@ -133,7 +157,10 @@
 
     <section class="panel animals-list-panel card border-0 shadow-sm">
       <div class="panel-head">
-        <h2>Liste</h2>
+        <div>
+          <h2>Liste</h2>
+          <p class="panel-subtitle">Wähle links ein Tier und arbeite rechts direkt in der Akte weiter.</p>
+        </div>
         <span class="counter"><%= animals.length %> sichtbar</span>
       </div>
 

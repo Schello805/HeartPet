@@ -10,7 +10,7 @@ echo "1/5 Tests"
 node --test tests/app-routes.test.js
 
 echo "2/5 Browser-E2E"
-npx playwright test
+npm run test:e2e
 
 echo "3/5 Tierakten-Ansicht"
 node scripts/render-animal-show-check.js

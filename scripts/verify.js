@@ -15,7 +15,7 @@ delete childEnv.npm_lifecycle_script;
 
 const steps = [
   { label: "1/5 Tests", command: "node", args: ["--test", "tests/app-routes.test.js"] },
-  { label: "2/5 Browser-E2E", command: "npx", args: ["playwright", "test"] },
+  { label: "2/5 Browser-E2E", command: "npm", args: ["run", "test:e2e"] },
   { label: "3/5 Tierakten-Ansicht", command: "node", args: ["scripts/render-animal-show-check.js"] },
   { label: "4/5 Syntax src/app.js", command: "node", args: ["--check", "src/app.js"] },
   { label: "5/5 Syntax public/js/app.js", command: "node", args: ["--check", "public/js/app.js"] },

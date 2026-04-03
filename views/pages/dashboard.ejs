@@ -2,16 +2,37 @@
 <% const searchState = typeof search !== 'undefined' ? search : { q: '', searchable: false }; %>
 <% const dashboardSearchResults = typeof searchResults !== 'undefined' ? searchResults : []; %>
 
-<section class="panel dashboard-search-panel card border-0 shadow-sm">
-  <form method="get" action="/" class="dashboard-search-form">
-    <div class="search-autocomplete-field">
-      <input class="form-control" type="search" name="q" value="<%= searchState.q || '' %>" placeholder="Tiere, Dokumente, Ereignisse suchen ..." autocomplete="off" data-global-search-autocomplete="true" />
+<section class="panel dashboard-hero-panel card border-0 shadow-sm">
+  <div class="dashboard-hero-layout">
+    <div class="dashboard-hero-copy">
+      <p class="eyebrow">Heute im Blick</p>
+      <h2>Bestand, Erinnerungen und nächste Schritte auf einen Blick.</h2>
+      <p class="dashboard-hero-text">
+        Starte hier mit der Suche oder springe direkt in die wichtigsten Bereiche. Die Karten darunter zeigen dir, wo gerade Handlungsbedarf besteht.
+      </p>
+      <div class="dashboard-hero-highlights">
+        <span class="pill">Aktiver Bestand: <strong><%= stats.animalCount %></strong></span>
+        <span class="pill">Offene Erinnerungen: <strong><%= stats.openReminderCount %></strong></span>
+        <span class="pill">Heute fällig: <strong><%= stats.dueReminderCount %></strong></span>
+      </div>
+      <div class="dashboard-hero-links">
+        <a href="/animals" class="dashboard-hero-link">Zu den Tieren</a>
+        <a href="#dringende-erinnerungen" class="dashboard-hero-link">Zu dringenden Erinnerungen</a>
+        <a href="/hilfe" class="dashboard-hero-link">Hilfe öffnen</a>
+      </div>
     </div>
-    <button type="submit" class="btn btn-success">Suchen</button>
-  </form>
-  <% if (searchState.q && !searchState.searchable) { %>
-    <p class="empty-state">Bitte mindestens 2 Zeichen eingeben.</p>
-  <% } %>
+    <div class="dashboard-hero-search">
+      <form method="get" action="/" class="dashboard-search-form">
+        <div class="search-autocomplete-field">
+          <input class="form-control" type="search" name="q" value="<%= searchState.q || '' %>" placeholder="Tiere, Dokumente, Ereignisse suchen ..." autocomplete="off" data-global-search-autocomplete="true" />
+        </div>
+        <button type="submit" class="btn btn-success">Suchen</button>
+      </form>
+      <% if (searchState.q && !searchState.searchable) { %>
+        <p class="empty-state">Bitte mindestens 2 Zeichen eingeben.</p>
+      <% } %>
+    </div>
+  </div>
 </section>
 
 <% if (searchState.searchable) { %>
@@ -42,25 +63,32 @@
   <a class="stat-card card border-0 shadow-sm text-decoration-none" href="/animals">
     <span>Tiere</span>
     <strong><%= stats.animalCount %></strong>
+    <small>Direkt zur Tierübersicht</small>
   </a>
   <article class="stat-card card border-0 shadow-sm">
     <span>Dokumente</span>
     <strong><%= stats.documentCount %></strong>
+    <small>Hinterlegte Unterlagen und Bilder</small>
   </article>
   <article class="stat-card card border-0 shadow-sm">
     <span>Offene Erinnerungen</span>
     <strong><%= stats.openReminderCount %></strong>
+    <small>Alles, was noch auf Rückmeldung wartet</small>
   </article>
   <article class="stat-card stat-card-warning card border-0 shadow-sm">
     <span>Jetzt fällig</span>
     <strong><%= stats.dueReminderCount %></strong>
+    <small>Heute oder bereits überfällig</small>
   </article>
 </section>
 
 <section class="content-grid">
   <article class="panel card border-0 shadow-sm" id="dringende-erinnerungen">
     <div class="panel-head">
-      <h2>Dringend: Überfällig & Heute</h2>
+      <div>
+        <h2>Dringend: Überfällig & Heute</h2>
+        <p class="panel-subtitle">Diese Einträge brauchen als Nächstes Aufmerksamkeit.</p>
+      </div>
     </div>
     <% const urgentList = typeof urgentReminders !== 'undefined' ? urgentReminders : []; %>
     <% if (urgentList.length === 0) { %>
@@ -85,7 +113,10 @@
 
   <article class="panel card border-0 shadow-sm" id="naechste-erinnerungen">
     <div class="panel-head">
-      <h2>Nächste Erinnerungen</h2>
+      <div>
+        <h2>Nächste Erinnerungen</h2>
+        <p class="panel-subtitle">Vormerken, bevor daraus etwas Dringendes wird.</p>
+      </div>
     </div>
     <% if (upcomingReminders.length === 0) { %>
       <p class="empty-state">Keine offenen Erinnerungen vorhanden.</p>
@@ -111,7 +142,10 @@
 
   <article class="panel card border-0 shadow-sm">
     <div class="panel-head">
-      <h2>Neueste Tierakten</h2>
+      <div>
+        <h2>Neueste Tierakten</h2>
+        <p class="panel-subtitle">Schneller Einstieg in die zuletzt gepflegten Akten.</p>
+      </div>
       <a href="/animals" class="btn btn-outline-secondary btn-sm">Alle anzeigen</a>
     </div>
     <% if (recentAnimals.length === 0) { %>
@@ -134,7 +168,10 @@
 
 <section class="panel card border-0 shadow-sm">
   <div class="panel-head">
-    <h2>Schnellstart</h2>
+    <div>
+      <h2>Schnell weiter</h2>
+      <p class="panel-subtitle">Die häufigsten Wege direkt von hier aus.</p>
+    </div>
   </div>
   <div class="quick-actions">
     <% if (permissions.canEditAnimals) { %>

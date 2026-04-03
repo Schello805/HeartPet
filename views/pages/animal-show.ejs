@@ -14,6 +14,22 @@
   const activeVeterinarianPhone = animal.veterinarian_name ? (animal.veterinarian_phone || '') : (animal.species_veterinarian_phone || '');
   const hasVeterinarianContact = Boolean(activeVeterinarianName && (activeVeterinarianAddress || activeVeterinarianEmail || activeVeterinarianPhone));
 %>
+<%
+  const openReminderCount = reminderBuckets.overdue.length + reminderBuckets.open.length;
+  const focusFacts = [];
+  if (openReminderCount > 0) {
+    focusFacts.push(`${openReminderCount} offene Erinnerung${openReminderCount === 1 ? '' : 'en'}`);
+  }
+  if (related.vaccinations.length > 0) {
+    focusFacts.push(`${related.vaccinations.length} Impfung${related.vaccinations.length === 1 ? '' : 'en'} im Blick`);
+  }
+  if ((related.appointments || []).length > 0) {
+    focusFacts.push(`${(related.appointments || []).length} Termin${(related.appointments || []).length === 1 ? '' : 'e'} hinterlegt`);
+  }
+  if (!focusFacts.length) {
+    focusFacts.push('Akte ist aktuell gut gepflegt');
+  }
+%>
 
 <section class="hero-card animal-hero-card">
   <div class="animal-hero-profile">
@@ -80,6 +96,22 @@
   </div>
 </section>
 
+<section class="animal-focus-strip panel card border-0 shadow-sm">
+  <div class="animal-focus-copy">
+    <p class="eyebrow">Heute im Fokus</p>
+    <h3>Was bei <%= animal.name %> gerade wichtig ist</h3>
+    <p class="compact-note">Die wichtigsten Punkte und nächsten Schritte auf einen Blick, bevor du tiefer in die Akte springst.</p>
+  </div>
+  <div class="animal-focus-items">
+    <% focusFacts.forEach((fact) => { %>
+      <article class="animal-focus-item">
+        <span>Hinweis</span>
+        <strong><%= fact %></strong>
+      </article>
+    <% }) %>
+  </div>
+</section>
+
 <% if (hasVeterinarianContact) { %>
   <div class="vet-contact-popover" data-vet-contact-popover="<%= animal.id %>" hidden>
     <div class="vet-contact-card" role="dialog" aria-modal="false" aria-label="Kontaktdaten Tierarzt">
@@ -143,6 +175,17 @@
   <a href="#animal-timeline" class="animal-section-link">Timeline</a>
   <a href="#animal-dokumente" class="animal-section-link">Dokumente & Fotos</a>
 </nav>
+
+<div class="animal-mobile-priority panel card border-0 shadow-sm">
+  <div class="animal-mobile-priority-copy">
+    <p class="eyebrow">Schneller Überblick</p>
+    <strong>Auf dem Smartphone zuerst das Wichtigste, danach die tieferen Bereiche der Akte.</strong>
+  </div>
+  <div class="animal-mobile-priority-actions">
+    <a href="#animal-neu" class="button button-secondary">Neuer Eintrag</a>
+    <a href="#animal-medizin" class="button button-secondary">Medizin</a>
+  </div>
+</div>
 
 <section class="accordion-stack">
   <details class="accordion-item" id="animal-stammdaten" open>
@@ -252,7 +295,7 @@
         <div class="list-card static-card compact-card">
           <div class="list-card-main">
             <strong>Schneller neuer Eintrag</strong>
-            <p>Über diesen Einstieg legst du Medikamente, Impfungen, Termine, Fütterungen, Protokolle, Vorerkrankungen oder freie Erinnerungen direkt an, ohne den Arbeitsfluss zu verlassen.</p>
+            <p>Nutze diesen Einstieg für alles, was im Alltag schnell erfasst werden soll. Medikamente, Impfungen, Termine oder Erinnerungen landen direkt in der passenden Akte, ohne dass du erst zwischen Bereichen springen musst.</p>
             <div class="inline-pill-list">
               <span class="pill subtle-pill">Medikament</span>
               <span class="pill subtle-pill">Impfung</span>

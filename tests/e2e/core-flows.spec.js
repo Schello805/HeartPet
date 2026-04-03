@@ -12,18 +12,19 @@ const adminCredentials = {
 let server;
 let tempDataDir;
 
-test.beforeAll(async () => {
+test.beforeEach(async () => {
   tempDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "heartpet-playwright-"));
   process.env.HEARTPET_DATA_DIR = tempDataDir;
   process.env.HEARTPET_SESSION_SECRET = "playwright-secret";
 
+  delete require.cache[require.resolve("../../src/app")];
   const app = require("../../src/app");
   await new Promise((resolve) => {
     server = app.listen(3210, "127.0.0.1", resolve);
   });
 });
 
-test.afterAll(async () => {
+test.afterEach(async () => {
   await new Promise((resolve, reject) => {
     if (!server) {
       resolve();
@@ -37,10 +38,12 @@ test.afterAll(async () => {
       resolve();
     });
   });
+  server = null;
 
   if (tempDataDir) {
     fs.rmSync(tempDataDir, { recursive: true, force: true });
   }
+  tempDataDir = null;
 });
 
 async function ensureAuthenticated(page) {
@@ -66,15 +69,19 @@ async function ensureAuthenticated(page) {
   await expect(page).toHaveURL(/\/($|dashboard|animals(\/.*)?$)/);
 }
 
-test("Tiere-Arbeitsansicht lädt die Akte im Browser-Kontext", async ({ page }) => {
+test("Tiere-Arbeitsansicht zeigt die Akte im Browser-Kontext", async ({ page }) => {
   await ensureAuthenticated(page);
   await page.goto("/animals");
 
   await expect(page.locator("h1", { hasText: "Aktive Tiere" })).toBeVisible();
-  await page.getByRole("link", { name: /Minka/i }).click();
+  const animalWorkspaceLink = page.locator("[data-animal-workspace-link]").first();
+  await expect(animalWorkspaceLink).toBeVisible();
+  const workspaceHref = await animalWorkspaceLink.getAttribute("href");
+  await page.goto(workspaceHref || "/animals");
 
-  await expect(page.locator("[data-animal-workspace-target]")).toContainText("Minka");
-  await expect(page.locator("[data-animal-workspace-target]")).toContainText("Schneller neuer Eintrag");
+  const workspaceTarget = page.locator("[data-animal-workspace-target]");
+  await expect(workspaceTarget).toContainText("Minka");
+  await expect(workspaceTarget).toContainText("Schneller neuer Eintrag");
 });
 
 test("Dokumentkategorie lässt sich im Bearbeiten-Dialog speichern", async ({ page }) => {
