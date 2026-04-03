@@ -25,7 +25,14 @@
         <div class="flash flash-<%= flash.type %>"><%= flash.message %></div>
       <% } %>
 
-      <form method="post" action="/setup" class="stack">
+      <form method="post" action="/setup" class="form-shell">
+        <section class="form-section">
+          <div class="form-section-header">
+            <strong>Einrichtung in drei Schritten</strong>
+            <p class="compact-note">Du legst hier nur die Grunddaten an, die du für den Start wirklich brauchst. Alles Weitere kannst du danach in Ruhe in der normalen Oberfläche ergänzen.</p>
+          </div>
+        </section>
+
         <details class="accordion-item" open>
           <summary>1. Administrator</summary>
           <div class="accordion-content">
@@ -128,7 +135,10 @@
           </div>
         </details>
 
-        <button type="submit" class="btn btn-success w-100">Ersteinrichtung abschließen</button>
+        <div class="form-actions-bar">
+          <div class="form-actions-copy">Nach dem Abschluss wirst du automatisch zur Anmeldung oder direkt in die App weitergeleitet, je nach aktuellem Setup-Status.</div>
+          <button type="submit" class="btn btn-success">Ersteinrichtung abschließen</button>
+        </div>
       </form>
     </section>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js" integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q" crossorigin="anonymous"></script>

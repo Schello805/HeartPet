@@ -3309,6 +3309,14 @@ small {
   padding: 0.45rem;
 }
 
+.bootstrap-app .app-sidebar-brand,
+.bootstrap-app .app-sidebar-brand-mobile {
+  padding: 0.55rem 0.65rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
 .bootstrap-app .brand-text {
   display: flex;
   flex-direction: column;
@@ -3316,13 +3324,15 @@ small {
 }
 
 .bootstrap-app .brand-text strong {
-  color: var(--paper-strong);
+  color: #f4f4f5;
   font-size: 1rem;
   line-height: 1.1;
+  font-weight: 800;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
 }
 
 .bootstrap-app .brand-text span {
-  color: rgba(244, 255, 251, 0.76);
+  color: rgba(244, 244, 245, 0.84);
   font-size: 0.78rem;
 }
 
@@ -3951,6 +3961,7 @@ small {
 
 .bootstrap-app .accordion-content {
   padding: 0 1.2rem 1.2rem;
+  background: rgba(19, 19, 24, 0.78);
 }
 
 .bootstrap-app .summary-inline-status {
@@ -4352,6 +4363,12 @@ body.bootstrap-app {
   font-size: 0.75rem;
 }
 
+.bootstrap-app.login-body {
+  background:
+    radial-gradient(760px 420px at 50% -10%, rgba(139, 92, 246, 0.22), transparent 64%),
+    linear-gradient(180deg, #09090b 0%, #111114 100%);
+}
+
 .bootstrap-app .page-header,
 .bootstrap-app .panel,
 .bootstrap-app .stat-card,
@@ -4387,7 +4404,8 @@ body.bootstrap-app {
 .bootstrap-app .animals-list-panel,
 .bootstrap-app .animals-empty-detail,
 .bootstrap-app .resting-place-panel,
-.bootstrap-app .admin-intro-card {
+.bootstrap-app .admin-intro-card,
+.bootstrap-app .login-panel {
   border-radius: 1.4rem;
 }
 
@@ -4430,11 +4448,79 @@ body.bootstrap-app {
 .bootstrap-app .drawer-body .permission-grid,
 .bootstrap-app .logo-upload-preview,
 .bootstrap-app .workbench-stat,
+.bootstrap-app .section-block,
+.bootstrap-app .sub-accordion,
+.bootstrap-app .sub-accordion-content,
+.bootstrap-app .detail-list div,
 .bootstrap-app .animals-detail-intro,
 .bootstrap-app .vet-contact-popover,
 .bootstrap-app .global-search-suggestions {
   background: rgba(19, 19, 24, 0.9);
   border: 1px solid var(--surface-border);
+}
+
+.bootstrap-app .login-panel {
+  display: grid;
+  gap: 1.15rem;
+  border: 1px solid var(--surface-border);
+}
+
+.bootstrap-app .login-panel .brand-lockup {
+  margin-bottom: 0;
+}
+
+.bootstrap-app .login-panel .form-shell {
+  gap: 0.9rem;
+}
+
+.bootstrap-app .login-panel .form-actions-bar {
+  align-items: center;
+}
+
+.bootstrap-app .section-block,
+.bootstrap-app .sub-accordion {
+  border-radius: 1rem;
+}
+
+.bootstrap-app .section-block h3,
+.bootstrap-app .sub-accordion summary,
+.bootstrap-app .detail-list dt,
+.bootstrap-app .detail-list dd {
+  color: var(--text-strong);
+}
+
+.bootstrap-app .detail-list div {
+  border-radius: 0.95rem;
+}
+
+.bootstrap-app .sub-accordion summary {
+  background: rgba(30, 30, 36, 0.9);
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.bootstrap-app .drawer-backdrop {
+  background: rgba(4, 4, 7, 0.52);
+  backdrop-filter: blur(10px);
+}
+
+.bootstrap-app .drawer-panel {
+  border-left: 1px solid var(--surface-border);
+  box-shadow: -24px 0 44px rgba(0, 0, 0, 0.38);
+}
+
+.bootstrap-app .drawer-header {
+  border-bottom-color: rgba(255, 255, 255, 0.07);
+}
+
+.bootstrap-app .drawer-close {
+  color: var(--text-soft);
+  border-color: var(--surface-border);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.bootstrap-app .drawer-close:hover {
+  background: rgba(139, 92, 246, 0.14);
+  color: #fff;
 }
 
 .bootstrap-app .banner-warning {
@@ -4551,6 +4637,18 @@ body.bootstrap-app {
   align-items: flex-start;
 }
 
+.bootstrap-app .masterdata-entity-card,
+.bootstrap-app .masterdata-category-card,
+.bootstrap-app .masterdata-create-card {
+  border-radius: 1.1rem;
+}
+
+.bootstrap-app .masterdata-create-card {
+  border-style: dashed;
+  background: rgba(255, 255, 255, 0.025);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
 .bootstrap-app .systemlog-filter-bar {
   display: flex;
   flex-wrap: wrap;
@@ -4585,6 +4683,10 @@ body.bootstrap-app {
 
 .bootstrap-app .table-wrap tbody tr + tr td {
   border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.bootstrap-app .table-wrap tbody tr:hover td {
+  background: rgba(139, 92, 246, 0.05);
 }
 
 .bootstrap-app .table-wrap td,
@@ -4629,11 +4731,24 @@ body.bootstrap-app {
   color: var(--text-soft);
 }
 
-.bootstrap-app .status-chip {
+.bootstrap-app .status-chip,
+.bootstrap-app .pill,
+.bootstrap-app .subtle-pill {
   min-height: 2rem;
-  padding-inline: 0.85rem;
-  font-weight: 600;
+  padding: 0.38rem 0.82rem;
+  border-radius: 999px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.bootstrap-app .status-chip {
   justify-content: center;
+}
+
+.bootstrap-app .pill strong,
+.bootstrap-app .subtle-pill strong {
+  color: #fff;
 }
 
 .bootstrap-app .setup-status-chip.status-ok,
@@ -4651,7 +4766,8 @@ body.bootstrap-app {
 .bootstrap-app .status-muted,
 .bootstrap-app .status-inactive {
   background: rgba(255, 255, 255, 0.04);
-  color: var(--text-dim);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #d4d4d8;
 }
 
 .bootstrap-app .status-warning,
@@ -4673,7 +4789,7 @@ body.bootstrap-app {
 .bootstrap-app .status-chip.status-skipped {
   background: rgba(255, 255, 255, 0.035);
   border-color: rgba(255, 255, 255, 0.08);
-  color: var(--text-dim);
+  color: #d4d4d8;
 }
 
 .bootstrap-app .status-chip.status-warning {
@@ -4689,6 +4805,21 @@ body.bootstrap-app {
 .bootstrap-app .accordion-item > summary,
 .bootstrap-app .summary-inline-status {
   background: linear-gradient(180deg, rgba(24, 24, 27, 0.84), rgba(31, 31, 35, 0.96));
+}
+
+.bootstrap-app .list-card.static-card.compact-card {
+  border-radius: 1rem;
+  border-color: var(--surface-border);
+}
+
+.bootstrap-app .resting-place-copy,
+.bootstrap-app .resting-place-note,
+.bootstrap-app .resting-place-meta {
+  color: var(--text-dim);
+}
+
+.bootstrap-app .resting-place-facts span {
+  color: var(--text-dim);
 }
 
 .bootstrap-app .summary-inline-status::after,

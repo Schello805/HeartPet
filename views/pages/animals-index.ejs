@@ -20,8 +20,8 @@
       </div>
       <div class="empty-state-card">
         <strong>Noch keine Einträge</strong>
-        <p class="empty-state">Noch keine Tiere in der Ruhestätte vorhanden.</p>
-        <small>Wenn ein Tier als verstorben markiert wird, erscheint es hier automatisch in dieser ruhigeren Ansicht.</small>
+        <p class="empty-state">Hier sind noch keine Tiere eingetragen.</p>
+        <small>Wenn ein Tier als verstorben markiert wird, bleibt seine Akte hier in einer ruhigeren, stilleren Ansicht erhalten.</small>
       </div>
     </section>
   <% } else { %>
@@ -77,7 +77,7 @@
           <span>Was du hier machen kannst</span>
           <strong>
             <%= sectionState.key === 'history'
-              ? 'Frühere Akten weiter einsehen'
+              ? 'Frühere Akten in Ruhe nachverfolgen'
               : 'Tiere auswählen und direkt in der Akte weiterarbeiten' %>
           </strong>
         </article>
@@ -85,7 +85,7 @@
           <span>Fokus</span>
           <strong>
             <%= sectionState.key === 'history'
-              ? 'Vermittelte und verkaufte Tiere'
+              ? 'Vermittelte und verkaufte Tiere bleiben nachvollziehbar, ohne den aktiven Bestand zu stören'
               : 'Aktive Tiere mit offenen Themen und nächsten Terminen' %>
           </strong>
         </article>
@@ -179,7 +179,7 @@
           </strong>
           <p class="empty-state">
             <%= sectionState.key === 'history'
-              ? 'Noch keine vermittelten oder verkauften Tiere vorhanden.'
+              ? 'Sobald Tiere als vermittelt oder verkauft markiert werden, erscheinen sie hier gesammelt in der Historie.'
               : sectionState.key === 'resting'
                 ? 'Noch keine Tiere in der Ruhestätte vorhanden.'
                 : 'Noch keine aktiven Tiere vorhanden. Lege dein erstes Tier über „Neues Tier“ an.' %>

@@ -11,7 +11,7 @@
     <link rel="apple-touch-icon" href="<%= resolvedAppLogoUrl %>" />
     <link rel="stylesheet" href="<%= `${resolvedAssetBaseUrl}/static/css/app.css` %>" />
   </head>
-  <body class="login-body">
+  <body class="login-body bootstrap-app">
     <section class="login-panel">
       <div class="brand-lockup">
         <img class="brand-logo brand-logo-login" src="<%= resolvedAppLogoUrl %>" alt="HeartPet Logo" />
@@ -21,11 +21,26 @@
         </div>
       </div>
 
-      <div class="note-box <%= success ? '' : 'note-box-error' %>">
-        <%= success ? 'Die Aktion wurde erfolgreich verarbeitet.' : 'Die Aktion konnte nicht automatisch abgeschlossen werden.' %>
-      </div>
+      <div class="form-shell">
+        <section class="form-section">
+          <div class="form-section-header">
+            <strong><%= success ? 'Aktion verarbeitet' : 'Manuelle Prüfung empfohlen' %></strong>
+            <p class="compact-note">
+              <%= success
+                ? 'HeartPet hat deine Rückmeldung übernommen und die Akte entsprechend aktualisiert.'
+                : 'Die Rückmeldung konnte nicht eindeutig verarbeitet werden. Bitte prüfe den Eintrag direkt in der App.' %>
+            </p>
+          </div>
+          <div class="note-box <%= success ? '' : 'note-box-error' %>">
+            <%= success ? 'Die Aktion wurde erfolgreich verarbeitet.' : 'Die Aktion konnte nicht automatisch abgeschlossen werden.' %>
+          </div>
+        </section>
 
-      <a href="<%= nextUrl || '/' %>" class="button button-full"><%= nextLabel || 'Weiter' %></a>
+        <div class="form-actions-bar">
+          <div class="form-actions-copy">Du kannst jetzt direkt in HeartPet weitermachen oder zur Übersicht zurückkehren.</div>
+          <a href="<%= nextUrl || '/' %>" class="button"><%= nextLabel || 'Weiter' %></a>
+        </div>
+      </div>
     </section>
     <script src="<%= `${resolvedAssetBaseUrl}/static/js/app.js` %>"></script>
   </body>
