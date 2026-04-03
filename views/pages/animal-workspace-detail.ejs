@@ -3,7 +3,6 @@
 <% const sectionState = typeof animalSection !== 'undefined' ? animalSection : { key: 'active' }; %>
 
 <section
-  class="animals-detail-panel"
   data-animal-workspace-panel
   data-animal-id="<%= selectedAnimalState ? selectedAnimalState.id : '' %>"
   data-animal-name="<%= selectedAnimalState ? selectedAnimalState.name : '' %>"

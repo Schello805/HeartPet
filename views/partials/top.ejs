@@ -65,9 +65,9 @@
           <button class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileNavOffcanvas" aria-controls="mobileNavOffcanvas">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"/></svg> Menü
           </button>
-          <div class="app-mobile-topbar-brand">
-            <strong><%= appSettings.app_name || "HeartPet" %></strong>
-            <span><%= pageTitle %></span>
+          <div class="d-flex flex-column align-items-center text-center flex-grow-1 mx-3 overflow-hidden">
+            <strong class="fs-6 lh-sm text-truncate w-100"><%= appSettings.app_name || "HeartPet" %></strong>
+            <span class="small text-body-secondary text-truncate w-100"><%= pageTitle %></span>
           </div>
           <% if (permissions.canEditAnimals) { %>
             <a href="/animals/new" class="btn btn-primary btn-sm" data-drawer="animal-form">Neu</a>
@@ -78,10 +78,10 @@
           <div class="container-fluid app-main-container">
             <header class="page-header mb-3">
               <div class="page-header-body">
-                <div class="page-header-copy">
+                <div class="d-grid gap-1 flex-grow-1 text-start">
                   <h1 class="mb-0"><%= pageTitle %></h1>
                 </div>
-                <div class="header-actions">
+                <div class="d-flex align-items-center justify-content-end flex-shrink-0 ms-auto">
                   <% if (permissions.canEditAnimals) { %>
                     <a href="/animals/new" class="btn btn-primary btn-sm px-3" data-drawer="animal-form">Neues Tier</a>
                   <% } %>
@@ -100,7 +100,7 @@
                 <div class="offcanvas-header border-bottom">
                   <div>
                     <h5 class="offcanvas-title mb-1" id="mobileNavOffcanvasLabel"><%= appSettings.app_name || "HeartPet" %></h5>
-                    <p class="mb-0 small app-mobile-offcanvas-copy">Bereiche, Verwaltung und Schnellzugriffe</p>
+                    <p class="mb-0 small text-body-secondary">Bereiche, Verwaltung und Schnellzugriffe</p>
                   </div>
                   <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Schließen"></button>
                 </div>
@@ -115,11 +115,11 @@
 
                   <%- include('./sidebar-nav', { navScope: 'mobile' }) %>
 
-                  <div class="app-mobile-links">
-                    <a href="/impressum">Impressum</a>
-                    <a href="/datenschutz">Datenschutz</a>
-                    <a href="/kontakt">Kontakt</a>
-                    <a href="/cookies">Cookies</a>
+                  <div class="nav flex-column gap-2">
+                    <a class="btn btn-outline-secondary text-start" href="/impressum">Impressum</a>
+                    <a class="btn btn-outline-secondary text-start" href="/datenschutz">Datenschutz</a>
+                    <a class="btn btn-outline-secondary text-start" href="/kontakt">Kontakt</a>
+                    <a class="btn btn-outline-secondary text-start" href="/cookies">Cookies</a>
                   </div>
 
                   <div class="app-mobile-account mt-auto">

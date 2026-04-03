@@ -455,10 +455,10 @@ test("Falsche GET-Aufrufe auf Tier-Speicherpfade liefern kein 404", async () => 
   const animalPage = await agent.get("/animals/1");
   assert.equal(animalPage.status, 200);
 
-  const conditionId = animalPage.text.match(/\/animals\/1\/conditions\/(\d+)\/edit/)?.[1];
-  const feedingId = animalPage.text.match(/\/animals\/1\/feedings\/(\d+)\/edit/)?.[1];
-  const noteId = animalPage.text.match(/\/animals\/1\/notes\/(\d+)\/edit/)?.[1];
-  const reminderId = animalPage.text.match(/\/animals\/1\/reminders\/(\d+)\/edit/)?.[1];
+  const conditionId = db.prepare("SELECT id FROM animal_conditions WHERE animal_id = ? AND title = ? ORDER BY id DESC LIMIT 1").get(1, "Alias Arthrose")?.id;
+  const feedingId = db.prepare("SELECT id FROM animal_feedings WHERE animal_id = ? AND label = ? ORDER BY id DESC LIMIT 1").get(1, "Alias Futter")?.id;
+  const noteId = db.prepare("SELECT id FROM animal_notes WHERE animal_id = ? AND title = ? ORDER BY id DESC LIMIT 1").get(1, "Alias Notiz")?.id;
+  const reminderId = db.prepare("SELECT id FROM reminders WHERE animal_id = ? AND title = ? ORDER BY id DESC LIMIT 1").get(1, "Alias Erinnerung")?.id;
   assert.ok(conditionId);
   assert.ok(feedingId);
   assert.ok(noteId);
@@ -622,7 +622,7 @@ test("Alle Tierakten-Aktionen liefern keine 404", async () => {
 test("Tiere-Arbeitsansicht zeigt Liste und ausgewählte Akte", async () => {
   const response = await agent.get("/animals").query({ animal_id: "1" });
   assert.equal(response.status, 200);
-  assert.match(response.text, /animals-workspace/);
+  assert.match(response.text, /Arbeitsansicht/);
   assert.match(response.text, /Tierbestand/);
   assert.match(response.text, /Tobi|Minka/);
 });
@@ -664,7 +664,7 @@ test("Dashboard verlinkt die Tier-Karte auf die Tierübersicht und zeigt die ein
   const expectedAnimalCount = db.prepare("SELECT COUNT(DISTINCT id) AS count FROM animals WHERE status = 'Aktiv'").get().count;
   assert.match(
     response.text,
-    new RegExp(`<a class="[^"]*stat-card[^"]*" href="\\/animals">[\\s\\S]*?<span>Tiere<\\/span>[\\s\\S]*?<strong>${expectedAnimalCount}<\\/strong>[\\s\\S]*?<\\/a>`)
+    new RegExp(`<a class="[^"]*card[^"]*" href="\\/animals">[\\s\\S]*?<span>Tiere<\\/span>[\\s\\S]*?<strong[^>]*>${expectedAnimalCount}<\\/strong>[\\s\\S]*?<\\/a>`)
   );
 });
 

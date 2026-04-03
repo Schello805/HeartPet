@@ -3,15 +3,12 @@
         </main>
       </div>
 
-      <div class="drawer-shell" id="app-drawer" aria-hidden="true">
-        <div class="drawer-backdrop" data-drawer-close></div>
-        <aside class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
-          <div class="drawer-header">
-            <strong id="drawer-title">Bearbeiten</strong>
-            <button type="button" class="drawer-close" data-drawer-close aria-label="Fenster schließen">×</button>
-          </div>
-          <div class="drawer-body" data-drawer-body></div>
-        </aside>
+      <div class="offcanvas offcanvas-end drawer-panel" tabindex="-1" id="app-drawer" aria-labelledby="drawer-title">
+        <div class="offcanvas-header drawer-header">
+          <h5 class="offcanvas-title mb-0" id="drawer-title">Bearbeiten</h5>
+          <button type="button" class="btn-close btn-close-white drawer-close" data-bs-dismiss="offcanvas" aria-label="Fenster schließen"></button>
+        </div>
+        <div class="offcanvas-body drawer-body" data-drawer-body></div>
       </div>
 
       <nav class="navbar app-mobile-tabbar fixed-bottom d-lg-none border-top" aria-label="Mobile Navigation">

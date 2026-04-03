@@ -106,19 +106,31 @@
   </div>
 </section>
 
-<section class="animal-focus-strip card border-0 shadow-sm">
-  <div class="animal-focus-copy">
-    <p class="eyebrow">Heute im Fokus</p>
-    <h3>Was bei <%= animal.name %> gerade wichtig ist</h3>
-    <p class="small text-body-secondary mb-0">Die wichtigsten Punkte und nächsten Schritte auf einen Blick, bevor du tiefer in die Akte springst.</p>
-  </div>
-  <div class="animal-focus-items">
-    <% focusFacts.forEach((fact) => { %>
-      <article class="animal-focus-item">
-        <span>Hinweis</span>
-        <strong><%= fact %></strong>
-      </article>
-    <% }) %>
+<section class="card border-0 shadow-sm mb-3">
+  <div class="card-body">
+    <div class="row g-3 align-items-start">
+      <div class="col-lg-4">
+        <div class="d-grid gap-2">
+          <p class="eyebrow mb-0">Heute im Fokus</p>
+          <h3 class="h4 mb-0">Was bei <%= animal.name %> gerade wichtig ist</h3>
+          <p class="small text-body-secondary mb-0">Die wichtigsten Punkte und nächsten Schritte auf einen Blick, bevor du tiefer in die Akte springst.</p>
+        </div>
+      </div>
+      <div class="col-lg-8">
+        <div class="row g-2">
+          <% focusFacts.forEach((fact) => { %>
+            <div class="col-md-6">
+              <article class="card border bg-body-tertiary h-100">
+                <div class="card-body p-3 d-grid gap-1">
+                  <span class="small text-body-secondary">Hinweis</span>
+                  <strong><%= fact %></strong>
+                </div>
+              </article>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -174,59 +186,89 @@
   </div>
 <% } %>
 
-<section class="animal-workbench-strip">
-  <article class="workbench-stat">
-    <span class="workbench-label">Dokumente</span>
-    <strong><%= related.documents.length %></strong>
-  </article>
-  <article class="workbench-stat">
-    <span class="workbench-label">Fotos</span>
-    <strong><%= related.images.length %></strong>
-  </article>
-  <article class="workbench-stat">
-    <span class="workbench-label">Offene Erinnerungen</span>
-    <strong><%= reminderBuckets.overdue.length + reminderBuckets.open.length %></strong>
-  </article>
-  <article class="workbench-stat">
-    <span class="workbench-label">Nächste Termine</span>
-    <strong><%= (related.appointments || []).length + related.vaccinations.length %></strong>
-  </article>
+<section class="row row-cols-2 row-cols-xl-4 g-2 mb-3">
+  <div class="col">
+    <article class="card border bg-body-tertiary h-100">
+      <div class="card-body p-3 d-grid gap-1">
+        <span class="small text-uppercase text-body-secondary">Dokumente</span>
+        <strong class="h4 mb-0"><%= related.documents.length %></strong>
+      </div>
+    </article>
+  </div>
+  <div class="col">
+    <article class="card border bg-body-tertiary h-100">
+      <div class="card-body p-3 d-grid gap-1">
+        <span class="small text-uppercase text-body-secondary">Fotos</span>
+        <strong class="h4 mb-0"><%= related.images.length %></strong>
+      </div>
+    </article>
+  </div>
+  <div class="col">
+    <article class="card border bg-body-tertiary h-100">
+      <div class="card-body p-3 d-grid gap-1">
+        <span class="small text-uppercase text-body-secondary">Offene Erinnerungen</span>
+        <strong class="h4 mb-0"><%= reminderBuckets.overdue.length + reminderBuckets.open.length %></strong>
+      </div>
+    </article>
+  </div>
+  <div class="col">
+    <article class="card border bg-body-tertiary h-100">
+      <div class="card-body p-3 d-grid gap-1">
+        <span class="small text-uppercase text-body-secondary">Nächste Termine</span>
+        <strong class="h4 mb-0"><%= (related.appointments || []).length + related.vaccinations.length %></strong>
+      </div>
+    </article>
+  </div>
 </section>
 
-<nav class="animal-section-nav" aria-label="Bereiche der Tierakte">
-  <a href="#animal-stammdaten" class="animal-section-link">Stammdaten</a>
-  <a href="#animal-neu" class="animal-section-link">Neuer Eintrag</a>
-  <a href="#animal-medizin" class="animal-section-link">Medizin</a>
-  <a href="#animal-timeline" class="animal-section-link">Timeline</a>
-  <a href="#animal-dokumente" class="animal-section-link">Dokumente & Fotos</a>
+<nav class="d-flex flex-wrap gap-2 mb-3" aria-label="Bereiche der Tierakte">
+  <a href="#animal-stammdaten" class="btn btn-outline-secondary btn-sm">Stammdaten</a>
+  <a href="#animal-neu" class="btn btn-outline-secondary btn-sm">Neuer Eintrag</a>
+  <a href="#animal-medizin" class="btn btn-outline-secondary btn-sm">Medizin</a>
+  <a href="#animal-timeline" class="btn btn-outline-secondary btn-sm">Timeline</a>
+  <a href="#animal-dokumente" class="btn btn-outline-secondary btn-sm">Dokumente & Fotos</a>
 </nav>
 
-<div class="animal-mobile-priority card border-0 shadow-sm">
-  <div class="animal-mobile-priority-copy">
-    <p class="eyebrow">Schneller Überblick</p>
-    <strong>Auf dem Smartphone zuerst das Wichtigste, danach die tieferen Bereiche der Akte.</strong>
-  </div>
-  <div class="animal-mobile-priority-grid">
-    <article class="animal-mobile-priority-card">
-      <span>Offene Aufgaben</span>
-      <strong><%= openReminderCount %></strong>
-      <small><%= openReminderCount ? 'Erinnerungen brauchen Rückmeldung' : 'Derzeit nichts offen' %></small>
-    </article>
-    <article class="animal-mobile-priority-card">
-      <span>Nächster Fokus</span>
-      <strong><%= nextFocusLabel %></strong>
-      <small><%= focusFacts[0] %></small>
-    </article>
-    <article class="animal-mobile-priority-card">
-      <span>Akte</span>
-      <strong><%= related.documents.length %> Dokumente · <%= related.images.length %> Fotos</strong>
-      <small>Schneller Einstieg in Unterlagen und Nachweise</small>
-    </article>
-  </div>
-  <div class="animal-mobile-priority-actions">
-    <a href="#animal-neu" class="btn btn-outline-secondary btn-sm">Neuer Eintrag</a>
-    <a href="#animal-medizin" class="btn btn-outline-secondary btn-sm">Medizin</a>
-    <a href="#animal-dokumente" class="btn btn-outline-secondary btn-sm">Dokumente</a>
+<div class="card border-0 shadow-sm d-lg-none mb-3">
+  <div class="card-body d-grid gap-3">
+    <div class="d-grid gap-1">
+      <p class="eyebrow mb-0">Schneller Überblick</p>
+      <strong>Auf dem Smartphone zuerst das Wichtigste, danach die tieferen Bereiche der Akte.</strong>
+    </div>
+    <div class="row g-2">
+      <div class="col-12">
+        <article class="card border bg-body-tertiary h-100">
+          <div class="card-body p-3 d-grid gap-1">
+            <span class="small text-body-secondary">Offene Aufgaben</span>
+            <strong><%= openReminderCount %></strong>
+            <small class="text-body-secondary"><%= openReminderCount ? 'Erinnerungen brauchen Rückmeldung' : 'Derzeit nichts offen' %></small>
+          </div>
+        </article>
+      </div>
+      <div class="col-12">
+        <article class="card border bg-body-tertiary h-100">
+          <div class="card-body p-3 d-grid gap-1">
+            <span class="small text-body-secondary">Nächster Fokus</span>
+            <strong><%= nextFocusLabel %></strong>
+            <small class="text-body-secondary"><%= focusFacts[0] %></small>
+          </div>
+        </article>
+      </div>
+      <div class="col-12">
+        <article class="card border bg-body-tertiary h-100">
+          <div class="card-body p-3 d-grid gap-1">
+            <span class="small text-body-secondary">Akte</span>
+            <strong><%= related.documents.length %> Dokumente · <%= related.images.length %> Fotos</strong>
+            <small class="text-body-secondary">Schneller Einstieg in Unterlagen und Nachweise</small>
+          </div>
+        </article>
+      </div>
+    </div>
+    <div class="d-grid gap-2">
+      <a href="#animal-neu" class="btn btn-outline-secondary btn-sm">Neuer Eintrag</a>
+      <a href="#animal-medizin" class="btn btn-outline-secondary btn-sm">Medizin</a>
+      <a href="#animal-dokumente" class="btn btn-outline-secondary btn-sm">Dokumente</a>
+    </div>
   </div>
 </div>
 

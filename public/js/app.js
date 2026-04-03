@@ -135,106 +135,21 @@ function openHashTargetDetails() {
 
 function initMobileNavToggle() {
   const offcanvasElement = document.getElementById("mobileNavOffcanvas");
-  if (offcanvasElement && window.bootstrap?.Offcanvas) {
-    const offcanvas = window.bootstrap.Offcanvas.getOrCreateInstance(offcanvasElement);
-    if (!document.body.dataset.mobileNavBound) {
-      document.body.dataset.mobileNavBound = "1";
-      document.addEventListener("click", (event) => {
-        const navLink = event.target.closest("#mobileNavOffcanvas a[href]");
-        if (navLink) {
-          offcanvas.hide();
-        }
-      });
-    }
+  if (!offcanvasElement || !window.bootstrap?.Offcanvas) {
     return;
   }
 
-  const toggles = Array.from(document.querySelectorAll(".mobile-nav-toggle"));
-  if (!toggles.length) {
-    return;
-  }
-
-  const setExpandedState = (expanded) => {
-    toggles.forEach((toggle) => {
-      toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
-    });
-  };
-
-  toggles.forEach((toggle) => {
-    if (toggle.dataset.bound === "1") {
-      return;
-    }
-    toggle.dataset.bound = "1";
-    toggle.addEventListener("click", () => {
-      const nextState = !document.body.classList.contains("nav-open");
-      document.body.classList.toggle("nav-open", nextState);
-      setExpandedState(nextState);
-    });
-  });
+  const offcanvas = window.bootstrap.Offcanvas.getOrCreateInstance(offcanvasElement);
 
   if (!document.body.dataset.mobileNavBound) {
     document.body.dataset.mobileNavBound = "1";
     document.addEventListener("click", (event) => {
-      if (!document.body.classList.contains("nav-open")) {
-        return;
+      const navLink = event.target.closest("#mobileNavOffcanvas a[href]");
+      if (navLink) {
+        offcanvas.hide();
       }
-      if (event.target.closest(".sidebar") || event.target.closest(".mobile-nav-toggle")) {
-        return;
-      }
-      document.body.classList.remove("nav-open");
-      setExpandedState(false);
-    });
-
-    document.addEventListener("click", (event) => {
-      const navLink = event.target.closest(".sidebar a[href]");
-      if (!navLink || !window.matchMedia("(max-width: 960px)").matches) {
-        return;
-      }
-      document.body.classList.remove("nav-open");
-      setExpandedState(false);
     });
   }
-}
-
-function initSidebarGroups() {
-  const storageKey = "heartpet-sidebar-groups";
-  let openGroups = {};
-  const isMobile = window.matchMedia("(max-width: 960px)").matches;
-  try {
-    openGroups = JSON.parse(sessionStorage.getItem(storageKey) || "{}");
-  } catch (error) {
-    openGroups = {};
-  }
-
-  document.querySelectorAll("[data-sidebar-group]").forEach((group) => {
-    const key = group.dataset.sidebarGroup;
-    const toggle = group.querySelector(".sidebar-group-toggle");
-    if (!key || !toggle) {
-      return;
-    }
-
-    const applyState = (isOpen) => {
-      group.classList.toggle("open", isOpen);
-      toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
-    };
-
-    const initialState = isMobile ? true : Boolean(openGroups[key]);
-    applyState(initialState);
-
-    if (toggle.dataset.bound === "1") {
-      return;
-    }
-
-    toggle.dataset.bound = "1";
-    toggle.addEventListener("click", () => {
-      const nextState = !group.classList.contains("open");
-      applyState(nextState);
-      openGroups[key] = nextState;
-      try {
-        sessionStorage.setItem(storageKey, JSON.stringify(openGroups));
-      } catch (error) {}
-    });
-  });
 }
 
 function closeToast(toast) {
@@ -428,9 +343,8 @@ async function openDrawer(urlLike) {
       targetUrl.searchParams.set("return_to", `${window.location.pathname}${window.location.search}${window.location.hash}`);
     }
 
-    drawer.classList.add("open");
-    drawer.setAttribute("aria-hidden", "false");
-    document.body.classList.add("drawer-open");
+    const offcanvas = window.bootstrap?.Offcanvas?.getOrCreateInstance(drawer);
+    offcanvas?.show();
     drawerBody.innerHTML = '<div class="panel"><p class="empty-state">Lade Formular ...</p></div>';
 
     const response = await fetch(targetUrl.toString(), {
@@ -476,14 +390,8 @@ function closeDrawer() {
     return;
   }
 
-  drawer.classList.remove("open");
-  drawer.setAttribute("aria-hidden", "true");
-  document.body.classList.remove("drawer-open");
-  window.setTimeout(() => {
-    if (!drawer.classList.contains("open")) {
-      drawerBody.innerHTML = "";
-    }
-  }, 180);
+  const offcanvas = window.bootstrap?.Offcanvas?.getOrCreateInstance(drawer);
+  offcanvas?.hide();
 }
 
 function initDrawerNavigation() {
@@ -512,6 +420,17 @@ function initDrawerNavigation() {
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
         closeDrawer();
+      }
+    });
+  }
+
+  const drawer = document.getElementById("app-drawer");
+  if (drawer && drawer.dataset.hiddenBound !== "1") {
+    drawer.dataset.hiddenBound = "1";
+    drawer.addEventListener("hidden.bs.offcanvas", () => {
+      const drawerBody = drawer.querySelector("[data-drawer-body]");
+      if (drawerBody) {
+        drawerBody.innerHTML = "";
       }
     });
   }
@@ -1058,7 +977,6 @@ function initPage() {
 
   initSoftNavigation();
   initMobileNavToggle();
-  initSidebarGroups();
   initToasts();
   initVeterinarianContactPopover();
   initDrawerNavigation();
