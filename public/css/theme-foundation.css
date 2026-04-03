@@ -564,7 +564,8 @@ tbody tr td:last-child {
 }
 
 .drawer-panel {
-  width: min(720px, 92vw);
+  width: min(45vw, 920px);
+  max-width: 45vw;
   padding: 20px;
   background:
     radial-gradient(420px 180px at 100% 0%, rgba(139, 92, 246, 0.28), transparent 60%),
@@ -575,6 +576,20 @@ tbody tr td:last-child {
   grid-template-rows: auto 1fr;
   gap: 14px;
   overflow: hidden;
+}
+
+@media (max-width: 1199px) {
+  .drawer-panel {
+    width: min(720px, 92vw);
+    max-width: 92vw;
+  }
+}
+
+@media (max-width: 767px) {
+  .drawer-panel {
+    width: 100vw;
+    max-width: 100vw;
+  }
 }
 
 .drawer-header {
