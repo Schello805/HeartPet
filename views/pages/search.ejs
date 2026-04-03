@@ -22,13 +22,19 @@
 
 <% if (!search.searchable) { %>
   <section class="panel">
-    <p class="empty-state">Bitte gib mindestens 2 Zeichen ein.</p>
+    <div class="empty-state-card">
+      <strong>Suche starten</strong>
+      <p class="empty-state">Bitte gib mindestens 2 Zeichen ein.</p>
+    </div>
   </section>
 <% } else { %>
   <section class="panel">
     <div class="panel-head"><h2>Tiere</h2><span class="counter"><%= results.animals.length %></span></div>
     <% if (!results.animals.length) { %>
-      <p class="empty-state">Keine Treffer.</p>
+      <div class="empty-state-card">
+        <strong>Keine Treffer bei Tieren</strong>
+        <p class="empty-state">Passe den Suchbegriff oder den Bereich an und versuche es erneut.</p>
+      </div>
     <% } else { %>
       <div class="stack">
         <% results.animals.forEach((item) => { %>
@@ -46,7 +52,10 @@
   <section class="panel">
     <div class="panel-head"><h2>Dokumente</h2><span class="counter"><%= results.documents.length %></span></div>
     <% if (!results.documents.length) { %>
-      <p class="empty-state">Keine Treffer.</p>
+      <div class="empty-state-card">
+        <strong>Keine Treffer bei Dokumenten</strong>
+        <p class="empty-state">Mit einem anderen Suchbegriff oder dem Bereich „Alles“ findest du oft schneller passende Einträge.</p>
+      </div>
     <% } else { %>
       <div class="stack">
         <% results.documents.forEach((item) => { %>
@@ -65,7 +74,10 @@
   <section class="panel">
     <div class="panel-head"><h2>Ereignisse / Erinnerungen</h2><span class="counter"><%= results.events.length %></span></div>
     <% if (!results.events.length) { %>
-      <p class="empty-state">Keine Treffer.</p>
+      <div class="empty-state-card">
+        <strong>Keine Treffer bei Ereignissen</strong>
+        <p class="empty-state">Hier erscheinen Medikamente, Termine, Impfungen und Erinnerungen, sobald der Suchbegriff dazu passt.</p>
+      </div>
     <% } else { %>
       <div class="stack">
         <% results.events.forEach((item) => { %>

@@ -3695,6 +3695,103 @@ small {
   line-height: 1.55;
 }
 
+.bootstrap-app .form-shell,
+.bootstrap-app .form-section {
+  display: grid;
+  gap: 1rem;
+}
+
+.bootstrap-app .form-shell > .compact-note,
+.bootstrap-app .form-shell > .help-copy,
+.bootstrap-app .form-section > .compact-note,
+.bootstrap-app .form-section > .help-copy {
+  margin: 0;
+}
+
+.bootstrap-app .form-section {
+  padding: 1rem 1.05rem;
+  border-radius: 1.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.bootstrap-app .form-section-header {
+  display: grid;
+  gap: 0.28rem;
+}
+
+.bootstrap-app .form-section-header strong {
+  color: var(--text-strong);
+  font-size: 1rem;
+}
+
+.bootstrap-app .form-section-header p,
+.bootstrap-app .form-section-header .compact-note,
+.bootstrap-app .form-section-header .help-copy {
+  margin: 0;
+}
+
+.bootstrap-app .form-section-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.95rem 1rem;
+}
+
+.bootstrap-app .form-section-grid label,
+.bootstrap-app .form-shell label {
+  display: grid;
+  gap: 0.42rem;
+}
+
+.bootstrap-app .form-section-grid .checkbox-line,
+.bootstrap-app .form-shell .checkbox-line {
+  gap: 0.7rem;
+}
+
+.bootstrap-app .form-actions-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+}
+
+.bootstrap-app .form-actions-copy {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  max-width: 56ch;
+}
+
+.bootstrap-app .empty-state-card {
+  display: grid;
+  gap: 0.6rem;
+  padding: 1.05rem 1.1rem;
+  border-radius: 1rem;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.bootstrap-app .empty-state-card strong {
+  color: var(--text-strong);
+  font-size: 1rem;
+}
+
+.bootstrap-app .empty-state-card .empty-state {
+  margin: 0;
+}
+
+.bootstrap-app .empty-state-card .empty-state strong,
+.bootstrap-app .empty-state-card p,
+.bootstrap-app .empty-state-card small {
+  margin: 0;
+}
+
+.bootstrap-app .empty-state-card .button-row,
+.bootstrap-app .empty-state-card .form-actions {
+  margin-top: 0.2rem;
+}
+
 .bootstrap-app .quick-actions {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3974,10 +4071,10 @@ body.bootstrap-app.drawer-open {
     gap: 0.65rem;
   }
 
-  .bootstrap-app .dashboard-hero-copy h2,
-  .bootstrap-app .animal-focus-copy h3 {
-    font-size: 1.42rem;
-  }
+.bootstrap-app .dashboard-hero-copy h2,
+.bootstrap-app .animal-focus-copy h3 {
+  font-size: 1.42rem;
+}
 
   .bootstrap-app .dashboard-hero-text,
   .bootstrap-app .panel-subtitle {
@@ -3987,7 +4084,8 @@ body.bootstrap-app.drawer-open {
   .bootstrap-app .dashboard-search-form,
   .bootstrap-app .animals-filter-grid,
   .bootstrap-app .quick-actions,
-  .bootstrap-app .content-grid {
+  .bootstrap-app .content-grid,
+  .bootstrap-app .form-section-grid {
     grid-template-columns: 1fr;
   }
 
@@ -4400,32 +4498,61 @@ body.bootstrap-app {
   color: var(--text-soft);
 }
 
+.bootstrap-app .status-chip {
+  min-height: 2rem;
+  padding-inline: 0.85rem;
+  font-weight: 600;
+  justify-content: center;
+}
+
 .bootstrap-app .setup-status-chip.status-ok,
 .bootstrap-app .service-status-chip.status-active,
 .bootstrap-app .status-ok,
-.bootstrap-app .status-active {
-  background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-  border-color: transparent;
+.bootstrap-app .status-active,
+.bootstrap-app .status-complete {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: rgba(16, 185, 129, 0.28);
   color: #fff;
 }
 
 .bootstrap-app .setup-status-chip.status-muted,
 .bootstrap-app .service-status-chip.status-muted,
-.bootstrap-app .status-muted {
+.bootstrap-app .status-muted,
+.bootstrap-app .status-inactive {
   background: rgba(255, 255, 255, 0.04);
   color: var(--text-dim);
 }
 
-.bootstrap-app .status-warning {
+.bootstrap-app .status-warning,
+.bootstrap-app .status-attention {
   background: rgba(251, 191, 36, 0.14);
   border-color: rgba(251, 191, 36, 0.2);
   color: #fde68a;
 }
 
-.bootstrap-app .status-error {
+.bootstrap-app .status-error,
+.bootstrap-app .status-danger {
   background: rgba(239, 68, 68, 0.14);
   border-color: rgba(239, 68, 68, 0.2);
   color: #fda4af;
+}
+
+.bootstrap-app .status-chip.status-muted,
+.bootstrap-app .status-chip.status-pending,
+.bootstrap-app .status-chip.status-skipped {
+  background: rgba(255, 255, 255, 0.035);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--text-dim);
+}
+
+.bootstrap-app .status-chip.status-warning {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.26);
+}
+
+.bootstrap-app .status-chip.status-error {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.24);
 }
 
 .bootstrap-app .accordion-item > summary,

@@ -15,16 +15,14 @@
   <details class="accordion-item" open>
     <summary>Wann und wie erinnert werden soll</summary>
     <div class="accordion-content">
-      <form method="post" action="/admin/settings" class="form-grid communication-grid">
+      <form method="post" action="/admin/settings" class="form-shell">
         <input type="hidden" name="_fields" value="browser_notifications_enabled,daily_digest_enabled,daily_digest_time,daily_digest_only_when_open" />
-        <div class="full-width section-block communication-section admin-subsection">
-          <div class="compact-section-head admin-subsection-head">
-            <div>
-              <strong>Allgemeine Erinnerungen</strong>
-              <p class="compact-note">Hier legst du fest, ob HeartPet offene Erinnerungen zusätzlich im Browser und als tägliche Zusammenfassung anzeigen soll.</p>
-            </div>
+        <section class="form-section communication-section admin-subsection">
+          <div class="form-section-header">
+            <strong>Allgemeine Erinnerungen</strong>
+            <p class="compact-note">Hier legst du fest, ob HeartPet offene Erinnerungen zusätzlich im Browser und als tägliche Zusammenfassung anzeigen soll.</p>
           </div>
-          <div class="form-grid communication-grid">
+          <div class="form-section-grid communication-grid">
             <label class="checkbox-line full-width">
               <input type="checkbox" name="browser_notifications_enabled" <%= settings.browser_notifications_enabled === 'true' ? 'checked' : '' %> />
               Browser-Hinweise für offene Erinnerungen aktivieren
@@ -46,8 +44,9 @@
             Die Uhrzeit gilt in der Zeitzone dieser Instanz: <strong><%= resolvedInstanceTimezone %></strong>.
             Wenn dein Server oder LXC auf <strong>Europe/Berlin</strong> läuft, bedeutet <strong>07:30</strong> also auch wirklich 07:30 Uhr deutscher Zeit.
           </div>
-        </div>
-        <div class="full-width form-actions">
+        </section>
+        <div class="form-actions-bar">
+          <p class="form-actions-copy">Diese Einstellungen steuern nur Browser-Hinweise und die tägliche Zusammenfassung. E-Mail und Telegram bleiben darunter separat.</p>
           <button type="submit" class="button">Benachrichtigungen speichern</button>
         </div>
       </form>
@@ -57,38 +56,46 @@
   <details class="accordion-item">
     <summary>Erinnerungsregeln je Ereignis</summary>
     <div class="accordion-content">
-      <form method="post" action="/admin/settings" class="form-grid">
+      <form method="post" action="/admin/settings" class="form-shell">
         <input type="hidden" name="_fields" value="medication_reminder_lead_days,medication_reminder_repeat_count,vaccination_reminder_lead_days,vaccination_reminder_repeat_count,appointment_reminder_lead_days,appointment_reminder_repeat_count" />
-        <div class="full-width note-box">
-          Diese Regeln gelten nur für Ereignisse, bei denen in der Tierakte der Haken <strong>Erinnern</strong> gesetzt wurde.
-          E-Mail und Telegram werden global oben aktiviert und gelten dann zusätzlich für alle passenden Ereignisse.
-        </div>
-        <label>
-          <span>Medikamente: Tage vorher</span>
-          <input class="form-control" type="number" min="0" step="1" name="medication_reminder_lead_days" value="<%= settings.medication_reminder_lead_days || '0' %>" />
-        </label>
-        <label>
-          <span>Medikamente: Anzahl Erinnerungen</span>
-          <input class="form-control" type="number" min="0" step="1" name="medication_reminder_repeat_count" value="<%= settings.medication_reminder_repeat_count || '0' %>" />
-        </label>
-        <label>
-          <span>Impfungen: Tage vorher</span>
-          <input class="form-control" type="number" min="0" step="1" name="vaccination_reminder_lead_days" value="<%= settings.vaccination_reminder_lead_days || '30' %>" />
-        </label>
-        <label>
-          <span>Impfungen: Anzahl Erinnerungen</span>
-          <input class="form-control" type="number" min="0" step="1" name="vaccination_reminder_repeat_count" value="<%= settings.vaccination_reminder_repeat_count || '1' %>" />
-        </label>
-        <label>
-          <span>Arzttermine: Tage vorher</span>
-          <input class="form-control" type="number" min="0" step="1" name="appointment_reminder_lead_days" value="<%= settings.appointment_reminder_lead_days || '1' %>" />
-        </label>
-        <label>
-          <span>Arzttermine: Anzahl Erinnerungen</span>
-          <input class="form-control" type="number" min="0" step="1" name="appointment_reminder_repeat_count" value="<%= settings.appointment_reminder_repeat_count || '1' %>" />
-        </label>
-        <div class="full-width note-box">Die Anzahl steuert, wie viele Erinnerungen automatisch erzeugt werden. Bei mehreren Erinnerungen wird ab dem Vorlauf täglich erinnert.</div>
-        <div class="full-width form-actions">
+        <section class="form-section">
+          <div class="form-section-header">
+            <strong>Regeln pro Ereignistyp</strong>
+            <p class="compact-note">Diese Regeln gelten nur für Ereignisse, bei denen in der Tierakte der Haken <strong>Erinnern</strong> gesetzt wurde.</p>
+          </div>
+          <div class="note-box">
+            E-Mail und Telegram werden global oben aktiviert und gelten dann zusätzlich für alle passenden Ereignisse.
+          </div>
+          <div class="form-section-grid">
+            <label>
+              <span>Medikamente: Tage vorher</span>
+              <input class="form-control" type="number" min="0" step="1" name="medication_reminder_lead_days" value="<%= settings.medication_reminder_lead_days || '0' %>" />
+            </label>
+            <label>
+              <span>Medikamente: Anzahl Erinnerungen</span>
+              <input class="form-control" type="number" min="0" step="1" name="medication_reminder_repeat_count" value="<%= settings.medication_reminder_repeat_count || '0' %>" />
+            </label>
+            <label>
+              <span>Impfungen: Tage vorher</span>
+              <input class="form-control" type="number" min="0" step="1" name="vaccination_reminder_lead_days" value="<%= settings.vaccination_reminder_lead_days || '30' %>" />
+            </label>
+            <label>
+              <span>Impfungen: Anzahl Erinnerungen</span>
+              <input class="form-control" type="number" min="0" step="1" name="vaccination_reminder_repeat_count" value="<%= settings.vaccination_reminder_repeat_count || '1' %>" />
+            </label>
+            <label>
+              <span>Arzttermine: Tage vorher</span>
+              <input class="form-control" type="number" min="0" step="1" name="appointment_reminder_lead_days" value="<%= settings.appointment_reminder_lead_days || '1' %>" />
+            </label>
+            <label>
+              <span>Arzttermine: Anzahl Erinnerungen</span>
+              <input class="form-control" type="number" min="0" step="1" name="appointment_reminder_repeat_count" value="<%= settings.appointment_reminder_repeat_count || '1' %>" />
+            </label>
+          </div>
+          <div class="note-box">Die Anzahl steuert, wie viele Erinnerungen automatisch erzeugt werden. Bei mehreren Erinnerungen wird ab dem Vorlauf täglich erinnert.</div>
+        </section>
+        <div class="form-actions-bar">
+          <p class="form-actions-copy">Halte die Regeln lieber knapp und erhöhe die Wiederholungen nur dort, wo ihr sie im Alltag wirklich braucht.</p>
           <button type="submit" class="btn btn-success">Erinnerungsregeln speichern</button>
         </div>
       </form>

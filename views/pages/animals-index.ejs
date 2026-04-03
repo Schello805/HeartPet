@@ -18,7 +18,11 @@
       <div class="panel-head">
         <h2>Ruhestätte</h2>
       </div>
-      <p class="empty-state">Noch keine Tiere in der Ruhestätte vorhanden.</p>
+      <div class="empty-state-card">
+        <strong>Noch keine Einträge</strong>
+        <p class="empty-state">Noch keine Tiere in der Ruhestätte vorhanden.</p>
+        <small>Wenn ein Tier als verstorben markiert wird, erscheint es hier automatisch in dieser ruhigeren Ansicht.</small>
+      </div>
     </section>
   <% } else { %>
     <div class="resting-place-grid">
@@ -165,13 +169,22 @@
       </div>
 
       <% if (animals.length === 0) { %>
-        <p class="empty-state">
-          <%= sectionState.key === 'history'
-            ? 'Noch keine vermittelten oder verkauften Tiere vorhanden.'
-            : sectionState.key === 'resting'
-              ? 'Noch keine Tiere in der Ruhestätte vorhanden.'
-              : 'Noch keine aktiven Tiere vorhanden. Lege dein erstes Tier über "Neues Tier" an.' %>
-        </p>
+        <div class="empty-state-card">
+          <strong>
+            <%= sectionState.key === 'history'
+              ? 'Noch keine historischen Einträge'
+              : sectionState.key === 'resting'
+                ? 'Noch keine Tiere in der Ruhestätte'
+                : 'Noch kein aktiver Bestand' %>
+          </strong>
+          <p class="empty-state">
+            <%= sectionState.key === 'history'
+              ? 'Noch keine vermittelten oder verkauften Tiere vorhanden.'
+              : sectionState.key === 'resting'
+                ? 'Noch keine Tiere in der Ruhestätte vorhanden.'
+                : 'Noch keine aktiven Tiere vorhanden. Lege dein erstes Tier über „Neues Tier“ an.' %>
+          </p>
+        </div>
       <% } else { %>
         <div class="animals-list-stack">
           <% animals.forEach((animal) => { %>

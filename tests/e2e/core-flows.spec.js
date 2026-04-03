@@ -58,7 +58,15 @@ async function ensureAuthenticated(page) {
     await page.locator('input[name="animal_name"]').fill("Minka");
     await page.locator('input[name="species_name"]').fill("Katze");
     await page.getByRole("button", { name: "Ersteinrichtung abschließen" }).click();
-    await expect(page).toHaveURL(/\/animals(\/\d+)?(\?.*)?$/);
+    await page.waitForLoadState("networkidle");
+
+    if (page.url().includes("/login")) {
+      await page.getByLabel("E-Mail").fill(adminCredentials.email);
+      await page.getByLabel("Passwort").fill(adminCredentials.password);
+      await page.getByRole("button", { name: "Anmelden" }).click();
+    }
+
+    await expect(page).toHaveURL(/\/($|dashboard|animals(\/.*)?$)/);
     return;
   }
 

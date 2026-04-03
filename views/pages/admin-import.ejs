@@ -90,9 +90,18 @@
           </div>
         </div>
         <div class="admin-subsection-body">
-          <form method="post" action="/admin/import" enctype="multipart/form-data" class="stack form-compact">
-            <input class="form-control" type="file" name="import_file" accept="application/json" required />
-            <button type="submit" class="btn btn-success">Import starten</button>
+          <form method="post" action="/admin/import" enctype="multipart/form-data" class="form-shell">
+            <section class="form-section">
+              <div class="form-section-header">
+                <strong>Importdatei auswählen</strong>
+                <p class="compact-note">Verwende hier ausschließlich einen HeartPet-JSON-Export aus einer Tierakte.</p>
+              </div>
+              <input class="form-control" type="file" name="import_file" accept="application/json" required />
+            </section>
+            <div class="form-actions-bar">
+              <p class="form-actions-copy">Der Import erzeugt immer eine neue Tierakte und verändert keine bestehende Akte.</p>
+              <button type="submit" class="btn btn-success">Import starten</button>
+            </div>
           </form>
         </div>
       </section>

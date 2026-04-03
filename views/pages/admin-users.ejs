@@ -21,28 +21,54 @@
         </div>
       </section>
 
-      <h3>Eigene Profildaten</h3>
-      <form method="post" action="/admin/profile" class="stack form-compact">
-        <div class="form-grid">
-          <label>
-            <span>Name</span>
-            <input class="form-control" type="text" name="name" required value="<%= me.name || '' %>" />
-          </label>
-          <label>
-            <span>E-Mail</span>
-            <input class="form-control" type="email" name="email" required value="<%= me.email || '' %>" />
-          </label>
+      <form method="post" action="/admin/profile" class="form-shell">
+        <section class="form-section">
+          <div class="form-section-header">
+            <strong>Eigene Profildaten</strong>
+            <p class="compact-note">Änderungen an der E-Mail-Adresse werden erst wirksam, nachdem der Bestätigungslink aufgerufen wurde.</p>
+          </div>
+          <div class="form-section-grid">
+            <label>
+              <span>Name</span>
+              <input class="form-control" type="text" name="name" required value="<%= me.name || '' %>" />
+            </label>
+            <label>
+              <span>E-Mail</span>
+              <input class="form-control" type="email" name="email" required value="<%= me.email || '' %>" />
+            </label>
+          </div>
+        </section>
+        <div class="form-actions-bar">
+          <p class="form-actions-copy">Diese Änderung betrifft nur dein eigenes Konto.</p>
+          <button type="submit" class="btn btn-outline-secondary">Profil speichern</button>
         </div>
-        <small>E-Mail-Änderungen werden erst nach Klick auf den Bestätigungslink wirksam.</small>
-        <button type="submit" class="btn btn-outline-secondary">Profil speichern</button>
       </form>
 
-      <h3>Eigenes Passwort ändern</h3>
-      <form method="post" action="/admin/password" class="stack form-compact">
-        <input class="form-control" type="password" name="current_password" required placeholder="Aktuelles Passwort" />
-        <input class="form-control" type="password" name="new_password" required placeholder="Neues Passwort" />
-        <input class="form-control" type="password" name="new_password_confirm" required placeholder="Neues Passwort wiederholen" />
-        <button type="submit" class="btn btn-success">Passwort aktualisieren</button>
+      <form method="post" action="/admin/password" class="form-shell">
+        <section class="form-section">
+          <div class="form-section-header">
+            <strong>Eigenes Passwort ändern</strong>
+            <p class="compact-note">Gib zuerst dein aktuelles Passwort ein und hinterlege danach das neue Passwort zweimal.</p>
+          </div>
+          <div class="form-section-grid">
+            <label>
+              <span>Aktuelles Passwort</span>
+              <input class="form-control" type="password" name="current_password" required placeholder="Aktuelles Passwort" />
+            </label>
+            <label>
+              <span>Neues Passwort</span>
+              <input class="form-control" type="password" name="new_password" required placeholder="Neues Passwort" />
+            </label>
+            <label class="full-width">
+              <span>Neues Passwort wiederholen</span>
+              <input class="form-control" type="password" name="new_password_confirm" required placeholder="Neues Passwort wiederholen" />
+            </label>
+          </div>
+        </section>
+        <div class="form-actions-bar">
+          <p class="form-actions-copy">Das neue Passwort gilt sofort für dein nächstes Login.</p>
+          <button type="submit" class="btn btn-success">Passwort aktualisieren</button>
+        </div>
       </form>
     </div>
   </details>
@@ -88,7 +114,7 @@
                       ].filter(Boolean).join(', ') || 'Keine Zusatzrechte' %>
                     </small>
                   </div>
-                  <span><%= user.must_change_password ? 'Passwortwechsel offen' : 'Aktiv' %></span>
+                  <span class="status-chip <%= user.must_change_password ? 'status-warning' : 'status-ok' %>"><%= user.must_change_password ? 'Passwortwechsel offen' : 'Aktiv' %></span>
                 </div>
                 <div class="button-row">
                   <a href="/admin/users/<%= user.id %>/edit" class="btn btn-outline-secondary icon-button" data-drawer="admin-user" aria-label="Benutzer bearbeiten" title="Bearbeiten">
@@ -105,7 +131,10 @@
               <form method="post" action="/admin/users/<%= user.id %>/delete" id="user-delete-<%= user.id %>" class="hidden-form" data-confirm="Benutzer wirklich löschen?"></form>
             <% }) %>
             <% if (managedUsers.length === 0) { %>
-              <p class="empty-state">Aktuell sind keine weiteren Nutzer angelegt. Dein Admin-Konto findest du oben im Bereich „Profil & Sicherheit“.</p>
+              <div class="empty-state-card">
+                <strong>Noch keine weiteren Nutzer</strong>
+                <p class="empty-state">Aktuell sind keine weiteren Nutzer angelegt. Dein Admin-Konto findest du oben im Bereich „Profil & Sicherheit“.</p>
+              </div>
             <% } %>
           </div>
         </div>

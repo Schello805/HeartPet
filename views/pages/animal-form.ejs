@@ -5,91 +5,114 @@
     <h2><%= animal ? 'Tier bearbeiten' : 'Neues Tier anlegen' %></h2>
   </div>
 
-  <form method="post" action="<%= animal ? `/animals/${animal.id}/update` : '/animals' %>" class="form-grid" data-drawer-form="animal">
+  <form method="post" action="<%= animal ? `/animals/${animal.id}/update` : '/animals' %>" class="form-shell" data-drawer-form="animal">
     <input type="hidden" name="return_to" value="<%= typeof returnTo !== 'undefined' ? returnTo : '/animals' %>" />
-    <p class="compact-note full-width">Hier legst du die wichtigsten Stammdaten für das Tier an. Pflicht sind nur Name und Tierart. Du kannst eine vorhandene Tierart auswählen oder einfach eine neue eingeben.</p>
-    <label>
-      <span>Name</span>
-      <input type="text" name="name" required value="<%= animal?.name || '' %>" />
-    </label>
-    <label>
-      <span>Tierart</span>
-      <input
-        type="text"
-        name="species_name"
-        required
-        list="species-suggestions"
-        data-species-autocomplete="true"
-        autocomplete="off"
-        value="<%= animal?.species_name || '' %>"
-        placeholder="Vorhandene Tierart wählen oder neue eingeben"
-        title="Beginne zu tippen. Bestehende Tierarten werden vorgeschlagen. Wenn die Tierart noch nicht existiert, wird sie beim Speichern automatisch angelegt."
-      />
-      <datalist id="species-suggestions">
-        <% species.forEach((item) => { %>
-          <option value="<%= item.name %>"></option>
-        <% }) %>
-      </datalist>
-    </label>
-    <label>
-      <span>Geschlecht</span>
-      <select name="sex">
-        <option value="">Unbekannt</option>
-        <option value="Weiblich" <%= animal?.sex === 'Weiblich' ? 'selected' : '' %>>Weiblich</option>
-        <option value="Männlich" <%= animal?.sex === 'Männlich' ? 'selected' : '' %>>Männlich</option>
-      </select>
-    </label>
-    <label>
-      <span>Status</span>
-      <select name="status">
-        <% ['Aktiv', 'Vermittelt', 'Verkauft', 'Verstorben'].forEach((status) => { %>
-          <option value="<%= status %>" <%= (animal?.status || 'Aktiv') === status ? 'selected' : '' %>><%= status %></option>
-        <% }) %>
-      </select>
-    </label>
-    <label>
-      <span>Geburtsdatum</span>
-      <input type="date" name="birth_date" value="<%= animal?.birth_date || '' %>" />
-    </label>
-    <label>
-      <span>Aufnahmedatum</span>
-      <input type="date" name="intake_date" value="<%= animal?.intake_date || '' %>" />
-    </label>
-    <label>
-      <span>Herkunft</span>
-      <input type="text" name="source" value="<%= animal?.source || '' %>" placeholder="Züchter, Fundtier, Vorbesitzer" />
-    </label>
-    <label>
-      <span>Rasse / Unterart</span>
-      <input type="text" name="breed" value="<%= animal?.breed || '' %>" />
-    </label>
-    <label>
-      <span>Farbe</span>
-      <input type="text" name="color" value="<%= animal?.color || '' %>" />
-    </label>
-    <label>
-      <span>Gewicht in kg</span>
-      <input type="number" step="0.01" name="weight_kg" value="<%= animal?.weight_kg || '' %>" />
-    </label>
-    <label>
-      <span>Mikrochip / Kennzeichen</span>
-      <input type="text" name="microchip_number" value="<%= animal?.microchip_number || '' %>" />
-    </label>
-    <label>
-      <span>Tierarzt für dieses Tier</span>
-      <select name="veterinarian_id" title="Wenn du hier nichts auswählst, verwendet HeartPet automatisch den Standardtierarzt der hinterlegten Tierart.">
-        <option value="">Standard je Tierart verwenden</option>
-        <% veterinarians.forEach((item) => { %>
-          <option value="<%= item.id %>" <%= String(animal?.veterinarian_id || '') === String(item.id) ? 'selected' : '' %>><%= item.name %><%= item.city ? ` (${item.city})` : '' %></option>
-        <% }) %>
-      </select>
-    </label>
-    <label class="full-width">
-      <span>Allgemeine Notizen</span>
-      <textarea name="notes" rows="5"><%= animal?.notes || '' %></textarea>
-    </label>
-    <small class="compact-note full-width">Typische Inhalte für Notizen sind Besonderheiten im Verhalten, Haltungsdetails, bisherige Erfahrungen oder Hinweise für andere Nutzer.</small>
-    <div class="full-width form-actions">
+    <section class="form-section">
+      <div class="form-section-header">
+        <strong>Stammdaten</strong>
+        <p class="compact-note">Pflicht sind nur Name und Tierart. Du kannst eine vorhandene Tierart auswählen oder einfach eine neue eingeben.</p>
+      </div>
+      <div class="form-section-grid">
+        <label>
+          <span>Name</span>
+          <input type="text" name="name" required value="<%= animal?.name || '' %>" />
+        </label>
+        <label>
+          <span>Tierart</span>
+          <input
+            type="text"
+            name="species_name"
+            required
+            list="species-suggestions"
+            data-species-autocomplete="true"
+            autocomplete="off"
+            value="<%= animal?.species_name || '' %>"
+            placeholder="Vorhandene Tierart wählen oder neue eingeben"
+            title="Beginne zu tippen. Bestehende Tierarten werden vorgeschlagen. Wenn die Tierart noch nicht existiert, wird sie beim Speichern automatisch angelegt."
+          />
+          <datalist id="species-suggestions">
+            <% species.forEach((item) => { %>
+              <option value="<%= item.name %>"></option>
+            <% }) %>
+          </datalist>
+        </label>
+        <label>
+          <span>Geschlecht</span>
+          <select name="sex">
+            <option value="">Unbekannt</option>
+            <option value="Weiblich" <%= animal?.sex === 'Weiblich' ? 'selected' : '' %>>Weiblich</option>
+            <option value="Männlich" <%= animal?.sex === 'Männlich' ? 'selected' : '' %>>Männlich</option>
+          </select>
+        </label>
+        <label>
+          <span>Status</span>
+          <select name="status">
+            <% ['Aktiv', 'Vermittelt', 'Verkauft', 'Verstorben'].forEach((status) => { %>
+              <option value="<%= status %>" <%= (animal?.status || 'Aktiv') === status ? 'selected' : '' %>><%= status %></option>
+            <% }) %>
+          </select>
+        </label>
+        <label>
+          <span>Geburtsdatum</span>
+          <input type="date" name="birth_date" value="<%= animal?.birth_date || '' %>" />
+        </label>
+        <label>
+          <span>Aufnahmedatum</span>
+          <input type="date" name="intake_date" value="<%= animal?.intake_date || '' %>" />
+        </label>
+      </div>
+    </section>
+    <section class="form-section">
+      <div class="form-section-header">
+        <strong>Merkmale und Herkunft</strong>
+        <p class="compact-note">Diese Angaben helfen dir später beim Wiederfinden, Filtern und Einordnen der Akte.</p>
+      </div>
+      <div class="form-section-grid">
+        <label>
+          <span>Herkunft</span>
+          <input type="text" name="source" value="<%= animal?.source || '' %>" placeholder="Züchter, Fundtier, Vorbesitzer" />
+        </label>
+        <label>
+          <span>Rasse / Unterart</span>
+          <input type="text" name="breed" value="<%= animal?.breed || '' %>" />
+        </label>
+        <label>
+          <span>Farbe</span>
+          <input type="text" name="color" value="<%= animal?.color || '' %>" />
+        </label>
+        <label>
+          <span>Gewicht in kg</span>
+          <input type="number" step="0.01" name="weight_kg" value="<%= animal?.weight_kg || '' %>" />
+        </label>
+        <label class="full-width">
+          <span>Mikrochip / Kennzeichen</span>
+          <input type="text" name="microchip_number" value="<%= animal?.microchip_number || '' %>" />
+        </label>
+      </div>
+    </section>
+    <section class="form-section">
+      <div class="form-section-header">
+        <strong>Betreuung und Hinweise</strong>
+        <p class="compact-note">Hier legst du fest, ob dieses Tier einen eigenen Tierarzt nutzt und welche allgemeinen Hinweise in der Akte stehen sollen.</p>
+      </div>
+      <div class="form-section-grid">
+        <label class="full-width">
+          <span>Tierarzt für dieses Tier</span>
+          <select name="veterinarian_id" title="Wenn du hier nichts auswählst, verwendet HeartPet automatisch den Standardtierarzt der hinterlegten Tierart.">
+            <option value="">Standard je Tierart verwenden</option>
+            <% veterinarians.forEach((item) => { %>
+              <option value="<%= item.id %>" <%= String(animal?.veterinarian_id || '') === String(item.id) ? 'selected' : '' %>><%= item.name %><%= item.city ? ` (${item.city})` : '' %></option>
+            <% }) %>
+          </select>
+        </label>
+        <label class="full-width">
+          <span>Allgemeine Notizen</span>
+          <textarea name="notes" rows="5"><%= animal?.notes || '' %></textarea>
+        </label>
+      </div>
+    </section>
+    <div class="form-actions-bar">
+      <p class="form-actions-copy">Typische Inhalte für Notizen sind Besonderheiten im Verhalten, Haltungsdetails, bisherige Erfahrungen oder Hinweise für andere Nutzer.</p>
       <button type="submit" class="button"><%= animal ? 'Änderungen speichern' : 'Tier anlegen' %></button>
       <% if (animal) { %>
         <a href="/animals/<%= animal.id %>" class="button button-secondary">Zurück zur Akte</a>

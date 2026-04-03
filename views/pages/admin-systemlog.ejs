@@ -18,7 +18,10 @@
       </form>
 
       <% if (!notificationLogs.length) { %>
-        <p class="empty-state">Noch keine Benachrichtigungs-Logs vorhanden.</p>
+        <div class="empty-state-card">
+          <strong>Noch keine Benachrichtigungs-Logs</strong>
+          <p class="empty-state">Sobald E-Mail- oder Telegram-Versand stattfindet, siehst du die Einträge hier im Verlauf.</p>
+        </div>
       <% } else { %>
         <div class="table-wrap">
           <table>
@@ -54,7 +57,10 @@
     <summary>Audit-Log</summary>
     <div class="accordion-content">
       <% if (!auditLogs.length) { %>
-        <p class="empty-state">Noch keine Audit-Einträge vorhanden.</p>
+        <div class="empty-state-card">
+          <strong>Noch keine Audit-Einträge</strong>
+          <p class="empty-state">Änderungen durch Nutzer erscheinen hier automatisch, sobald in der App Aktionen protokolliert werden.</p>
+        </div>
       <% } else { %>
         <div class="table-wrap">
           <table>

@@ -5,66 +5,83 @@
   <details class="accordion-item" open>
     <summary>Organisation & App</summary>
     <div class="accordion-content">
-      <form method="post" action="/admin/settings" class="form-grid" enctype="multipart/form-data">
+      <form method="post" action="/admin/settings" class="form-shell" enctype="multipart/form-data">
         <input type="hidden" name="_fields" value="app_name,app_domain,organization_name,help_contact,legal_responsible_name,legal_content_responsible_name,legal_contact_street,legal_contact_postal_city,legal_contact_country,legal_contact_phone,legal_contact_email" />
-        <label>
-          <span>App-Name</span>
-          <input class="form-control" type="text" name="app_name" value="<%= settings.app_name || '' %>" />
-        </label>
-        <label>
-          <span>Domain</span>
-          <input class="form-control" type="text" name="app_domain" value="<%= settings.app_domain || '' %>" />
-        </label>
-        <label class="full-width">
-          <span>Name der Haltung / Organisation</span>
-          <input class="form-control" type="text" name="organization_name" value="<%= settings.organization_name || '' %>" />
-        </label>
-        <div class="full-width logo-upload-panel">
-          <div class="logo-upload-preview">
-            <img class="brand-logo" src="<%= appLogoUrl || '/static/images/logo-heartpet.png' %>" alt="Aktuelles App-Logo" />
-            <div class="stack">
-              <strong>App-Logo</strong>
-              <span>Dieses Logo wird links oben, auf der Login-Seite und als Browser- bzw. Webapp-Icon verwendet.</span>
+        <section class="form-section">
+          <div class="form-section-header">
+            <strong>App und Außenwirkung</strong>
+            <p class="compact-note">Name, Domain und Logo definieren die sichtbare Identität deiner Instanz.</p>
+          </div>
+          <div class="form-section-grid">
+            <label>
+              <span>App-Name</span>
+              <input class="form-control" type="text" name="app_name" value="<%= settings.app_name || '' %>" />
+            </label>
+            <label>
+              <span>Domain</span>
+              <input class="form-control" type="text" name="app_domain" value="<%= settings.app_domain || '' %>" />
+            </label>
+            <label class="full-width">
+              <span>Name der Haltung / Organisation</span>
+              <input class="form-control" type="text" name="organization_name" value="<%= settings.organization_name || '' %>" />
+            </label>
+            <div class="full-width logo-upload-panel">
+              <div class="logo-upload-preview">
+                <img class="brand-logo" src="<%= appLogoUrl || '/static/images/logo-heartpet.png' %>" alt="Aktuelles App-Logo" />
+                <div class="stack">
+                  <strong>App-Logo</strong>
+                  <span>Dieses Logo wird links oben, auf der Login-Seite und als Browser- bzw. Webapp-Icon verwendet.</span>
+                </div>
+              </div>
+              <label class="full-width">
+                <span>Neues Logo hochladen</span>
+                <input class="form-control" type="file" name="app_logo" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/x-icon,image/vnd.microsoft.icon" />
+              </label>
             </div>
           </div>
-          <label class="full-width">
-            <span>Neues Logo hochladen</span>
-            <input class="form-control" type="file" name="app_logo" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/x-icon,image/vnd.microsoft.icon" />
-          </label>
-        </div>
-        <label>
-          <span>Verantwortliche Person / Betreiber für Rechtstexte</span>
-          <input class="form-control" type="text" name="legal_responsible_name" value="<%= settings.legal_responsible_name || '' %>" placeholder="z. B. Max Mustermann oder Musterhof GmbH" />
-        </label>
-        <label>
-          <span>Abweichende Inhaltsverantwortung</span>
-          <input class="form-control" type="text" name="legal_content_responsible_name" value="<%= settings.legal_content_responsible_name || '' %>" placeholder="Optional, falls nicht identisch mit dem Betreiber" />
-        </label>
-        <label>
-          <span>Kontakt für Hilfe</span>
-          <input class="form-control" type="text" name="help_contact" value="<%= settings.help_contact || '' %>" />
-        </label>
-        <label>
-          <span>Kontakt E-Mail für Rechtstexte</span>
-          <input class="form-control" type="email" name="legal_contact_email" value="<%= settings.legal_contact_email || '' %>" placeholder="z. B. recht@deinedomain.de" />
-        </label>
-        <label>
-          <span>Straße und Hausnummer für Rechtstexte</span>
-          <input class="form-control" type="text" name="legal_contact_street" value="<%= settings.legal_contact_street || '' %>" placeholder="z. B. Musterstraße 12" />
-        </label>
-        <label>
-          <span>PLZ und Ort für Rechtstexte</span>
-          <input class="form-control" type="text" name="legal_contact_postal_city" value="<%= settings.legal_contact_postal_city || '' %>" placeholder="z. B. 12345 Musterstadt" />
-        </label>
-        <label>
-          <span>Land für Rechtstexte</span>
-          <input class="form-control" type="text" name="legal_contact_country" value="<%= settings.legal_contact_country || '' %>" placeholder="z. B. Deutschland" />
-        </label>
-        <label>
-          <span>Telefon für Rechtstexte</span>
-          <input class="form-control" type="text" name="legal_contact_phone" value="<%= settings.legal_contact_phone || '' %>" placeholder="z. B. +49 123 456789" />
-        </label>
-        <div class="full-width form-actions">
+        </section>
+        <section class="form-section">
+          <div class="form-section-header">
+            <strong>Rechtliche Angaben und Kontakt</strong>
+            <p class="compact-note">Diese Daten werden in Rechtstexten, Kontaktseite und Betreiberangaben automatisch eingesetzt.</p>
+          </div>
+          <div class="form-section-grid">
+            <label>
+              <span>Verantwortliche Person / Betreiber für Rechtstexte</span>
+              <input class="form-control" type="text" name="legal_responsible_name" value="<%= settings.legal_responsible_name || '' %>" placeholder="z. B. Max Mustermann oder Musterhof GmbH" />
+            </label>
+            <label>
+              <span>Abweichende Inhaltsverantwortung</span>
+              <input class="form-control" type="text" name="legal_content_responsible_name" value="<%= settings.legal_content_responsible_name || '' %>" placeholder="Optional, falls nicht identisch mit dem Betreiber" />
+            </label>
+            <label>
+              <span>Kontakt für Hilfe</span>
+              <input class="form-control" type="text" name="help_contact" value="<%= settings.help_contact || '' %>" />
+            </label>
+            <label>
+              <span>Kontakt E-Mail für Rechtstexte</span>
+              <input class="form-control" type="email" name="legal_contact_email" value="<%= settings.legal_contact_email || '' %>" placeholder="z. B. recht@deinedomain.de" />
+            </label>
+            <label>
+              <span>Straße und Hausnummer für Rechtstexte</span>
+              <input class="form-control" type="text" name="legal_contact_street" value="<%= settings.legal_contact_street || '' %>" placeholder="z. B. Musterstraße 12" />
+            </label>
+            <label>
+              <span>PLZ und Ort für Rechtstexte</span>
+              <input class="form-control" type="text" name="legal_contact_postal_city" value="<%= settings.legal_contact_postal_city || '' %>" placeholder="z. B. 12345 Musterstadt" />
+            </label>
+            <label>
+              <span>Land für Rechtstexte</span>
+              <input class="form-control" type="text" name="legal_contact_country" value="<%= settings.legal_contact_country || '' %>" placeholder="z. B. Deutschland" />
+            </label>
+            <label>
+              <span>Telefon für Rechtstexte</span>
+              <input class="form-control" type="text" name="legal_contact_phone" value="<%= settings.legal_contact_phone || '' %>" placeholder="z. B. +49 123 456789" />
+            </label>
+          </div>
+        </section>
+        <div class="form-actions-bar">
+          <p class="form-actions-copy">Änderungen an Name, Logo und Betreiberangaben werden direkt in Oberfläche, Login und Rechtstexten verwendet.</p>
           <button type="submit" class="btn btn-success">Allgemeine Einstellungen speichern</button>
         </div>
       </form>
