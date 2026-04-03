@@ -79,6 +79,11 @@ async function ensureAuthenticated(page) {
   await page.goto("/setup");
 
   if (page.url().includes("/setup")) {
+    for (const sectionTitle of ["1. Administrator", "2. Tierarzt", "3. Erstes Tier"]) {
+      const sectionSummary = page.getByText(sectionTitle, { exact: true });
+      await sectionSummary.click();
+    }
+
     await page.locator('input[name="admin_name"]').fill(adminCredentials.name);
     await page.locator('input[name="admin_email"]').fill(adminCredentials.email);
     await page.locator('input[name="admin_password"]').fill(adminCredentials.password);
@@ -124,6 +129,7 @@ test("Tiere-Arbeitsansicht zeigt die Akte im Browser-Kontext", async ({ page }) 
 test("Dokumentkategorie lässt sich im Bearbeiten-Dialog speichern", async ({ page }) => {
   await ensureAuthenticated(page);
   await page.goto("/admin/stammdaten");
+  await page.getByText("Dokumentkategorien", { exact: true }).click();
 
   await page.locator('[aria-label="Dokumentkategorie bearbeiten"]').first().click();
   await expect(page.getByRole("button", { name: "Kategorie speichern" })).toBeVisible();

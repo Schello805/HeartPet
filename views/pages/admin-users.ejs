@@ -2,7 +2,7 @@
 
 <% const me = (typeof selfUser !== 'undefined' ? selfUser : null) || currentUser || {}; %>
 <section class="accordion-stack">
-  <details class="accordion-item" open>
+  <details class="accordion-item">
     <summary>Profil & Sicherheit</summary>
     <div class="accordion-content">
       <section class="admin-subsection">
@@ -82,7 +82,7 @@
         const sameMail = String(user.email || "").trim().toLowerCase() === String(me.email || "").trim().toLowerCase();
         return !sameId && !sameMail;
       }); %>
-      <details class="sub-accordion" open>
+      <details class="sub-accordion">
         <summary>Nutzer hinzufügen</summary>
         <div class="sub-accordion-content">
           <p class="compact-note">Lege hier weitere Zugänge für Familie, Mitarbeitende oder Helfer an. Rechte lassen sich später jederzeit anpassen.</p>
