@@ -1,6 +1,7 @@
 <% const selectedAnimalState = typeof selectedAnimal !== 'undefined' ? selectedAnimal : null; %>
 <% const selectedAnimalViewState = typeof selectedAnimalView !== 'undefined' ? selectedAnimalView : null; %>
 <% const sectionState = typeof animalSection !== 'undefined' ? animalSection : { key: 'active' }; %>
+
 <section
   class="animals-detail-panel"
   data-animal-workspace-panel
@@ -12,39 +13,36 @@
   data-animal-next-label="<%= selectedAnimalState?.next_term?.displayLabel || 'Noch kein Termin hinterlegt' %>"
 >
   <% if (selectedAnimalState && selectedAnimalViewState) { %>
-    <section class="panel animals-detail-intro">
-      <div class="animals-detail-intro-head">
-        <div>
-          <p class="eyebrow">Ausgewähltes Tier</p>
-          <h2><%= selectedAnimalState.name %></h2>
-          <p class="table-sub">Hier siehst du sofort die wichtigsten Stammdaten, offenen Punkte und direkten Aktionen für diese Akte.</p>
-        </div>
-        <div class="animals-detail-intro-meta">
-          <span class="pill"><%= selectedAnimalState.status %></span>
-          <span><%= selectedAnimalState.species_name || 'Tier' %></span>
+    <section class="card border-0 mb-3">
+      <div class="card-body p-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+          <div>
+            <div class="text-uppercase small fw-semibold text-body-secondary mb-2">Ausgewähltes Tier</div>
+            <h2 class="h3 mb-1"><%= selectedAnimalState.name %></h2>
+            <p class="text-body-secondary mb-0">Hier startet die Akte mit den wichtigsten Stammdaten, offenen Punkten und direkten Aktionen.</p>
+          </div>
+          <span class="badge text-bg-secondary-subtle border"><%= selectedAnimalState.species_name || 'Tier' %></span>
         </div>
       </div>
     </section>
     <%- include('./animal-show', { pageTitle: selectedAnimalState.name, embedded: true, ...selectedAnimalViewState }) %>
   <% } else { %>
-    <section class="panel animals-empty-detail">
-      <div class="panel-head">
-        <h2>
+    <section class="card border-0">
+      <div class="card-body p-4">
+        <h2 class="h4 mb-2">
           <%= sectionState.key === 'history'
             ? 'Historie'
             : sectionState.key === 'resting'
               ? 'Ruhestätte'
               : 'Tier auswählen' %>
         </h2>
-      </div>
-      <div class="empty-state-card">
-        <strong><%= sectionState.key === 'active' ? 'Noch kein Tier ausgewählt' : 'Noch keine Auswahl' %></strong>
-        <p class="empty-state">
+        <p class="fw-semibold mb-1"><%= sectionState.key === 'active' ? 'Noch kein Tier ausgewählt' : 'Noch keine Auswahl' %></p>
+        <p class="text-body-secondary mb-0">
           <%= sectionState.key === 'history'
-            ? 'Sobald vermittelte oder verkaufte Tiere vorhanden sind, kannst du sie hier links auswählen und ihre Akten weiter einsehen.'
+            ? 'Sobald vermittelte oder verkaufte Tiere vorhanden sind, kannst du sie oben aus der Liste wählen und ihre Akten weiter einsehen.'
             : sectionState.key === 'resting'
               ? 'Sobald verstorbene Tiere vorhanden sind, erscheinen sie hier in der Ruhestätte und können weiter würdevoll eingesehen werden.'
-              : 'Wähle links ein Tier aus, um die Akte direkt in dieser Arbeitsansicht zu öffnen.' %>
+              : 'Wähle oben ein Tier aus der Liste, um die Akte direkt darunter zu öffnen.' %>
         </p>
       </div>
     </section>

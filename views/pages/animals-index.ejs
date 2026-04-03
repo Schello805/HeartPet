@@ -1,250 +1,269 @@
-<%- include('../partials/top', { pageTitle }) %>
+<% const sectionState = typeof animalSection !== 'undefined' ? animalSection : { key: 'active', workspaceTitle: 'Tierbestand', workspaceIntro: '', totalLabel: 'Einträge', allowStatusFilter: true }; %>
+<%- include('../partials/top', { pageTitle, pageClass: `animals-page animals-page--${sectionState.key}` }) %>
 <% const selectedAnimalState = typeof selectedAnimal !== 'undefined' ? selectedAnimal : null; %>
 <% const selectedAnimalViewState = typeof selectedAnimalView !== 'undefined' ? selectedAnimalView : null; %>
-<% const sectionState = typeof animalSection !== 'undefined' ? animalSection : { key: 'active', workspaceTitle: 'Tierbestand', workspaceIntro: '', totalLabel: 'Einträge', allowStatusFilter: true }; %>
 
 <% if (sectionState.key === 'resting') { %>
-<section class="panel resting-place-panel card border-0 shadow-sm">
-  <div class="resting-place-intro">
-    <p class="eyebrow">Ruhestätte</p>
-    <h2>In liebevoller Erinnerung</h2>
-    <p class="resting-place-copy">
-      Hier bleiben verstorbene Tiere mit ihrer Akte sichtbar. Die Ansicht ist bewusst ruhig gehalten und vom aktiven Bestand getrennt.
-    </p>
-  </div>
-
-  <% if (animals.length === 0) { %>
-    <section class="panel animals-empty-detail resting-place-empty card border-0 shadow-sm">
-      <div class="panel-head">
-        <h2>Ruhestätte</h2>
-      </div>
-      <div class="empty-state-card">
-        <strong>Noch keine Einträge</strong>
-        <p class="empty-state">Hier sind noch keine Tiere eingetragen.</p>
-        <small>Wenn ein Tier als verstorben markiert wird, bleibt seine Akte hier in einer ruhigeren, stilleren Ansicht erhalten.</small>
-      </div>
-    </section>
-  <% } else { %>
-    <div class="resting-place-grid">
-      <% animals.forEach((animal) => { %>
-        <a href="/animals/<%= animal.id %>" class="resting-place-card">
-          <div class="resting-place-image-wrap">
-            <% if (animal.profile_image_stored_name) { %>
-              <img class="resting-place-image" src="/media/<%= animal.profile_image_stored_name %>" alt="Profilbild von <%= animal.name %>" />
-            <% } else { %>
-              <div class="resting-place-image resting-place-image-fallback"><%= getAnimalInitial(animal.name) %></div>
-            <% } %>
-          </div>
-          <div class="resting-place-body">
-            <p class="eyebrow">In Erinnerung</p>
-            <h3><%= animal.name %></h3>
-            <p class="resting-place-meta"><%= animal.species_name || 'Tier' %><%= animal.breed ? ` · ${animal.breed}` : '' %></p>
-            <div class="resting-place-facts">
-              <div>
-                <span>Geboren</span>
-                <strong><%= formatDate(animal.birth_date) %></strong>
-              </div>
-              <div>
-                <span>Bei dir seit</span>
-                <strong><%= formatDate(animal.intake_date) %></strong>
-              </div>
-            </div>
-            <% if (animal.notes) { %>
-              <p class="resting-place-note"><%= animal.notes %></p>
-            <% } %>
-          </div>
-        </a>
-      <% }) %>
+<section class="card border-0">
+  <div class="card-body p-4">
+    <div class="mb-4">
+      <div class="text-uppercase small fw-semibold text-body-secondary mb-2">Ruhestätte</div>
+      <h2 class="h3 mb-2">In liebevoller Erinnerung</h2>
+      <p class="text-body-secondary mb-0">
+        Hier bleiben verstorbene Tiere mit ihrer Akte sichtbar. Die Ansicht ist bewusst ruhig gehalten und vom aktiven Bestand getrennt.
+      </p>
     </div>
-  <% } %>
-</section>
-<% } else { %>
-<section class="animals-workspace">
-  <aside class="animals-list-pane">
-    <section class="panel animals-list-summary card border-0 shadow-sm">
-      <div class="animals-list-summary-head">
-        <div>
-          <p class="eyebrow">Arbeitsansicht</p>
-          <h2><%= sectionState.workspaceTitle %></h2>
-          <% if (sectionState.workspaceIntro) { %>
-            <p class="table-sub"><%= sectionState.workspaceIntro %></p>
-          <% } %>
-        </div>
-        <span class="counter"><%= pagination.totalCount %> <%= sectionState.totalLabel %></span>
-      </div>
-      <div class="workspace-intro-strip">
-        <article class="workspace-intro-card">
-          <span>Was du hier machen kannst</span>
-          <strong>
-            <%= sectionState.key === 'history'
-              ? 'Frühere Akten in Ruhe nachverfolgen'
-              : 'Tiere auswählen und direkt in der Akte weiterarbeiten' %>
-          </strong>
-        </article>
-        <article class="workspace-intro-card">
-          <span>Fokus</span>
-          <strong>
-            <%= sectionState.key === 'history'
-              ? 'Vermittelte und verkaufte Tiere bleiben nachvollziehbar, ohne den aktiven Bestand zu stören'
-              : 'Aktive Tiere mit offenen Themen und nächsten Terminen' %>
-          </strong>
-        </article>
-      </div>
-      <div class="animals-summary-grid">
-        <article class="animals-summary-card">
-          <span>Aktuelle Auswahl</span>
-          <strong data-animals-selected-name><%= selectedAnimalState ? selectedAnimalState.name : 'Kein Tier' %></strong>
-          <small data-animals-selected-species><%= selectedAnimalState ? (selectedAnimalState.species_name || 'Tier') : 'Bitte links ein Tier auswählen' %></small>
-        </article>
-        <article class="animals-summary-card">
-          <span>Nächster Termin</span>
-          <strong data-animals-next-type><%= selectedAnimalState?.next_term?.type || 'Offen' %></strong>
-          <small data-animals-next-label><%= selectedAnimalState?.next_term?.displayLabel || 'Noch kein Termin hinterlegt' %></small>
-        </article>
-      </div>
-    </section>
 
-    <section class="panel animals-filter-panel card border-0 shadow-sm">
-      <div class="panel-head compact-panel-head">
-        <div>
-          <h2>Filtern und sortieren</h2>
-          <p class="panel-subtitle">Suche gezielt nach Tier, Tierart oder Arbeitsstatus.</p>
+    <% if (animals.length === 0) { %>
+      <div class="card border bg-body-tertiary-subtle">
+        <div class="card-body p-4">
+          <h3 class="h5 mb-2">Noch keine Einträge</h3>
+          <p class="text-body-secondary mb-1">Hier sind noch keine Tiere eingetragen.</p>
+          <div class="small text-body-secondary">Wenn ein Tier als verstorben markiert wird, bleibt seine Akte hier in einer ruhigeren, stilleren Ansicht erhalten.</div>
         </div>
       </div>
-      <form method="get" action="/animals" class="filter-row animals-filter-grid">
-        <label class="search-autocomplete-field full-width">
-          <span>Suche</span>
-          <input class="form-control" type="text" name="q" value="<%= filters.search %>" placeholder="Name, Herkunft, Rasse" data-global-search-autocomplete="true" />
-        </label>
-        <label>
-          <span>Status</span>
-          <select class="form-select" name="status">
-            <% if (sectionState.allowStatusFilter) { %>
-              <option value="">Alle</option>
-              <option value="Vermittelt" <%= filters.status === 'Vermittelt' ? 'selected' : '' %>>Vermittelt</option>
-              <option value="Verkauft" <%= filters.status === 'Verkauft' ? 'selected' : '' %>>Verkauft</option>
-            <% } else { %>
-              <option value="<%= filters.status || (sectionState.allowedStatuses ? sectionState.allowedStatuses[0] : 'Aktiv') %>" selected>
-                <%= filters.status || (sectionState.allowedStatuses ? sectionState.allowedStatuses[0] : 'Aktiv') %>
-              </option>
-            <% } %>
-          </select>
-        </label>
-        <label>
-          <span>Tierart</span>
-          <select class="form-select" name="species_id">
-            <option value="">Alle</option>
-            <% speciesOptions.forEach((item) => { %>
-              <option value="<%= item.id %>" <%= String(filters.speciesId || '') === String(item.id) ? 'selected' : '' %>><%= item.name %></option>
-            <% }) %>
-          </select>
-        </label>
-        <label class="full-width">
-          <span>Sortierung</span>
-          <select class="form-select" name="sort">
-            <option value="name_asc" <%= filters.sort === 'name_asc' ? 'selected' : '' %>>Name A-Z</option>
-            <option value="name_desc" <%= filters.sort === 'name_desc' ? 'selected' : '' %>>Name Z-A</option>
-            <option value="intake_desc" <%= filters.sort === 'intake_desc' ? 'selected' : '' %>>Aufnahme neu zuerst</option>
-            <option value="intake_asc" <%= filters.sort === 'intake_asc' ? 'selected' : '' %>>Aufnahme alt zuerst</option>
-            <option value="created_desc" <%= filters.sort === 'created_desc' ? 'selected' : '' %>>Zuletzt angelegt</option>
-            <option value="status_asc" <%= filters.sort === 'status_asc' ? 'selected' : '' %>>Status</option>
-            <option value="next_term_asc" <%= filters.sort === 'next_term_asc' ? 'selected' : '' %>>Nächster Termin</option>
-          </select>
-        </label>
-        <% if (selectedAnimalState) { %>
-          <input type="hidden" name="animal_id" value="<%= selectedAnimalState.id %>" />
-        <% } %>
-        <button type="submit" class="btn btn-success">Filtern</button>
-        <a href="<%= sectionState.key === 'history' ? '/animals/historie' : sectionState.key === 'resting' ? '/animals/ruhestaette' : '/animals' %>" class="btn btn-outline-secondary">Zurücksetzen</a>
-      </form>
-    </section>
-
-    <section class="panel animals-list-panel card border-0 shadow-sm">
-      <div class="panel-head">
-        <div>
-          <h2>Liste</h2>
-          <p class="panel-subtitle">Wähle links ein Tier und arbeite rechts direkt in der Akte weiter.</p>
-        </div>
-        <span class="counter"><%= animals.length %> sichtbar</span>
-      </div>
-
-      <% if (animals.length === 0) { %>
-        <div class="empty-state-card">
-          <strong>
-            <%= sectionState.key === 'history'
-              ? 'Noch keine historischen Einträge'
-              : sectionState.key === 'resting'
-                ? 'Noch keine Tiere in der Ruhestätte'
-                : 'Noch kein aktiver Bestand' %>
-          </strong>
-          <p class="empty-state">
-            <%= sectionState.key === 'history'
-              ? 'Sobald Tiere als vermittelt oder verkauft markiert werden, erscheinen sie hier gesammelt in der Historie.'
-              : sectionState.key === 'resting'
-                ? 'Noch keine Tiere in der Ruhestätte vorhanden.'
-                : 'Noch keine aktiven Tiere vorhanden. Lege dein erstes Tier über „Neues Tier“ an.' %>
-          </p>
-        </div>
-      <% } else { %>
-        <div class="animals-list-stack">
-          <% animals.forEach((animal) => { %>
-            <% const rowParams = new URLSearchParams(); %>
-            <% if (filters.search) rowParams.set('q', filters.search); %>
-            <% if (filters.status) rowParams.set('status', filters.status); %>
-            <% if (filters.speciesId) rowParams.set('species_id', filters.speciesId); %>
-            <% if (filters.sort) rowParams.set('sort', filters.sort); %>
-            <% if (pagination.currentPage > 1) rowParams.set('page', String(pagination.currentPage)); %>
-            <% rowParams.set('animal_id', String(animal.id)); %>
-            <a
-              href="/animals?<%= rowParams.toString() %>"
-              class="animal-list-entry <%= selectedAnimalState && String(selectedAnimalState.id) === String(animal.id) ? 'active' : '' %>"
-              data-animal-workspace-link="true"
-              data-no-soft-nav="true"
-              data-panel-url="/animals/<%= animal.id %>/workspace-panel?<%= rowParams.toString() %>"
-            >
-              <div class="animal-list-entry-main">
-                <div class="animal-list-cell">
-                  <% if (animal.profile_image_stored_name) { %>
-                    <img class="animal-thumb" src="/media/<%= animal.profile_image_stored_name %>" alt="Profilbild von <%= animal.name %>" />
-                  <% } else { %>
-                    <div class="animal-thumb animal-thumb-fallback"><%= getAnimalInitial(animal.name) %></div>
-                  <% } %>
-                  <div>
-                    <strong><%= animal.name %></strong>
-                    <div class="table-sub"><%= animal.species_name || '-' %> · <%= animal.breed || '-' %></div>
+    <% } else { %>
+      <div class="row g-3">
+        <% animals.forEach((animal) => { %>
+          <div class="col-md-6 col-xl-4">
+            <a href="/animals/<%= animal.id %>" class="card h-100 border text-decoration-none">
+              <% if (animal.profile_image_stored_name) { %>
+                <img class="card-img-top object-fit-cover" src="/media/<%= animal.profile_image_stored_name %>" alt="Profilbild von <%= animal.name %>" style="height: 220px;" />
+              <% } else { %>
+                <div class="card-img-top d-flex align-items-center justify-content-center bg-secondary-subtle fw-semibold fs-1" style="height: 220px;"><%= getAnimalInitial(animal.name) %></div>
+              <% } %>
+              <div class="card-body">
+                <div class="text-uppercase small fw-semibold text-body-secondary mb-2">In Erinnerung</div>
+                <h3 class="h4 mb-1"><%= animal.name %></h3>
+                <p class="text-body-secondary mb-3"><%= animal.species_name || 'Tier' %><%= animal.breed ? ` · ${animal.breed}` : '' %></p>
+                <div class="row g-3 small">
+                  <div class="col-6">
+                    <div class="text-body-secondary">Geboren</div>
+                    <div class="fw-semibold"><%= formatDate(animal.birth_date) %></div>
+                  </div>
+                  <div class="col-6">
+                    <div class="text-body-secondary">Bei dir seit</div>
+                    <div class="fw-semibold"><%= formatDate(animal.intake_date) %></div>
                   </div>
                 </div>
-                <span class="pill"><%= animal.status %></span>
-              </div>
-              <div class="animal-list-entry-meta">
-                <span><%= animal.veterinarian_name || 'Kein Tierarzt' %></span>
-                <% if (animal.next_term) { %>
-                  <strong><%= animal.next_term.type %></strong>
-                  <span><%= animal.next_term.displayLabel %></span>
-                <% } else { %>
-                  <span>Kein nächster Termin</span>
+                <% if (animal.notes) { %>
+                  <p class="mt-3 mb-0 small text-body-secondary"><%= animal.notes %></p>
                 <% } %>
               </div>
             </a>
-          <% }) %>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  </div>
+</section>
+<% } else { %>
+<div class="animals-workspace row g-3">
+  <div class="col-12">
+    <section class="card border-0">
+      <div class="card-body p-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+          <div>
+            <div class="text-uppercase small fw-semibold text-body-secondary mb-2">Arbeitsansicht</div>
+            <h2 class="h3 mb-2"><%= sectionState.workspaceTitle %></h2>
+            <p class="text-body-secondary mb-0">
+              <%= sectionState.workspaceIntro || 'Hier arbeitest du mit allen Tieren im aktuellen Tierbestand.' %>
+            </p>
+          </div>
+          <span class="badge text-bg-secondary-subtle border"><%= pagination.totalCount %> <%= sectionState.totalLabel %></span>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <div class="card border bg-body-tertiary-subtle h-100">
+              <div class="card-body">
+                <div class="small text-body-secondary mb-2">Aktuelle Auswahl</div>
+                <div class="fw-semibold" data-animals-selected-name><%= selectedAnimalState ? selectedAnimalState.name : 'Kein Tier' %></div>
+                <div class="small text-body-secondary" data-animals-selected-species><%= selectedAnimalState ? (selectedAnimalState.species_name || 'Tier') : 'Bitte unten ein Tier auswählen' %></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card border bg-body-tertiary-subtle h-100">
+              <div class="card-body">
+                <div class="small text-body-secondary mb-2">Nächster Termin</div>
+                <div class="fw-semibold" data-animals-next-type><%= selectedAnimalState?.next_term?.type || 'Offen' %></div>
+                <div class="small text-body-secondary" data-animals-next-label><%= selectedAnimalState?.next_term?.displayLabel || 'Noch kein Termin hinterlegt' %></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card border bg-body-tertiary-subtle h-100">
+              <div class="card-body">
+                <div class="small text-body-secondary mb-2">Arbeitsweise</div>
+                <div class="fw-semibold">Oben wählen</div>
+                <div class="small text-body-secondary">Danach erscheint die komplette Akte direkt darunter.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="col-12">
+    <section class="card border-0">
+      <div class="card-body p-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+          <div>
+            <h2 class="h4 mb-1">Filter und Auswahl</h2>
+            <p class="text-body-secondary mb-0">Suche in der Liste und öffne danach genau eine Akte direkt unterhalb.</p>
+          </div>
+        </div>
+        <form method="get" action="/animals" class="row g-3 align-items-end">
+          <div class="col-lg-4">
+            <label class="form-label">Suche</label>
+            <div class="search-autocomplete-field">
+              <input class="form-control" type="text" name="q" value="<%= filters.search %>" placeholder="Name, Herkunft, Rasse" data-global-search-autocomplete="true" />
+            </div>
+          </div>
+          <div class="col-sm-6 col-lg-2">
+            <label class="form-label">Status</label>
+            <select class="form-select" name="status">
+              <% if (sectionState.allowStatusFilter) { %>
+                <option value="">Alle</option>
+                <option value="Vermittelt" <%= filters.status === 'Vermittelt' ? 'selected' : '' %>>Vermittelt</option>
+                <option value="Verkauft" <%= filters.status === 'Verkauft' ? 'selected' : '' %>>Verkauft</option>
+              <% } else { %>
+                <option value="<%= filters.status || (sectionState.allowedStatuses ? sectionState.allowedStatuses[0] : 'Aktiv') %>" selected>
+                  <%= filters.status || (sectionState.allowedStatuses ? sectionState.allowedStatuses[0] : 'Aktiv') %>
+                </option>
+              <% } %>
+            </select>
+          </div>
+          <div class="col-sm-6 col-lg-2">
+            <label class="form-label">Tierart</label>
+            <select class="form-select" name="species_id">
+              <option value="">Alle</option>
+              <% speciesOptions.forEach((item) => { %>
+                <option value="<%= item.id %>" <%= String(filters.speciesId || '') === String(item.id) ? 'selected' : '' %>><%= item.name %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="col-lg-2">
+            <label class="form-label">Sortierung</label>
+            <select class="form-select" name="sort">
+              <option value="name_asc" <%= filters.sort === 'name_asc' ? 'selected' : '' %>>Name A-Z</option>
+              <option value="name_desc" <%= filters.sort === 'name_desc' ? 'selected' : '' %>>Name Z-A</option>
+              <option value="intake_desc" <%= filters.sort === 'intake_desc' ? 'selected' : '' %>>Aufnahme neu zuerst</option>
+              <option value="intake_asc" <%= filters.sort === 'intake_asc' ? 'selected' : '' %>>Aufnahme alt zuerst</option>
+              <option value="created_desc" <%= filters.sort === 'created_desc' ? 'selected' : '' %>>Zuletzt angelegt</option>
+              <option value="status_asc" <%= filters.sort === 'status_asc' ? 'selected' : '' %>>Status</option>
+              <option value="next_term_asc" <%= filters.sort === 'next_term_asc' ? 'selected' : '' %>>Nächster Termin</option>
+            </select>
+          </div>
+          <% if (selectedAnimalState) { %>
+            <input type="hidden" name="animal_id" value="<%= selectedAnimalState.id %>" />
+          <% } %>
+          <div class="col-lg-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-fill">Filtern</button>
+            <a href="<%= sectionState.key === 'history' ? '/animals/historie' : sectionState.key === 'resting' ? '/animals/ruhestaette' : '/animals' %>" class="btn btn-outline-secondary">Zurücksetzen</a>
+          </div>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <div class="col-12">
+    <section class="card border-0">
+      <div class="card-body p-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+          <div>
+            <h2 class="h4 mb-1">Tierliste</h2>
+            <p class="text-body-secondary mb-0">Wähle ein Tier aus der Liste. Die Akte darunter wird direkt aktualisiert.</p>
+          </div>
+          <span class="badge text-bg-secondary-subtle border"><%= animals.length %> sichtbar</span>
         </div>
 
-        <% if (pagination.totalPages > 1) { %>
-          <nav class="pagination-row">
-            <% for (let page = 1; page <= pagination.totalPages; page += 1) { %>
-              <% const url = `/animals?q=${encodeURIComponent(filters.search || '')}&status=${encodeURIComponent(filters.status || '')}&species_id=${encodeURIComponent(filters.speciesId || '')}&sort=${encodeURIComponent(filters.sort || 'name_asc')}&page=${page}${selectedAnimalState ? `&animal_id=${selectedAnimalState.id}` : ''}`; %>
-              <a href="<%= url %>" class="pagination-link <%= page === pagination.currentPage ? 'active' : '' %>"><%= page %></a>
-            <% } %>
-          </nav>
-        <% } %>
-      <% } %>
-    </section>
-  </aside>
+        <% if (animals.length === 0) { %>
+          <div class="card border bg-body-tertiary-subtle">
+            <div class="card-body">
+              <h3 class="h6 mb-2">
+                <%= sectionState.key === 'history'
+                  ? 'Noch keine historischen Einträge'
+                  : sectionState.key === 'resting'
+                    ? 'Noch keine Tiere in der Ruhestätte'
+                    : 'Noch kein aktiver Bestand' %>
+              </h3>
+              <p class="text-body-secondary mb-0">
+                <%= sectionState.key === 'history'
+                  ? 'Sobald Tiere als vermittelt oder verkauft markiert werden, erscheinen sie hier gesammelt in der Historie.'
+                  : sectionState.key === 'resting'
+                    ? 'Noch keine Tiere in der Ruhestätte vorhanden.'
+                    : 'Noch keine aktiven Tiere vorhanden. Lege dein erstes Tier über „Neues Tier“ an.' %>
+              </p>
+            </div>
+          </div>
+        <% } else { %>
+          <div class="list-group">
+            <% animals.forEach((animal) => { %>
+              <% const rowParams = new URLSearchParams(); %>
+              <% if (filters.search) rowParams.set('q', filters.search); %>
+              <% if (filters.status) rowParams.set('status', filters.status); %>
+              <% if (filters.speciesId) rowParams.set('species_id', filters.speciesId); %>
+              <% if (filters.sort) rowParams.set('sort', filters.sort); %>
+              <% if (pagination.currentPage > 1) rowParams.set('page', String(pagination.currentPage)); %>
+              <% rowParams.set('animal_id', String(animal.id)); %>
+              <a
+                href="/animals?<%= rowParams.toString() %>"
+                class="list-group-item list-group-item-action bg-transparent px-3 py-3 <%= selectedAnimalState && String(selectedAnimalState.id) === String(animal.id) ? 'active' : '' %>"
+                data-animal-workspace-link="true"
+                data-no-soft-nav="true"
+                data-panel-url="/animals/<%= animal.id %>/workspace-panel?<%= rowParams.toString() %>"
+              >
+                <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+                  <div class="d-flex gap-3 align-items-center">
+                    <% if (animal.profile_image_stored_name) { %>
+                      <img class="rounded object-fit-cover" src="/media/<%= animal.profile_image_stored_name %>" alt="Profilbild von <%= animal.name %>" width="56" height="56" />
+                    <% } else { %>
+                      <div class="rounded bg-secondary-subtle d-flex align-items-center justify-content-center fw-semibold" style="width:56px;height:56px;"><%= getAnimalInitial(animal.name) %></div>
+                    <% } %>
+                    <div>
+                      <div class="fw-semibold"><%= animal.name %></div>
+                      <div class="small text-body-secondary"><%= animal.species_name || '-' %> · <%= animal.breed || '-' %></div>
+                    </div>
+                  </div>
+                  <div class="text-lg-end">
+                    <div class="small text-body-secondary"><%= animal.veterinarian_name || 'Kein Tierarzt' %></div>
+                    <% if (animal.next_term) { %>
+                      <div class="fw-semibold"><%= animal.next_term.type %></div>
+                      <div class="small text-body-secondary"><%= animal.next_term.displayLabel %></div>
+                    <% } else { %>
+                      <div class="small text-body-secondary">Kein nächster Termin</div>
+                    <% } %>
+                  </div>
+                </div>
+              </a>
+            <% }) %>
+          </div>
 
-  <section class="animals-detail-pane" data-animal-workspace-target>
-    <%- include('./animal-workspace-detail', { selectedAnimal: selectedAnimalState, selectedAnimalView: selectedAnimalViewState, animalSection: sectionState }) %>
-  </section>
-</section>
+          <% if (pagination.totalPages > 1) { %>
+            <nav class="mt-3">
+              <ul class="pagination pagination-sm mb-0">
+                <% for (let page = 1; page <= pagination.totalPages; page += 1) { %>
+                  <% const url = `/animals?q=${encodeURIComponent(filters.search || '')}&status=${encodeURIComponent(filters.status || '')}&species_id=${encodeURIComponent(filters.speciesId || '')}&sort=${encodeURIComponent(filters.sort || 'name_asc')}&page=${page}${selectedAnimalState ? `&animal_id=${selectedAnimalState.id}` : ''}`; %>
+                  <li class="page-item <%= page === pagination.currentPage ? 'active' : '' %>">
+                    <a href="<%= url %>" class="page-link"><%= page %></a>
+                  </li>
+                <% } %>
+              </ul>
+            </nav>
+          <% } %>
+        <% } %>
+      </div>
+    </section>
+  </div>
+
+  <div class="col-12">
+    <section data-animal-workspace-target>
+      <%- include('./animal-workspace-detail', { selectedAnimal: selectedAnimalState, selectedAnimalView: selectedAnimalViewState, animalSection: sectionState }) %>
+    </section>
+  </div>
+</div>
 <% } %>
 
 <%- include('../partials/bottom') %>

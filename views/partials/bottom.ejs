@@ -16,14 +16,14 @@
 
       <nav class="navbar app-mobile-tabbar fixed-bottom d-lg-none border-top" aria-label="Mobile Navigation">
         <div class="container-fluid px-2">
-          <div class="nav nav-pills nav-fill w-100 app-mobile-tabbar-nav">
-            <a class="nav-link <%= currentPath === '/' ? 'active' : '' %>" href="/">Dashboard</a>
-            <a class="nav-link <%= currentPath.startsWith('/animals') ? 'active' : '' %>" href="/animals">Tiere</a>
+          <div class="nav nav-pills nav-fill w-100 gap-1">
+            <a class="nav-link rounded-2 <%= currentPath === '/' ? 'active' : '' %>" href="/">Dashboard</a>
+            <a class="nav-link rounded-2 <%= currentPath.startsWith('/animals') ? 'active' : '' %>" href="/animals">Tiere</a>
             <% if (permissions.canManageAdmin) { %>
-              <a class="nav-link <%= currentPath.startsWith('/admin') ? 'active' : '' %>" href="/admin/allgemein">Verwaltung</a>
+              <a class="nav-link rounded-2 <%= currentPath.startsWith('/admin') ? 'active' : '' %>" href="/admin/allgemein">Verwaltung</a>
             <% } %>
-            <a class="nav-link <%= currentPath === '/hilfe' ? 'active' : '' %>" href="/hilfe">Hilfe</a>
-            <button type="button" class="nav-link" data-bs-toggle="offcanvas" data-bs-target="#mobileNavOffcanvas" aria-controls="mobileNavOffcanvas">Mehr</button>
+            <a class="nav-link rounded-2 <%= currentPath === '/hilfe' ? 'active' : '' %>" href="/hilfe">Hilfe</a>
+            <button type="button" class="nav-link rounded-2" data-bs-toggle="offcanvas" data-bs-target="#mobileNavOffcanvas" aria-controls="mobileNavOffcanvas">Mehr</button>
           </div>
         </div>
       </nav>

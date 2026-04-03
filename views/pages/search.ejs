@@ -1,35 +1,45 @@
 <%- include('../partials/top', { pageTitle }) %>
 
-<section class="panel">
-  <form method="get" action="/suche" class="filter-row">
-    <label>
-      <span>Suchbegriff</span>
-      <input type="text" name="q" value="<%= search.q %>" placeholder="Name, Dokument, Ereignis ..." />
-    </label>
-    <label>
-      <span>Bereich</span>
-      <select name="scope">
+<section class="card border-0 shadow-sm">
+  <div class="card-body">
+    <form method="get" action="/suche" class="row g-3 align-items-end">
+      <div class="col-md-7">
+        <label class="form-label" for="search-query">Suchbegriff</label>
+        <input class="form-control" id="search-query" type="text" name="q" value="<%= search.q %>" placeholder="Name, Dokument, Ereignis ..." />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="search-scope">Bereich</label>
+        <select class="form-select" id="search-scope" name="scope">
         <option value="all" <%= search.scope === 'all' ? 'selected' : '' %>>Alles</option>
         <option value="animals" <%= search.scope === 'animals' ? 'selected' : '' %>>Tiere</option>
         <option value="documents" <%= search.scope === 'documents' ? 'selected' : '' %>>Dokumente</option>
         <option value="events" <%= search.scope === 'events' ? 'selected' : '' %>>Ereignisse</option>
-      </select>
-    </label>
-    <button type="submit" class="button">Suchen</button>
-    <a href="/suche" class="button button-secondary">Zurücksetzen</a>
-  </form>
+        </select>
+      </div>
+      <div class="col-md-2 d-flex flex-wrap gap-2">
+        <button type="submit" class="btn btn-primary">Suchen</button>
+        <a href="/suche" class="btn btn-outline-secondary">Zurücksetzen</a>
+      </div>
+    </form>
+  </div>
 </section>
 
 <% if (!search.searchable) { %>
-  <section class="panel">
-    <div class="empty-state-card">
+  <section class="card border-0 shadow-sm">
+    <div class="card-body">
+      <div class="empty-state-card">
       <strong>Suche starten</strong>
       <p class="empty-state">Bitte gib mindestens 2 Zeichen ein.</p>
+      </div>
     </div>
   </section>
 <% } else { %>
-  <section class="panel">
-    <div class="panel-head"><h2>Tiere</h2><span class="counter"><%= results.animals.length %></span></div>
+  <section class="card border-0 shadow-sm">
+    <div class="card-body">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <h2 class="h4 mb-0">Tiere</h2>
+        <span class="badge text-bg-secondary"><%= results.animals.length %></span>
+      </div>
     <% if (!results.animals.length) { %>
       <div class="empty-state-card">
         <strong>Keine Treffer bei Tieren</strong>
@@ -47,10 +57,15 @@
         <% }) %>
       </div>
     <% } %>
+    </div>
   </section>
 
-  <section class="panel">
-    <div class="panel-head"><h2>Dokumente</h2><span class="counter"><%= results.documents.length %></span></div>
+  <section class="card border-0 shadow-sm">
+    <div class="card-body">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <h2 class="h4 mb-0">Dokumente</h2>
+        <span class="badge text-bg-secondary"><%= results.documents.length %></span>
+      </div>
     <% if (!results.documents.length) { %>
       <div class="empty-state-card">
         <strong>Keine Treffer bei Dokumenten</strong>
@@ -69,10 +84,15 @@
         <% }) %>
       </div>
     <% } %>
+    </div>
   </section>
 
-  <section class="panel">
-    <div class="panel-head"><h2>Ereignisse / Erinnerungen</h2><span class="counter"><%= results.events.length %></span></div>
+  <section class="card border-0 shadow-sm">
+    <div class="card-body">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <h2 class="h4 mb-0">Ereignisse / Erinnerungen</h2>
+        <span class="badge text-bg-secondary"><%= results.events.length %></span>
+      </div>
     <% if (!results.events.length) { %>
       <div class="empty-state-card">
         <strong>Keine Treffer bei Ereignissen</strong>
@@ -91,6 +111,7 @@
         <% }) %>
       </div>
     <% } %>
+    </div>
   </section>
 <% } %>
 

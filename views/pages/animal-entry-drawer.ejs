@@ -13,379 +13,430 @@
   const defaultReturnTo = returnTo || `/animals/${animal.id}`;
 %>
 
-<section class="panel drawer-fragment" data-drawer-fragment="animal-entry" data-drawer-title="<%= pageTitle %>">
-  <div class="panel-head">
-    <h2><%= pageTitle %></h2>
-    <p><%= animal.name %> · <%= animal.species_name || 'Tier' %></p>
-  </div>
-  <% const drawerHelpText = isEvent
-    ? 'Über dieses Formular erfasst du medizinische Ereignisse, Arzttermine oder freie Erinnerungen direkt in der Akte.'
-    : isCondition
-      ? 'Hier dokumentierst du bekannte Vorerkrankungen oder dauerhafte gesundheitliche Besonderheiten.'
-      : isFeeding
-        ? 'Nutze diesen Bereich für wiederkehrende Fütterungen, feste Uhrzeiten und kurze Hinweise zur Versorgung.'
-        : isNote
-          ? 'Protokolle eignen sich für Beobachtungen, Übergaben, Vorfälle oder alles, was später nachvollziehbar bleiben soll.'
-          : isMedication
-            ? 'Passe hier laufende Medikamentengaben an, wenn sich Name, Zeitraum oder Hinweise geändert haben.'
-            : isVaccination
-              ? 'Hier pflegst du Impfdaten und die nächste Fälligkeit. Erledigte Impfungen bleiben damit sauber nachvollziehbar.'
-              : isAppointment
-                ? 'Arzttermine helfen dir, Besuche in der Praxis oder Vor-Ort-Termine sauber zu planen und später wiederzufinden.'
-                : isReminder
-                  ? 'Freie Erinnerungen sind für alles gedacht, was nicht direkt Medikament, Impfung oder Termin ist.'
-                  : isDocument
-                    ? 'Dokumente und Nachweise bleiben hier direkt am Tier. Mit einer Kategorie findest du sie später schneller wieder.'
-                    : isImage
-                      ? 'Bilder kannst du hier als zusätzliche Fotos zur Tierakte hochladen, getrennt vom Profilbild.'
-                      : ''; %>
-  <% if (drawerHelpText) { %>
-    <p class="compact-note"><%= drawerHelpText %></p>
-  <% } %>
+<section class="drawer-fragment card border-0 bg-body-tertiary" data-drawer-fragment="animal-entry" data-drawer-title="<%= pageTitle %>">
+  <div class="card-body">
+    <div class="mb-4">
+      <h2 class="h4 mb-1"><%= pageTitle %></h2>
+      <p class="text-body-secondary mb-0"><%= animal.name %> · <%= animal.species_name || 'Tier' %></p>
+    </div>
 
-  <% if (isEvent) { %>
-    <form method="post" action="/animals/<%= animal.id %>/events" class="stack form-compact event-form" data-drawer-form="animal-entry" data-event-form>
-      <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
-      <div class="form-grid event-grid event-grid-row-1">
-        <label>
-          <span>Typ</span>
-          <select name="event_kind" required data-event-kind-select title="Wähle hier, was du erfassen möchtest. Das Formular passt sich danach an.">
-            <% if (permissions.canManageHealth) { %>
-              <option value="medication">Medikament</option>
-              <option value="vaccination">Impfung</option>
-              <option value="appointment">Arzttermin</option>
-            <% } %>
-            <% if (permissions.canManageReminders) { %>
-              <option value="reminder">Freie Erinnerung</option>
-            <% } %>
-          </select>
-        </label>
-        <label>
-          <span>Bezeichnung</span>
-          <input type="text" name="title" required placeholder="z. B. Wurmkur, Tollwut, Nachkontrolle" />
-        </label>
-      </div>
+    <% const drawerHelpText = isEvent
+      ? 'Über dieses Formular erfasst du medizinische Ereignisse, Arzttermine oder freie Erinnerungen direkt in der Akte.'
+      : isCondition
+        ? 'Hier dokumentierst du bekannte Vorerkrankungen oder dauerhafte gesundheitliche Besonderheiten.'
+        : isFeeding
+          ? 'Nutze diesen Bereich für wiederkehrende Fütterungen, feste Uhrzeiten und kurze Hinweise zur Versorgung.'
+          : isNote
+            ? 'Protokolle eignen sich für Beobachtungen, Übergaben, Vorfälle oder alles, was später nachvollziehbar bleiben soll.'
+            : isMedication
+              ? 'Passe hier laufende Medikamentengaben an, wenn sich Name, Zeitraum oder Hinweise geändert haben.'
+              : isVaccination
+                ? 'Hier pflegst du Impfdaten und die nächste Fälligkeit. Erledigte Impfungen bleiben damit sauber nachvollziehbar.'
+                : isAppointment
+                  ? 'Arzttermine helfen dir, Besuche in der Praxis oder Vor-Ort-Termine sauber zu planen und später wiederzufinden.'
+                  : isReminder
+                    ? 'Freie Erinnerungen sind für alles gedacht, was nicht direkt Medikament, Impfung oder Termin ist.'
+                    : isDocument
+                      ? 'Dokumente und Nachweise bleiben hier direkt am Tier. Mit einer Kategorie findest du sie später schneller wieder.'
+                      : isImage
+                        ? 'Bilder kannst du hier als zusätzliche Fotos zur Tierakte hochladen, getrennt vom Profilbild.'
+                        : ''; %>
+    <% if (drawerHelpText) { %>
+      <p class="text-body-secondary mb-4"><%= drawerHelpText %></p>
+    <% } %>
 
-      <div class="form-grid event-grid event-grid-row-2">
-        <label>
-          <span>Datum</span>
-          <input type="date" name="event_date" required data-event-date />
-        </label>
-        <label data-event-time-wrap>
-          <span>Uhrzeit</span>
-          <input type="time" name="event_time" data-event-time />
-        </label>
-      </div>
-
-      <div class="form-grid event-grid event-grid-row-3">
-        <div data-veterinarian-fields hidden>
-          <label>
-            <span>Tierarzt</span>
-            <select name="veterinarian_id">
-              <option value="">Tierarzt auswählen</option>
-              <% veterinarians.forEach((vet) => { %>
-                <option value="<%= vet.id %>"><%= vet.name %></option>
-              <% }) %>
-            </select>
-          </label>
+    <% if (isEvent) { %>
+      <form method="post" action="/animals/<%= animal.id %>/events" class="vstack gap-4 event-form" data-drawer-form="animal-entry" data-event-form>
+        <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
+        <section class="card border bg-body">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label" for="event-kind">Typ</label>
+                <select class="form-select" id="event-kind" name="event_kind" required data-event-kind-select title="Wähle hier, was du erfassen möchtest. Das Formular passt sich danach an.">
+                  <% if (permissions.canManageHealth) { %>
+                    <option value="medication">Medikament</option>
+                    <option value="vaccination">Impfung</option>
+                    <option value="appointment">Arzttermin</option>
+                  <% } %>
+                  <% if (permissions.canManageReminders) { %>
+                    <option value="reminder">Freie Erinnerung</option>
+                  <% } %>
+                </select>
+              </div>
+              <div class="col-md-8">
+                <label class="form-label" for="event-title">Bezeichnung</label>
+                <input class="form-control" id="event-title" type="text" name="title" required placeholder="z. B. Wurmkur, Tollwut, Nachkontrolle" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="event-date">Datum</label>
+                <input class="form-control" id="event-date" type="date" name="event_date" required data-event-date />
+              </div>
+              <div class="col-md-6" data-event-time-wrap>
+                <label class="form-label" for="event-time">Uhrzeit</label>
+                <input class="form-control" id="event-time" type="time" name="event_time" data-event-time />
+              </div>
+              <div class="col-md-6" data-veterinarian-fields hidden>
+                <label class="form-label" for="event-vet">Tierarzt</label>
+                <select class="form-select" id="event-vet" name="veterinarian_id">
+                  <option value="">Tierarzt auswählen</option>
+                  <% veterinarians.forEach((vet) => { %>
+                    <option value="<%= vet.id %>"><%= vet.name %></option>
+                  <% }) %>
+                </select>
+              </div>
+              <div class="col-12">
+                <div class="row g-3">
+                  <div class="col-sm-auto">
+                    <div class="form-check">
+                      <input class="form-check-input" id="event-by-vet" type="checkbox" name="handled_by_veterinarian" value="1" data-handled-by-vet />
+                      <label class="form-check-label" for="event-by-vet">Durch Tierarzt</label>
+                    </div>
+                  </div>
+                  <div class="col-sm-auto" data-reminder-inline-wrap>
+                    <div class="form-check">
+                      <input class="form-check-input" id="event-reminder" type="checkbox" name="create_reminder" value="1" data-create-reminder />
+                      <label class="form-check-label" for="event-reminder">Erinnern</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="event-notes">Bemerkung (optional)</label>
+                <textarea class="form-control" id="event-notes" name="notes" rows="3" placeholder="Optionaler Hinweis"></textarea>
+              </div>
+            </div>
+          </div>
+        </section>
+        <div class="d-flex flex-wrap gap-2 pt-2 border-top">
+          <button type="submit" class="btn btn-success">Ereignis speichern</button>
+          <button type="button" class="btn btn-outline-secondary" data-drawer-close>Abbrechen</button>
         </div>
-        <label class="checkbox-line subtle-toggle compact-toggle">
-          <input type="checkbox" name="handled_by_veterinarian" value="1" data-handled-by-vet />
-          <span>Durch Tierarzt</span>
-        </label>
-        <label class="checkbox-line subtle-toggle compact-toggle" data-reminder-inline-wrap>
-          <input type="checkbox" name="create_reminder" value="1" data-create-reminder />
-          <span>Erinnern</span>
-        </label>
-      </div>
+      </form>
+    <% } %>
 
-      <label>
-        <span>Bemerkung (optional)</span>
-        <textarea name="notes" rows="3" placeholder="Optionaler Hinweis"></textarea>
-      </label>
+    <% if (isCondition) { %>
+      <form method="post" action="<%= isEdit ? `/animals/${animal.id}/conditions/${item.id}/update` : `/animals/${animal.id}/conditions` %>" class="vstack gap-4" data-drawer-form="animal-entry">
+        <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
+        <section class="card border bg-body">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label" for="condition-title">Bezeichnung</label>
+                <input class="form-control" id="condition-title" type="text" name="title" required value="<%= item?.title || '' %>" />
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="condition-details">Beschreibung</label>
+                <textarea class="form-control" id="condition-details" name="details" rows="4"><%= item?.details || '' %></textarea>
+              </div>
+            </div>
+          </div>
+        </section>
+        <p class="text-body-secondary small mb-0">Hilfreich sind z. B. Diagnose, Auffälligkeiten, bekannte Einschränkungen oder wichtige Rückfragen für spätere Arzttermine.</p>
+        <div class="d-flex flex-wrap gap-2 pt-2 border-top">
+          <button type="submit" class="btn btn-success"><%= isEdit ? 'Vorerkrankung speichern' : 'Vorerkrankung anlegen' %></button>
+          <button type="button" class="btn btn-outline-secondary" data-drawer-close>Abbrechen</button>
+        </div>
+      </form>
+    <% } %>
 
-      <div class="button-row">
-        <button type="submit" class="button">Ereignis speichern</button>
-        <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
-      </div>
-    </form>
-  <% } %>
+    <% if (isFeeding) { %>
+      <form method="post" action="<%= isEdit ? `/animals/${animal.id}/feedings/${item.id}/update` : `/animals/${animal.id}/feedings` %>" class="vstack gap-4" data-drawer-form="animal-entry">
+        <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
+        <section class="card border bg-body">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label" for="feeding-label">Bezeichnung</label>
+                <input class="form-control" id="feeding-label" type="text" name="label" required value="<%= item?.label || '' %>" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="feeding-time">Uhrzeit</label>
+                <input class="form-control" id="feeding-time" type="time" name="time_of_day" value="<%= item?.time_of_day || '' %>" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="feeding-food">Futter</label>
+                <input class="form-control" id="feeding-food" type="text" name="food" value="<%= item?.food || '' %>" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="feeding-amount">Menge</label>
+                <input class="form-control" id="feeding-amount" type="text" name="amount" value="<%= item?.amount || '' %>" />
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="feeding-notes">Notizen</label>
+                <textarea class="form-control" id="feeding-notes" name="notes" rows="3"><%= item?.notes || '' %></textarea>
+              </div>
+            </div>
+          </div>
+        </section>
+        <p class="text-body-secondary small mb-0">Wenn du möchtest, kannst du hier z. B. Futtersorte, Zubereitung, Verträglichkeit oder besondere Hinweise für Helfer notieren.</p>
+        <div class="d-flex flex-wrap gap-2 pt-2 border-top">
+          <button type="submit" class="btn btn-success"><%= isEdit ? 'Fütterung speichern' : 'Fütterung anlegen' %></button>
+          <button type="button" class="btn btn-outline-secondary" data-drawer-close>Abbrechen</button>
+        </div>
+      </form>
+    <% } %>
 
-  <% if (isCondition) { %>
-    <form method="post" action="<%= isEdit ? `/animals/${animal.id}/conditions/${item.id}/update` : `/animals/${animal.id}/conditions` %>" class="stack form-compact" data-drawer-form="animal-entry">
-      <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
-      <label>
-        <span>Bezeichnung</span>
-        <input type="text" name="title" required value="<%= item?.title || '' %>" />
-      </label>
-      <label>
-        <span>Beschreibung</span>
-        <textarea name="details" rows="4"><%= item?.details || '' %></textarea>
-      </label>
-      <small class="compact-note">Hilfreich sind z. B. Diagnose, Auffälligkeiten, bekannte Einschränkungen oder wichtige Rückfragen für spätere Arzttermine.</small>
-      <div class="button-row">
-        <button type="submit" class="button"><%= isEdit ? 'Vorerkrankung speichern' : 'Vorerkrankung anlegen' %></button>
-        <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
-      </div>
-    </form>
-  <% } %>
+    <% if (isNote) { %>
+      <form method="post" action="<%= isEdit ? `/animals/${animal.id}/notes/${item.id}/update` : `/animals/${animal.id}/notes` %>" class="vstack gap-4" data-drawer-form="animal-entry">
+        <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
+        <section class="card border bg-body">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label" for="note-title">Titel</label>
+                <input class="form-control" id="note-title" type="text" name="title" required value="<%= item?.title || '' %>" />
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="note-content">Inhalt</label>
+                <textarea class="form-control" id="note-content" name="content" rows="5" required><%= item?.content || '' %></textarea>
+              </div>
+            </div>
+          </div>
+        </section>
+        <p class="text-body-secondary small mb-0">Halte hier fest, was später nachvollziehbar bleiben soll, zum Beispiel Beobachtungen, Übergaben oder kurze Tagesprotokolle.</p>
+        <div class="d-flex flex-wrap gap-2 pt-2 border-top">
+          <button type="submit" class="btn btn-success"><%= isEdit ? 'Protokoll speichern' : 'Protokoll anlegen' %></button>
+          <button type="button" class="btn btn-outline-secondary" data-drawer-close>Abbrechen</button>
+        </div>
+      </form>
+    <% } %>
 
-  <% if (isFeeding) { %>
-    <form method="post" action="<%= isEdit ? `/animals/${animal.id}/feedings/${item.id}/update` : `/animals/${animal.id}/feedings` %>" class="stack form-compact" data-drawer-form="animal-entry">
-      <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
-      <div class="mini-grid">
-        <label>
-          <span>Bezeichnung</span>
-          <input type="text" name="label" required value="<%= item?.label || '' %>" />
-        </label>
-        <label>
-          <span>Uhrzeit</span>
-          <input type="time" name="time_of_day" value="<%= item?.time_of_day || '' %>" />
-        </label>
-      </div>
-      <div class="mini-grid">
-        <label>
-          <span>Futter</span>
-          <input type="text" name="food" value="<%= item?.food || '' %>" />
-        </label>
-        <label>
-          <span>Menge</span>
-          <input type="text" name="amount" value="<%= item?.amount || '' %>" />
-        </label>
-      </div>
-      <label>
-        <span>Notizen</span>
-        <textarea name="notes" rows="3"><%= item?.notes || '' %></textarea>
-      </label>
-      <small class="compact-note">Wenn du möchtest, kannst du hier z. B. Futtersorte, Zubereitung, Verträglichkeit oder besondere Hinweise für Helfer notieren.</small>
-      <div class="button-row">
-        <button type="submit" class="button"><%= isEdit ? 'Fütterung speichern' : 'Fütterung anlegen' %></button>
-        <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
-      </div>
-    </form>
-  <% } %>
+    <% if (isMedication) { %>
+      <form method="post" action="/animals/<%= animal.id %>/medications/<%= item.id %>/update" class="vstack gap-4" data-drawer-form="animal-entry">
+        <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
+        <section class="card border bg-body">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label" for="medication-name">Name</label>
+                <input class="form-control" id="medication-name" type="text" name="name" required value="<%= item?.name || '' %>" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="medication-dosage">Dosis</label>
+                <input class="form-control" id="medication-dosage" type="text" name="dosage" value="<%= item?.dosage || '' %>" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="medication-schedule">Plan</label>
+                <input class="form-control" id="medication-schedule" type="text" name="schedule" value="<%= item?.schedule || '' %>" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="medication-start">Startdatum</label>
+                <input class="form-control" id="medication-start" type="date" name="start_date" value="<%= item?.start_date || '' %>" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="medication-end">Enddatum</label>
+                <input class="form-control" id="medication-end" type="date" name="end_date" value="<%= item?.end_date || '' %>" />
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="medication-notes">Notizen</label>
+                <textarea class="form-control" id="medication-notes" name="notes" rows="4"><%= item?.notes || '' %></textarea>
+              </div>
+            </div>
+          </div>
+        </section>
+        <p class="text-body-secondary small mb-0">Wenn du hier nichts weiter einträgst, reicht oft schon der Name. Zusätzliche Hinweise helfen vor allem bei längeren Behandlungen.</p>
+        <div class="d-flex flex-wrap gap-2 pt-2 border-top">
+          <button type="submit" class="btn btn-success">Medikament speichern</button>
+          <button type="button" class="btn btn-outline-secondary" data-drawer-close>Abbrechen</button>
+        </div>
+      </form>
+    <% } %>
 
-  <% if (isNote) { %>
-    <form method="post" action="<%= isEdit ? `/animals/${animal.id}/notes/${item.id}/update` : `/animals/${animal.id}/notes` %>" class="stack form-compact" data-drawer-form="animal-entry">
-      <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
-      <label>
-        <span>Titel</span>
-        <input type="text" name="title" required value="<%= item?.title || '' %>" />
-      </label>
-      <label>
-        <span>Inhalt</span>
-        <textarea name="content" rows="5" required><%= item?.content || '' %></textarea>
-      </label>
-      <small class="compact-note">Halte hier fest, was später nachvollziehbar bleiben soll, zum Beispiel Beobachtungen, Übergaben oder kurze Tagesprotokolle.</small>
-      <div class="button-row">
-        <button type="submit" class="button"><%= isEdit ? 'Protokoll speichern' : 'Protokoll anlegen' %></button>
-        <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
-      </div>
-    </form>
-  <% } %>
+    <% if (isVaccination) { %>
+      <form method="post" action="/animals/<%= animal.id %>/vaccinations/<%= item.id %>/update" class="vstack gap-4" data-drawer-form="animal-entry">
+        <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
+        <section class="card border bg-body">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label" for="vaccination-name">Impfung</label>
+                <input class="form-control" id="vaccination-name" type="text" name="name" required value="<%= item?.name || '' %>" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="vaccination-date">Impfdatum</label>
+                <input class="form-control" id="vaccination-date" type="date" name="vaccination_date" value="<%= item?.vaccination_date || '' %>" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="vaccination-next">Nächste Fälligkeit</label>
+                <input class="form-control" id="vaccination-next" type="date" name="next_due_date" value="<%= item?.next_due_date || '' %>" />
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="vaccination-notes">Notizen</label>
+                <textarea class="form-control" id="vaccination-notes" name="notes" rows="4"><%= item?.notes || '' %></textarea>
+              </div>
+            </div>
+          </div>
+        </section>
+        <p class="text-body-secondary small mb-0">Hinterlege hier bei Bedarf Chargenhinweise, Reaktionen auf die Impfung oder Verweise auf einen hochgeladenen Nachweis.</p>
+        <div class="d-flex flex-wrap gap-2 pt-2 border-top">
+          <button type="submit" class="btn btn-success">Impfung speichern</button>
+          <button type="button" class="btn btn-outline-secondary" data-drawer-close>Abbrechen</button>
+        </div>
+      </form>
+    <% } %>
 
-  <% if (isMedication) { %>
-    <form method="post" action="/animals/<%= animal.id %>/medications/<%= item.id %>/update" class="stack form-compact" data-drawer-form="animal-entry">
-      <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
-      <label>
-        <span>Name</span>
-        <input type="text" name="name" required value="<%= item?.name || '' %>" />
-      </label>
-      <div class="mini-grid">
-        <label>
-          <span>Dosis</span>
-          <input type="text" name="dosage" value="<%= item?.dosage || '' %>" />
-        </label>
-        <label>
-          <span>Plan</span>
-          <input type="text" name="schedule" value="<%= item?.schedule || '' %>" />
-        </label>
-      </div>
-      <div class="mini-grid">
-        <label>
-          <span>Startdatum</span>
-          <input type="date" name="start_date" value="<%= item?.start_date || '' %>" />
-        </label>
-        <label>
-          <span>Enddatum</span>
-          <input type="date" name="end_date" value="<%= item?.end_date || '' %>" />
-        </label>
-      </div>
-      <label>
-        <span>Notizen</span>
-        <textarea name="notes" rows="4"><%= item?.notes || '' %></textarea>
-      </label>
-      <small class="compact-note">Wenn du hier nichts weiter einträgst, reicht oft schon der Name. Zusätzliche Hinweise helfen vor allem bei längeren Behandlungen.</small>
-      <div class="button-row">
-        <button type="submit" class="button">Medikament speichern</button>
-        <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
-      </div>
-    </form>
-  <% } %>
+    <% if (isAppointment) { %>
+      <form method="post" action="/animals/<%= animal.id %>/appointments/<%= item.id %>/update" class="vstack gap-4" data-drawer-form="animal-entry">
+        <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
+        <section class="card border bg-body">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label" for="appointment-title">Titel</label>
+                <input class="form-control" id="appointment-title" type="text" name="title" required value="<%= item?.title || '' %>" />
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="appointment-at">Termin</label>
+                <input class="form-control" id="appointment-at" type="datetime-local" name="appointment_at" required value="<%= item?.appointment_at || '' %>" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="appointment-location-mode">Ort</label>
+                <select class="form-select" id="appointment-location-mode" name="location_mode">
+                  <option value="praxis" <%= item?.location_mode === 'praxis' ? 'selected' : '' %>>Tier zum Arzt</option>
+                  <option value="vor_ort" <%= item?.location_mode === 'vor_ort' ? 'selected' : '' %>>Tierarzt kommt vor Ort</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="appointment-vet">Tierarzt</label>
+                <select class="form-select" id="appointment-vet" name="veterinarian_id">
+                  <option value="">Tierarzt auswählen</option>
+                  <% veterinarians.forEach((vet) => { %>
+                    <option value="<%= vet.id %>" <%= String(item?.veterinarian_id || '') === String(vet.id) ? 'selected' : '' %>><%= vet.name %></option>
+                  <% }) %>
+                </select>
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="appointment-location-text">Ort / Adresse</label>
+                <input class="form-control" id="appointment-location-text" type="text" name="location_text" value="<%= item?.location_text || '' %>" />
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="appointment-notes">Notizen</label>
+                <textarea class="form-control" id="appointment-notes" name="notes" rows="4"><%= item?.notes || '' %></textarea>
+              </div>
+            </div>
+          </div>
+        </section>
+        <p class="text-body-secondary small mb-0">So lassen sich Terminart, Anfahrt und wichtige Absprachen später schnell wieder nachvollziehen.</p>
+        <div class="d-flex flex-wrap gap-2 pt-2 border-top">
+          <button type="submit" class="btn btn-success">Arzttermin speichern</button>
+          <button type="button" class="btn btn-outline-secondary" data-drawer-close>Abbrechen</button>
+        </div>
+      </form>
+    <% } %>
 
-  <% if (isVaccination) { %>
-    <form method="post" action="/animals/<%= animal.id %>/vaccinations/<%= item.id %>/update" class="stack form-compact" data-drawer-form="animal-entry">
-      <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
-      <label>
-        <span>Impfung</span>
-        <input type="text" name="name" required value="<%= item?.name || '' %>" />
-      </label>
-      <div class="mini-grid">
-        <label>
-          <span>Impfdatum</span>
-          <input type="date" name="vaccination_date" value="<%= item?.vaccination_date || '' %>" />
-        </label>
-        <label>
-          <span>Nächste Fälligkeit</span>
-          <input type="date" name="next_due_date" value="<%= item?.next_due_date || '' %>" />
-        </label>
-      </div>
-      <label>
-        <span>Notizen</span>
-        <textarea name="notes" rows="4"><%= item?.notes || '' %></textarea>
-      </label>
-      <small class="compact-note">Hinterlege hier bei Bedarf Chargenhinweise, Reaktionen auf die Impfung oder Verweise auf einen hochgeladenen Nachweis.</small>
-      <div class="button-row">
-        <button type="submit" class="button">Impfung speichern</button>
-        <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
-      </div>
-    </form>
-  <% } %>
+    <% if (isReminder) { %>
+      <form method="post" action="/animals/<%= animal.id %>/reminders/<%= item.id %>/update" class="vstack gap-4" data-drawer-form="animal-entry">
+        <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
+        <section class="card border bg-body">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label" for="reminder-title">Titel</label>
+                <input class="form-control" id="reminder-title" type="text" name="title" required value="<%= item?.title || '' %>" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="reminder-type">Typ</label>
+                <input class="form-control" id="reminder-type" type="text" name="reminder_type" value="<%= item?.reminder_type || '' %>" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="reminder-due-at">Fällig am</label>
+                <input class="form-control" id="reminder-due-at" type="datetime-local" name="due_at" required value="<%= item?.due_at || '' %>" />
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="reminder-repeat">Wiederholung in Tagen</label>
+                <input class="form-control" id="reminder-repeat" type="number" min="0" step="1" name="repeat_interval_days" value="<%= item?.repeat_interval_days || 0 %>" />
+              </div>
+              <div class="col-12">
+                <div class="row g-3">
+                  <div class="col-sm-auto">
+                    <div class="form-check">
+                      <input class="form-check-input" id="reminder-email" type="checkbox" name="channel_email" <%= item?.channel_email ? 'checked' : '' %> />
+                      <label class="form-check-label" for="reminder-email">E-Mail senden</label>
+                    </div>
+                  </div>
+                  <div class="col-sm-auto">
+                    <div class="form-check">
+                      <input class="form-check-input" id="reminder-telegram" type="checkbox" name="channel_telegram" <%= item?.channel_telegram ? 'checked' : '' %> />
+                      <label class="form-check-label" for="reminder-telegram">Telegram senden</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="reminder-notes">Notizen</label>
+                <textarea class="form-control" id="reminder-notes" name="notes" rows="4"><%= item?.notes || '' %></textarea>
+              </div>
+            </div>
+          </div>
+        </section>
+        <p class="text-body-secondary small mb-0">Wenn die Erinnerung nur einmalig sein soll, lass die Wiederholung einfach auf 0 stehen.</p>
+        <div class="d-flex flex-wrap gap-2 pt-2 border-top">
+          <button type="submit" class="btn btn-success">Erinnerung speichern</button>
+          <button type="button" class="btn btn-outline-secondary" data-drawer-close>Abbrechen</button>
+        </div>
+      </form>
+    <% } %>
 
-  <% if (isAppointment) { %>
-    <form method="post" action="/animals/<%= animal.id %>/appointments/<%= item.id %>/update" class="stack form-compact" data-drawer-form="animal-entry">
-      <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
-      <label>
-        <span>Titel</span>
-        <input type="text" name="title" required value="<%= item?.title || '' %>" />
-      </label>
-      <label>
-        <span>Termin</span>
-        <input type="datetime-local" name="appointment_at" required value="<%= item?.appointment_at || '' %>" />
-      </label>
-      <div class="mini-grid">
-        <label>
-          <span>Ort</span>
-          <select name="location_mode">
-            <option value="praxis" <%= item?.location_mode === 'praxis' ? 'selected' : '' %>>Tier zum Arzt</option>
-            <option value="vor_ort" <%= item?.location_mode === 'vor_ort' ? 'selected' : '' %>>Tierarzt kommt vor Ort</option>
-          </select>
-        </label>
-        <label>
-          <span>Tierarzt</span>
-          <select name="veterinarian_id">
-            <option value="">Tierarzt auswählen</option>
-            <% veterinarians.forEach((vet) => { %>
-              <option value="<%= vet.id %>" <%= String(item?.veterinarian_id || '') === String(vet.id) ? 'selected' : '' %>><%= vet.name %></option>
-            <% }) %>
-          </select>
-        </label>
-      </div>
-      <label>
-        <span>Ort / Adresse</span>
-        <input type="text" name="location_text" value="<%= item?.location_text || '' %>" />
-      </label>
-      <label>
-        <span>Notizen</span>
-        <textarea name="notes" rows="4"><%= item?.notes || '' %></textarea>
-      </label>
-      <small class="compact-note">So lassen sich Terminart, Anfahrt und wichtige Absprachen später schnell wieder nachvollziehen.</small>
-      <div class="button-row">
-        <button type="submit" class="button">Arzttermin speichern</button>
-        <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
-      </div>
-    </form>
-  <% } %>
+    <% if (isDocument) { %>
+      <form method="post" action="<%= isEdit ? `/animals/${animal.id}/documents/${item.id}/update` : `/animals/${animal.id}/documents` %>" <%= isEdit ? '' : 'enctype="multipart/form-data"' %> class="vstack gap-4" data-drawer-form="animal-entry">
+        <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
+        <section class="card border bg-body">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label" for="document-title">Titel</label>
+                <input class="form-control" id="document-title" type="text" name="title" <%= isEdit ? 'required' : '' %> value="<%= item?.title || '' %>" placeholder="z. B. Impfpass 2026" />
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="document-category">Kategorie</label>
+                <select class="form-select" id="document-category" name="category_id">
+                  <option value="">Keine Kategorie</option>
+                  <% categories.forEach((category) => { %>
+                    <option value="<%= category.id %>" <%= String(item?.category_id || '') === String(category.id) ? 'selected' : '' %>><%= category.name %><%= category.is_required ? ' (Pflicht)' : '' %></option>
+                  <% }) %>
+                </select>
+              </div>
+              <% if (!isEdit) { %>
+                <div class="col-12">
+                  <label class="form-label" for="document-file">Datei</label>
+                  <input class="form-control" id="document-file" type="file" name="document" required />
+                </div>
+              <% } %>
+            </div>
+          </div>
+        </section>
+        <p class="text-body-secondary small mb-0">Mit einer Kategorie bleibt die Datei später leichter auffindbar. Titel und Kategorie können auch nach dem Upload noch angepasst werden.</p>
+        <div class="d-flex flex-wrap gap-2 pt-2 border-top">
+          <button type="submit" class="btn btn-success"><%= isEdit ? 'Dokument speichern' : 'Dokument hochladen' %></button>
+          <button type="button" class="btn btn-outline-secondary" data-drawer-close>Abbrechen</button>
+        </div>
+      </form>
+    <% } %>
 
-  <% if (isReminder) { %>
-    <form method="post" action="/animals/<%= animal.id %>/reminders/<%= item.id %>/update" class="stack form-compact" data-drawer-form="animal-entry">
-      <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
-      <label>
-        <span>Titel</span>
-        <input type="text" name="title" required value="<%= item?.title || '' %>" />
-      </label>
-      <div class="mini-grid">
-        <label>
-          <span>Typ</span>
-          <input type="text" name="reminder_type" value="<%= item?.reminder_type || '' %>" />
-        </label>
-        <label>
-          <span>Fällig am</span>
-          <input type="datetime-local" name="due_at" required value="<%= item?.due_at || '' %>" />
-        </label>
-      </div>
-      <label>
-        <span>Wiederholung in Tagen</span>
-        <input type="number" min="0" step="1" name="repeat_interval_days" value="<%= item?.repeat_interval_days || 0 %>" />
-      </label>
-      <div class="mini-grid">
-        <label class="checkbox-line">
-          <input type="checkbox" name="channel_email" <%= item?.channel_email ? 'checked' : '' %> />
-          E-Mail senden
-        </label>
-        <label class="checkbox-line">
-          <input type="checkbox" name="channel_telegram" <%= item?.channel_telegram ? 'checked' : '' %> />
-          Telegram senden
-        </label>
-      </div>
-      <label>
-        <span>Notizen</span>
-        <textarea name="notes" rows="4"><%= item?.notes || '' %></textarea>
-      </label>
-      <small class="compact-note">Wenn die Erinnerung nur einmalig sein soll, lass die Wiederholung einfach auf 0 stehen.</small>
-      <div class="button-row">
-        <button type="submit" class="button">Erinnerung speichern</button>
-        <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
-      </div>
-    </form>
-  <% } %>
-
-  <% if (isDocument) { %>
-    <form method="post" action="<%= isEdit ? `/animals/${animal.id}/documents/${item.id}/update` : `/animals/${animal.id}/documents` %>" <%= isEdit ? '' : 'enctype="multipart/form-data"' %> class="stack form-compact" data-drawer-form="animal-entry">
-      <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
-      <label>
-        <span>Titel</span>
-        <input type="text" name="title" <%= isEdit ? 'required' : '' %> value="<%= item?.title || '' %>" placeholder="z. B. Impfpass 2026" />
-      </label>
-      <label>
-        <span>Kategorie</span>
-        <select name="category_id">
-          <option value="">Keine Kategorie</option>
-          <% categories.forEach((category) => { %>
-            <option value="<%= category.id %>" <%= String(item?.category_id || '') === String(category.id) ? 'selected' : '' %>><%= category.name %><%= category.is_required ? ' (Pflicht)' : '' %></option>
-          <% }) %>
-        </select>
-      </label>
-      <% if (!isEdit) { %>
-        <label>
-          <span>Datei</span>
-          <input type="file" name="document" required />
-        </label>
-      <% } %>
-      <small class="compact-note">Mit einer Kategorie bleibt die Datei später leichter auffindbar. Titel und Kategorie können auch nach dem Upload noch angepasst werden.</small>
-      <div class="button-row">
-        <button type="submit" class="button"><%= isEdit ? 'Dokument speichern' : 'Dokument hochladen' %></button>
-        <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
-      </div>
-    </form>
-  <% } %>
-
-  <% if (isImage) { %>
-    <form method="post" action="/animals/<%= animal.id %>/images" enctype="multipart/form-data" class="stack form-compact" data-drawer-form="animal-entry">
-      <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
-      <label>
-        <span>Titel</span>
-        <input type="text" name="title" placeholder="z. B. Sommer 2026" />
-      </label>
-      <label>
-        <span>Bilddatei</span>
-        <input type="file" name="image" accept="image/*" required />
-      </label>
-      <small class="compact-note">Zusätzliche Fotos eignen sich z. B. für Verlauf, Verletzungen, Besonderheiten oder die Dokumentation von Veränderungen.</small>
-      <div class="button-row">
-        <button type="submit" class="button">Bild hochladen</button>
-        <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
-      </div>
-    </form>
-  <% } %>
+    <% if (isImage) { %>
+      <form method="post" action="/animals/<%= animal.id %>/images" enctype="multipart/form-data" class="vstack gap-4" data-drawer-form="animal-entry">
+        <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
+        <section class="card border bg-body">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label" for="image-title">Titel</label>
+                <input class="form-control" id="image-title" type="text" name="title" placeholder="z. B. Sommer 2026" />
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="image-file">Bilddatei</label>
+                <input class="form-control" id="image-file" type="file" name="image" accept="image/*" required />
+              </div>
+            </div>
+          </div>
+        </section>
+        <p class="text-body-secondary small mb-0">Zusätzliche Fotos eignen sich z. B. für Verlauf, Verletzungen, Besonderheiten oder die Dokumentation von Veränderungen.</p>
+        <div class="d-flex flex-wrap gap-2 pt-2 border-top">
+          <button type="submit" class="btn btn-success">Bild hochladen</button>
+          <button type="button" class="btn btn-outline-secondary" data-drawer-close>Abbrechen</button>
+        </div>
+      </form>
+    <% } %>
+  </div>
 </section>

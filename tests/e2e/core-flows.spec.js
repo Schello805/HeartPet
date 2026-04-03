@@ -79,16 +79,19 @@ async function ensureAuthenticated(page) {
   await page.goto("/setup");
 
   if (page.url().includes("/setup")) {
-    for (const sectionTitle of ["1. Administrator", "2. Tierarzt", "3. Erstes Tier"]) {
-      const sectionSummary = page.getByText(sectionTitle, { exact: true });
-      await sectionSummary.click();
-    }
-
+    await page.getByRole("button", { name: "1. Administrator" }).click();
+    await expect(page.locator('input[name="admin_name"]')).toBeVisible();
     await page.locator('input[name="admin_name"]').fill(adminCredentials.name);
     await page.locator('input[name="admin_email"]').fill(adminCredentials.email);
     await page.locator('input[name="admin_password"]').fill(adminCredentials.password);
     await page.locator('input[name="organization_name"]').fill("HeartPet E2E");
+
+    await page.getByRole("button", { name: "2. Tierarzt" }).click();
+    await expect(page.locator('input[name="veterinarian_name"]')).toBeVisible();
     await page.locator('input[name="veterinarian_name"]').fill("Praxis E2E");
+
+    await page.getByRole("button", { name: "3. Erstes Tier" }).click();
+    await expect(page.locator('input[name="animal_name"]')).toBeVisible();
     await page.locator('input[name="animal_name"]').fill("Minka");
     await page.locator('input[name="species_name"]').fill("Katze");
     await page.getByRole("button", { name: "Ersteinrichtung abschließen" }).click();

@@ -18,9 +18,9 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous" />
     <link rel="stylesheet" href="/static/css/app.css" />
   </head>
-  <body class="bootstrap-app" data-bs-theme="dark">
+  <body class="bootstrap-app<%= typeof pageClass !== 'undefined' && pageClass ? ` ${pageClass}` : '' %>" data-bs-theme="dark">
     <div class="app-shell">
-      <aside class="app-sidebar d-none d-lg-flex flex-column">
+      <aside class="app-sidebar d-none d-lg-flex flex-column bg-body border-end">
         <div class="app-sidebar-brand">
           <img class="brand-logo" src="<%= resolvedAppLogoUrl %>" alt="HeartPet Logo" />
           <div class="brand-text">
@@ -29,11 +29,11 @@
           </div>
         </div>
 
-        <div class="app-sidebar-nav-wrap">
-          <%- include('./sidebar-nav') %>
+        <div class="app-sidebar-nav-wrap px-3 py-3">
+          <%- include('./sidebar-nav', { navScope: 'desktop' }) %>
         </div>
 
-        <div class="app-sidebar-footer mt-auto">
+        <div class="app-sidebar-footer mt-auto px-3 py-3 border-top">
           <div class="small-label">Eingeloggt als</div>
           <strong><%= currentUser?.name || "-" %></strong>
           <% const roleLabel = currentUser?.role ? getRoleLabel(currentUser.role) : ""; %>
@@ -59,8 +59,8 @@
           <% } %>
         </div>
 
-        <header class="app-mobile-topbar d-lg-none d-flex align-items-center justify-content-between p-3 position-sticky top-0 z-3">
-          <button class="btn border-0 text-white app-mobile-menu-button d-flex align-items-center gap-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileNavOffcanvas" aria-controls="mobileNavOffcanvas">
+        <header class="navbar app-mobile-topbar d-lg-none sticky-top px-3 py-2">
+          <button class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileNavOffcanvas" aria-controls="mobileNavOffcanvas">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"/></svg> Menü
           </button>
           <div class="app-mobile-topbar-brand">
@@ -68,21 +68,20 @@
             <span><%= pageTitle %></span>
           </div>
           <% if (permissions.canEditAnimals) { %>
-            <a href="/animals/new" class="btn btn-success btn-sm" data-drawer="animal-form">Neu</a>
+            <a href="/animals/new" class="btn btn-primary btn-sm" data-drawer="animal-form">Neu</a>
           <% } %>
         </header>
 
         <main class="main-content">
           <div class="container-fluid app-main-container">
-            <header class="page-header card border-0 shadow-sm">
-              <div class="card-body d-flex flex-column flex-lg-row gap-3 justify-content-between align-items-start align-items-lg-center">
+            <header class="page-header mb-3">
+              <div class="page-header-body">
                 <div class="page-header-copy">
-                  <p class="eyebrow mb-2">HeartPet</p>
                   <h1 class="mb-0"><%= pageTitle %></h1>
                 </div>
                 <div class="header-actions">
                   <% if (permissions.canEditAnimals) { %>
-                    <a href="/animals/new" class="button" data-drawer="animal-form">Neues Tier</a>
+                    <a href="/animals/new" class="btn btn-primary btn-sm px-3" data-drawer="animal-form">Neues Tier</a>
                   <% } %>
                 </div>
               </div>
@@ -112,7 +111,7 @@
                     </div>
                   </div>
 
-                  <%- include('./sidebar-nav') %>
+                  <%- include('./sidebar-nav', { navScope: 'mobile' }) %>
 
                   <div class="app-mobile-links">
                     <a href="/impressum">Impressum</a>

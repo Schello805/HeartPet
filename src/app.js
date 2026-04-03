@@ -2908,17 +2908,28 @@ function renderSearchSuggestions(req, res) {
 app.get(/^\/.+\/suggest$/, renderSearchSuggestions);
 
 app.get("/api/reminders/pending", (req, res) => {
-  const rows = db.prepare(`
-    SELECT reminders.id, reminders.title, reminders.due_at, animals.name AS animal_name
+  const now = dayjs().format("YYYY-MM-DDTHH:mm");
+  const count = db.prepare(`
+    SELECT COUNT(*) AS count
     FROM reminders
-    LEFT JOIN animals ON animals.id = reminders.animal_id
+    INNER JOIN animals ON animals.id = reminders.animal_id
     WHERE reminders.completed_at IS NULL
       AND reminders.due_at <= ?
+      AND animals.status = 'Aktiv'
+  `).get(now).count;
+
+  const rows = db.prepare(`
+    SELECT reminders.id, reminders.title, reminders.due_at, reminders.animal_id, animals.name AS animal_name
+    FROM reminders
+    INNER JOIN animals ON animals.id = reminders.animal_id
+    WHERE reminders.completed_at IS NULL
+      AND reminders.due_at <= ?
+      AND animals.status = 'Aktiv'
     ORDER BY reminders.due_at ASC
     LIMIT 5
-  `).all(dayjs().format("YYYY-MM-DDTHH:mm"));
+  `).all(now);
 
-  res.json({ count: rows.length, reminders: rows });
+  res.json({ count, reminders: rows });
 });
 
 app.use((req, res) => {
@@ -2947,22 +2958,28 @@ async function maybeSendDailyDigest() {
   const overdueCount = db.prepare(`
     SELECT COUNT(*) AS count
     FROM reminders
+    INNER JOIN animals ON animals.id = reminders.animal_id
     WHERE completed_at IS NULL
       AND due_at < ?
+      AND animals.status = 'Aktiv'
   `).get(now.format("YYYY-MM-DDTHH:mm")).count;
   const todayCount = db.prepare(`
     SELECT COUNT(*) AS count
     FROM reminders
+    INNER JOIN animals ON animals.id = reminders.animal_id
     WHERE completed_at IS NULL
       AND due_at >= ?
       AND due_at <= ?
+      AND animals.status = 'Aktiv'
   `).get(`${today}T00:00`, `${today}T23:59`).count;
   const nextDaysCount = db.prepare(`
     SELECT COUNT(*) AS count
     FROM reminders
+    INNER JOIN animals ON animals.id = reminders.animal_id
     WHERE completed_at IS NULL
       AND due_at > ?
       AND due_at <= ?
+      AND animals.status = 'Aktiv'
   `).get(`${today}T23:59`, now.add(3, "day").format("YYYY-MM-DDTHH:mm")).count;
 
   if (settings.daily_digest_only_when_open === "true" && overdueCount + todayCount + nextDaysCount === 0) {
@@ -2982,9 +2999,10 @@ async function maybeSendDailyDigest() {
   const rows = db.prepare(`
     SELECT reminders.*, animals.name AS animal_name
     FROM reminders
-    LEFT JOIN animals ON animals.id = reminders.animal_id
+    INNER JOIN animals ON animals.id = reminders.animal_id
     WHERE reminders.completed_at IS NULL
       AND reminders.due_at <= ?
+      AND animals.status = 'Aktiv'
     ORDER BY reminders.due_at ASC
     LIMIT 20
   `).all(now.add(3, "day").format("YYYY-MM-DDTHH:mm"))
@@ -3741,7 +3759,25 @@ function buildGeneratedReminderRows({ animalId, sourceKind, sourceId, title, rem
 
 function replaceGeneratedReminders(sourceKind, sourceId, rows) {
   const tx = db.transaction(() => {
-    db.prepare("DELETE FROM reminders WHERE source_kind = ? AND source_id = ?").run(sourceKind, sourceId);
+    const existingRows = db.prepare(`
+      SELECT *
+      FROM reminders
+      WHERE source_kind = ? AND source_id = ?
+      ORDER BY source_index ASC, id ASC
+    `).all(sourceKind, sourceId);
+
+    const existingByIndex = new Map(
+      existingRows.map((item) => [Number(item.source_index || 0), item])
+    );
+
+    const keepIds = new Set();
+    const updateReminder = db.prepare(`
+      UPDATE reminders
+      SET animal_id = ?, title = ?, reminder_type = ?, due_at = ?, channel_email = ?, channel_telegram = ?,
+          repeat_interval_days = ?, notes = ?, completed_at = ?, last_notified_at = ?, last_delivery_status = ?,
+          last_delivery_error = ?, source_kind = ?, source_id = ?, source_index = ?
+      WHERE id = ?
+    `);
     const insertReminder = db.prepare(`
       INSERT INTO reminders (
         animal_id, title, reminder_type, due_at, channel_email, channel_telegram, repeat_interval_days, notes,
@@ -3750,7 +3786,37 @@ function replaceGeneratedReminders(sourceKind, sourceId, rows) {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', '', ?, ?, ?)
     `);
     rows.forEach((row) => {
-      insertReminder.run(
+      const sourceIndex = Number(row.source_index || 0);
+      const existing = existingByIndex.get(sourceIndex);
+      const preserveState = existing
+        && String(existing.due_at || "") === String(row.due_at || "")
+        && String(existing.title || "") === String(row.title || "")
+        && String(existing.reminder_type || "") === String(row.reminder_type || "");
+
+      if (existing) {
+        updateReminder.run(
+          row.animal_id,
+          row.title,
+          row.reminder_type,
+          row.due_at,
+          row.channel_email,
+          row.channel_telegram,
+          row.repeat_interval_days,
+          row.notes,
+          preserveState ? existing.completed_at || null : null,
+          preserveState ? existing.last_notified_at || null : null,
+          preserveState ? (existing.last_delivery_status || "pending") : "pending",
+          preserveState ? (existing.last_delivery_error || "") : "",
+          row.source_kind,
+          row.source_id,
+          sourceIndex,
+          existing.id
+        );
+        keepIds.add(existing.id);
+        return;
+      }
+
+      const result = insertReminder.run(
         row.animal_id,
         row.title,
         row.reminder_type,
@@ -3761,9 +3827,18 @@ function replaceGeneratedReminders(sourceKind, sourceId, rows) {
         row.notes,
         row.source_kind,
         row.source_id,
-        row.source_index
+        sourceIndex
       );
+      keepIds.add(result.lastInsertRowid);
     });
+
+    const staleIds = existingRows
+      .map((item) => item.id)
+      .filter((id) => !keepIds.has(id));
+    if (staleIds.length) {
+      const placeholders = staleIds.map(() => "?").join(", ");
+      db.prepare(`DELETE FROM reminders WHERE id IN (${placeholders})`).run(...staleIds);
+    }
   });
 
   tx();

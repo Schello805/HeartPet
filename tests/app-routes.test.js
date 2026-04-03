@@ -13,7 +13,7 @@ process.env.HEARTPET_SESSION_SECRET = "test-secret";
 
 const { initDatabase } = require("../src/db");
 const { createAnimalPdf } = require("../src/exporters");
-const { buildReminderActionToken, buildReminderEmailHtml, sendTelegramReminder } = require("../src/reminders");
+const { buildReminderActionToken, buildReminderEmailHtml, sendTelegramReminder, processDueReminders } = require("../src/reminders");
 const app = require("../src/app");
 const agent = request.agent(app);
 const db = initDatabase();
@@ -1045,6 +1045,103 @@ test("Erinnerung kann über Link um 60 Minuten zurückgestellt werden", async ()
   assert.equal(updatedReminder.completed_at, null);
   assert.equal(updatedReminder.last_notified_at, null);
   assert.equal(updatedReminder.last_delivery_status, "pending");
+});
+
+test("Dashboard-Banner zaehlt nur offene Erinnerungen aktiver Tiere", async () => {
+  const inactiveAnimal = db.prepare("INSERT INTO animals (name, status) VALUES (?, ?)").run("Archivtier", "Verstorben");
+  db.prepare(`
+    INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, notes)
+    VALUES (?, ?, ?, ?, 1, 0, ?)
+  `).run(1, "Aktive Erinnerung", "Allgemein", dayjs().subtract(1, "hour").format("YYYY-MM-DDTHH:mm"), "aktiv");
+  db.prepare(`
+    INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, notes)
+    VALUES (?, ?, ?, ?, 1, 0, ?)
+  `).run(inactiveAnimal.lastInsertRowid, "Archiv-Erinnerung", "Allgemein", dayjs().subtract(1, "hour").format("YYYY-MM-DDTHH:mm"), "inaktiv");
+
+  const response = await agent.get("/api/reminders/pending");
+  assert.equal(response.status, 200);
+  assert.equal(response.body.count, 1);
+  assert.equal(response.body.reminders.length, 1);
+  assert.equal(response.body.reminders[0].title, "Aktive Erinnerung");
+});
+
+test("Dringende Dashboard-Erinnerungen sind zur Tierakte klickbar", async () => {
+  db.prepare(`
+    INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, notes, source_kind, source_id)
+    VALUES (?, ?, ?, ?, 1, 0, ?, ?, ?)
+  `).run(1, "Klickbare Wurmkur", "Impfung", dayjs().subtract(1, "day").format("YYYY-MM-DDTHH:mm"), "Test", "vaccination", 123);
+
+  const response = await agent.get("/");
+  assert.equal(response.status, 200);
+  assert.match(response.text, /href="\/animals\/1#animal-medizin"/);
+  assert.match(response.text, /Klickbare Wurmkur/);
+});
+
+test("Resync generierter Erinnerungen behaelt Benachrichtigungsstatus bei unveraenderten Faelligkeiten", async () => {
+  const vaccination = db.prepare(`
+    INSERT INTO animal_vaccinations (animal_id, name, vaccination_date, next_due_date, reminder_enabled, notes)
+    VALUES (?, ?, NULL, ?, 1, ?)
+  `).run(1, "Wurmkur Resync", "2026-04-17", "Test");
+
+  await agent.post("/admin/settings").type("form").send({
+    _fields: "vaccination_reminder_lead_days,vaccination_reminder_repeat_count",
+    vaccination_reminder_lead_days: "30",
+    vaccination_reminder_repeat_count: "1",
+  });
+
+  let reminder = db.prepare(`
+    SELECT *
+    FROM reminders
+    WHERE source_kind = 'vaccination' AND source_id = ?
+  `).get(vaccination.lastInsertRowid);
+  assert.ok(reminder);
+
+  db.prepare(`
+    UPDATE reminders
+    SET last_notified_at = ?, last_delivery_status = ?
+    WHERE id = ?
+  `).run("2026-04-01 08:00:00", "sent", reminder.id);
+
+  await agent.post("/admin/settings").type("form").send({
+    _fields: "vaccination_reminder_lead_days,vaccination_reminder_repeat_count",
+    vaccination_reminder_lead_days: "30",
+    vaccination_reminder_repeat_count: "1",
+  });
+
+  reminder = db.prepare(`
+    SELECT *
+    FROM reminders
+    WHERE source_kind = 'vaccination' AND source_id = ?
+  `).get(vaccination.lastInsertRowid);
+  assert.ok(reminder);
+  assert.equal(reminder.last_notified_at, "2026-04-01 08:00:00");
+  assert.equal(reminder.last_delivery_status, "sent");
+});
+
+test("Telegram-Erinnerungen werden nicht mehr fuer inaktive Tiere versendet", async () => {
+  const inactiveAnimal = db.prepare("INSERT INTO animals (name, status) VALUES (?, ?)").run("Kein Versand", "Verstorben");
+  db.prepare(`
+    INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, notes)
+    VALUES (?, ?, ?, ?, 0, 1, ?)
+  `).run(inactiveAnimal.lastInsertRowid, "Nicht senden", "Allgemein", dayjs().subtract(5, "minute").format("YYYY-MM-DDTHH:mm"), "archiviert");
+
+  const notifications = [];
+  await processDueReminders(db, {
+    app_name: "HeartPet",
+    app_domain: "heartpet.de",
+    reminder_email_enabled: "false",
+    reminder_telegram_enabled: "true",
+    telegram_bot_token: "123456:ABCDEF",
+    telegram_chat_id: "987654",
+  }, {
+    onNotification(entry) {
+      notifications.push(entry);
+    },
+  });
+
+  assert.equal(notifications.length, 0);
+  const reminder = db.prepare("SELECT last_notified_at FROM reminders WHERE title = ?").get("Nicht senden");
+  assert.equal(reminder.last_notified_at, null);
 });
 
 test("Erinnerungs-Bestätigungsseite verwendet absolute Asset-Links", async () => {

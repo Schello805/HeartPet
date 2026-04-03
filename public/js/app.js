@@ -4,9 +4,11 @@ const viewStateStorageKey = "heartpet-view-state";
 
 function saveCurrentViewState() {
   try {
-    const openDetails = Array.from(document.querySelectorAll(".main-content details")).map((detail, index) =>
-      detail.open ? index : null
-    ).filter((index) => index !== null);
+    const openDetails = Array.from(document.querySelectorAll(".main-content details[id]"))
+      .filter((detail) => detail.open)
+      .map((detail) => detail.id);
+    const openCollapses = Array.from(document.querySelectorAll(".main-content .accordion-collapse[id].show"))
+      .map((collapse) => collapse.id);
 
     sessionStorage.setItem(
       viewStateStorageKey,
@@ -14,6 +16,7 @@ function saveCurrentViewState() {
         path: `${window.location.pathname}${window.location.search}`,
         scrollY: window.scrollY || window.pageYOffset || 0,
         openDetails,
+        openCollapses,
         savedAt: Date.now(),
       })
     );
@@ -33,10 +36,17 @@ function restoreCurrentViewState() {
       return;
     }
 
-    const details = Array.from(document.querySelectorAll(".main-content details"));
-    const openSet = new Set(Array.isArray(state.openDetails) ? state.openDetails : []);
-    details.forEach((detail, index) => {
-      detail.open = openSet.has(index);
+    const openDetailIds = new Set(Array.isArray(state.openDetails) ? state.openDetails : []);
+    document.querySelectorAll(".main-content details[id]").forEach((detail) => {
+      detail.open = openDetailIds.has(detail.id);
+    });
+
+    const openCollapseIds = new Set(Array.isArray(state.openCollapses) ? state.openCollapses : []);
+    document.querySelectorAll(".main-content .accordion-collapse[id]").forEach((collapse) => {
+      if (!openCollapseIds.has(collapse.id) || !window.bootstrap?.Collapse) {
+        return;
+      }
+      window.bootstrap.Collapse.getOrCreateInstance(collapse, { toggle: false }).show();
     });
 
     window.requestAnimationFrame(() => {
@@ -68,7 +78,7 @@ async function loadPendingReminders() {
     if (!existing) {
       const banner = document.createElement("a");
       banner.className = "floating-reminder";
-      banner.href = window.location.pathname === "/" ? "#naechste-erinnerungen" : "/#naechste-erinnerungen";
+      banner.href = window.location.pathname === "/" ? "#dringende-erinnerungen" : "/#dringende-erinnerungen";
       banner.innerHTML = `<strong>${payload.count} offene Erinnerung(en)</strong><span>Jetzt direkt anzeigen</span>`;
       bannerTarget.after(banner);
     }
@@ -86,6 +96,31 @@ async function loadPendingReminders() {
     }
   } catch (error) {
     console.error("HeartPet Hinweis konnte nicht geladen werden", error);
+  }
+}
+
+function openHashTargetDetails() {
+  const hash = String(window.location.hash || "").trim();
+  if (!hash || hash === "#") {
+    return;
+  }
+
+  const target = document.querySelector(hash);
+  if (!target) {
+    return;
+  }
+
+  const collapse =
+    (target.classList?.contains("accordion-collapse") ? target : null) ||
+    target.closest?.(".accordion-collapse") ||
+    target.closest?.(".accordion-item")?.querySelector(".accordion-collapse");
+  if (collapse && window.bootstrap?.Collapse) {
+    window.bootstrap.Collapse.getOrCreateInstance(collapse, { toggle: false }).show();
+  }
+
+  const detail = target instanceof HTMLDetailsElement ? target : target.closest("details");
+  if (detail) {
+    detail.open = true;
   }
 }
 
@@ -1027,8 +1062,11 @@ function initPage() {
   initGlobalSearchAutocomplete();
   initAnimalWorkspace();
   loadPendingReminders();
+  openHashTargetDetails();
   restoreCurrentViewState();
 }
+
+window.addEventListener("hashchange", openHashTargetDetails);
 
 document.addEventListener("click", (event) => {
   const row = event.target.closest(".table-row-link");

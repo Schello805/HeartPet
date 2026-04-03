@@ -1,12 +1,9 @@
 <%- include('../partials/top', { pageTitle }) %>
 
-<section class="accordion-stack">
-  <details class="accordion-item">
-    <summary><%= pageTitle %></summary>
-    <div class="accordion-content">
-      <div class="prose-block"><%- (content || '').replace(/\n/g, '<br />') %></div>
-    </div>
-  </details>
+<section class="card border-0 shadow-sm">
+  <div class="card-body">
+    <div class="prose-block"><%- (content || '').replace(/\n/g, '<br />') %></div>
+  </div>
 </section>
 
 <%- include('../partials/bottom') %>

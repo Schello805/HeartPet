@@ -1,59 +1,118 @@
-<section class="panel drawer-fragment" data-drawer-fragment="admin-user" data-drawer-title="<%= mode === 'edit' ? 'Benutzer bearbeiten' : 'Benutzer anlegen' %>">
-  <div class="panel-head">
-    <h2><%= mode === 'edit' ? 'Benutzer bearbeiten' : 'Benutzer anlegen' %></h2>
+<section class="drawer-fragment card border-0 bg-body-tertiary" data-drawer-fragment="admin-user" data-drawer-title="<%= mode === 'edit' ? 'Benutzer bearbeiten' : 'Benutzer anlegen' %>">
+  <div class="card-body">
+    <h2 class="h4 mb-4"><%= mode === 'edit' ? 'Benutzer bearbeiten' : 'Benutzer anlegen' %></h2>
+
+    <form method="post" action="<%= mode === 'edit' ? `/admin/users/${item.id}/save` : '/admin/users' %>" class="vstack gap-4" data-drawer-form="admin-user">
+      <input type="hidden" name="return_to" value="<%= returnTo || '/admin/benutzer' %>" />
+
+      <section class="card border bg-body">
+        <div class="card-body">
+          <div class="mb-3">
+            <h3 class="h5 mb-1">Zugang und Rolle</h3>
+            <p class="text-body-secondary mb-0">Jeder Nutzer bekommt sein eigenes Login. Über Rolle und Rechte legst du fest, ob jemand nur lesen oder aktiv mitarbeiten darf.</p>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label" for="user-name">Name</label>
+              <input class="form-control" id="user-name" type="text" name="name" required value="<%= item?.name || '' %>" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="user-email">E-Mail</label>
+              <input class="form-control" id="user-email" type="email" name="email" required value="<%= item?.email || '' %>" />
+            </div>
+
+            <% if (mode !== 'edit') { %>
+              <div class="col-12">
+                <label class="form-label" for="user-password">Startpasswort</label>
+                <input class="form-control" id="user-password" type="password" name="password" required placeholder="Temporäres Passwort" />
+              </div>
+              <div class="col-12">
+                <div class="form-check">
+                  <input class="form-check-input" id="user-send-invite" type="checkbox" name="send_invite_email" value="1" checked />
+                  <label class="form-check-label" for="user-send-invite">Einladungs-Mail mit Login-Link senden</label>
+                </div>
+                <div class="form-text">Wenn aktiviert, erhält der neue Nutzer direkt eine E-Mail mit den ersten Schritten. Ohne Haken kannst du die Zugangsdaten auch manuell weitergeben.</div>
+              </div>
+            <% } else { %>
+              <div class="col-12">
+                <div class="form-text">E-Mail-Änderungen werden erst nach Bestätigung durch den Nutzer wirksam.</div>
+              </div>
+            <% } %>
+
+            <div class="col-12">
+              <label class="form-label" for="user-role">Rolle</label>
+              <select class="form-select" id="user-role" name="role" title="Admin hat Zugriff auf die Verwaltung. Benutzer darf unter Tiere arbeiten. Nur Lesen kann Inhalte ansehen, aber nichts ändern.">
+                <option value="admin" <%= (item?.role || 'viewer') === 'admin' ? 'selected' : '' %>>Admin</option>
+                <option value="user" <%= (item?.role || 'viewer') === 'user' ? 'selected' : '' %>>Benutzer</option>
+                <option value="viewer" <%= (item?.role || 'viewer') === 'viewer' ? 'selected' : '' %>>Nur Lesen</option>
+              </select>
+              <div class="form-text">Rollen geben die grobe Richtung vor. Die einzelnen Rechte darunter machen den Zugang noch feiner steuerbar.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card border bg-body">
+        <div class="card-body">
+          <div class="mb-3">
+            <h3 class="h5 mb-1">Einzelrechte</h3>
+            <p class="text-body-secondary mb-0">Hier bestimmst du im Detail, welche Bereiche der Nutzer bearbeiten darf.</p>
+          </div>
+          <div class="row g-3 row-cols-1 row-cols-md-2">
+            <div class="col">
+              <div class="form-check">
+                <input class="form-check-input" id="perm-edit-animals" type="checkbox" name="can_edit_animals" <%= mode === 'edit' ? (item?.can_edit_animals ? 'checked' : '') : 'checked' %> />
+                <label class="form-check-label" for="perm-edit-animals">Tier-Stammdaten</label>
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-check">
+                <input class="form-check-input" id="perm-documents" type="checkbox" name="can_manage_documents" <%= mode === 'edit' ? (item?.can_manage_documents ? 'checked' : '') : 'checked' %> />
+                <label class="form-check-label" for="perm-documents">Dokumente</label>
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-check">
+                <input class="form-check-input" id="perm-gallery" type="checkbox" name="can_manage_gallery" <%= mode === 'edit' ? (item?.can_manage_gallery ? 'checked' : '') : 'checked' %> />
+                <label class="form-check-label" for="perm-gallery">Galerie &amp; Profilbilder</label>
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-check">
+                <input class="form-check-input" id="perm-health" type="checkbox" name="can_manage_health" <%= mode === 'edit' ? (item?.can_manage_health ? 'checked' : '') : 'checked' %> />
+                <label class="form-check-label" for="perm-health">Medikamente, Impfungen, Krankheiten</label>
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-check">
+                <input class="form-check-input" id="perm-feedings" type="checkbox" name="can_manage_feedings" <%= mode === 'edit' ? (item?.can_manage_feedings ? 'checked' : '') : 'checked' %> />
+                <label class="form-check-label" for="perm-feedings">Fütterungen</label>
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-check">
+                <input class="form-check-input" id="perm-notes" type="checkbox" name="can_manage_notes" <%= mode === 'edit' ? (item?.can_manage_notes ? 'checked' : '') : 'checked' %> />
+                <label class="form-check-label" for="perm-notes">Protokolle</label>
+              </div>
+            </div>
+            <div class="col">
+              <div class="form-check">
+                <input class="form-check-input" id="perm-reminders" type="checkbox" name="can_manage_reminders" <%= mode === 'edit' ? (item?.can_manage_reminders ? 'checked' : '') : 'checked' %> />
+                <label class="form-check-label" for="perm-reminders">Erinnerungen</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3 pt-2 border-top">
+        <p class="text-body-secondary small mb-0">Rolle und Einzelrechte zusammen bestimmen, wie frei sich ein Nutzer in HeartPet bewegen und mitarbeiten darf.</p>
+        <div class="d-flex flex-wrap gap-2">
+          <button type="submit" class="btn btn-success"><%= mode === 'edit' ? 'Benutzer speichern' : 'Benutzer anlegen' %></button>
+          <button type="button" class="btn btn-outline-secondary" data-drawer-close>Abbrechen</button>
+        </div>
+      </div>
+    </form>
   </div>
-
-  <form method="post" action="<%= mode === 'edit' ? `/admin/users/${item.id}/save` : '/admin/users' %>" class="stack form-compact" data-drawer-form="admin-user">
-    <input type="hidden" name="return_to" value="<%= returnTo || '/admin/benutzer' %>" />
-    <p class="compact-note">Jeder Nutzer bekommt sein eigenes Login. Über Rolle und Rechte legst du fest, ob jemand nur lesen oder auch aktiv mitarbeiten darf.</p>
-    <div class="form-grid">
-      <label>
-        <span>Name</span>
-        <input type="text" name="name" required value="<%= item?.name || '' %>" />
-      </label>
-      <label>
-        <span>E-Mail</span>
-        <input type="email" name="email" required value="<%= item?.email || '' %>" />
-      </label>
-    </div>
-
-    <% if (mode !== 'edit') { %>
-      <label>
-        <span>Startpasswort</span>
-        <input type="password" name="password" required placeholder="Temporäres Passwort" />
-      </label>
-      <label class="checkbox-line">
-        <input type="checkbox" name="send_invite_email" value="1" checked />
-        Einladungs-Mail mit Login-Link senden
-      </label>
-      <small class="compact-note">Wenn aktiviert, erhält der neue Nutzer direkt eine E-Mail mit den ersten Schritten. Ohne Haken kannst du die Zugangsdaten auch manuell weitergeben.</small>
-    <% } else { %>
-      <small>E-Mail-Änderungen werden erst nach Bestätigung durch den Nutzer wirksam.</small>
-    <% } %>
-
-    <label>
-      <span>Rolle</span>
-      <select name="role" title="Admin hat Zugriff auf die Verwaltung. Benutzer darf unter Tiere arbeiten. Nur Lesen kann Inhalte ansehen, aber nichts ändern.">
-        <option value="admin" <%= (item?.role || 'viewer') === 'admin' ? 'selected' : '' %>>Admin</option>
-        <option value="user" <%= (item?.role || 'viewer') === 'user' ? 'selected' : '' %>>Benutzer</option>
-        <option value="viewer" <%= (item?.role || 'viewer') === 'viewer' ? 'selected' : '' %>>Nur Lesen</option>
-      </select>
-    </label>
-    <small class="compact-note">Rollen geben die grobe Richtung vor. Die einzelnen Rechte darunter machen den Zugang noch feiner steuerbar.</small>
-
-    <div class="permission-grid">
-      <label class="checkbox-line"><input type="checkbox" name="can_edit_animals" <%= mode === 'edit' ? (item?.can_edit_animals ? 'checked' : '') : 'checked' %> /> Tier-Stammdaten</label>
-      <label class="checkbox-line"><input type="checkbox" name="can_manage_documents" <%= mode === 'edit' ? (item?.can_manage_documents ? 'checked' : '') : 'checked' %> /> Dokumente</label>
-      <label class="checkbox-line"><input type="checkbox" name="can_manage_gallery" <%= mode === 'edit' ? (item?.can_manage_gallery ? 'checked' : '') : 'checked' %> /> Galerie & Profilbilder</label>
-      <label class="checkbox-line"><input type="checkbox" name="can_manage_health" <%= mode === 'edit' ? (item?.can_manage_health ? 'checked' : '') : 'checked' %> /> Medikamente, Impfungen, Krankheiten</label>
-      <label class="checkbox-line"><input type="checkbox" name="can_manage_feedings" <%= mode === 'edit' ? (item?.can_manage_feedings ? 'checked' : '') : 'checked' %> /> Fütterungen</label>
-      <label class="checkbox-line"><input type="checkbox" name="can_manage_notes" <%= mode === 'edit' ? (item?.can_manage_notes ? 'checked' : '') : 'checked' %> /> Protokolle</label>
-      <label class="checkbox-line"><input type="checkbox" name="can_manage_reminders" <%= mode === 'edit' ? (item?.can_manage_reminders ? 'checked' : '') : 'checked' %> /> Erinnerungen</label>
-    </div>
-
-    <div class="button-row">
-      <button type="submit" class="button"><%= mode === 'edit' ? 'Benutzer speichern' : 'Benutzer anlegen' %></button>
-      <button type="button" class="button button-secondary" data-drawer-close>Abbrechen</button>
-    </div>
-  </form>
 </section>

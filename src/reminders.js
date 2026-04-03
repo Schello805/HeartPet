@@ -9,10 +9,11 @@ async function processDueReminders(db, settings, hooks = {}) {
   const dueReminders = db.prepare(`
     SELECT reminders.*, animals.name AS animal_name
     FROM reminders
-    LEFT JOIN animals ON animals.id = reminders.animal_id
+    INNER JOIN animals ON animals.id = reminders.animal_id
     WHERE reminders.completed_at IS NULL
       AND reminders.due_at <= ?
       AND reminders.last_notified_at IS NULL
+      AND animals.status = 'Aktiv'
     ORDER BY reminders.due_at ASC
   `).all(now);
 

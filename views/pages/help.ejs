@@ -1,70 +1,106 @@
 <%- include('../partials/top', { pageTitle }) %>
 
-<section class="accordion-stack">
-  <details class="accordion-item">
-    <summary>Wofür ist HeartPet gedacht?</summary>
-    <div class="accordion-content">
-      <p class="help-copy">
-        HeartPet ist eine deutschsprachige Webapp für private Mehrtierhalter, Gnadenhöfe und kleinere Tierhaltungen.
-        Pro Tier gibt es eine Akte mit Stammdaten, Herkunft, Tierarzt, Dokumenten, Impfungen, Medikamenten,
-        Fütterungsplänen, Erinnerungen und Protokollen.
-      </p>
+<div class="accordion" id="helpAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="help-heading-purpose">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#help-purpose" aria-expanded="false" aria-controls="help-purpose">
+        Wofür ist HeartPet gedacht?
+      </button>
+    </h2>
+    <div id="help-purpose" class="accordion-collapse collapse" aria-labelledby="help-heading-purpose" data-bs-parent="#helpAccordion">
+      <div class="accordion-body">
+        <p class="mb-0 text-body-secondary">
+          HeartPet ist eine deutschsprachige Webapp für private Mehrtierhalter, Gnadenhöfe und kleinere Tierhaltungen.
+          Pro Tier gibt es eine Akte mit Stammdaten, Herkunft, Tierarzt, Dokumenten, Impfungen, Medikamenten,
+          Fütterungsplänen, Erinnerungen und Protokollen.
+        </p>
+      </div>
     </div>
-  </details>
+  </div>
 
-  <details class="accordion-item">
-    <summary>Erste Schritte</summary>
-    <div class="accordion-content">
-      <ol class="ordered-list">
-        <li>Mit dem Standardlogin anmelden und im Adminbereich sofort das Passwort ändern.</li>
-        <li>Im Adminbereich SMTP und optional Telegram einrichten.</li>
-        <li>Dokumentkategorien, Tierärzte und Tierarten anpassen.</li>
-        <li>Danach Tiere anlegen und ihre Akten befüllen.</li>
-      </ol>
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="help-heading-start">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#help-start" aria-expanded="false" aria-controls="help-start">
+        Erste Schritte
+      </button>
+    </h2>
+    <div id="help-start" class="accordion-collapse collapse" aria-labelledby="help-heading-start" data-bs-parent="#helpAccordion">
+      <div class="accordion-body">
+        <ol class="mb-0">
+          <li>Mit dem Standardlogin anmelden und im Adminbereich sofort das Passwort ändern.</li>
+          <li>Im Adminbereich SMTP und optional Telegram einrichten.</li>
+          <li>Dokumentkategorien, Tierärzte und Tierarten anpassen.</li>
+          <li>Danach Tiere anlegen und ihre Akten befüllen.</li>
+        </ol>
+      </div>
     </div>
-  </details>
+  </div>
 
-  <details class="accordion-item">
-    <summary>Browser-Hinweise</summary>
-    <div class="accordion-content">
-      <p class="help-copy">
-        HeartPet kann offene Erinnerungen im Browser anzeigen. Beim ersten Besuch fragt dein Browser nach einer Freigabe.
-        Sobald fällige Erinnerungen vorhanden sind, erscheint eine Browser-Benachrichtigung.
-      </p>
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="help-heading-browser">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#help-browser" aria-expanded="false" aria-controls="help-browser">
+        Browser-Hinweise
+      </button>
+    </h2>
+    <div id="help-browser" class="accordion-collapse collapse" aria-labelledby="help-heading-browser" data-bs-parent="#helpAccordion">
+      <div class="accordion-body">
+        <p class="mb-0 text-body-secondary">
+          HeartPet kann offene Erinnerungen im Browser anzeigen. Beim ersten Besuch fragt dein Browser nach einer Freigabe.
+          Sobald fällige Erinnerungen vorhanden sind, erscheint eine Browser-Benachrichtigung.
+        </p>
+      </div>
     </div>
-  </details>
+  </div>
 
-  <details class="accordion-item">
-    <summary>E-Mail Erinnerungen</summary>
-    <div class="accordion-content">
-      <p class="help-copy">
-        HeartPet nutzt die SMTP-Daten aus dem Adminbereich. Die Erinnerungen werden serverseitig geprüft und bei Fälligkeit
-        per E-Mail an den hinterlegten Empfänger verschickt.
-      </p>
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="help-heading-mail">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#help-mail" aria-expanded="false" aria-controls="help-mail">
+        E-Mail Erinnerungen
+      </button>
+    </h2>
+    <div id="help-mail" class="accordion-collapse collapse" aria-labelledby="help-heading-mail" data-bs-parent="#helpAccordion">
+      <div class="accordion-body">
+        <p class="mb-0 text-body-secondary">
+          HeartPet nutzt die SMTP-Daten aus dem Adminbereich. Die Erinnerungen werden serverseitig geprüft und bei Fälligkeit
+          per E-Mail an den hinterlegten Empfänger verschickt.
+        </p>
+      </div>
     </div>
-  </details>
+  </div>
 
-  <details class="accordion-item">
-    <summary>Telegram Erinnerungen</summary>
-    <div class="accordion-content">
-      <ol class="ordered-list">
-        <li>Mit <strong>@BotFather</strong> einen Bot erstellen.</li>
-        <li>Den Bot anschreiben, damit ein Chat angelegt wird.</li>
-        <li>Die Chat ID über die Telegram API auslesen.</li>
-        <li>Token und Chat ID in den Adminbereich eintragen und aktivieren.</li>
-      </ol>
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="help-heading-telegram">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#help-telegram" aria-expanded="false" aria-controls="help-telegram">
+        Telegram Erinnerungen
+      </button>
+    </h2>
+    <div id="help-telegram" class="accordion-collapse collapse" aria-labelledby="help-heading-telegram" data-bs-parent="#helpAccordion">
+      <div class="accordion-body">
+        <ol class="mb-0">
+          <li>Mit <strong>@BotFather</strong> einen Bot erstellen.</li>
+          <li>Den Bot anschreiben, damit ein Chat angelegt wird.</li>
+          <li>Die Chat ID über die Telegram API auslesen.</li>
+          <li>Token und Chat ID in den Adminbereich eintragen und aktivieren.</li>
+        </ol>
+      </div>
     </div>
-  </details>
+  </div>
 
-  <details class="accordion-item">
-    <summary>Exports und Updates</summary>
-    <div class="accordion-content">
-      <p class="help-copy">
-        Pro Tier stehen JSON- und PDF-Exporte zur Verfügung. Der JSON-Export ist für einen späteren Import in HeartPet gedacht.
-        Für Updates aus GitHub liegt ein Skript unter <code>scripts/update.sh</code> bei. Vor jedem Update sollten Datenbank und Uploads gesichert sein.
-      </p>
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="help-heading-export">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#help-export" aria-expanded="false" aria-controls="help-export">
+        Exports und Updates
+      </button>
+    </h2>
+    <div id="help-export" class="accordion-collapse collapse" aria-labelledby="help-heading-export" data-bs-parent="#helpAccordion">
+      <div class="accordion-body">
+        <p class="mb-0 text-body-secondary">
+          Pro Tier stehen JSON- und PDF-Exporte zur Verfügung. Der JSON-Export ist für einen späteren Import in HeartPet gedacht.
+          Für Updates aus GitHub liegt ein Skript unter <code>scripts/update.sh</code> bei. Vor jedem Update sollten Datenbank und Uploads gesichert sein.
+        </p>
+      </div>
     </div>
-  </details>
-</section>
+  </div>
+</div>
 
 <%- include('../partials/bottom') %>

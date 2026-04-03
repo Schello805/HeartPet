@@ -34,7 +34,7 @@
   }
 %>
 
-<section class="hero-card animal-hero-card">
+<section class="card border-0 shadow-sm animal-hero-card">
   <div class="animal-hero-profile">
     <div class="profile-image-panel">
       <div class="profile-image-frame">
@@ -59,8 +59,24 @@
     </div>
   </div>
   <div class="animal-hero-content">
-    <p class="eyebrow"><%= animal.species_name || 'Tier' %></p>
-    <h2><%= animal.name %></h2>
+    <div class="animal-hero-head">
+      <div class="animal-hero-title">
+        <p class="eyebrow"><%= animal.species_name || 'Tier' %></p>
+        <h2><%= animal.name %></h2>
+      </div>
+      <div class="hero-actions">
+        <% if (permissions.canEditAnimals) { %>
+          <a href="/animals/<%= animal.id %>/edit" class="btn btn-primary btn-sm icon-button" aria-label="Tier bearbeiten" title="Bearbeiten" data-drawer="animal-form">
+            <span aria-hidden="true">✎</span>
+            <span class="visually-hidden">Bearbeiten</span>
+          </a>
+        <% } %>
+        <a href="/animals/<%= animal.id %>/export/pdf" class="btn btn-outline-secondary btn-sm icon-button hero-pdf-button" aria-label="Als PDF exportieren" title="Als PDF exportieren">
+          <span aria-hidden="true">📄</span>
+          <span class="visually-hidden">Als PDF exportieren</span>
+        </a>
+      </div>
+    </div>
     <div class="animal-hero-meta-grid">
       <article class="animal-hero-meta-card">
         <span>Alter</span>
@@ -88,22 +104,13 @@
       </article>
     </div>
   </div>
-  <div class="hero-actions">
-    <% if (permissions.canEditAnimals) { %>
-      <a href="/animals/<%= animal.id %>/edit" class="button icon-button" aria-label="Tier bearbeiten" title="Bearbeiten" data-drawer="animal-form">
-        <span aria-hidden="true">✎</span>
-        <span class="visually-hidden">Bearbeiten</span>
-      </a>
-    <% } %>
-    <a href="/animals/<%= animal.id %>/export/pdf" class="button button-secondary">PDF Export</a>
-  </div>
 </section>
 
-<section class="animal-focus-strip panel card border-0 shadow-sm">
+<section class="animal-focus-strip card border-0 shadow-sm">
   <div class="animal-focus-copy">
     <p class="eyebrow">Heute im Fokus</p>
     <h3>Was bei <%= animal.name %> gerade wichtig ist</h3>
-    <p class="compact-note">Die wichtigsten Punkte und nächsten Schritte auf einen Blick, bevor du tiefer in die Akte springst.</p>
+    <p class="small text-body-secondary mb-0">Die wichtigsten Punkte und nächsten Schritte auf einen Blick, bevor du tiefer in die Akte springst.</p>
   </div>
   <div class="animal-focus-items">
     <% focusFacts.forEach((fact) => { %>
@@ -125,27 +132,42 @@
         </div>
         <button type="button" class="vet-contact-close" data-vet-contact-close="<%= animal.id %>" aria-label="Kontaktdaten schließen">×</button>
       </div>
-      <dl class="detail-list compact vet-contact-list">
-        <div><dt>Adresse</dt><dd><%= activeVeterinarianAddress || 'Keine Adresse hinterlegt' %></dd></div>
-        <div>
-          <dt>E-Mail</dt>
-          <dd>
+      <dl class="row g-2 mb-0 vet-contact-list">
+        <div class="col-12">
+          <div class="card border-0 bg-body-tertiary h-100">
+            <div class="card-body p-3">
+              <dt class="small text-body-secondary mb-1">Adresse</dt>
+              <dd class="mb-0 fw-semibold"><%= activeVeterinarianAddress || 'Keine Adresse hinterlegt' %></dd>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card border-0 bg-body-tertiary h-100">
+            <div class="card-body p-3">
+              <dt class="small text-body-secondary mb-1">E-Mail</dt>
+              <dd class="mb-0 fw-semibold">
             <% if (activeVeterinarianEmail) { %>
               <a href="mailto:<%= activeVeterinarianEmail %>"><%= activeVeterinarianEmail %></a>
             <% } else { %>
               Keine E-Mail hinterlegt
             <% } %>
-          </dd>
+              </dd>
+            </div>
+          </div>
         </div>
-        <div>
-          <dt>Telefon</dt>
-          <dd>
+        <div class="col-md-6">
+          <div class="card border-0 bg-body-tertiary h-100">
+            <div class="card-body p-3">
+              <dt class="small text-body-secondary mb-1">Telefon</dt>
+              <dd class="mb-0 fw-semibold">
             <% if (activeVeterinarianPhone) { %>
               <a href="tel:<%= activeVeterinarianPhone.replace(/\s+/g, '') %>"><%= activeVeterinarianPhone %></a>
             <% } else { %>
               Keine Telefonnummer hinterlegt
             <% } %>
-          </dd>
+              </dd>
+            </div>
+          </div>
         </div>
       </dl>
     </div>
@@ -179,7 +201,7 @@
   <a href="#animal-dokumente" class="animal-section-link">Dokumente & Fotos</a>
 </nav>
 
-<div class="animal-mobile-priority panel card border-0 shadow-sm">
+<div class="animal-mobile-priority card border-0 shadow-sm">
   <div class="animal-mobile-priority-copy">
     <p class="eyebrow">Schneller Überblick</p>
     <strong>Auf dem Smartphone zuerst das Wichtigste, danach die tieferen Bereiche der Akte.</strong>
@@ -202,56 +224,67 @@
     </article>
   </div>
   <div class="animal-mobile-priority-actions">
-    <a href="#animal-neu" class="button button-secondary">Neuer Eintrag</a>
-    <a href="#animal-medizin" class="button button-secondary">Medizin</a>
-    <a href="#animal-dokumente" class="button button-secondary">Dokumente</a>
+    <a href="#animal-neu" class="btn btn-outline-secondary btn-sm">Neuer Eintrag</a>
+    <a href="#animal-medizin" class="btn btn-outline-secondary btn-sm">Medizin</a>
+    <a href="#animal-dokumente" class="btn btn-outline-secondary btn-sm">Dokumente</a>
   </div>
 </div>
 
-<section class="accordion-stack">
-  <details class="accordion-item" id="animal-stammdaten">
-    <summary>
-      <span class="accordion-summary-main">Stammdaten</span>
-      <span class="accordion-summary-meta">Basis, Fütterung, Protokolle</span>
-    </summary>
-    <div class="accordion-content compact-layout">
-      <div class="section-block">
+<section class="accordion animal-record-accordion" id="animalRecordAccordion">
+  <section class="accordion-item" id="animal-stammdaten">
+    <h2 class="accordion-header" id="animal-stammdaten-heading">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#animal-stammdaten-body" aria-expanded="false" aria-controls="animal-stammdaten-body">
+        <span class="accordion-summary-main">Stammdaten</span>
+        <span class="accordion-summary-meta">Basis, Fütterung, Protokolle</span>
+      </button>
+    </h2>
+    <div id="animal-stammdaten-body" class="accordion-collapse collapse" aria-labelledby="animal-stammdaten-heading" data-bs-parent="#animalRecordAccordion">
+      <div class="accordion-body d-grid gap-3">
+      <div class="card border-0 bg-body-tertiary">
+        <div class="card-body p-3">
         <h3>Basisdaten</h3>
-        <dl class="detail-list compact">
-          <div><dt>Herkunft</dt><dd><%= animal.source || '-' %></dd></div>
-          <div><dt>Rasse</dt><dd><%= animal.breed || '-' %></dd></div>
-          <div><dt>Farbe</dt><dd><%= animal.color || '-' %></dd></div>
-          <div><dt>Geschlecht</dt><dd><%= animal.sex || '-' %></dd></div>
-          <div><dt>Mikrochip</dt><dd><%= animal.microchip_number || '-' %></dd></div>
-          <div><dt>Gewicht</dt><dd><%= animal.weight_kg || '-' %></dd></div>
+        <dl class="row g-2 mb-3">
+          <div class="col-md-6"><div class="card border-0 bg-dark-subtle h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Herkunft</dt><dd class="mb-0 fw-semibold"><%= animal.source || '-' %></dd></div></div></div>
+          <div class="col-md-6"><div class="card border-0 bg-dark-subtle h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Rasse</dt><dd class="mb-0 fw-semibold"><%= animal.breed || '-' %></dd></div></div></div>
+          <div class="col-md-6"><div class="card border-0 bg-dark-subtle h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Farbe</dt><dd class="mb-0 fw-semibold"><%= animal.color || '-' %></dd></div></div></div>
+          <div class="col-md-6"><div class="card border-0 bg-dark-subtle h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Geschlecht</dt><dd class="mb-0 fw-semibold"><%= animal.sex || '-' %></dd></div></div></div>
+          <div class="col-md-6"><div class="card border-0 bg-dark-subtle h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Mikrochip</dt><dd class="mb-0 fw-semibold"><%= animal.microchip_number || '-' %></dd></div></div></div>
+          <div class="col-md-6"><div class="card border-0 bg-dark-subtle h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Gewicht</dt><dd class="mb-0 fw-semibold"><%= animal.weight_kg || '-' %></dd></div></div></div>
         </dl>
-        <p class="compact-note"><%= animal.notes || 'Keine weiteren Notizen vorhanden.' %></p>
+        <p class="small text-body-secondary mb-0"><%= animal.notes || 'Keine weiteren Notizen vorhanden.' %></p>
+        </div>
       </div>
 
-      <details class="sub-accordion">
-        <summary>Fütterung</summary>
-        <div class="sub-accordion-content stack compact-stack">
-          <div class="section-head compact-section-head">
-            <p class="compact-note">Zeiten, Futter und Mengen an einem Ort.</p>
+      <div class="accordion animal-subaccordion">
+      <section class="accordion-item">
+        <h3 class="accordion-header" id="animal-feedings-heading">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#animal-feedings-body" aria-expanded="false" aria-controls="animal-feedings-body">
+            Fütterung
+          </button>
+        </h3>
+        <div id="animal-feedings-body" class="accordion-collapse collapse" aria-labelledby="animal-feedings-heading">
+          <div class="accordion-body d-grid gap-2">
+          <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-2">
+            <p class="small text-body-secondary mb-0">Zeiten, Futter und Mengen an einem Ort.</p>
             <% if (permissions.canManageFeedings) { %>
-              <a href="/animals/<%= animal.id %>/feedings/new" class="button button-secondary" data-drawer="animal-entry">Fütterung anlegen</a>
+              <a href="/animals/<%= animal.id %>/feedings/new" class="btn btn-outline-secondary btn-sm" data-drawer="animal-entry">Fütterung anlegen</a>
             <% } %>
           </div>
           <% related.feedings.forEach((item) => { %>
-            <div class="list-card static-card compact-card">
-              <div class="list-card-main">
+            <div class="card border-0 bg-body-tertiary d-flex flex-column flex-lg-row justify-content-between gap-3">
+              <div class="card-body d-grid gap-1 p-3 flex-grow-1">
                 <strong><%= item.label %></strong>
                 <p><%= item.time_of_day || '-' %> | <%= item.food || '-' %> | <%= item.amount || '-' %></p>
                 <% if (item.notes) { %><small><%= item.notes %></small><% } %>
               </div>
               <% if (permissions.canManageFeedings) { %>
                 <div class="inline-actions">
-                  <a href="/animals/<%= animal.id %>/feedings/<%= item.id %>/edit" class="button button-secondary icon-button" aria-label="Fütterung bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
+                  <a href="/animals/<%= animal.id %>/feedings/<%= item.id %>/edit" class="btn btn-outline-secondary btn-sm icon-button" aria-label="Fütterung bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
                     <span aria-hidden="true">✎</span>
                     <span class="visually-hidden">Bearbeiten</span>
                   </a>
                   <form method="post" action="/animals/<%= animal.id %>/feedings/<%= item.id %>/delete" data-confirm="Eintrag wirklich löschen?">
-                    <button type="submit" class="button button-danger icon-button" aria-label="Fütterung löschen" title="Löschen">
+                    <button type="submit" class="btn btn-outline-danger btn-sm icon-button" aria-label="Fütterung löschen" title="Löschen">
                       <span aria-hidden="true">🗑</span>
                       <span class="visually-hidden">Löschen</span>
                     </button>
@@ -263,33 +296,39 @@
           <% if (related.feedings.length === 0) { %>
             <p class="empty-state">Noch kein Fütterungsplan hinterlegt.</p>
           <% } %>
+          </div>
         </div>
-      </details>
+      </section>
 
-      <details class="sub-accordion">
-        <summary>Protokolle</summary>
-        <div class="sub-accordion-content stack compact-stack">
-          <div class="section-head compact-section-head">
-            <p class="compact-note">Kurze Einträge für Verlauf, Beobachtungen und Nachweise.</p>
+      <section class="accordion-item">
+        <h3 class="accordion-header" id="animal-notes-heading">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#animal-notes-body" aria-expanded="false" aria-controls="animal-notes-body">
+            Protokolle
+          </button>
+        </h3>
+        <div id="animal-notes-body" class="accordion-collapse collapse" aria-labelledby="animal-notes-heading">
+          <div class="accordion-body d-grid gap-2">
+          <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-2">
+            <p class="small text-body-secondary mb-0">Kurze Einträge für Verlauf, Beobachtungen und Nachweise.</p>
             <% if (permissions.canManageNotes) { %>
-              <a href="/animals/<%= animal.id %>/notes/new" class="button button-secondary" data-drawer="animal-entry">Protokoll anlegen</a>
+              <a href="/animals/<%= animal.id %>/notes/new" class="btn btn-outline-secondary btn-sm" data-drawer="animal-entry">Protokoll anlegen</a>
             <% } %>
           </div>
           <% related.notes.forEach((item) => { %>
-            <div class="list-card static-card compact-card">
-              <div class="list-card-main">
+            <div class="card border-0 bg-body-tertiary d-flex flex-column flex-lg-row justify-content-between gap-3">
+              <div class="card-body d-grid gap-1 p-3 flex-grow-1">
                 <strong><%= item.title %></strong>
                 <p><%= item.content %></p>
                 <small><%= formatDateTime(item.created_at) %></small>
               </div>
               <% if (permissions.canManageNotes) { %>
                 <div class="inline-actions">
-                  <a href="/animals/<%= animal.id %>/notes/<%= item.id %>/edit" class="button button-secondary icon-button" aria-label="Protokoll bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
+                  <a href="/animals/<%= animal.id %>/notes/<%= item.id %>/edit" class="btn btn-outline-secondary btn-sm icon-button" aria-label="Protokoll bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
                     <span aria-hidden="true">✎</span>
                     <span class="visually-hidden">Bearbeiten</span>
                   </a>
                   <form method="post" action="/animals/<%= animal.id %>/notes/<%= item.id %>/delete" data-confirm="Eintrag wirklich löschen?">
-                    <button type="submit" class="button button-danger icon-button" aria-label="Protokoll löschen" title="Löschen">
+                    <button type="submit" class="btn btn-outline-danger btn-sm icon-button" aria-label="Protokoll löschen" title="Löschen">
                       <span aria-hidden="true">🗑</span>
                       <span class="visually-hidden">Löschen</span>
                     </button>
@@ -301,20 +340,26 @@
           <% if (related.notes.length === 0) { %>
             <p class="empty-state">Noch keine Protokolle vorhanden.</p>
           <% } %>
+          </div>
         </div>
-      </details>
+      </section>
+      </div>
+      </div>
     </div>
-  </details>
+  </section>
 
-  <details class="accordion-item" id="animal-neu">
-    <summary>
-      <span class="accordion-summary-main">Neuer Eintrag</span>
-      <span class="accordion-summary-meta">Schnell Medikamente, Impfungen, Termine oder Erinnerungen erfassen</span>
-    </summary>
-    <div class="accordion-content compact-layout">
+  <section class="accordion-item" id="animal-neu">
+    <h2 class="accordion-header" id="animal-neu-heading">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#animal-neu-body" aria-expanded="false" aria-controls="animal-neu-body">
+        <span class="accordion-summary-main">Neuer Eintrag</span>
+        <span class="accordion-summary-meta">Schnell Medikamente, Impfungen, Termine oder Erinnerungen erfassen</span>
+      </button>
+    </h2>
+    <div id="animal-neu-body" class="accordion-collapse collapse" aria-labelledby="animal-neu-heading" data-bs-parent="#animalRecordAccordion">
+      <div class="accordion-body d-grid gap-3">
       <% if (permissions.canManageHealth || permissions.canManageReminders) { %>
-        <div class="list-card static-card compact-card">
-          <div class="list-card-main">
+        <div class="card border-0 bg-body-tertiary d-flex flex-column flex-lg-row justify-content-between gap-3">
+          <div class="card-body d-grid gap-1 p-3 flex-grow-1">
             <strong>Schneller neuer Eintrag</strong>
             <p>Nutze diesen Einstieg für alles, was im Alltag schnell erfasst werden soll. Medikamente, Impfungen, Termine oder Erinnerungen landen direkt in der passenden Akte, ohne dass du erst zwischen Bereichen springen musst.</p>
             <div class="inline-pill-list">
@@ -327,44 +372,54 @@
             </div>
           </div>
           <div class="inline-actions">
-            <a href="/animals/<%= animal.id %>/events/new" class="button" data-drawer="animal-entry">Ereignis anlegen</a>
+            <a href="/animals/<%= animal.id %>/events/new" class="btn btn-primary btn-sm" data-drawer="animal-entry">Ereignis anlegen</a>
           </div>
         </div>
       <% } else { %>
         <p class="empty-state">Für neue Ereignisse fehlen die erforderlichen Rechte.</p>
       <% } %>
+      </div>
     </div>
-  </details>
+  </section>
 
-  <details class="accordion-item" id="animal-medizin">
-    <summary>
-      <span class="accordion-summary-main">Medizin</span>
-      <span class="accordion-summary-meta"><%= related.conditions.length + related.medications.length + related.vaccinations.length + (related.appointments || []).length + freeReminders.length %> Einträge</span>
-    </summary>
-    <div class="accordion-content compact-layout">
-      <details class="sub-accordion">
-        <summary>Vorerkrankungen</summary>
-        <div class="sub-accordion-content stack compact-stack">
-          <div class="section-head compact-section-head">
-            <p class="compact-note">Dauerhafte oder bekannte Vorerkrankungen mit kurzem Kontext.</p>
+  <section class="accordion-item" id="animal-medizin">
+    <h2 class="accordion-header" id="animal-medizin-heading">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#animal-medizin-body" aria-expanded="false" aria-controls="animal-medizin-body">
+        <span class="accordion-summary-main">Medizin</span>
+        <span class="accordion-summary-meta"><%= related.conditions.length + related.medications.length + related.vaccinations.length + (related.appointments || []).length + freeReminders.length %> Einträge</span>
+      </button>
+    </h2>
+    <div id="animal-medizin-body" class="accordion-collapse collapse" aria-labelledby="animal-medizin-heading" data-bs-parent="#animalRecordAccordion">
+      <div class="accordion-body d-grid gap-3">
+      <div class="accordion animal-subaccordion">
+      <section class="accordion-item">
+        <h3 class="accordion-header" id="animal-conditions-heading">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#animal-conditions-body" aria-expanded="false" aria-controls="animal-conditions-body">
+            Vorerkrankungen
+          </button>
+        </h3>
+        <div id="animal-conditions-body" class="accordion-collapse collapse" aria-labelledby="animal-conditions-heading">
+          <div class="accordion-body d-grid gap-2">
+          <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-2">
+            <p class="small text-body-secondary mb-0">Dauerhafte oder bekannte Vorerkrankungen mit kurzem Kontext.</p>
             <% if (permissions.canManageHealth) { %>
-              <a href="/animals/<%= animal.id %>/conditions/new" class="button button-secondary" data-drawer="animal-entry">Vorerkrankung anlegen</a>
+              <a href="/animals/<%= animal.id %>/conditions/new" class="btn btn-outline-secondary btn-sm" data-drawer="animal-entry">Vorerkrankung anlegen</a>
             <% } %>
           </div>
           <% related.conditions.forEach((item) => { %>
-            <div class="list-card static-card compact-card">
-              <div class="list-card-main">
+            <div class="card border-0 bg-body-tertiary d-flex flex-column flex-lg-row justify-content-between gap-3">
+              <div class="card-body d-grid gap-1 p-3 flex-grow-1">
                 <strong><%= item.title %></strong>
                 <p><%= item.details || 'Keine Details' %></p>
               </div>
               <% if (permissions.canManageHealth) { %>
                 <div class="inline-actions">
-                  <a href="/animals/<%= animal.id %>/conditions/<%= item.id %>/edit" class="button button-secondary icon-button" aria-label="Vorerkrankung bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
+                  <a href="/animals/<%= animal.id %>/conditions/<%= item.id %>/edit" class="btn btn-outline-secondary btn-sm icon-button" aria-label="Vorerkrankung bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
                     <span aria-hidden="true">✎</span>
                     <span class="visually-hidden">Bearbeiten</span>
                   </a>
                   <form method="post" action="/animals/<%= animal.id %>/conditions/<%= item.id %>/delete" data-confirm="Eintrag wirklich löschen?">
-                    <button type="submit" class="button button-danger icon-button" aria-label="Vorerkrankung löschen" title="Löschen">
+                    <button type="submit" class="btn btn-outline-danger btn-sm icon-button" aria-label="Vorerkrankung löschen" title="Löschen">
                       <span aria-hidden="true">🗑</span>
                       <span class="visually-hidden">Löschen</span>
                     </button>
@@ -376,19 +431,25 @@
           <% if (related.conditions.length === 0) { %>
             <p class="empty-state">Noch keine Vorerkrankungen hinterlegt.</p>
           <% } %>
+          </div>
         </div>
-      </details>
+      </section>
 
-      <details class="sub-accordion">
-        <summary>Medikamente</summary>
-        <div class="sub-accordion-content stack compact-stack">
-          <div class="section-head compact-section-head">
-            <p class="compact-note">Wirkstoff, Dosis, Zeitplan und offene Erinnerungen.</p>
+      <section class="accordion-item">
+        <h3 class="accordion-header" id="animal-medications-heading">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#animal-medications-body" aria-expanded="false" aria-controls="animal-medications-body">
+            Medikamente
+          </button>
+        </h3>
+        <div id="animal-medications-body" class="accordion-collapse collapse" aria-labelledby="animal-medications-heading">
+          <div class="accordion-body d-grid gap-2">
+          <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-2">
+            <p class="small text-body-secondary mb-0">Wirkstoff, Dosis, Zeitplan und offene Erinnerungen.</p>
           </div>
           <% related.medications.forEach((item) => { %>
             <% const medicationReminders = reminderSourceMap[`medication:${item.id}`] || []; %>
-            <div class="list-card static-card compact-card">
-              <div class="list-card-main">
+            <div class="card border-0 bg-body-tertiary d-flex flex-column flex-lg-row justify-content-between gap-3">
+              <div class="card-body d-grid gap-1 p-3 flex-grow-1">
                 <strong><%= item.name %></strong>
                 <p>Dosis: <%= item.dosage || '-' %> | Plan: <%= item.schedule || '-' %></p>
                 <small>Start: <%= formatDate(item.start_date) %> | Ende: <%= formatDate(item.end_date) %></small>
@@ -402,11 +463,11 @@
                         <% if (permissions.canManageReminders) { %>
                           <% if (!reminder.completed_at) { %>
                             <form method="post" action="/reminders/<%= reminder.id %>/complete">
-                              <button type="submit" class="button button-secondary">Erledigt</button>
+                              <button type="submit" class="btn btn-outline-secondary btn-sm">Erledigt</button>
                             </form>
                           <% } else { %>
                             <form method="post" action="/reminders/<%= reminder.id %>/reopen">
-                              <button type="submit" class="button button-secondary">Wieder öffnen</button>
+                              <button type="submit" class="btn btn-outline-secondary btn-sm">Wieder öffnen</button>
                             </form>
                           <% } %>
                         <% } %>
@@ -417,12 +478,12 @@
               </div>
               <% if (permissions.canManageHealth) { %>
                 <div class="inline-actions">
-                  <a href="/animals/<%= animal.id %>/medications/<%= item.id %>/edit" class="button button-secondary icon-button" aria-label="Medikament bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
+                  <a href="/animals/<%= animal.id %>/medications/<%= item.id %>/edit" class="btn btn-outline-secondary btn-sm icon-button" aria-label="Medikament bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
                     <span aria-hidden="true">✎</span>
                     <span class="visually-hidden">Bearbeiten</span>
                   </a>
                   <form method="post" action="/animals/<%= animal.id %>/medications/<%= item.id %>/delete" data-confirm="Eintrag wirklich löschen?">
-                    <button type="submit" class="button button-danger icon-button" aria-label="Medikament löschen" title="Löschen">
+                    <button type="submit" class="btn btn-outline-danger btn-sm icon-button" aria-label="Medikament löschen" title="Löschen">
                       <span aria-hidden="true">🗑</span>
                       <span class="visually-hidden">Löschen</span>
                     </button>
@@ -434,19 +495,25 @@
           <% if (related.medications.length === 0) { %>
             <p class="empty-state">Noch keine Medikamente vorhanden.</p>
           <% } %>
+          </div>
         </div>
-      </details>
+      </section>
 
-      <details class="sub-accordion">
-        <summary>Impfungen</summary>
-        <div class="sub-accordion-content stack compact-stack">
-          <div class="section-head compact-section-head">
-            <p class="compact-note">Vergangene Impfungen, nächste Fälligkeiten und Erinnerungen.</p>
+      <section class="accordion-item">
+        <h3 class="accordion-header" id="animal-vaccinations-heading">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#animal-vaccinations-body" aria-expanded="false" aria-controls="animal-vaccinations-body">
+            Impfungen
+          </button>
+        </h3>
+        <div id="animal-vaccinations-body" class="accordion-collapse collapse" aria-labelledby="animal-vaccinations-heading">
+          <div class="accordion-body d-grid gap-2">
+          <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-2">
+            <p class="small text-body-secondary mb-0">Vergangene Impfungen, nächste Fälligkeiten und Erinnerungen.</p>
           </div>
           <% related.vaccinations.forEach((item) => { %>
             <% const vaccinationReminders = reminderSourceMap[`vaccination:${item.id}`] || []; %>
-            <div class="list-card static-card compact-card">
-                <div class="list-card-main">
+            <div class="card border-0 bg-body-tertiary d-flex flex-column flex-lg-row justify-content-between gap-3">
+                <div class="card-body d-grid gap-1 p-3 flex-grow-1">
                   <strong><%= item.name %></strong>
                   <p>Geimpft: <%= formatDate(item.vaccination_date) %> | Nächste Fälligkeit: <%= formatDate(item.next_due_date) %></p>
                   <% if (item.notes) { %><small><%= item.notes %></small><% } %>
@@ -459,11 +526,11 @@
                           <% if (permissions.canManageReminders) { %>
                             <% if (!reminder.completed_at) { %>
                               <form method="post" action="/reminders/<%= reminder.id %>/complete">
-                                <button type="submit" class="button button-secondary">Erledigt</button>
+                                <button type="submit" class="btn btn-outline-secondary btn-sm">Erledigt</button>
                               </form>
                             <% } else { %>
                               <form method="post" action="/reminders/<%= reminder.id %>/reopen">
-                                <button type="submit" class="button button-secondary">Wieder öffnen</button>
+                                <button type="submit" class="btn btn-outline-secondary btn-sm">Wieder öffnen</button>
                               </form>
                             <% } %>
                           <% } %>
@@ -474,12 +541,12 @@
                 </div>
                 <% if (permissions.canManageHealth) { %>
                   <div class="inline-actions">
-                    <a href="/animals/<%= animal.id %>/vaccinations/<%= item.id %>/edit" class="button button-secondary icon-button" aria-label="Impfung bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
+                    <a href="/animals/<%= animal.id %>/vaccinations/<%= item.id %>/edit" class="btn btn-outline-secondary btn-sm icon-button" aria-label="Impfung bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
                       <span aria-hidden="true">✎</span>
                       <span class="visually-hidden">Bearbeiten</span>
                     </a>
                     <form method="post" action="/animals/<%= animal.id %>/vaccinations/<%= item.id %>/delete" data-confirm="Eintrag wirklich löschen?">
-                      <button type="submit" class="button button-danger icon-button" aria-label="Impfung löschen" title="Löschen">
+                      <button type="submit" class="btn btn-outline-danger btn-sm icon-button" aria-label="Impfung löschen" title="Löschen">
                         <span aria-hidden="true">🗑</span>
                         <span class="visually-hidden">Löschen</span>
                       </button>
@@ -491,19 +558,25 @@
           <% if (related.vaccinations.length === 0) { %>
             <p class="empty-state">Noch keine Impfungen vorhanden.</p>
           <% } %>
+          </div>
         </div>
-      </details>
+      </section>
 
-      <details class="sub-accordion">
-        <summary>Arzttermine</summary>
-        <div class="sub-accordion-content stack compact-stack">
-          <div class="section-head compact-section-head">
-            <p class="compact-note">Praxis- und Vor-Ort-Termine mit Tierarzt und Zeitpunkt.</p>
+      <section class="accordion-item">
+        <h3 class="accordion-header" id="animal-appointments-heading">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#animal-appointments-body" aria-expanded="false" aria-controls="animal-appointments-body">
+            Arzttermine
+          </button>
+        </h3>
+        <div id="animal-appointments-body" class="accordion-collapse collapse" aria-labelledby="animal-appointments-heading">
+          <div class="accordion-body d-grid gap-2">
+          <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-2">
+            <p class="small text-body-secondary mb-0">Praxis- und Vor-Ort-Termine mit Tierarzt und Zeitpunkt.</p>
           </div>
           <% (related.appointments || []).forEach((item) => { %>
             <% const appointmentReminders = reminderSourceMap[`appointment:${item.id}`] || []; %>
-            <div class="list-card static-card compact-card">
-                <div class="list-card-main">
+            <div class="card border-0 bg-body-tertiary d-flex flex-column flex-lg-row justify-content-between gap-3">
+                <div class="card-body d-grid gap-1 p-3 flex-grow-1">
                   <strong><%= item.title %></strong>
                   <p><%= formatDateTime(item.appointment_at) %> | <%= item.location_mode === 'vor_ort' ? 'Tierarzt kommt vor Ort' : 'Tier wird zur Praxis gebracht' %></p>
                   <small>Ort: <%= item.location_text || '-' %> | Tierarzt: <%= item.veterinarian_name || '-' %></small>
@@ -517,11 +590,11 @@
                           <% if (permissions.canManageReminders) { %>
                             <% if (!reminder.completed_at) { %>
                               <form method="post" action="/reminders/<%= reminder.id %>/complete">
-                                <button type="submit" class="button button-secondary">Erledigt</button>
+                                <button type="submit" class="btn btn-outline-secondary btn-sm">Erledigt</button>
                               </form>
                             <% } else { %>
                               <form method="post" action="/reminders/<%= reminder.id %>/reopen">
-                                <button type="submit" class="button button-secondary">Wieder öffnen</button>
+                                <button type="submit" class="btn btn-outline-secondary btn-sm">Wieder öffnen</button>
                               </form>
                             <% } %>
                           <% } %>
@@ -532,12 +605,12 @@
                 </div>
                 <% if (permissions.canManageHealth) { %>
                   <div class="inline-actions">
-                    <a href="/animals/<%= animal.id %>/appointments/<%= item.id %>/edit" class="button button-secondary icon-button" aria-label="Arzttermin bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
+                    <a href="/animals/<%= animal.id %>/appointments/<%= item.id %>/edit" class="btn btn-outline-secondary btn-sm icon-button" aria-label="Arzttermin bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
                       <span aria-hidden="true">✎</span>
                       <span class="visually-hidden">Bearbeiten</span>
                     </a>
                     <form method="post" action="/animals/<%= animal.id %>/appointments/<%= item.id %>/delete" data-confirm="Arzttermin wirklich löschen?">
-                      <button type="submit" class="button button-danger icon-button" aria-label="Arzttermin löschen" title="Löschen">
+                      <button type="submit" class="btn btn-outline-danger btn-sm icon-button" aria-label="Arzttermin löschen" title="Löschen">
                         <span aria-hidden="true">🗑</span>
                         <span class="visually-hidden">Löschen</span>
                       </button>
@@ -549,32 +622,44 @@
           <% if ((related.appointments || []).length === 0) { %>
             <p class="empty-state">Noch keine Arzttermine vorhanden.</p>
           <% } %>
+          </div>
         </div>
-      </details>
+      </section>
 
-      <details class="sub-accordion">
-        <summary>Freie Erinnerungen</summary>
-        <div class="sub-accordion-content stack compact-stack">
-          <div class="section-head compact-section-head">
-            <p class="compact-note">Unabhängige Erinnerungen, die nicht an ein medizinisches Ereignis gebunden sind.</p>
+      <section class="accordion-item">
+        <h3 class="accordion-header" id="animal-free-reminders-heading">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#animal-free-reminders-body" aria-expanded="false" aria-controls="animal-free-reminders-body">
+            Freie Erinnerungen
+          </button>
+        </h3>
+        <div id="animal-free-reminders-body" class="accordion-collapse collapse" aria-labelledby="animal-free-reminders-heading">
+          <div class="accordion-body d-grid gap-2">
+          <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-2">
+            <p class="small text-body-secondary mb-0">Unabhängige Erinnerungen, die nicht an ein medizinisches Ereignis gebunden sind.</p>
           </div>
           <% if (permissions.canManageReminders && freeReminders.length > 0) { %>
-            <div class="stack form-compact compact-card">
-              <div class="mini-grid">
-                <select name="bulk_action" required form="bulk-reminders-<%= animal.id %>">
+            <div class="card border-0 bg-body-tertiary">
+              <div class="card-body p-3 d-grid gap-2">
+              <div class="row g-2 align-items-end">
+                <div class="col-md-8">
+                  <select class="form-select" name="bulk_action" required form="bulk-reminders-<%= animal.id %>">
                   <option value="">Massenaktion wählen</option>
                   <option value="complete">Als erledigt markieren</option>
                   <option value="reopen">Wieder öffnen</option>
                   <option value="delete">Löschen</option>
-                </select>
-                <button type="submit" class="button button-secondary" form="bulk-reminders-<%= animal.id %>">Auf Auswahl anwenden</button>
+                  </select>
+                </div>
+                <div class="col-md-4 d-grid">
+                  <button type="submit" class="btn btn-outline-secondary" form="bulk-reminders-<%= animal.id %>">Auf Auswahl anwenden</button>
+                </div>
               </div>
-              <small>Auswahl unten per Checkbox treffen.</small>
+              <small class="text-body-secondary">Auswahl unten per Checkbox treffen.</small>
+              </div>
             </div>
           <% } %>
           <% freeReminders.forEach((item) => { %>
-            <div class="list-card static-card compact-card">
-                <div class="list-card-main">
+            <div class="card border-0 bg-body-tertiary d-flex flex-column flex-lg-row justify-content-between gap-3">
+                <div class="card-body d-grid gap-1 p-3 flex-grow-1">
                   <% if (permissions.canManageReminders) { %>
                     <label class="checkbox-line">
                       <input type="checkbox" name="reminder_ids" value="<%= item.id %>" form="bulk-reminders-<%= animal.id %>" />
@@ -589,19 +674,19 @@
                   <div class="inline-actions">
                     <% if (!item.completed_at) { %>
                       <form method="post" action="/reminders/<%= item.id %>/complete">
-                        <button type="submit" class="button button-secondary">Erledigt</button>
+                        <button type="submit" class="btn btn-outline-secondary btn-sm">Erledigt</button>
                       </form>
                     <% } else { %>
                       <form method="post" action="/reminders/<%= item.id %>/reopen">
-                        <button type="submit" class="button button-secondary">Wieder öffnen</button>
+                        <button type="submit" class="btn btn-outline-secondary btn-sm">Wieder öffnen</button>
                       </form>
                     <% } %>
-                    <a href="/animals/<%= animal.id %>/reminders/<%= item.id %>/edit" class="button button-secondary icon-button" aria-label="Erinnerung bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
+                    <a href="/animals/<%= animal.id %>/reminders/<%= item.id %>/edit" class="btn btn-outline-secondary btn-sm icon-button" aria-label="Erinnerung bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
                       <span aria-hidden="true">✎</span>
                       <span class="visually-hidden">Bearbeiten</span>
                     </a>
                     <form method="post" action="/animals/<%= animal.id %>/reminders/<%= item.id %>/delete" data-confirm="Erinnerung wirklich löschen?">
-                      <button type="submit" class="button button-danger icon-button" aria-label="Erinnerung löschen" title="Löschen">
+                      <button type="submit" class="btn btn-outline-danger btn-sm icon-button" aria-label="Erinnerung löschen" title="Löschen">
                         <span aria-hidden="true">🗑</span>
                         <span class="visually-hidden">Löschen</span>
                       </button>
@@ -616,24 +701,30 @@
           <% if (freeReminders.length === 0) { %>
             <p class="empty-state">Noch keine freien Erinnerungen vorhanden.</p>
           <% } %>
+          </div>
         </div>
-      </details>
+      </section>
+      </div>
+      </div>
     </div>
-  </details>
+  </section>
 
-  <details class="accordion-item" id="animal-timeline">
-    <summary>
-      <span class="accordion-summary-main">Timeline</span>
-      <span class="accordion-summary-meta"><%= animalTimeline.length %> Verlaufseinträge</span>
-    </summary>
-    <div class="accordion-content compact-layout">
+  <section class="accordion-item" id="animal-timeline">
+    <h2 class="accordion-header" id="animal-timeline-heading">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#animal-timeline-body" aria-expanded="false" aria-controls="animal-timeline-body">
+        <span class="accordion-summary-main">Timeline</span>
+        <span class="accordion-summary-meta"><%= animalTimeline.length %> Verlaufseinträge</span>
+      </button>
+    </h2>
+    <div id="animal-timeline-body" class="accordion-collapse collapse" aria-labelledby="animal-timeline-heading" data-bs-parent="#animalRecordAccordion">
+      <div class="accordion-body d-grid gap-3">
       <% if (animalTimeline.length === 0) { %>
         <p class="empty-state">Noch keine Timeline-Einträge vorhanden.</p>
       <% } else { %>
-        <div class="stack compact-stack">
+        <div class="d-grid gap-2">
           <% animalTimeline.forEach((entry) => { %>
-            <div class="list-card static-card compact-card">
-              <div class="list-card-main">
+            <div class="card border-0 bg-body-tertiary d-flex flex-column flex-lg-row justify-content-between gap-3">
+              <div class="card-body d-grid gap-1 p-3 flex-grow-1">
                 <strong><%= entry.title %></strong>
                 <p><%= entry.type %> | <%= formatDateTime(entry.at) %></p>
                 <% if (entry.details) { %><small><%= entry.details %></small><% } %>
@@ -642,22 +733,32 @@
           <% }) %>
         </div>
       <% } %>
+      </div>
     </div>
-  </details>
+  </section>
 
-  <details class="accordion-item" id="animal-dokumente">
-    <summary>
-      <span class="accordion-summary-main">Dokumente / Fotos</span>
-      <span class="accordion-summary-meta"><%= related.documents.length %> Dokumente · <%= related.images.length %> Fotos</span>
-    </summary>
-    <div class="accordion-content compact-layout">
-      <details class="sub-accordion">
-        <summary>Fotos</summary>
-        <div class="sub-accordion-content">
-          <div class="section-head compact-section-head">
-            <p class="compact-note">Galerie, Profilbild und visuelle Dokumentation.</p>
+  <section class="accordion-item" id="animal-dokumente">
+    <h2 class="accordion-header" id="animal-dokumente-heading">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#animal-dokumente-body" aria-expanded="false" aria-controls="animal-dokumente-body">
+        <span class="accordion-summary-main">Dokumente / Fotos</span>
+        <span class="accordion-summary-meta"><%= related.documents.length %> Dokumente · <%= related.images.length %> Fotos</span>
+      </button>
+    </h2>
+    <div id="animal-dokumente-body" class="accordion-collapse collapse" aria-labelledby="animal-dokumente-heading" data-bs-parent="#animalRecordAccordion">
+      <div class="accordion-body d-grid gap-3">
+      <div class="accordion animal-subaccordion">
+      <section class="accordion-item">
+        <h3 class="accordion-header" id="animal-photos-heading">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#animal-photos-body" aria-expanded="false" aria-controls="animal-photos-body">
+            Fotos
+          </button>
+        </h3>
+        <div id="animal-photos-body" class="accordion-collapse collapse" aria-labelledby="animal-photos-heading">
+          <div class="accordion-body">
+          <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-2">
+            <p class="small text-body-secondary mb-0">Galerie, Profilbild und visuelle Dokumentation.</p>
             <% if (permissions.canManageGallery) { %>
-              <a href="/animals/<%= animal.id %>/images/new" class="button button-secondary" data-drawer="animal-entry">Foto hochladen</a>
+              <a href="/animals/<%= animal.id %>/images/new" class="btn btn-outline-secondary btn-sm" data-drawer="animal-entry">Foto hochladen</a>
             <% } %>
           </div>
           <% if (related.images.length === 0) { %>
@@ -676,10 +777,10 @@
                   <% if (permissions.canManageGallery) { %>
                     <div class="inline-actions">
                       <form method="post" action="/animals/<%= animal.id %>/images/<%= item.id %>/set-profile">
-                        <button type="submit" class="button button-secondary">Als Profilbild</button>
+                        <button type="submit" class="btn btn-outline-secondary btn-sm">Als Profilbild</button>
                       </form>
                       <form method="post" action="/animals/<%= animal.id %>/images/<%= item.id %>/delete" data-confirm="Galeriebild wirklich löschen?">
-                        <button type="submit" class="button button-danger icon-button" aria-label="Galeriebild löschen" title="Löschen">
+                        <button type="submit" class="btn btn-outline-danger btn-sm icon-button" aria-label="Galeriebild löschen" title="Löschen">
                           <span aria-hidden="true">🗑</span>
                           <span class="visually-hidden">Löschen</span>
                         </button>
@@ -690,51 +791,61 @@
               <% }) %>
             </div>
           <% } %>
+          </div>
         </div>
-      </details>
+      </section>
 
-      <details class="sub-accordion">
-        <summary>Dokumente</summary>
-        <div class="sub-accordion-content">
+      <section class="accordion-item">
+        <h3 class="accordion-header" id="animal-documents-heading">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#animal-documents-body" aria-expanded="false" aria-controls="animal-documents-body">
+            Dokumente
+          </button>
+        </h3>
+        <div id="animal-documents-body" class="accordion-collapse collapse" aria-labelledby="animal-documents-heading">
+          <div class="accordion-body">
           <% if (missingRequiredCategories.length > 0) { %>
-            <div class="note-box">
+            <div class="alert alert-warning mb-0">
               Fehlende Pflichtkategorien:
               <strong><%= missingRequiredCategories.map((item) => item.name).join(', ') %></strong>
             </div>
           <% } %>
-          <div class="button-row compact-wrap">
-            <p class="compact-note">Impfnachweise, Verträge und weitere Unterlagen mit Filter.</p>
-            <% if (permissions.canManageDocuments) { %>
-              <a href="/animals/<%= animal.id %>/documents/new" class="button button-secondary" data-drawer="animal-entry">Dokument hochladen</a>
-            <% } %>
-            <form method="get" action="/animals/<%= animal.id %>" class="filter-row compact-filter-row">
-            <label>
-              <span>Kategorie</span>
-              <select name="documentCategory">
+          <div class="d-flex flex-column gap-3">
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-2">
+              <p class="small text-body-secondary mb-0">Impfnachweise, Verträge und weitere Unterlagen mit Filter.</p>
+              <% if (permissions.canManageDocuments) { %>
+                <a href="/animals/<%= animal.id %>/documents/new" class="btn btn-outline-secondary" data-drawer="animal-entry">Dokument hochladen</a>
+              <% } %>
+            </div>
+            <form method="get" action="/animals/<%= animal.id %>" class="row g-2 align-items-end">
+            <div class="col-md-5">
+              <label class="form-label" for="document-category-filter">Kategorie</label>
+              <select class="form-select" id="document-category-filter" name="documentCategory">
                 <option value="">Alle Kategorien</option>
                 <% categories.forEach((category) => { %>
                   <option value="<%= category.id %>" <%= String(documentFilter.categoryId || '') === String(category.id) ? 'selected' : '' %>><%= category.name %></option>
                 <% }) %>
               </select>
-            </label>
-            <label>
-              <span>Dateityp</span>
-              <select name="documentType">
+            </div>
+            <div class="col-md-5">
+              <label class="form-label" for="document-type-filter">Dateityp</label>
+              <select class="form-select" id="document-type-filter" name="documentType">
                 <option value="">Alle Typen</option>
                 <option value="images" <%= documentFilter.fileType === 'images' ? 'selected' : '' %>>Nur Bilder</option>
                 <option value="files" <%= documentFilter.fileType === 'files' ? 'selected' : '' %>>Nur Dokumente</option>
               </select>
-            </label>
-            <button type="submit" class="button button-secondary">Filter anwenden</button>
+            </div>
+            <div class="col-md-2 d-grid">
+              <button type="submit" class="btn btn-outline-secondary">Filter anwenden</button>
+            </div>
             </form>
           </div>
           <% if (related.documents.length === 0) { %>
             <p class="empty-state">Noch keine Dokumente hochgeladen.</p>
           <% } else { %>
-            <div class="stack compact-stack">
+            <div class="d-grid gap-2">
               <% related.documents.forEach((item) => { %>
-                <div class="list-card static-card compact-card">
-                  <a class="list-card-main" href="/documents/<%= item.id %>/download">
+                <div class="card border-0 bg-body-tertiary d-flex flex-column flex-lg-row justify-content-between gap-3">
+                  <a class="card-body d-grid gap-1 p-3 flex-grow-1" href="/documents/<%= item.id %>/download">
                     <strong><%= item.title %></strong>
                     <p><%= item.category_name || 'Ohne Kategorie' %></p>
                     <% if ((item.mime_type || '').startsWith('image/')) { %>
@@ -744,12 +855,12 @@
                   </a>
                   <% if (permissions.canManageDocuments) { %>
                     <div class="inline-actions">
-                      <a href="/animals/<%= animal.id %>/documents/<%= item.id %>/edit" class="button button-secondary icon-button" aria-label="Dokument bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
+                      <a href="/animals/<%= animal.id %>/documents/<%= item.id %>/edit" class="btn btn-outline-secondary btn-sm icon-button" aria-label="Dokument bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
                         <span aria-hidden="true">✎</span>
                         <span class="visually-hidden">Bearbeiten</span>
                       </a>
                       <form method="post" action="/animals/<%= animal.id %>/documents/<%= item.id %>/delete" data-confirm="Dokument wirklich löschen?">
-                        <button type="submit" class="button button-danger icon-button" aria-label="Dokument löschen" title="Löschen">
+                        <button type="submit" class="btn btn-outline-danger btn-sm icon-button" aria-label="Dokument löschen" title="Löschen">
                           <span aria-hidden="true">🗑</span>
                           <span class="visually-hidden">Löschen</span>
                         </button>
@@ -760,14 +871,17 @@
               <% }) %>
             </div>
           <% } %>
+          </div>
         </div>
-      </details>
+      </section>
+      </div>
 
-      <div class="low-emphasis-actions">
-        <a href="/animals/<%= animal.id %>/export/json" class="muted-link">JSON Export</a>
+      <div class="d-flex justify-content-end mt-2">
+        <a href="/animals/<%= animal.id %>/export/json" class="link-secondary small">JSON Export</a>
+      </div>
       </div>
     </div>
-  </details>
+  </section>
 </section>
 
 <% if (!isEmbeddedView) { %>

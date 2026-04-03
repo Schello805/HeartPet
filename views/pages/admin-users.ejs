@@ -1,146 +1,181 @@
 <%- include('../partials/top', { pageTitle }) %>
 
 <% const me = (typeof selfUser !== 'undefined' ? selfUser : null) || currentUser || {}; %>
-<section class="accordion-stack">
-  <details class="accordion-item">
-    <summary>Profil & Sicherheit</summary>
-    <div class="accordion-content">
-      <section class="admin-subsection">
-        <div class="admin-subsection-head">
-          <div>
-            <strong>Eigenes Konto</strong>
-            <p class="compact-note">Hier geht es nur um dein eigenes Konto. Namen, E-Mail-Adresse und Passwort für weitere Nutzer verwaltest du im unteren Bereich separat.</p>
-          </div>
-        </div>
-        <div class="list-card static-card compact-card">
-          <div class="list-card-main">
-            <strong><%= me.name || 'Administrator' %></strong>
-            <p><%= me.email || '-' %> | <%= getRoleLabel(me.role || 'admin') %></p>
-            <small>Hier verwaltest du nur dein eigenes Login und Passwort.</small>
-          </div>
-        </div>
-      </section>
+<% const managedUsers = (users || []).filter((user) => {
+  const sameId = String(user.id) === String(me.id || "");
+  const sameMail = String(user.email || "").trim().toLowerCase() === String(me.email || "").trim().toLowerCase();
+  return !sameId && !sameMail;
+}); %>
 
-      <form method="post" action="/admin/profile" class="form-shell">
-        <section class="form-section">
-          <div class="form-section-header">
-            <strong>Eigene Profildaten</strong>
-            <p class="compact-note">Änderungen an der E-Mail-Adresse werden erst wirksam, nachdem der Bestätigungslink aufgerufen wurde.</p>
-          </div>
-          <div class="form-section-grid">
-            <label>
-              <span>Name</span>
-              <input class="form-control" type="text" name="name" required value="<%= me.name || '' %>" />
-            </label>
-            <label>
-              <span>E-Mail</span>
-              <input class="form-control" type="email" name="email" required value="<%= me.email || '' %>" />
-            </label>
-          </div>
-        </section>
-        <div class="form-actions-bar">
-          <p class="form-actions-copy">Diese Änderung betrifft nur dein eigenes Konto.</p>
-          <button type="submit" class="btn btn-outline-secondary">Profil speichern</button>
-        </div>
-      </form>
-
-      <form method="post" action="/admin/password" class="form-shell">
-        <section class="form-section">
-          <div class="form-section-header">
-            <strong>Eigenes Passwort ändern</strong>
-            <p class="compact-note">Gib zuerst dein aktuelles Passwort ein und hinterlege danach das neue Passwort zweimal.</p>
-          </div>
-          <div class="form-section-grid">
-            <label>
-              <span>Aktuelles Passwort</span>
-              <input class="form-control" type="password" name="current_password" required placeholder="Aktuelles Passwort" />
-            </label>
-            <label>
-              <span>Neues Passwort</span>
-              <input class="form-control" type="password" name="new_password" required placeholder="Neues Passwort" />
-            </label>
-            <label class="full-width">
-              <span>Neues Passwort wiederholen</span>
-              <input class="form-control" type="password" name="new_password_confirm" required placeholder="Neues Passwort wiederholen" />
-            </label>
-          </div>
-        </section>
-        <div class="form-actions-bar">
-          <p class="form-actions-copy">Das neue Passwort gilt sofort für dein nächstes Login.</p>
-          <button type="submit" class="btn btn-success">Passwort aktualisieren</button>
-        </div>
-      </form>
-    </div>
-  </details>
-
-  <details class="accordion-item">
-    <summary>Nutzer erstellen / verwalten</summary>
-    <div class="accordion-content">
-      <p class="compact-note">Dieser Bereich ist für alle Nutzerkonten, Rollen und Rechte zuständig. Dein eigenes Admin-Konto verwaltest du oben im Profilbereich.</p>
-      <% const managedUsers = (users || []).filter((user) => {
-        const sameId = String(user.id) === String(me.id || "");
-        const sameMail = String(user.email || "").trim().toLowerCase() === String(me.email || "").trim().toLowerCase();
-        return !sameId && !sameMail;
-      }); %>
-      <details class="sub-accordion">
-        <summary>Nutzer hinzufügen</summary>
-        <div class="sub-accordion-content">
-          <p class="compact-note">Lege hier weitere Zugänge für Familie, Mitarbeitende oder Helfer an. Rechte lassen sich später jederzeit anpassen.</p>
-          <a href="/admin/users/new" class="btn btn-success" data-drawer="admin-user">Benutzer anlegen</a>
-        </div>
-      </details>
-
-      <details class="sub-accordion">
-        <summary>Bestehende Nutzer (<%= managedUsers.length %>)</summary>
-        <div class="sub-accordion-content">
-          <p class="compact-note">Hier siehst du alle bereits angelegten Zugänge. Über den Stift kannst du Rollen, Rechte und Kontaktdaten anpassen.</p>
-          <div class="stack compact-list">
-            <% managedUsers.forEach((user) => { %>
-              <div class="stack form-compact user-permissions-card">
-                <div class="list-card static-card compact-card">
-                  <div class="list-card-main">
-                    <strong><%= user.name %></strong>
-                    <p><%= user.email %> | <%= getRoleLabel(user.role) %></p>
-                    <small>
-                      Rechte:
-                      <%= [
-                        user.can_edit_animals ? 'Tiere' : null,
-                        user.can_manage_documents ? 'Dokumente' : null,
-                        user.can_manage_gallery ? 'Galerie' : null,
-                        user.can_manage_health ? 'Medizin' : null,
-                        user.can_manage_feedings ? 'Fütterung' : null,
-                        user.can_manage_notes ? 'Protokolle' : null,
-                        user.can_manage_reminders ? 'Erinnerungen' : null
-                      ].filter(Boolean).join(', ') || 'Keine Zusatzrechte' %>
-                    </small>
+<div class="accordion" id="adminUsersAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="users-profile-heading">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#users-profile" aria-expanded="false" aria-controls="users-profile">
+        Profil & Sicherheit
+      </button>
+    </h2>
+    <div id="users-profile" class="accordion-collapse collapse" aria-labelledby="users-profile-heading" data-bs-parent="#adminUsersAccordion">
+      <div class="accordion-body">
+        <div class="row g-3">
+          <div class="col-12">
+            <section class="card border-0 bg-body-tertiary">
+              <div class="card-body">
+                <h3 class="h5 mb-2">Eigenes Konto</h3>
+                <p class="text-body-secondary mb-3">Hier geht es nur um dein eigenes Konto. Namen, E-Mail-Adresse und Passwort für weitere Nutzer verwaltest du im unteren Bereich separat.</p>
+                <div class="card border bg-body">
+                  <div class="card-body">
+                    <strong class="d-block mb-1"><%= me.name || 'Administrator' %></strong>
+                    <p class="mb-1 text-body-secondary"><%= me.email || '-' %> | <%= getRoleLabel(me.role || 'admin') %></p>
+                    <small class="text-body-secondary">Hier verwaltest du nur dein eigenes Login und Passwort.</small>
                   </div>
-                  <span class="status-chip <%= user.must_change_password ? 'status-warning' : 'status-ok' %>"><%= user.must_change_password ? 'Passwortwechsel offen' : 'Aktiv' %></span>
                 </div>
-                <div class="button-row">
-                  <a href="/admin/users/<%= user.id %>/edit" class="btn btn-outline-secondary icon-button" data-drawer="admin-user" aria-label="Benutzer bearbeiten" title="Bearbeiten">
-                    <span aria-hidden="true">✎</span>
-                    <span class="visually-hidden">Bearbeiten</span>
-                  </a>
-                  <button type="submit" class="btn btn-outline-danger icon-button" form="user-delete-<%= user.id %>" aria-label="Benutzer löschen" title="Löschen">
-                    <span aria-hidden="true">🗑</span>
-                    <span class="visually-hidden">Löschen</span>
-                  </button>
-                </div>
-                <small>E-Mail-Änderungen werden erst nach Bestätigung durch den Nutzer aktiv.</small>
               </div>
-              <form method="post" action="/admin/users/<%= user.id %>/delete" id="user-delete-<%= user.id %>" class="hidden-form" data-confirm="Benutzer wirklich löschen?"></form>
-            <% }) %>
-            <% if (managedUsers.length === 0) { %>
-              <div class="empty-state-card">
-                <strong>Noch keine weiteren Nutzer</strong>
-                <p class="empty-state">Aktuell sind keine weiteren Nutzer angelegt. Dein Admin-Konto findest du oben im Bereich „Profil & Sicherheit“.</p>
+            </section>
+          </div>
+
+          <div class="col-lg-6">
+            <section class="card border-0 bg-body-tertiary h-100">
+              <div class="card-body">
+                <form method="post" action="/admin/profile" class="vstack gap-3">
+                  <div>
+                    <h3 class="h5 mb-2">Eigene Profildaten</h3>
+                    <p class="text-body-secondary mb-0">Änderungen an der E-Mail-Adresse werden erst wirksam, nachdem der Bestätigungslink aufgerufen wurde.</p>
+                  </div>
+                  <div class="row g-3">
+                    <div class="col-12">
+                      <label class="form-label" for="self-name">Name</label>
+                      <input class="form-control" id="self-name" type="text" name="name" required value="<%= me.name || '' %>" />
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label" for="self-email">E-Mail</label>
+                      <input class="form-control" id="self-email" type="email" name="email" required value="<%= me.email || '' %>" />
+                    </div>
+                  </div>
+                  <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 pt-2 border-top">
+                    <p class="text-body-secondary small mb-0">Diese Änderung betrifft nur dein eigenes Konto.</p>
+                    <button type="submit" class="btn btn-outline-secondary">Profil speichern</button>
+                  </div>
+                </form>
               </div>
-            <% } %>
+            </section>
+          </div>
+
+          <div class="col-lg-6">
+            <section class="card border-0 bg-body-tertiary h-100">
+              <div class="card-body">
+                <form method="post" action="/admin/password" class="vstack gap-3">
+                  <div>
+                    <h3 class="h5 mb-2">Eigenes Passwort ändern</h3>
+                    <p class="text-body-secondary mb-0">Gib zuerst dein aktuelles Passwort ein und hinterlege danach das neue Passwort zweimal.</p>
+                  </div>
+                  <div class="row g-3">
+                    <div class="col-12">
+                      <label class="form-label" for="current-password">Aktuelles Passwort</label>
+                      <input class="form-control" id="current-password" type="password" name="current_password" required placeholder="Aktuelles Passwort" />
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label" for="new-password">Neues Passwort</label>
+                      <input class="form-control" id="new-password" type="password" name="new_password" required placeholder="Neues Passwort" />
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label" for="new-password-confirm">Neues Passwort wiederholen</label>
+                      <input class="form-control" id="new-password-confirm" type="password" name="new_password_confirm" required placeholder="Neues Passwort wiederholen" />
+                    </div>
+                  </div>
+                  <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 pt-2 border-top">
+                    <p class="text-body-secondary small mb-0">Das neue Passwort gilt sofort für dein nächstes Login.</p>
+                    <button type="submit" class="btn btn-success">Passwort aktualisieren</button>
+                  </div>
+                </form>
+              </div>
+            </section>
           </div>
         </div>
-      </details>
+      </div>
     </div>
-  </details>
-</section>
+  </div>
+
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="users-manage-heading">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#users-manage" aria-expanded="false" aria-controls="users-manage">
+        Nutzer erstellen / verwalten
+      </button>
+    </h2>
+    <div id="users-manage" class="accordion-collapse collapse" aria-labelledby="users-manage-heading" data-bs-parent="#adminUsersAccordion">
+      <div class="accordion-body">
+        <div class="vstack gap-3">
+          <p class="text-body-secondary mb-0">Dieser Bereich ist für alle Nutzerkonten, Rollen und Rechte zuständig. Dein eigenes Admin-Konto verwaltest du oben im Profilbereich.</p>
+
+          <section class="card border-0 bg-body-tertiary">
+            <div class="card-body d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+              <div>
+                <h3 class="h5 mb-1">Nutzer hinzufügen</h3>
+                <p class="text-body-secondary mb-0">Lege hier weitere Zugänge für Familie, Mitarbeitende oder Helfer an. Rechte lassen sich später jederzeit anpassen.</p>
+              </div>
+              <a href="/admin/users/new" class="btn btn-success" data-drawer="admin-user">Benutzer anlegen</a>
+            </div>
+          </section>
+
+          <section class="card border-0 bg-body-tertiary">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                <div>
+                  <h3 class="h5 mb-1">Bestehende Nutzer</h3>
+                  <p class="text-body-secondary mb-0">Hier siehst du alle bereits angelegten Zugänge. Über den Stift kannst du Rollen, Rechte und Kontaktdaten anpassen.</p>
+                </div>
+                <span class="badge text-bg-secondary"><%= managedUsers.length %></span>
+              </div>
+
+              <% if (managedUsers.length === 0) { %>
+                <div class="card border bg-body">
+                  <div class="card-body">
+                    <strong class="d-block mb-1">Noch keine weiteren Nutzer</strong>
+                    <p class="text-body-secondary mb-0">Aktuell sind keine weiteren Nutzer angelegt. Dein Admin-Konto findest du oben im Bereich „Profil & Sicherheit“.</p>
+                  </div>
+                </div>
+              <% } else { %>
+                <div class="vstack gap-3">
+                  <% managedUsers.forEach((user) => { %>
+                    <div class="card border bg-body">
+                      <div class="card-body d-flex flex-column gap-3">
+                        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
+                          <div>
+                            <strong class="d-block mb-1"><%= user.name %></strong>
+                            <p class="mb-1 text-body-secondary"><%= user.email %> | <%= getRoleLabel(user.role) %></p>
+                            <small class="text-body-secondary">
+                              Rechte:
+                              <%= [
+                                user.can_edit_animals ? 'Tiere' : null,
+                                user.can_manage_documents ? 'Dokumente' : null,
+                                user.can_manage_gallery ? 'Galerie' : null,
+                                user.can_manage_health ? 'Medizin' : null,
+                                user.can_manage_feedings ? 'Fütterung' : null,
+                                user.can_manage_notes ? 'Protokolle' : null,
+                                user.can_manage_reminders ? 'Erinnerungen' : null
+                              ].filter(Boolean).join(', ') || 'Keine Zusatzrechte' %>
+                            </small>
+                          </div>
+                          <span class="status-chip <%= user.must_change_password ? 'status-warning' : 'status-ok' %>"><%= user.must_change_password ? 'Passwortwechsel offen' : 'Aktiv' %></span>
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-2">
+                          <a href="/admin/users/<%= user.id %>/edit" class="btn btn-outline-secondary btn-sm" data-drawer="admin-user" aria-label="Benutzer bearbeiten">Bearbeiten</a>
+                          <button type="submit" class="btn btn-outline-danger btn-sm" form="user-delete-<%= user.id %>" aria-label="Benutzer löschen">Löschen</button>
+                        </div>
+
+                        <small class="text-body-secondary">E-Mail-Änderungen werden erst nach Bestätigung durch den Nutzer aktiv.</small>
+                      </div>
+                    </div>
+                    <form method="post" action="/admin/users/<%= user.id %>/delete" id="user-delete-<%= user.id %>" class="hidden-form" data-confirm="Benutzer wirklich löschen?"></form>
+                  <% }) %>
+                </div>
+              <% } %>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <%- include('../partials/bottom') %>

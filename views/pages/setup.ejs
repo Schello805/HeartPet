@@ -11,136 +11,162 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous" />
     <link rel="stylesheet" href="/static/css/app.css" />
   </head>
-  <body class="login-body bootstrap-app">
-    <section class="login-panel setup-panel card">
-      <div class="brand-lockup">
-        <img class="brand-logo brand-logo-login" src="<%= resolvedAppLogoUrl %>" alt="HeartPet Logo" />
-        <div>
-          <h1>HeartPet einrichten</h1>
-          <p>Lege zuerst den Administrator, einen Tierarzt und das erste Tier an. Danach landest du direkt in der normalen Oberfläche.</p>
+  <body class="bootstrap-app" data-bs-theme="dark">
+    <main class="container py-5 min-vh-100 d-flex align-items-center">
+      <div class="row justify-content-center w-100">
+        <div class="col-12 col-xl-10">
+          <section class="card border-0 shadow-sm bg-body-tertiary">
+            <div class="card-body p-4 p-lg-5">
+              <div class="d-flex align-items-center gap-3 mb-4">
+                <img class="brand-logo" src="<%= resolvedAppLogoUrl %>" alt="HeartPet Logo" />
+                <div>
+                  <h1 class="h3 mb-1">HeartPet einrichten</h1>
+                  <p class="text-body-secondary mb-0">Lege zuerst den Administrator, einen Tierarzt und das erste Tier an. Danach landest du direkt in der normalen Oberfläche.</p>
+                </div>
+              </div>
+
+              <% if (flash) { %>
+                <div class="alert <%= flash.type === 'error' ? 'alert-danger' : 'alert-success' %> mb-4" role="alert"><%= flash.message %></div>
+              <% } %>
+
+              <form method="post" action="/setup" class="vstack gap-4">
+                <div>
+                  <h2 class="h5 mb-2">Einrichtung in drei Schritten</h2>
+                  <p class="text-body-secondary mb-0">Du legst hier nur die Grunddaten an, die du für den Start wirklich brauchst. Alles Weitere kannst du danach in Ruhe in der normalen Oberfläche ergänzen.</p>
+                </div>
+
+                <div class="accordion" id="setupAccordion">
+                  <div class="accordion-item">
+                    <h2 class="accordion-header" id="setup-admin-heading">
+                      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#setup-admin" aria-expanded="false" aria-controls="setup-admin">
+                        1. Administrator
+                      </button>
+                    </h2>
+                    <div id="setup-admin" class="accordion-collapse collapse" aria-labelledby="setup-admin-heading" data-bs-parent="#setupAccordion">
+                      <div class="accordion-body">
+                        <div class="row g-3">
+                          <div class="col-md-6">
+                            <label class="form-label" for="admin_name">Name</label>
+                            <input class="form-control" id="admin_name" type="text" name="admin_name" required />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label" for="admin_email">E-Mail</label>
+                            <input class="form-control" id="admin_email" type="email" name="admin_email" required />
+                          </div>
+                          <div class="col-12">
+                            <label class="form-label" for="admin_password">Passwort</label>
+                            <input class="form-control" id="admin_password" type="password" name="admin_password" required minlength="8" />
+                          </div>
+                          <div class="col-12">
+                            <label class="form-label" for="organization_name">Name der Haltung / Organisation</label>
+                            <input class="form-control" id="organization_name" type="text" name="organization_name" placeholder="optional" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="accordion-item">
+                    <h2 class="accordion-header" id="setup-vet-heading">
+                      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#setup-vet" aria-expanded="false" aria-controls="setup-vet">
+                        2. Tierarzt
+                      </button>
+                    </h2>
+                    <div id="setup-vet" class="accordion-collapse collapse" aria-labelledby="setup-vet-heading" data-bs-parent="#setupAccordion">
+                      <div class="accordion-body">
+                        <div class="row g-3">
+                          <div class="col-12">
+                            <label class="form-label" for="veterinarian_name">Name</label>
+                            <input class="form-control" id="veterinarian_name" type="text" name="veterinarian_name" required />
+                          </div>
+                          <div class="col-12">
+                            <label class="form-label" for="veterinarian_street">Straße</label>
+                            <input class="form-control" id="veterinarian_street" type="text" name="veterinarian_street" />
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label" for="veterinarian_postal_code">PLZ</label>
+                            <input class="form-control" id="veterinarian_postal_code" type="text" name="veterinarian_postal_code" />
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label" for="veterinarian_city">Ort</label>
+                            <input class="form-control" id="veterinarian_city" type="text" name="veterinarian_city" />
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label" for="veterinarian_country">Land</label>
+                            <input class="form-control" id="veterinarian_country" type="text" name="veterinarian_country" value="Deutschland" />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label" for="veterinarian_phone">Telefon</label>
+                            <input class="form-control" id="veterinarian_phone" type="text" name="veterinarian_phone" />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label" for="veterinarian_email">E-Mail</label>
+                            <input class="form-control" id="veterinarian_email" type="email" name="veterinarian_email" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="accordion-item">
+                    <h2 class="accordion-header" id="setup-animal-heading">
+                      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#setup-animal" aria-expanded="false" aria-controls="setup-animal">
+                        3. Erstes Tier
+                      </button>
+                    </h2>
+                    <div id="setup-animal" class="accordion-collapse collapse" aria-labelledby="setup-animal-heading" data-bs-parent="#setupAccordion">
+                      <div class="accordion-body">
+                        <div class="row g-3">
+                          <div class="col-md-6">
+                            <label class="form-label" for="animal_name">Name</label>
+                            <input class="form-control" id="animal_name" type="text" name="animal_name" required />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label" for="species_name">Tierart</label>
+                            <input class="form-control" id="species_name" type="text" name="species_name" list="setup-species-options" required />
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label" for="animal_sex">Geschlecht</label>
+                            <select class="form-select" id="animal_sex" name="animal_sex">
+                              <option value="">Bitte wählen</option>
+                              <option value="Weiblich">Weiblich</option>
+                              <option value="Männlich">Männlich</option>
+                              <option value="Unbekannt">Unbekannt</option>
+                            </select>
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label" for="animal_intake_date">Aufnahmedatum</label>
+                            <input class="form-control" id="animal_intake_date" type="date" name="animal_intake_date" />
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label" for="animal_birth_date">Geburtsdatum</label>
+                            <input class="form-control" id="animal_birth_date" type="date" name="animal_birth_date" />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label" for="animal_source">Herkunft</label>
+                            <input class="form-control" id="animal_source" type="text" name="animal_source" />
+                          </div>
+                        </div>
+                        <datalist id="setup-species-options">
+                          <% species.forEach((item) => { %>
+                            <option value="<%= item.name %>"></option>
+                          <% }) %>
+                        </datalist>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3 pt-2 border-top">
+                  <p class="text-body-secondary small mb-0">Nach dem Abschluss wirst du automatisch zur Anmeldung oder direkt in die App weitergeleitet, je nach aktuellem Setup-Status.</p>
+                  <button type="submit" class="btn btn-success">Ersteinrichtung abschließen</button>
+                </div>
+              </form>
+            </div>
+          </section>
         </div>
       </div>
-
-      <% if (flash) { %>
-        <div class="flash flash-<%= flash.type %>"><%= flash.message %></div>
-      <% } %>
-
-      <form method="post" action="/setup" class="form-shell">
-        <section class="form-section">
-          <div class="form-section-header">
-            <strong>Einrichtung in drei Schritten</strong>
-            <p class="compact-note">Du legst hier nur die Grunddaten an, die du für den Start wirklich brauchst. Alles Weitere kannst du danach in Ruhe in der normalen Oberfläche ergänzen.</p>
-          </div>
-        </section>
-
-        <details class="accordion-item">
-          <summary>1. Administrator</summary>
-          <div class="accordion-content">
-            <div class="form-grid">
-              <label>
-                <span>Name</span>
-                <input class="form-control" type="text" name="admin_name" required />
-              </label>
-              <label>
-                <span>E-Mail</span>
-                <input class="form-control" type="email" name="admin_email" required />
-              </label>
-              <label class="full-width">
-                <span>Passwort</span>
-                <input class="form-control" type="password" name="admin_password" required minlength="8" />
-              </label>
-              <label class="full-width">
-                <span>Name der Haltung / Organisation</span>
-                <input class="form-control" type="text" name="organization_name" placeholder="optional" />
-              </label>
-            </div>
-          </div>
-        </details>
-
-        <details class="accordion-item">
-          <summary>2. Tierarzt</summary>
-          <div class="accordion-content">
-            <div class="form-grid">
-              <label class="full-width">
-                <span>Name</span>
-                <input class="form-control" type="text" name="veterinarian_name" required />
-              </label>
-              <label class="full-width">
-                <span>Straße</span>
-                <input class="form-control" type="text" name="veterinarian_street" />
-              </label>
-              <label>
-                <span>PLZ</span>
-                <input class="form-control" type="text" name="veterinarian_postal_code" />
-              </label>
-              <label>
-                <span>Ort</span>
-                <input class="form-control" type="text" name="veterinarian_city" />
-              </label>
-              <label>
-                <span>Land</span>
-                <input class="form-control" type="text" name="veterinarian_country" value="Deutschland" />
-              </label>
-              <label>
-                <span>Telefon</span>
-                <input class="form-control" type="text" name="veterinarian_phone" />
-              </label>
-              <label class="full-width">
-                <span>E-Mail</span>
-                <input class="form-control" type="email" name="veterinarian_email" />
-              </label>
-            </div>
-          </div>
-        </details>
-
-        <details class="accordion-item">
-          <summary>3. Erstes Tier</summary>
-          <div class="accordion-content">
-            <div class="form-grid">
-              <label>
-                <span>Name</span>
-                <input class="form-control" type="text" name="animal_name" required />
-              </label>
-              <label>
-                <span>Tierart</span>
-                <input class="form-control" type="text" name="species_name" list="setup-species-options" required />
-              </label>
-              <label>
-                <span>Geschlecht</span>
-                <select class="form-select" name="animal_sex">
-                  <option value="">Bitte wählen</option>
-                  <option value="Weiblich">Weiblich</option>
-                  <option value="Männlich">Männlich</option>
-                  <option value="Unbekannt">Unbekannt</option>
-                </select>
-              </label>
-              <label>
-                <span>Aufnahmedatum</span>
-                <input class="form-control" type="date" name="animal_intake_date" />
-              </label>
-              <label>
-                <span>Geburtsdatum</span>
-                <input class="form-control" type="date" name="animal_birth_date" />
-              </label>
-              <label>
-                <span>Herkunft</span>
-                <input class="form-control" type="text" name="animal_source" />
-              </label>
-            </div>
-            <datalist id="setup-species-options">
-              <% species.forEach((item) => { %>
-                <option value="<%= item.name %>"></option>
-              <% }) %>
-            </datalist>
-          </div>
-        </details>
-
-        <div class="form-actions-bar">
-          <div class="form-actions-copy">Nach dem Abschluss wirst du automatisch zur Anmeldung oder direkt in die App weitergeleitet, je nach aktuellem Setup-Status.</div>
-          <button type="submit" class="btn btn-success">Ersteinrichtung abschließen</button>
-        </div>
-      </form>
-    </section>
+    </main>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js" integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q" crossorigin="anonymous"></script>
     <script src="/static/js/app.js"></script>
   </body>

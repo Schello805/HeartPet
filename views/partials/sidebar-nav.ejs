@@ -1,45 +1,80 @@
 <% const animalMenu = typeof animalSpeciesMenu !== 'undefined' ? animalSpeciesMenu : []; %>
 <% const queryState = typeof currentQuery !== 'undefined' ? currentQuery : {}; %>
 <% const activeSpeciesId = String(queryState.species_id || ''); %>
+<% const navIdPrefix = typeof navScope !== 'undefined' && navScope ? `nav-${navScope}` : 'nav-main'; %>
 
-<nav class="nav flex-column gap-2 app-nav" aria-label="Hauptnavigation">
-  <a class="nav-link app-nav-link <%= currentPath === '/' ? 'active' : '' %>" href="/">Dashboard</a>
+<nav class="nav flex-column gap-2" aria-label="Hauptnavigation">
+  <a class="nav-link rounded-2 px-3 py-2 <%= currentPath === '/' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/">Dashboard</a>
 
-  <div class="app-nav-group <%= currentPath.startsWith('/animals') ? 'group-active' : '' %>" data-sidebar-group="animals">
-    <button type="button" class="app-nav-group-toggle sidebar-group-toggle <%= currentPath.startsWith('/animals') ? 'active' : '' %>" aria-expanded="false">
-      <span>Tiere</span>
-    </button>
-    <div class="app-nav-subnav sidebar-subnav">
-      <div class="app-nav-subgroup sidebar-subgroup">
-        <a class="nav-link app-nav-sublink <%= currentPath === '/animals' && !activeSpeciesId ? 'active' : '' %>" href="/animals">Aktive Tiere</a>
-        <% if (animalMenu.length > 0) { %>
-          <div class="app-nav-subspecies sidebar-subsubnav">
-            <% animalMenu.forEach((item) => { %>
-              <a class="nav-link app-nav-subspecies-link <%= currentPath === '/animals' && activeSpeciesId === String(item.id) ? 'active' : '' %>" href="/animals?species_id=<%= item.id %>"><%= item.name %></a>
-            <% }) %>
+  <div class="accordion accordion-flush nav-accordion" id="<%= navIdPrefix %>-accordion">
+    <div class="accordion-item bg-transparent border-0">
+      <h2 class="accordion-header" id="<%= navIdPrefix %>-animals-heading">
+        <button
+          class="accordion-button rounded-2 px-3 py-2 <%= currentPath.startsWith('/animals') ? '' : 'collapsed' %>"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#<%= navIdPrefix %>-animals"
+          aria-expanded="<%= currentPath.startsWith('/animals') ? 'true' : 'false' %>"
+          aria-controls="<%= navIdPrefix %>-animals"
+        >
+          Tiere
+        </button>
+      </h2>
+      <div
+        id="<%= navIdPrefix %>-animals"
+        class="accordion-collapse collapse <%= currentPath.startsWith('/animals') ? 'show' : '' %>"
+        aria-labelledby="<%= navIdPrefix %>-animals-heading"
+      >
+        <div class="accordion-body pt-2 pb-0 px-0">
+          <div class="nav flex-column gap-1 ps-3">
+            <a class="nav-link rounded-2 px-3 py-2 <%= currentPath === '/animals' && !activeSpeciesId ? 'active fw-semibold' : 'text-body-secondary' %>" href="/animals">Aktive Tiere</a>
+            <% if (animalMenu.length > 0) { %>
+              <div class="nav flex-column gap-1 ps-3">
+                <% animalMenu.forEach((item) => { %>
+                  <a class="nav-link rounded-2 px-3 py-1 <%= currentPath === '/animals' && activeSpeciesId === String(item.id) ? 'active fw-semibold' : 'text-body-secondary' %>" href="/animals?species_id=<%= item.id %>"><%= item.name %></a>
+                <% }) %>
+              </div>
+            <% } %>
+            <a class="nav-link rounded-2 px-3 py-2 <%= currentPath === '/animals/historie' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/animals/historie">Historie</a>
+            <a class="nav-link rounded-2 px-3 py-2 <%= currentPath === '/animals/ruhestaette' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/animals/ruhestaette">Ruhestätte</a>
           </div>
-        <% } %>
+        </div>
       </div>
-      <a class="nav-link app-nav-sublink <%= currentPath === '/animals/historie' ? 'active' : '' %>" href="/animals/historie">Historie</a>
-      <a class="nav-link app-nav-sublink <%= currentPath === '/animals/ruhestaette' ? 'active' : '' %>" href="/animals/ruhestaette">Ruhestätte</a>
     </div>
+
+    <% if (permissions.canManageAdmin) { %>
+      <div class="accordion-item bg-transparent border-0 mt-2">
+        <h2 class="accordion-header" id="<%= navIdPrefix %>-admin-heading">
+          <button
+            class="accordion-button rounded-2 px-3 py-2 <%= currentPath.startsWith('/admin') ? '' : 'collapsed' %>"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#<%= navIdPrefix %>-admin"
+            aria-expanded="<%= currentPath.startsWith('/admin') ? 'true' : 'false' %>"
+            aria-controls="<%= navIdPrefix %>-admin"
+          >
+            Verwaltung
+          </button>
+        </h2>
+        <div
+          id="<%= navIdPrefix %>-admin"
+          class="accordion-collapse collapse <%= currentPath.startsWith('/admin') ? 'show' : '' %>"
+          aria-labelledby="<%= navIdPrefix %>-admin-heading"
+        >
+          <div class="accordion-body pt-2 pb-0 px-0">
+            <div class="nav flex-column gap-1 ps-3">
+              <a class="nav-link rounded-2 px-3 py-2 <%= currentPath === '/admin/allgemein' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/admin/allgemein">Allgemein</a>
+              <a class="nav-link rounded-2 px-3 py-2 <%= currentPath === '/admin/benachrichtigungen' || currentPath === '/admin/kommunikation' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/admin/benachrichtigungen">Benachrichtigungen</a>
+              <a class="nav-link rounded-2 px-3 py-2 <%= currentPath === '/admin/stammdaten' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/admin/stammdaten">Stammdaten</a>
+              <a class="nav-link rounded-2 px-3 py-2 <%= currentPath === '/admin/benutzer' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/admin/benutzer">Benutzer</a>
+              <a class="nav-link rounded-2 px-3 py-2 <%= currentPath === '/admin/import' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/admin/import">Import</a>
+              <a class="nav-link rounded-2 px-3 py-2 <%= currentPath === '/admin/systemlog' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/admin/systemlog">Systemlog</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% } %>
   </div>
 
-  <% if (permissions.canManageAdmin) { %>
-    <div class="app-nav-group <%= currentPath.startsWith('/admin') ? 'group-active' : '' %>" data-sidebar-group="admin">
-      <button type="button" class="app-nav-group-toggle sidebar-group-toggle <%= currentPath.startsWith('/admin') ? 'active' : '' %>" aria-expanded="false">
-        <span>Verwaltung</span>
-      </button>
-      <div class="app-nav-subnav sidebar-subnav">
-        <a class="nav-link app-nav-sublink <%= currentPath === '/admin/allgemein' ? 'active' : '' %>" href="/admin/allgemein">Allgemein</a>
-        <a class="nav-link app-nav-sublink <%= currentPath === '/admin/benachrichtigungen' || currentPath === '/admin/kommunikation' ? 'active' : '' %>" href="/admin/benachrichtigungen">Benachrichtigungen</a>
-        <a class="nav-link app-nav-sublink <%= currentPath === '/admin/stammdaten' ? 'active' : '' %>" href="/admin/stammdaten">Stammdaten</a>
-        <a class="nav-link app-nav-sublink <%= currentPath === '/admin/benutzer' ? 'active' : '' %>" href="/admin/benutzer">Benutzer</a>
-        <a class="nav-link app-nav-sublink <%= currentPath === '/admin/import' ? 'active' : '' %>" href="/admin/import">Import</a>
-        <a class="nav-link app-nav-sublink <%= currentPath === '/admin/systemlog' ? 'active' : '' %>" href="/admin/systemlog">Systemlog</a>
-      </div>
-    </div>
-  <% } %>
-
-  <a class="nav-link app-nav-link <%= currentPath === '/hilfe' ? 'active' : '' %>" href="/hilfe">Hilfe</a>
+  <a class="nav-link rounded-2 px-3 py-2 mt-2 <%= currentPath === '/hilfe' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/hilfe">Hilfe</a>
 </nav>

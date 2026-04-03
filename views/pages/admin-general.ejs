@@ -1,136 +1,181 @@
 <%- include('../partials/top', { pageTitle }) %>
 <% const applyInfoPageContent = typeof applyInfoPagePlaceholders === 'function' ? applyInfoPagePlaceholders : (value) => String(value || ''); %>
 
-<section class="accordion-stack">
-  <details class="accordion-item">
-    <summary>Organisation & App</summary>
-    <div class="accordion-content">
-      <form method="post" action="/admin/settings" class="form-shell" enctype="multipart/form-data">
-        <input type="hidden" name="_fields" value="app_name,app_domain,organization_name,help_contact,legal_responsible_name,legal_content_responsible_name,legal_contact_street,legal_contact_postal_city,legal_contact_country,legal_contact_phone,legal_contact_email" />
-        <section class="form-section">
-          <div class="form-section-header">
-            <strong>App und Außenwirkung</strong>
-            <p class="compact-note">Name, Domain und Logo definieren die sichtbare Identität deiner Instanz.</p>
-          </div>
-          <div class="form-section-grid">
-            <label>
-              <span>App-Name</span>
-              <input class="form-control" type="text" name="app_name" value="<%= settings.app_name || '' %>" />
-            </label>
-            <label>
-              <span>Domain</span>
-              <input class="form-control" type="text" name="app_domain" value="<%= settings.app_domain || '' %>" />
-            </label>
-            <label class="full-width">
-              <span>Name der Haltung / Organisation</span>
-              <input class="form-control" type="text" name="organization_name" value="<%= settings.organization_name || '' %>" />
-            </label>
-            <div class="full-width logo-upload-panel">
-              <div class="logo-upload-preview">
-                <img class="brand-logo" src="<%= appLogoUrl || '/static/images/logo-heartpet.png' %>" alt="Aktuelles App-Logo" />
-                <div class="stack">
-                  <strong>App-Logo</strong>
-                  <span>Dieses Logo wird links oben, auf der Login-Seite und als Browser- bzw. Webapp-Icon verwendet.</span>
+<div class="accordion" id="adminGeneralAccordion">
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="general-org-heading">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#general-org" aria-expanded="false" aria-controls="general-org">
+        Organisation & App
+      </button>
+    </h2>
+    <div id="general-org" class="accordion-collapse collapse" aria-labelledby="general-org-heading" data-bs-parent="#adminGeneralAccordion">
+      <div class="accordion-body">
+        <form method="post" action="/admin/settings" enctype="multipart/form-data" class="vstack gap-4">
+          <input type="hidden" name="_fields" value="app_name,app_domain,organization_name,help_contact,legal_responsible_name,legal_content_responsible_name,legal_contact_street,legal_contact_postal_city,legal_contact_country,legal_contact_phone,legal_contact_email" />
+
+          <section class="card border-0 bg-body-tertiary">
+            <div class="card-body">
+              <div class="mb-3">
+                <h3 class="h5 mb-1">App und Außenwirkung</h3>
+                <p class="text-body-secondary mb-0">Name, Domain und Logo definieren die sichtbare Identität deiner Instanz.</p>
+              </div>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label" for="app_name">App-Name</label>
+                  <input class="form-control" id="app_name" type="text" name="app_name" value="<%= settings.app_name || '' %>" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label" for="app_domain">Domain</label>
+                  <input class="form-control" id="app_domain" type="text" name="app_domain" value="<%= settings.app_domain || '' %>" />
+                </div>
+                <div class="col-12">
+                  <label class="form-label" for="organization_name_general">Name der Haltung / Organisation</label>
+                  <input class="form-control" id="organization_name_general" type="text" name="organization_name" value="<%= settings.organization_name || '' %>" />
+                </div>
+                <div class="col-12">
+                  <div class="card border bg-body">
+                    <div class="card-body d-flex flex-column flex-md-row gap-3 align-items-start">
+                      <img class="brand-logo" src="<%= appLogoUrl || '/static/images/logo-heartpet.png' %>" alt="Aktuelles App-Logo" />
+                      <div class="flex-grow-1">
+                        <h4 class="h6 mb-1">App-Logo</h4>
+                        <p class="text-body-secondary mb-3">Dieses Logo wird links oben, auf der Login-Seite und als Browser- bzw. Webapp-Icon verwendet.</p>
+                        <label class="form-label" for="app_logo">Neues Logo hochladen</label>
+                        <input class="form-control" id="app_logo" type="file" name="app_logo" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/x-icon,image/vnd.microsoft.icon" />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <label class="full-width">
-                <span>Neues Logo hochladen</span>
-                <input class="form-control" type="file" name="app_logo" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/x-icon,image/vnd.microsoft.icon" />
-              </label>
             </div>
+          </section>
+
+          <section class="card border-0 bg-body-tertiary">
+            <div class="card-body">
+              <div class="mb-3">
+                <h3 class="h5 mb-1">Rechtliche Angaben und Kontakt</h3>
+                <p class="text-body-secondary mb-0">Diese Daten werden in Rechtstexten, Kontaktseite und Betreiberangaben automatisch eingesetzt.</p>
+              </div>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label" for="legal_responsible_name">Verantwortliche Person / Betreiber</label>
+                  <input class="form-control" id="legal_responsible_name" type="text" name="legal_responsible_name" value="<%= settings.legal_responsible_name || '' %>" placeholder="z. B. Max Mustermann oder Musterhof GmbH" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label" for="legal_content_responsible_name">Abweichende Inhaltsverantwortung</label>
+                  <input class="form-control" id="legal_content_responsible_name" type="text" name="legal_content_responsible_name" value="<%= settings.legal_content_responsible_name || '' %>" placeholder="Optional, falls nicht identisch mit dem Betreiber" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label" for="help_contact">Kontakt für Hilfe</label>
+                  <input class="form-control" id="help_contact" type="text" name="help_contact" value="<%= settings.help_contact || '' %>" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label" for="legal_contact_email">Kontakt-E-Mail für Rechtstexte</label>
+                  <input class="form-control" id="legal_contact_email" type="email" name="legal_contact_email" value="<%= settings.legal_contact_email || '' %>" placeholder="z. B. recht@deinedomain.de" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label" for="legal_contact_street">Straße und Hausnummer</label>
+                  <input class="form-control" id="legal_contact_street" type="text" name="legal_contact_street" value="<%= settings.legal_contact_street || '' %>" placeholder="z. B. Musterstraße 12" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label" for="legal_contact_postal_city">PLZ und Ort</label>
+                  <input class="form-control" id="legal_contact_postal_city" type="text" name="legal_contact_postal_city" value="<%= settings.legal_contact_postal_city || '' %>" placeholder="z. B. 12345 Musterstadt" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label" for="legal_contact_country">Land</label>
+                  <input class="form-control" id="legal_contact_country" type="text" name="legal_contact_country" value="<%= settings.legal_contact_country || '' %>" placeholder="z. B. Deutschland" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label" for="legal_contact_phone">Telefon</label>
+                  <input class="form-control" id="legal_contact_phone" type="text" name="legal_contact_phone" value="<%= settings.legal_contact_phone || '' %>" placeholder="z. B. +49 123 456789" />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3 pt-2 border-top">
+            <p class="text-body-secondary small mb-0">Änderungen an Name, Logo und Betreiberangaben werden direkt in Oberfläche, Login und Rechtstexten verwendet.</p>
+            <button type="submit" class="btn btn-success">Allgemeine Einstellungen speichern</button>
           </div>
-        </section>
-        <section class="form-section">
-          <div class="form-section-header">
-            <strong>Rechtliche Angaben und Kontakt</strong>
-            <p class="compact-note">Diese Daten werden in Rechtstexten, Kontaktseite und Betreiberangaben automatisch eingesetzt.</p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="general-imprint-heading">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#general-imprint" aria-expanded="false" aria-controls="general-imprint">
+        Impressum
+      </button>
+    </h2>
+    <div id="general-imprint" class="accordion-collapse collapse" aria-labelledby="general-imprint-heading" data-bs-parent="#adminGeneralAccordion">
+      <div class="accordion-body">
+        <form method="post" action="/admin/settings" class="vstack gap-3">
+          <input type="hidden" name="_fields" value="imprint_text" />
+          <textarea class="form-control" name="imprint_text" rows="10" placeholder="Impressumstext"><%= applyInfoPageContent(settings.imprint_text || '') %></textarea>
+          <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-success">Impressum speichern</button>
           </div>
-          <div class="form-section-grid">
-            <label>
-              <span>Verantwortliche Person / Betreiber für Rechtstexte</span>
-              <input class="form-control" type="text" name="legal_responsible_name" value="<%= settings.legal_responsible_name || '' %>" placeholder="z. B. Max Mustermann oder Musterhof GmbH" />
-            </label>
-            <label>
-              <span>Abweichende Inhaltsverantwortung</span>
-              <input class="form-control" type="text" name="legal_content_responsible_name" value="<%= settings.legal_content_responsible_name || '' %>" placeholder="Optional, falls nicht identisch mit dem Betreiber" />
-            </label>
-            <label>
-              <span>Kontakt für Hilfe</span>
-              <input class="form-control" type="text" name="help_contact" value="<%= settings.help_contact || '' %>" />
-            </label>
-            <label>
-              <span>Kontakt E-Mail für Rechtstexte</span>
-              <input class="form-control" type="email" name="legal_contact_email" value="<%= settings.legal_contact_email || '' %>" placeholder="z. B. recht@deinedomain.de" />
-            </label>
-            <label>
-              <span>Straße und Hausnummer für Rechtstexte</span>
-              <input class="form-control" type="text" name="legal_contact_street" value="<%= settings.legal_contact_street || '' %>" placeholder="z. B. Musterstraße 12" />
-            </label>
-            <label>
-              <span>PLZ und Ort für Rechtstexte</span>
-              <input class="form-control" type="text" name="legal_contact_postal_city" value="<%= settings.legal_contact_postal_city || '' %>" placeholder="z. B. 12345 Musterstadt" />
-            </label>
-            <label>
-              <span>Land für Rechtstexte</span>
-              <input class="form-control" type="text" name="legal_contact_country" value="<%= settings.legal_contact_country || '' %>" placeholder="z. B. Deutschland" />
-            </label>
-            <label>
-              <span>Telefon für Rechtstexte</span>
-              <input class="form-control" type="text" name="legal_contact_phone" value="<%= settings.legal_contact_phone || '' %>" placeholder="z. B. +49 123 456789" />
-            </label>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="general-privacy-heading">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#general-privacy" aria-expanded="false" aria-controls="general-privacy">
+        Datenschutzerklärung
+      </button>
+    </h2>
+    <div id="general-privacy" class="accordion-collapse collapse" aria-labelledby="general-privacy-heading" data-bs-parent="#adminGeneralAccordion">
+      <div class="accordion-body">
+        <form method="post" action="/admin/settings" class="vstack gap-3">
+          <input type="hidden" name="_fields" value="privacy_text" />
+          <textarea class="form-control" name="privacy_text" rows="12" placeholder="Datenschutzerklärung"><%= applyInfoPageContent(settings.privacy_text || '') %></textarea>
+          <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-success">Datenschutzerklärung speichern</button>
           </div>
-        </section>
-        <div class="form-actions-bar">
-          <p class="form-actions-copy">Änderungen an Name, Logo und Betreiberangaben werden direkt in Oberfläche, Login und Rechtstexten verwendet.</p>
-          <button type="submit" class="btn btn-success">Allgemeine Einstellungen speichern</button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
-  </details>
+  </div>
 
-  <details class="accordion-item">
-    <summary>Impressum</summary>
-    <div class="accordion-content">
-      <form method="post" action="/admin/settings" class="stack form-compact">
-        <input type="hidden" name="_fields" value="imprint_text" />
-        <textarea class="form-control" name="imprint_text" rows="10" placeholder="Impressumstext"><%= applyInfoPageContent(settings.imprint_text || '') %></textarea>
-        <button type="submit" class="btn btn-success">Impressum speichern</button>
-      </form>
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="general-contact-heading">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#general-contact" aria-expanded="false" aria-controls="general-contact">
+        Kontakt
+      </button>
+    </h2>
+    <div id="general-contact" class="accordion-collapse collapse" aria-labelledby="general-contact-heading" data-bs-parent="#adminGeneralAccordion">
+      <div class="accordion-body">
+        <form method="post" action="/admin/settings" class="vstack gap-3">
+          <input type="hidden" name="_fields" value="contact_text" />
+          <textarea class="form-control" name="contact_text" rows="8" placeholder="Kontaktinformationen"><%= applyInfoPageContent(settings.contact_text || '') %></textarea>
+          <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-success">Kontaktseite speichern</button>
+          </div>
+        </form>
+      </div>
     </div>
-  </details>
+  </div>
 
-  <details class="accordion-item">
-    <summary>Datenschutzerklärung</summary>
-    <div class="accordion-content">
-      <form method="post" action="/admin/settings" class="stack form-compact">
-        <input type="hidden" name="_fields" value="privacy_text" />
-        <textarea class="form-control" name="privacy_text" rows="12" placeholder="Datenschutzerklärung"><%= applyInfoPageContent(settings.privacy_text || '') %></textarea>
-        <button type="submit" class="btn btn-success">Datenschutzerklärung speichern</button>
-      </form>
+  <div class="accordion-item">
+    <h2 class="accordion-header" id="general-cookies-heading">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#general-cookies" aria-expanded="false" aria-controls="general-cookies">
+        Cookie-Hinweise
+      </button>
+    </h2>
+    <div id="general-cookies" class="accordion-collapse collapse" aria-labelledby="general-cookies-heading" data-bs-parent="#adminGeneralAccordion">
+      <div class="accordion-body">
+        <form method="post" action="/admin/settings" class="vstack gap-3">
+          <input type="hidden" name="_fields" value="cookies_text" />
+          <textarea class="form-control" name="cookies_text" rows="8" placeholder="Cookie-Hinweise"><%= applyInfoPageContent(settings.cookies_text || '') %></textarea>
+          <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-success">Cookie-Hinweise speichern</button>
+          </div>
+        </form>
+      </div>
     </div>
-  </details>
-
-  <details class="accordion-item">
-    <summary>Kontakt</summary>
-    <div class="accordion-content">
-      <form method="post" action="/admin/settings" class="stack form-compact">
-        <input type="hidden" name="_fields" value="contact_text" />
-        <textarea class="form-control" name="contact_text" rows="8" placeholder="Kontaktinformationen"><%= applyInfoPageContent(settings.contact_text || '') %></textarea>
-        <button type="submit" class="btn btn-success">Kontaktseite speichern</button>
-      </form>
-    </div>
-  </details>
-
-  <details class="accordion-item">
-    <summary>Cookie-Hinweise</summary>
-    <div class="accordion-content">
-      <form method="post" action="/admin/settings" class="stack form-compact">
-        <input type="hidden" name="_fields" value="cookies_text" />
-        <textarea class="form-control" name="cookies_text" rows="8" placeholder="Cookie-Hinweise"><%= applyInfoPageContent(settings.cookies_text || '') %></textarea>
-        <button type="submit" class="btn btn-success">Cookie-Hinweise speichern</button>
-      </form>
-    </div>
-  </details>
-</section>
+  </div>
+</div>
 
 <%- include('../partials/bottom') %>
