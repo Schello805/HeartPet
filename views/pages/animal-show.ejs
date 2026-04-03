@@ -14,8 +14,11 @@
   const activeVeterinarianPhone = animal.veterinarian_name ? (animal.veterinarian_phone || '') : (animal.species_veterinarian_phone || '');
   const hasVeterinarianContact = Boolean(activeVeterinarianName && (activeVeterinarianAddress || activeVeterinarianEmail || activeVeterinarianPhone));
 %>
-<%
+<% 
   const openReminderCount = reminderBuckets.overdue.length + reminderBuckets.open.length;
+  const nextFocusLabel = related.vaccinations[0]
+    ? `Impfung: ${related.vaccinations[0].name}`
+    : ((related.appointments || [])[0] ? `Termin: ${(related.appointments || [])[0].title}` : 'Kein Termin hinterlegt');
   const focusFacts = [];
   if (openReminderCount > 0) {
     focusFacts.push(`${openReminderCount} offene Erinnerung${openReminderCount === 1 ? '' : 'en'}`);
@@ -181,9 +184,27 @@
     <p class="eyebrow">Schneller Überblick</p>
     <strong>Auf dem Smartphone zuerst das Wichtigste, danach die tieferen Bereiche der Akte.</strong>
   </div>
+  <div class="animal-mobile-priority-grid">
+    <article class="animal-mobile-priority-card">
+      <span>Offene Aufgaben</span>
+      <strong><%= openReminderCount %></strong>
+      <small><%= openReminderCount ? 'Erinnerungen brauchen Rückmeldung' : 'Derzeit nichts offen' %></small>
+    </article>
+    <article class="animal-mobile-priority-card">
+      <span>Nächster Fokus</span>
+      <strong><%= nextFocusLabel %></strong>
+      <small><%= focusFacts[0] %></small>
+    </article>
+    <article class="animal-mobile-priority-card">
+      <span>Akte</span>
+      <strong><%= related.documents.length %> Dokumente · <%= related.images.length %> Fotos</strong>
+      <small>Schneller Einstieg in Unterlagen und Nachweise</small>
+    </article>
+  </div>
   <div class="animal-mobile-priority-actions">
     <a href="#animal-neu" class="button button-secondary">Neuer Eintrag</a>
     <a href="#animal-medizin" class="button button-secondary">Medizin</a>
+    <a href="#animal-dokumente" class="button button-secondary">Dokumente</a>
   </div>
 </div>
 

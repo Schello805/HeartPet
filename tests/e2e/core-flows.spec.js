@@ -1,5 +1,6 @@
 const { test, expect } = require("@playwright/test");
 const fs = require("node:fs");
+const http = require("node:http");
 const os = require("node:os");
 const path = require("node:path");
 
@@ -12,6 +13,33 @@ const adminCredentials = {
 let server;
 let tempDataDir;
 
+async function waitForServer(url, timeoutMs = 5_000) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const isReachable = await new Promise((resolve) => {
+      const request = http.get(url, (response) => {
+        response.resume();
+        resolve(response.statusCode >= 200 && response.statusCode < 500);
+      });
+
+      request.on("error", () => resolve(false));
+      request.setTimeout(500, () => {
+        request.destroy();
+        resolve(false);
+      });
+    });
+
+    if (isReachable) {
+      return;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+
+  throw new Error(`Server unter ${url} wurde nicht rechtzeitig erreichbar.`);
+}
+
 test.beforeEach(async () => {
   tempDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "heartpet-playwright-"));
   process.env.HEARTPET_DATA_DIR = tempDataDir;
@@ -22,6 +50,7 @@ test.beforeEach(async () => {
   await new Promise((resolve) => {
     server = app.listen(3210, "127.0.0.1", resolve);
   });
+  await waitForServer("http://127.0.0.1:3210/login");
 });
 
 test.afterEach(async () => {

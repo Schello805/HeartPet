@@ -3803,6 +3803,17 @@ small {
   text-decoration: none;
 }
 
+.bootstrap-app .quick-card,
+.bootstrap-app .list-card,
+.bootstrap-app .animal-card,
+.bootstrap-app .animal-list-entry,
+.bootstrap-app .workbench-stat,
+.bootstrap-app .animal-hero-meta-card,
+.bootstrap-app .masterdata-entity-card,
+.bootstrap-app .masterdata-category-card {
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.22);
+}
+
 .bootstrap-app .quick-card strong {
   display: block;
   margin-bottom: 0.4rem;
@@ -3898,6 +3909,10 @@ small {
   grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.2fr);
   gap: 1rem;
   align-items: start;
+}
+
+.bootstrap-app .animal-mobile-priority-grid {
+  display: none;
 }
 
 .bootstrap-app .animal-mobile-priority {
@@ -4176,14 +4191,40 @@ body.bootstrap-app.drawer-open {
     padding: 0.9rem;
   }
 
+  .bootstrap-app .animal-mobile-priority-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+  }
+
   .bootstrap-app .animal-mobile-priority-copy {
     display: grid;
     gap: 0.35rem;
   }
 
+  .bootstrap-app .animal-mobile-priority-card {
+    display: grid;
+    gap: 0.18rem;
+    padding: 0.8rem 0.85rem;
+    border-radius: 0.95rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .bootstrap-app .animal-mobile-priority-card span,
+  .bootstrap-app .animal-mobile-priority-card small {
+    color: var(--text-dim);
+  }
+
+  .bootstrap-app .animal-mobile-priority-card strong {
+    color: var(--text-strong);
+    font-size: 1rem;
+    line-height: 1.35;
+  }
+
   .bootstrap-app .animal-mobile-priority-actions {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.6rem;
   }
 
@@ -4218,9 +4259,23 @@ body.bootstrap-app.drawer-open {
     gap: 0.75rem;
   }
 
+  .bootstrap-app .animal-hero-content {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .bootstrap-app .hero-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+    width: 100%;
+  }
+
   .bootstrap-app .hero-actions .button,
   .bootstrap-app .hero-actions .button-secondary {
     min-height: 40px;
+    width: 100%;
+    justify-content: center;
   }
 
   .bootstrap-app .summary-inline-status {
@@ -4415,6 +4470,20 @@ body.bootstrap-app {
   background: linear-gradient(135deg, rgba(139, 92, 246, 0.12), rgba(24, 24, 27, 0.96));
 }
 
+.bootstrap-app .button,
+.bootstrap-app .btn {
+  min-height: 42px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.bootstrap-app .button.icon-button,
+.bootstrap-app .btn.icon-button {
+  min-width: 42px;
+  min-height: 42px;
+  padding-inline: 0.8rem;
+}
+
 .bootstrap-app .btn-success,
 .bootstrap-app .button,
 .bootstrap-app .btn.btn-success {
@@ -4460,6 +4529,68 @@ body.bootstrap-app {
 .bootstrap-app .button.button-danger:hover {
   color: #ffe4e6;
   background: rgba(239, 68, 68, 0.16);
+}
+
+.bootstrap-app .masterdata-card-grid,
+.bootstrap-app .masterdata-category-grid {
+  gap: 0.85rem;
+}
+
+.bootstrap-app .masterdata-entity-card,
+.bootstrap-app .masterdata-category-card {
+  align-items: start;
+}
+
+.bootstrap-app .masterdata-entity-card p,
+.bootstrap-app .masterdata-category-card p {
+  margin: 0.28rem 0 0;
+}
+
+.bootstrap-app .masterdata-entity-card .inline-actions,
+.bootstrap-app .masterdata-category-card .inline-actions {
+  align-items: flex-start;
+}
+
+.bootstrap-app .systemlog-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: end;
+  margin-bottom: 1rem;
+}
+
+.bootstrap-app .systemlog-filter-bar label {
+  min-width: 180px;
+}
+
+.bootstrap-app .table-wrap {
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid var(--surface-border);
+  background: rgba(15, 15, 19, 0.7);
+}
+
+.bootstrap-app .table-wrap table {
+  margin: 0;
+}
+
+.bootstrap-app .table-wrap thead th {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.bootstrap-app .table-wrap tbody tr + tr td {
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.bootstrap-app .table-wrap td,
+.bootstrap-app .table-wrap th {
+  padding: 0.85rem 0.95rem;
+  vertical-align: top;
 }
 
 .bootstrap-app input,
