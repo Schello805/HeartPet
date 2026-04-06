@@ -77,6 +77,10 @@
             <span aria-hidden="true">✎</span>
             <span class="visually-hidden">Bearbeiten</span>
           </a>
+          <button type="submit" class="btn btn-outline-danger btn-sm icon-button" form="animal-delete-<%= animal.id %>" aria-label="Tier löschen" title="Tier löschen">
+            <span aria-hidden="true">🗑</span>
+            <span class="visually-hidden">Löschen</span>
+          </button>
         <% } %>
         <a href="/animals/<%= animal.id %>/export/pdf" class="btn btn-outline-secondary btn-sm icon-button hero-pdf-button" aria-label="Als PDF exportieren" title="Als PDF exportieren">
           <span aria-hidden="true">📄</span>
@@ -112,6 +116,12 @@
     </div>
   </div>
 </section>
+
+<% if (permissions.canEditAnimals) { %>
+  <form method="post" action="/animals/<%= animal.id %>/delete" id="animal-delete-<%= animal.id %>" class="hidden-form" data-confirm="Tier wirklich endgültig löschen? Alle Einträge, Dokumente, Bilder und Erinnerungen werden gelöscht.">
+    <input type="hidden" name="return_to" value="/animals" />
+  </form>
+<% } %>
 
 <section class="card border-0 shadow-sm mb-3">
   <div class="card-body">

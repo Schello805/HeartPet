@@ -891,6 +891,46 @@ app.post("/animals/:id/update", requireAnimalEditor, (req, res) => {
   res.redirect(returnTo);
 });
 
+app.post("/animals/:id/delete", requireAnimalEditor, (req, res) => {
+  const animal = findAnimal(req.params.id);
+  if (!animal) {
+    return renderNotFound(req, res, "Tier nicht gefunden.");
+  }
+
+  const returnTo = safeLocalReturnPath(req.body.return_to, "/animals");
+
+  db.transaction(() => {
+    const profileImage = db.prepare("SELECT profile_image_stored_name FROM animals WHERE id = ?").get(req.params.id);
+    const documents = db.prepare("SELECT stored_name FROM documents WHERE animal_id = ?").all(req.params.id);
+    const images = db.prepare("SELECT stored_name FROM animal_images WHERE animal_id = ?").all(req.params.id);
+
+    const storedNames = [];
+    if (profileImage?.profile_image_stored_name) {
+      storedNames.push(profileImage.profile_image_stored_name);
+    }
+    documents.forEach((row) => {
+      if (row?.stored_name) storedNames.push(row.stored_name);
+    });
+    images.forEach((row) => {
+      if (row?.stored_name) storedNames.push(row.stored_name);
+    });
+
+    storedNames.forEach((storedName) => {
+      const fullPath = path.join(projectRoot, "data", "uploads", storedName);
+      if (fs.existsSync(fullPath)) {
+        fs.unlinkSync(fullPath);
+      }
+    });
+
+    db.prepare("DELETE FROM reminders WHERE animal_id = ?").run(req.params.id);
+    db.prepare("DELETE FROM animals WHERE id = ?").run(req.params.id);
+  })();
+
+  createAuditLog(req, "animal.delete", { animal_id: req.params.id, name: animal.name }, { entityType: "animal", entityId: req.params.id });
+  setFlash(req, "success", "Tier wurde endgültig gelöscht.");
+  res.redirect(returnTo);
+});
+
 app.post("/animals/:id/events", (req, res) => {
   const user = req.session.user ? db.prepare("SELECT * FROM users WHERE id = ?").get(req.session.user.id) : null;
   const permissions = buildPermissions(user);
