@@ -88,10 +88,12 @@ async function loadPendingReminders() {
       const banner = document.createElement("a");
       banner.className = "floating-reminder";
       banner.href = href;
+      banner.dataset.noSoftNav = "true";
       banner.innerHTML = bannerMarkup;
       bannerTarget.after(banner);
     } else {
       existing.href = href;
+      existing.dataset.noSoftNav = "true";
       existing.innerHTML = bannerMarkup;
     }
 

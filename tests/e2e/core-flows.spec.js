@@ -117,9 +117,13 @@ async function ensureAuthenticated(page) {
 test("Tiere-Arbeitsansicht zeigt die Akte im Browser-Kontext", async ({ page }) => {
   await ensureAuthenticated(page);
   await page.goto("/animals");
-
-  await expect(page.locator("h1", { hasText: "Aktive Tiere" })).toBeVisible();
+  await expect(page.locator("h1", { hasText: "Meine Tiere" })).toBeVisible();
   const animalWorkspaceLink = page.locator("[data-animal-workspace-link]").first();
+  if (await animalWorkspaceLink.isHidden()) {
+    const listToggle = page.getByRole("button", { name: "Tierliste anzeigen" });
+    await expect(listToggle).toBeVisible();
+    await listToggle.click();
+  }
   await expect(animalWorkspaceLink).toBeVisible();
   const workspaceHref = await animalWorkspaceLink.getAttribute("href");
   await page.goto(workspaceHref || "/animals");
