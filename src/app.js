@@ -251,6 +251,11 @@ app.post("/login", (req, res) => {
     return res.redirect("/login");
   }
 
+  if (user.must_change_password) {
+    setFlash(req, "error", "Bitte zuerst über den Einladungslink ein Passwort festlegen.");
+    return res.redirect("/login");
+  }
+
   req.session.user = {
     id: user.id,
     name: user.name,
@@ -316,6 +321,76 @@ app.get("/email-change/confirm", (req, res) => {
 
   setFlash(req, "success", "E-Mail-Adresse erfolgreich bestätigt und aktualisiert.");
   res.redirect(req.session.user ? "/admin/benutzer" : "/login");
+});
+
+app.get("/invite/accept", (req, res) => {
+  const token = String(req.query.token || "").trim();
+  if (!token) {
+    setFlash(req, "error", "Ungültiger Einladungslink.");
+    return res.redirect("/login");
+  }
+
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+  const invite = db.prepare(`
+    SELECT user_invites.*, users.email AS email
+    FROM user_invites
+    INNER JOIN users ON users.id = user_invites.user_id
+    WHERE user_invites.token_hash = ?
+      AND user_invites.used_at IS NULL
+      AND user_invites.expires_at >= CURRENT_TIMESTAMP
+  `).get(tokenHash);
+
+  if (!invite) {
+    setFlash(req, "error", "Der Einladungslink ist ungültig oder abgelaufen.");
+    return res.redirect("/login");
+  }
+
+  res.render("pages/invite-accept", {
+    pageTitle: "Passwort festlegen",
+    token,
+    email: invite.email || "",
+  });
+});
+
+app.post("/invite/accept", (req, res) => {
+  const token = String(req.body.token || "").trim();
+  if (!token) {
+    setFlash(req, "error", "Ungültiger Einladungslink.");
+    return res.redirect("/login");
+  }
+
+  if (String(req.body.new_password || "") !== String(req.body.new_password_confirm || "")) {
+    setFlash(req, "error", "Die neuen Passwörter stimmen nicht überein.");
+    return res.redirect(`/invite/accept?token=${encodeURIComponent(token)}`);
+  }
+
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+  const invite = db.prepare(`
+    SELECT user_invites.*, users.id AS user_id, users.email AS email
+    FROM user_invites
+    INNER JOIN users ON users.id = user_invites.user_id
+    WHERE user_invites.token_hash = ?
+      AND user_invites.used_at IS NULL
+      AND user_invites.expires_at >= CURRENT_TIMESTAMP
+  `).get(tokenHash);
+
+  if (!invite) {
+    setFlash(req, "error", "Der Einladungslink ist ungültig oder abgelaufen.");
+    return res.redirect("/login");
+  }
+
+  const tx = db.transaction(() => {
+    db.prepare("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?")
+      .run(bcrypt.hashSync(req.body.new_password, 10), invite.user_id);
+    db.prepare("UPDATE user_invites SET used_at = CURRENT_TIMESTAMP WHERE id = ?").run(invite.id);
+    db.prepare("UPDATE user_invites SET used_at = CURRENT_TIMESTAMP WHERE user_id = ? AND id != ? AND used_at IS NULL")
+      .run(invite.user_id, invite.id);
+  });
+  tx();
+
+  createAuditLog(req, "user.invite_accepted", { user_id: invite.user_id }, { entityType: "user", entityId: invite.user_id });
+  setFlash(req, "success", "Passwort gespeichert. Du kannst dich jetzt einloggen.");
+  res.redirect("/login");
 });
 
 app.get("/reminders/:id/email-complete", (req, res) => {
@@ -2354,11 +2429,10 @@ app.post("/admin/users", requireAdmin, async (req, res) => {
   const returnTo = safeLocalReturnPath(req.body.return_to, backTo(req, "/admin/benutzer"));
   const name = String(req.body.name || "").trim();
   const email = String(req.body.email || "").trim().toLowerCase();
-  const password = String(req.body.password || "");
   const role = String(req.body.role || "viewer");
 
-  if (!name || !email || !password) {
-    setFlash(req, "error", "Name, E-Mail und Startpasswort sind Pflichtfelder.");
+  if (!name || !email) {
+    setFlash(req, "error", "Name und E-Mail sind Pflichtfelder.");
     return redirectAfterPost(res, returnTo);
   }
 
@@ -2368,7 +2442,8 @@ app.post("/admin/users", requireAdmin, async (req, res) => {
     return redirectAfterPost(res, returnTo);
   }
 
-  const passwordHash = bcrypt.hashSync(password, 10);
+  const randomPassword = crypto.randomBytes(24).toString("hex");
+  const passwordHash = bcrypt.hashSync(randomPassword, 10);
   const userPermissions = normalizeUserPermissions(role, req.body);
   const userResult = db.prepare(`
     INSERT INTO users (
@@ -2395,12 +2470,22 @@ app.post("/admin/users", requireAdmin, async (req, res) => {
 
   if (req.body.send_invite_email) {
     try {
+      const inviteToken = crypto.randomBytes(32).toString("hex");
+      const inviteTokenHash = crypto.createHash("sha256").update(inviteToken).digest("hex");
+      const expiresAt = dayjs().add(48, "hour").format("YYYY-MM-DD HH:mm:ss");
+      db.prepare("DELETE FROM user_invites WHERE user_id = ? AND used_at IS NULL").run(userResult.lastInsertRowid);
+      db.prepare("INSERT INTO user_invites (user_id, token_hash, expires_at) VALUES (?, ?, ?)")
+        .run(userResult.lastInsertRowid, inviteTokenHash, expiresAt);
+
+      const settings = getSettingsObject(db);
+      const appBaseUrl = resolveAppBaseUrl(settings);
+      const inviteUrl = `${appBaseUrl}/invite/accept?token=${inviteToken}`;
       await sendUserInviteEmail(getSettingsObject(db), {
         userId: userResult.lastInsertRowid,
         name,
         email,
         roleLabel: getRoleLabel(role),
-        temporaryPassword: password,
+        inviteUrl,
       });
       createNotificationLog({
         userId: req.session.user?.id,
@@ -2415,6 +2500,7 @@ app.post("/admin/users", requireAdmin, async (req, res) => {
       return redirectAfterPost(res, returnTo);
     } catch (error) {
       console.error("[HeartPet] Einladungs-Mail fehlgeschlagen:", error.message);
+      db.prepare("DELETE FROM user_invites WHERE user_id = ? AND used_at IS NULL").run(userResult.lastInsertRowid);
       createNotificationLog({
         userId: req.session.user?.id,
         channel: "email",
@@ -3460,8 +3546,29 @@ function getAnimalAge(dateString) {
   if (!dateString) {
     return "-";
   }
-  const years = dayjs().diff(dayjs(dateString), "year");
-  return `${years} Jahre`;
+
+  const birthDate = dayjs(dateString);
+  if (!birthDate.isValid()) {
+    return "-";
+  }
+
+  const now = dayjs();
+  if (birthDate.isAfter(now)) {
+    return "-";
+  }
+
+  const years = now.diff(birthDate, "year");
+  if (years >= 1) {
+    return years === 1 ? "1 Jahr" : `${years} Jahre`;
+  }
+
+  const months = now.diff(birthDate, "month");
+  if (months >= 1) {
+    return months === 1 ? "1 Monat" : `${months} Monate`;
+  }
+
+  const days = now.diff(birthDate, "day");
+  return days === 1 ? "1 Tag" : `${days} Tage`;
 }
 
 function getAnimalInitial(name) {

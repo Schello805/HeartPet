@@ -24,15 +24,11 @@
 
             <% if (mode !== 'edit') { %>
               <div class="col-12">
-                <label class="form-label" for="user-password">Startpasswort</label>
-                <input class="form-control" id="user-password" type="password" name="password" required placeholder="Temporäres Passwort" />
-              </div>
-              <div class="col-12">
                 <div class="form-check">
                   <input class="form-check-input" id="user-send-invite" type="checkbox" name="send_invite_email" value="1" checked />
-                  <label class="form-check-label" for="user-send-invite">Einladungs-Mail mit Login-Link senden</label>
+                  <label class="form-check-label" for="user-send-invite">Einladungs-Mail zum Passwort setzen senden</label>
                 </div>
-                <div class="form-text">Wenn aktiviert, erhält der neue Nutzer direkt eine E-Mail mit den ersten Schritten. Ohne Haken kannst du die Zugangsdaten auch manuell weitergeben.</div>
+                <div class="form-text">Wenn aktiviert, erhält der neue Nutzer eine E-Mail mit einem Einmal-Link, über den er sein Passwort selbst festlegt. Erst danach kann er sich einloggen.</div>
               </div>
             <% } else { %>
               <div class="col-12">

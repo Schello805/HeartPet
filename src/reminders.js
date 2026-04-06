@@ -161,7 +161,7 @@ async function sendUserInviteEmail(settings, payload) {
   const transporter = createSmtpTransport(settings);
   const appName = settings.app_name || "HeartPet";
   const appBaseUrl = getAppBaseUrl(settings);
-  const loginUrl = appBaseUrl ? `${appBaseUrl}/login` : "";
+  const inviteUrl = String(payload?.inviteUrl || "").trim();
   const logoFilePath = getAppLogoFilePath(settings);
   const logoCid = "heartpet-invite-logo";
   const { attachments, logoUrl } = resolveEmailLogo({ logoFilePath, logoCid, appBaseUrl });
@@ -171,8 +171,7 @@ async function sendUserInviteEmail(settings, payload) {
     name: payload.name || "Nutzer",
     email: recipient,
     role: payload.roleLabel || "Benutzer",
-    temporaryPassword: payload.temporaryPassword || "",
-    loginUrl,
+    inviteUrl,
   });
   const text = [
     `${appName} - Zugang eingerichtet`,
@@ -181,11 +180,10 @@ async function sendUserInviteEmail(settings, payload) {
     `für dich wurde ein Zugang zu ${appName} angelegt.`,
     `Rolle: ${payload.roleLabel || "Benutzer"}`,
     `E-Mail: ${recipient}`,
-    payload.temporaryPassword ? `Startpasswort: ${payload.temporaryPassword}` : "",
     "",
-    loginUrl ? `Login: ${loginUrl}` : "Login: Bitte beim Administrator nach der Login-URL fragen.",
+    inviteUrl ? `Passwort festlegen: ${inviteUrl}` : "Passwort festlegen: Bitte beim Administrator nach einem Einladungslink fragen.",
     "",
-    "Wichtig: Bitte das Startpasswort direkt nach dem ersten Login ändern.",
+    "Wichtig: Lege zuerst dein eigenes Passwort fest. Erst danach kannst du dich einloggen.",
   ]
     .filter(Boolean)
     .join("\n");
@@ -509,7 +507,7 @@ function buildReminderEmailHtml(payload) {
 }
 
 function buildUserInviteEmailHtml(payload) {
-  const { appName, logoUrl, name, email, role, temporaryPassword, loginUrl } = payload;
+  const { appName, logoUrl, name, email, role, inviteUrl } = payload;
 
   const safe = (value) =>
     String(value || "")
@@ -557,11 +555,10 @@ function buildUserInviteEmailHtml(payload) {
                   ${dataRow("Name", name || "-")}
                   ${dataRow("E-Mail", email || "-")}
                   ${dataRow("Rolle", role || "-")}
-                  ${dataRow("Startpasswort", temporaryPassword || "-")}
                 </table>
-                ${loginUrl ? `<div style="margin-top:18px;"><a href="${safe(loginUrl)}" style="display:inline-block;padding:10px 14px;border-radius:7px;background:linear-gradient(180deg,#42b084 0%,#2e9a6f 100%);color:#ffffff;text-decoration:none;font-weight:700;font-size:13px;">Zum Login</a></div>` : ""}
+                ${inviteUrl ? `<div style="margin-top:18px;"><a href="${safe(inviteUrl)}" style="display:inline-block;padding:10px 14px;border-radius:7px;background:linear-gradient(180deg,#42b084 0%,#2e9a6f 100%);color:#ffffff;text-decoration:none;font-weight:700;font-size:13px;">Passwort festlegen</a></div>` : ""}
                 <div style="margin-top:14px;padding:12px;border:1px solid #d8ebdf;background:#f6fcf9;border-radius:8px;color:#395247;font-size:13px;line-height:1.5;">
-                  <strong>Wichtig:</strong> Bitte das Startpasswort direkt nach dem ersten Login ändern.
+                  <strong>Wichtig:</strong> Lege zuerst dein eigenes Passwort fest. Erst danach kannst du dich einloggen.
                 </div>
               </td>
             </tr>

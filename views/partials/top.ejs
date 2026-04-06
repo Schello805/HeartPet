@@ -37,9 +37,10 @@
 
         <div class="app-sidebar-footer mt-auto px-3 py-3 border-top">
           <div class="small-label">Eingeloggt als</div>
-          <strong><%= currentUser?.name || "-" %></strong>
+          <% const displayName = String(currentUser?.name || "").trim(); %>
+          <strong><%= displayName || "-" %></strong>
           <% const roleLabel = currentUser?.role ? getRoleLabel(currentUser.role) : ""; %>
-          <% if (roleLabel && String(currentUser?.name || "").trim().toLowerCase() !== String(roleLabel).trim().toLowerCase()) { %>
+          <% if (roleLabel && String(displayName || "").trim().toLowerCase() !== String(roleLabel).trim().toLowerCase()) { %>
             <span><%= roleLabel %></span>
           <% } %>
           <form method="post" action="/logout" class="mt-3">
@@ -124,7 +125,8 @@
 
                   <div class="app-mobile-account mt-auto">
                     <div class="small-label">Eingeloggt als</div>
-                    <strong><%= currentUser?.name || "-" %></strong>
+                    <% const mobileDisplayName = String(currentUser?.name || "").trim(); %>
+                    <strong><%= mobileDisplayName || "-" %></strong>
                     <form method="post" action="/logout" class="mt-3">
                       <button type="submit" class="btn btn-outline-secondary w-100">Abmelden</button>
                     </form>

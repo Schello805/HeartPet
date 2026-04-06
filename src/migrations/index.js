@@ -1,6 +1,7 @@
 const migrations = [
   require("./001_initial_schema"),
   require("./002_schema_updates"),
+  require("./003_user_invites"),
 ];
 
 function ensureMigrationsTable(db) {
