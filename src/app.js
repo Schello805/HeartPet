@@ -31,9 +31,11 @@ const SQLiteStore = SQLiteStoreFactory(session);
 const app = express();
 const db = initDatabase();
 
+const projectRoot = path.join(__dirname, "..");
+
 const uploadStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const targetDir = path.join(process.cwd(), "data", "uploads");
+    const targetDir = path.join(projectRoot, "data", "uploads");
     fs.mkdirSync(targetDir, { recursive: true });
     cb(null, targetDir);
   },
@@ -47,12 +49,12 @@ const upload = multer({ storage: uploadStorage });
 const importUpload = multer({ storage: multer.memoryStorage() });
 
 app.set("view engine", "ejs");
-app.set("views", path.join(process.cwd(), "views"));
+app.set("views", path.join(projectRoot, "views"));
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use("/static", express.static(path.join(process.cwd(), "public")));
-app.use("/media", express.static(path.join(process.cwd(), "data", "uploads")));
+app.use("/static", express.static(path.join(projectRoot, "public")));
+app.use("/media", express.static(path.join(projectRoot, "data", "uploads")));
 
 app.use(
   session({
@@ -61,7 +63,7 @@ app.use(
     saveUninitialized: false,
     store: new SQLiteStore({
       db: "sessions.sqlite",
-      dir: path.join(process.cwd(), "data"),
+      dir: path.join(projectRoot, "data"),
     }),
   })
 );

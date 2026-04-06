@@ -60,60 +60,61 @@
 <% } else { %>
 <div class="row g-3">
   <div class="col-12">
-    <section class="card border-0">
-      <div class="card-body p-4">
-        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
-          <div>
-            <div class="text-uppercase small fw-semibold text-body-secondary mb-2">Arbeitsansicht</div>
-            <h2 class="h3 mb-2"><%= sectionState.workspaceTitle %></h2>
-            <p class="text-body-secondary mb-0">
-              <%= sectionState.workspaceIntro || 'Hier arbeitest du mit allen Tieren im aktuellen Tierbestand.' %>
-            </p>
+    <% if (sectionState.key !== 'active') { %>
+      <section class="card border-0">
+        <div class="card-body p-3 p-md-4">
+          <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+            <div>
+              <div class="text-uppercase small fw-semibold text-body-secondary mb-2">Arbeitsansicht</div>
+              <h2 class="h3 mb-2"><%= sectionState.workspaceTitle %></h2>
+              <p class="text-body-secondary mb-0">
+                <%= sectionState.workspaceIntro || 'Hier arbeitest du mit allen Tieren im aktuellen Tierbestand.' %>
+              </p>
+            </div>
+            <span class="badge text-bg-secondary-subtle border"><%= pagination.totalCount %> <%= sectionState.totalLabel %></span>
           </div>
-          <span class="badge text-bg-secondary-subtle border"><%= pagination.totalCount %> <%= sectionState.totalLabel %></span>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="card border bg-body-tertiary-subtle h-100">
+                <div class="card-body">
+                  <div class="small text-body-secondary mb-2">Aktuelle Auswahl</div>
+                  <div class="fw-semibold" data-animals-selected-name><%= selectedAnimalState ? selectedAnimalState.name : 'Kein Tier' %></div>
+                  <div class="small text-body-secondary" data-animals-selected-species><%= selectedAnimalState ? (selectedAnimalState.species_name || 'Tier') : 'Bitte unten ein Tier auswählen' %></div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card border bg-body-tertiary-subtle h-100">
+                <div class="card-body">
+                  <div class="small text-body-secondary mb-2">Nächster Termin</div>
+                  <div class="fw-semibold" data-animals-next-type><%= selectedAnimalState?.next_term?.type || 'Offen' %></div>
+                  <div class="small text-body-secondary" data-animals-next-label><%= selectedAnimalState?.next_term?.displayLabel || 'Noch kein Termin hinterlegt' %></div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card border bg-body-tertiary-subtle h-100">
+                <div class="card-body">
+                  <div class="small text-body-secondary mb-2">Arbeitsweise</div>
+                  <div class="fw-semibold">Oben wählen</div>
+                  <div class="small text-body-secondary">Danach erscheint die komplette Akte direkt darunter.</div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="row g-3">
-          <div class="col-md-4">
-            <div class="card border bg-body-tertiary-subtle h-100">
-              <div class="card-body">
-                <div class="small text-body-secondary mb-2">Aktuelle Auswahl</div>
-                <div class="fw-semibold" data-animals-selected-name><%= selectedAnimalState ? selectedAnimalState.name : 'Kein Tier' %></div>
-                <div class="small text-body-secondary" data-animals-selected-species><%= selectedAnimalState ? (selectedAnimalState.species_name || 'Tier') : 'Bitte unten ein Tier auswählen' %></div>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="card border bg-body-tertiary-subtle h-100">
-              <div class="card-body">
-                <div class="small text-body-secondary mb-2">Nächster Termin</div>
-                <div class="fw-semibold" data-animals-next-type><%= selectedAnimalState?.next_term?.type || 'Offen' %></div>
-                <div class="small text-body-secondary" data-animals-next-label><%= selectedAnimalState?.next_term?.displayLabel || 'Noch kein Termin hinterlegt' %></div>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="card border bg-body-tertiary-subtle h-100">
-              <div class="card-body">
-                <div class="small text-body-secondary mb-2">Arbeitsweise</div>
-                <div class="fw-semibold">Oben wählen</div>
-                <div class="small text-body-secondary">Danach erscheint die komplette Akte direkt darunter.</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+      </section>
+    <% } %>
   </div>
 
   <div class="col-12">
     <section class="card border-0">
-      <div class="card-body p-4">
+      <div class="card-body p-3 p-md-4">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
           <div>
             <h2 class="h4 mb-1">Filter und Auswahl</h2>
-            <p class="text-body-secondary mb-0">Suche in der Liste und öffne danach genau eine Akte direkt unterhalb.</p>
           </div>
-          <button class="btn btn-outline-secondary btn-sm d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#animals-filter-collapse" aria-expanded="false" aria-controls="animals-filter-collapse">Filter anzeigen</button>
+          <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#animals-filter-collapse" aria-expanded="false" aria-controls="animals-filter-collapse">Filter anzeigen</button>
         </div>
         <div class="collapse" id="animals-filter-collapse">
           <form method="get" action="/animals" class="row g-3 align-items-end">
@@ -173,11 +174,10 @@
 
   <div class="col-12">
     <section class="card border-0">
-      <div class="card-body p-4">
+      <div class="card-body p-3 p-md-4">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
           <div>
             <h2 class="h4 mb-1">Tierliste</h2>
-            <p class="text-body-secondary mb-0">Wähle ein Tier aus der Liste. Die Akte darunter wird direkt aktualisiert.</p>
           </div>
           <span class="badge text-bg-secondary-subtle border"><%= animals.length %> sichtbar</span>
         </div>

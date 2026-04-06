@@ -470,14 +470,6 @@ body.bootstrap-app {
   margin-top: 0.5rem;
 }
 
-@media (min-width: 768px) {
-  .bootstrap-app #animals-filter-collapse {
-    display: block !important;
-    height: auto !important;
-    visibility: visible;
-  }
-}
-
 .bootstrap-app .animal-record-accordion .accordion-item + .accordion-item {
   margin-top: 0.35rem;
 }
