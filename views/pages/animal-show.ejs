@@ -52,9 +52,11 @@
           </label>
           <% if (animal.profile_image_stored_name) { %>
             <button type="submit" class="profile-delete-button subtle" form="profile-image-delete-<%= animal.id %>" aria-label="Profilbild löschen" title="Profilbild löschen">🗑</button>
-            <form method="post" action="/animals/<%= animal.id %>/profile-image/delete" id="profile-image-delete-<%= animal.id %>" class="hidden-form" data-confirm="Profilbild wirklich löschen?"></form>
           <% } %>
         </form>
+        <% if (animal.profile_image_stored_name) { %>
+          <form method="post" action="/animals/<%= animal.id %>/profile-image/delete" id="profile-image-delete-<%= animal.id %>" class="hidden-form" data-confirm="Profilbild wirklich löschen?"></form>
+        <% } %>
       <% } %>
     </div>
   </div>

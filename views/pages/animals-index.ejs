@@ -113,57 +113,60 @@
             <h2 class="h4 mb-1">Filter und Auswahl</h2>
             <p class="text-body-secondary mb-0">Suche in der Liste und öffne danach genau eine Akte direkt unterhalb.</p>
           </div>
+          <button class="btn btn-outline-secondary btn-sm d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#animals-filter-collapse" aria-expanded="false" aria-controls="animals-filter-collapse">Filter anzeigen</button>
         </div>
-        <form method="get" action="/animals" class="row g-3 align-items-end">
-          <div class="col-lg-4">
-            <label class="form-label">Suche</label>
-            <div class="search-autocomplete-field">
-              <input class="form-control" type="text" name="q" value="<%= filters.search %>" placeholder="Name, Herkunft, Rasse" data-global-search-autocomplete="true" />
+        <div class="collapse" id="animals-filter-collapse">
+          <form method="get" action="/animals" class="row g-3 align-items-end">
+            <div class="col-lg-4">
+              <label class="form-label">Suche</label>
+              <div class="search-autocomplete-field">
+                <input class="form-control" type="text" name="q" value="<%= filters.search %>" placeholder="Name, Herkunft, Rasse" data-global-search-autocomplete="true" />
+              </div>
             </div>
-          </div>
-          <div class="col-sm-6 col-lg-2">
-            <label class="form-label">Status</label>
-            <select class="form-select" name="status">
-              <% if (sectionState.allowStatusFilter) { %>
+            <div class="col-sm-6 col-lg-2">
+              <label class="form-label">Status</label>
+              <select class="form-select" name="status">
+                <% if (sectionState.allowStatusFilter) { %>
+                  <option value="">Alle</option>
+                  <option value="Vermittelt" <%= filters.status === 'Vermittelt' ? 'selected' : '' %>>Vermittelt</option>
+                  <option value="Verkauft" <%= filters.status === 'Verkauft' ? 'selected' : '' %>>Verkauft</option>
+                <% } else { %>
+                  <option value="<%= filters.status || (sectionState.allowedStatuses ? sectionState.allowedStatuses[0] : 'Aktiv') %>" selected>
+                    <%= filters.status || (sectionState.allowedStatuses ? sectionState.allowedStatuses[0] : 'Aktiv') %>
+                  </option>
+                <% } %>
+              </select>
+            </div>
+            <div class="col-sm-6 col-lg-2">
+              <label class="form-label">Tierart</label>
+              <select class="form-select" name="species_id">
                 <option value="">Alle</option>
-                <option value="Vermittelt" <%= filters.status === 'Vermittelt' ? 'selected' : '' %>>Vermittelt</option>
-                <option value="Verkauft" <%= filters.status === 'Verkauft' ? 'selected' : '' %>>Verkauft</option>
-              <% } else { %>
-                <option value="<%= filters.status || (sectionState.allowedStatuses ? sectionState.allowedStatuses[0] : 'Aktiv') %>" selected>
-                  <%= filters.status || (sectionState.allowedStatuses ? sectionState.allowedStatuses[0] : 'Aktiv') %>
-                </option>
-              <% } %>
-            </select>
-          </div>
-          <div class="col-sm-6 col-lg-2">
-            <label class="form-label">Tierart</label>
-            <select class="form-select" name="species_id">
-              <option value="">Alle</option>
-              <% speciesOptions.forEach((item) => { %>
-                <option value="<%= item.id %>" <%= String(filters.speciesId || '') === String(item.id) ? 'selected' : '' %>><%= item.name %></option>
-              <% }) %>
-            </select>
-          </div>
-          <div class="col-lg-2">
-            <label class="form-label">Sortierung</label>
-            <select class="form-select" name="sort">
-              <option value="name_asc" <%= filters.sort === 'name_asc' ? 'selected' : '' %>>Name A-Z</option>
-              <option value="name_desc" <%= filters.sort === 'name_desc' ? 'selected' : '' %>>Name Z-A</option>
-              <option value="intake_desc" <%= filters.sort === 'intake_desc' ? 'selected' : '' %>>Aufnahme neu zuerst</option>
-              <option value="intake_asc" <%= filters.sort === 'intake_asc' ? 'selected' : '' %>>Aufnahme alt zuerst</option>
-              <option value="created_desc" <%= filters.sort === 'created_desc' ? 'selected' : '' %>>Zuletzt angelegt</option>
-              <option value="status_asc" <%= filters.sort === 'status_asc' ? 'selected' : '' %>>Status</option>
-              <option value="next_term_asc" <%= filters.sort === 'next_term_asc' ? 'selected' : '' %>>Nächster Termin</option>
-            </select>
-          </div>
-          <% if (selectedAnimalState) { %>
-            <input type="hidden" name="animal_id" value="<%= selectedAnimalState.id %>" />
-          <% } %>
-          <div class="col-lg-2 d-flex gap-2">
-            <button type="submit" class="btn btn-primary flex-fill">Filtern</button>
-            <a href="<%= sectionState.key === 'history' ? '/animals/historie' : sectionState.key === 'resting' ? '/animals/ruhestaette' : '/animals' %>" class="btn btn-outline-secondary">Zurücksetzen</a>
-          </div>
-        </form>
+                <% speciesOptions.forEach((item) => { %>
+                  <option value="<%= item.id %>" <%= String(filters.speciesId || '') === String(item.id) ? 'selected' : '' %>><%= item.name %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="col-lg-2">
+              <label class="form-label">Sortierung</label>
+              <select class="form-select" name="sort">
+                <option value="name_asc" <%= filters.sort === 'name_asc' ? 'selected' : '' %>>Name A-Z</option>
+                <option value="name_desc" <%= filters.sort === 'name_desc' ? 'selected' : '' %>>Name Z-A</option>
+                <option value="intake_desc" <%= filters.sort === 'intake_desc' ? 'selected' : '' %>>Aufnahme neu zuerst</option>
+                <option value="intake_asc" <%= filters.sort === 'intake_asc' ? 'selected' : '' %>>Aufnahme alt zuerst</option>
+                <option value="created_desc" <%= filters.sort === 'created_desc' ? 'selected' : '' %>>Zuletzt angelegt</option>
+                <option value="status_asc" <%= filters.sort === 'status_asc' ? 'selected' : '' %>>Status</option>
+                <option value="next_term_asc" <%= filters.sort === 'next_term_asc' ? 'selected' : '' %>>Nächster Termin</option>
+              </select>
+            </div>
+            <% if (selectedAnimalState) { %>
+              <input type="hidden" name="animal_id" value="<%= selectedAnimalState.id %>" />
+            <% } %>
+            <div class="col-lg-2 d-flex gap-2">
+              <button type="submit" class="btn btn-primary flex-fill">Filtern</button>
+              <a href="<%= sectionState.key === 'history' ? '/animals/historie' : sectionState.key === 'resting' ? '/animals/ruhestaette' : '/animals' %>" class="btn btn-outline-secondary">Zurücksetzen</a>
+            </div>
+          </form>
+        </div>
       </div>
     </section>
   </div>

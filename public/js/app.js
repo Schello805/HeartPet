@@ -63,15 +63,18 @@ async function loadPendingReminders() {
     return;
   }
 
+  const existing = document.querySelector(".floating-reminder");
+
   try {
     const response = await fetch("/api/reminders/pending");
     if (!response.ok) {
+      existing?.remove();
       return;
     }
 
     const payload = await response.json();
-    const existing = document.querySelector(".floating-reminder");
-    if (!payload.count) {
+    const count = Number(payload.count || 0);
+    if (!count) {
       existing?.remove();
       try {
         sessionStorage.removeItem("heartpet-notified");
@@ -80,7 +83,7 @@ async function loadPendingReminders() {
     }
 
     const href = window.location.pathname === "/" ? "#dringende-erinnerungen" : "/#dringende-erinnerungen";
-    const bannerMarkup = `<strong>${payload.count} fällige Erinnerung(en)</strong><span>Jetzt anzeigen</span>`;
+    const bannerMarkup = `<strong>${count} fällige Erinnerung(en)</strong><span>Jetzt anzeigen</span>`;
     if (!existing) {
       const banner = document.createElement("a");
       banner.className = "floating-reminder";
@@ -104,6 +107,7 @@ async function loadPendingReminders() {
       }
     }
   } catch (error) {
+    existing?.remove();
     console.error("HeartPet Hinweis konnte nicht geladen werden", error);
   }
 }
@@ -521,7 +525,15 @@ function initProfileUploadAutoSubmit() {
         trigger.textContent = "Bild wird hochgeladen...";
       }
 
-      form?.requestSubmit();
+      if (!form) {
+        return;
+      }
+
+      if (typeof form.requestSubmit === "function") {
+        form.requestSubmit();
+      } else {
+        HTMLFormElement.prototype.submit.call(form);
+      }
     });
   });
 }
