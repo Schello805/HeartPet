@@ -18,6 +18,25 @@ const app = require("../src/app");
 const agent = request.agent(app);
 const db = initDatabase();
 
+async function ensureSetupComplete() {
+  const setupPage = await agent.get("/setup");
+  if (setupPage.status !== 200) {
+    return;
+  }
+
+  const setupResponse = await agent.post("/setup").type("form").send({
+    admin_name: "Test Admin",
+    admin_email: "admin@test.local",
+    admin_password: "passwort123",
+    organization_name: "Test Tierbestand",
+    veterinarian_name: "Tierarzt Test",
+    species_name: "Katze",
+    animal_name: "Minka",
+  });
+
+  assert.equal(setupResponse.status, 302);
+}
+
 function collectInternalLinks(html) {
   return [...html.matchAll(/href="([^"]+)"/g)]
     .map((match) => match[1])
@@ -519,6 +538,7 @@ test("Speichern über alte Admin-Rückwege landet nicht auf 404", async () => {
 });
 
 test("Admin-Drawer-Routen sind erreichbar", async () => {
+  await ensureSetupComplete();
   const userDrawer = await agent.get("/admin/users/new").set("X-Requested-With", "heartpet-drawer");
   assert.equal(userDrawer.status, 200);
   assert.match(userDrawer.text, /Benutzer anlegen/i);
@@ -531,6 +551,7 @@ test("Admin-Drawer-Routen sind erreichbar", async () => {
 });
 
 test("Tierakten-Drawer-Routen sind erreichbar", async () => {
+  await ensureSetupComplete();
   const eventDrawer = await agent.get("/animals/1/events/new").set("X-Requested-With", "heartpet-drawer");
   assert.equal(eventDrawer.status, 200);
   assert.match(eventDrawer.text, /Ereignis erstellen/i);
@@ -546,6 +567,7 @@ test("Tierakten-Drawer-Routen sind erreichbar", async () => {
 });
 
 test("Direkte Seitenaufrufe von eingeblendeten Formularen leiten in den Kontext zurück", async () => {
+  await ensureSetupComplete();
   const vetCreate = await agent.get("/admin/veterinarians/new");
   assert.equal(vetCreate.status, 302);
   assert.match(vetCreate.headers.location || "", /^\/admin\/stammdaten\?drawer=/);
@@ -564,6 +586,7 @@ test("Direkte Seitenaufrufe von eingeblendeten Formularen leiten in den Kontext 
 });
 
 test("Alle Tierakten-Aktionen liefern keine 404", async () => {
+  await ensureSetupComplete();
   await agent.post("/animals/1/conditions").type("form").send({
     title: "Arthrose",
     details: "Altbefund",
@@ -620,11 +643,13 @@ test("Alle Tierakten-Aktionen liefern keine 404", async () => {
 });
 
 test("Tiere-Arbeitsansicht zeigt Liste und ausgewählte Akte", async () => {
+  await ensureSetupComplete();
   const response = await agent.get("/animals").query({ animal_id: "1" });
   assert.equal(response.status, 200);
-  assert.match(response.text, /Arbeitsansicht/);
-  assert.match(response.text, /Tierbestand/);
-  assert.match(response.text, /Tobi|Minka/);
+  assert.match(response.text, /Filter und Auswahl/);
+  assert.match(response.text, /Tierliste/);
+  assert.match(response.text, /data-animal-workspace-link/);
+  assert.match(response.text, /data-animal-workspace-target/);
 });
 
 test("Tiere-Arbeitsansicht kann die rechte Akte separat laden", async () => {
@@ -676,7 +701,7 @@ test("Tiere, Historie und Ruhestätte trennen die Bestände sauber", async () =>
 
   const activePage = await agent.get("/animals");
   assert.equal(activePage.status, 200);
-  assert.match(activePage.text, /Aktive Tiere/);
+  assert.match(activePage.text, /Meine Tiere/);
   assert.doesNotMatch(activePage.text, /Luna/);
   assert.doesNotMatch(activePage.text, /Max/);
 

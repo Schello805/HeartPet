@@ -896,6 +896,16 @@ textarea {
   height: 152px;
 }
 
+.profile-upload-surface {
+  cursor: pointer;
+}
+
+.profile-upload-surface:focus-visible {
+  outline: 2px solid rgba(124, 92, 255, 0.65);
+  outline-offset: 3px;
+  border-radius: 18px;
+}
+
 .animal-profile-image {
   width: 152px;
   height: 152px;

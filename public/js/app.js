@@ -727,6 +727,9 @@ function setAnimalsWorkspaceActiveLink(activeLink) {
 }
 
 async function loadAnimalWorkspacePanel(link, { push = true } = {}) {
+  if (!link) {
+    return false;
+  }
   if (!(link instanceof HTMLElement) || !isAnimalsWorkspaceDesktop()) {
     return false;
   }
@@ -760,8 +763,17 @@ async function loadAnimalWorkspacePanel(link, { push = true } = {}) {
     const panel = target.querySelector("[data-animal-workspace-panel]");
     syncAnimalsWorkspaceSummary(panel);
 
+    const listCollapseTarget = document.getElementById("animals-list-collapse");
+    if (listCollapseTarget && window.bootstrap?.Collapse) {
+      const collapse = window.bootstrap.Collapse.getOrCreateInstance(listCollapseTarget, { toggle: false });
+      if (listCollapseTarget.classList.contains("show")) {
+        collapse.hide();
+      }
+    }
+
     if (push) {
-      window.history.pushState({ animalWorkspace: true }, "", link.href);
+      const url = new URL(link.href, window.location.href);
+      navigateTo(url, { push: true, scrollTop: false });
     }
 
     initPage();

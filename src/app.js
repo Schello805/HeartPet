@@ -3487,10 +3487,10 @@ function getAnimalSectionConfig(section) {
   const sectionMap = {
     active: {
       key: "active",
-      pageTitle: "Aktive Tiere",
-      workspaceTitle: "Aktive Tiere",
-      workspaceIntro: "Hier arbeitest du mit allen Tieren, die aktuell im Bestand sind.",
-      totalLabel: "aktive Tiere",
+      pageTitle: "Meine Tiere",
+      workspaceTitle: "Meine Tiere",
+      workspaceIntro: "Hier findest du alle Tiere aus deinem aktuellen Bestand.",
+      totalLabel: "Tiere",
       allowedStatuses: ["Aktiv"],
       defaultStatus: "Aktiv",
       allowStatusFilter: false,

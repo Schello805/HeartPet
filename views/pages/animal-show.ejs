@@ -37,18 +37,15 @@
 <section class="card border-0 shadow-sm animal-hero-card">
   <div class="animal-hero-profile">
     <div class="profile-image-panel">
-      <div class="profile-image-frame">
-        <% if (animal.profile_image_stored_name) { %>
-          <img class="animal-profile-image" src="/media/<%= animal.profile_image_stored_name %>" alt="Profilbild von <%= animal.name %>" />
-        <% } else { %>
-          <div class="animal-profile-image animal-profile-fallback"><%= getAnimalInitial(animal.name) %></div>
-        <% } %>
-      </div>
       <% if (permissions.canManageGallery) { %>
         <form method="post" action="/animals/<%= animal.id %>/profile-image" enctype="multipart/form-data" class="profile-image-inline-form">
           <input id="profile-upload-<%= animal.id %>" class="visually-hidden profile-upload-input" type="file" name="profile_image" accept="image/*" required />
-          <label for="profile-upload-<%= animal.id %>" class="profile-upload-trigger icon-only subtle" aria-label="<%= animal.profile_image_stored_name ? 'Profilbild ändern' : 'Profilbild hochladen' %>" title="<%= animal.profile_image_stored_name ? 'Profilbild ändern' : 'Profilbild hochladen' %>">
-            <span aria-hidden="true">✎</span>
+          <label for="profile-upload-<%= animal.id %>" class="profile-image-frame profile-upload-surface" aria-label="<%= animal.profile_image_stored_name ? 'Profilbild ändern' : 'Profilbild hochladen' %>" title="<%= animal.profile_image_stored_name ? 'Profilbild ändern' : 'Profilbild hochladen' %>" tabindex="0">
+            <% if (animal.profile_image_stored_name) { %>
+              <img class="animal-profile-image" src="/media/<%= animal.profile_image_stored_name %>" alt="Profilbild von <%= animal.name %>" />
+            <% } else { %>
+              <div class="animal-profile-image animal-profile-fallback"><%= getAnimalInitial(animal.name) %></div>
+            <% } %>
           </label>
           <% if (animal.profile_image_stored_name) { %>
             <button type="submit" class="profile-delete-button subtle" form="profile-image-delete-<%= animal.id %>" aria-label="Profilbild löschen" title="Profilbild löschen">🗑</button>
@@ -57,6 +54,14 @@
         <% if (animal.profile_image_stored_name) { %>
           <form method="post" action="/animals/<%= animal.id %>/profile-image/delete" id="profile-image-delete-<%= animal.id %>" class="hidden-form" data-confirm="Profilbild wirklich löschen?"></form>
         <% } %>
+      <% } else { %>
+        <div class="profile-image-frame">
+          <% if (animal.profile_image_stored_name) { %>
+            <img class="animal-profile-image" src="/media/<%= animal.profile_image_stored_name %>" alt="Profilbild von <%= animal.name %>" />
+          <% } else { %>
+            <div class="animal-profile-image animal-profile-fallback"><%= getAnimalInitial(animal.name) %></div>
+          <% } %>
+        </div>
       <% } %>
     </div>
   </div>

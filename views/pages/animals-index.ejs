@@ -179,7 +179,10 @@
           <div>
             <h2 class="h4 mb-1">Tierliste</h2>
           </div>
-          <span class="badge text-bg-secondary-subtle border"><%= animals.length %> sichtbar</span>
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <span class="badge text-bg-secondary-subtle border"><%= animals.length %> sichtbar</span>
+            <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#animals-list-collapse" aria-expanded="<%= selectedAnimalState ? 'false' : 'true' %>" aria-controls="animals-list-collapse">Tierliste anzeigen</button>
+          </div>
         </div>
 
         <% if (animals.length === 0) { %>
@@ -202,60 +205,62 @@
             </div>
           </div>
         <% } else { %>
-          <div class="list-group">
-            <% animals.forEach((animal) => { %>
-              <% const rowParams = new URLSearchParams(); %>
-              <% if (filters.search) rowParams.set('q', filters.search); %>
-              <% if (filters.status) rowParams.set('status', filters.status); %>
-              <% if (filters.speciesId) rowParams.set('species_id', filters.speciesId); %>
-              <% if (filters.sort) rowParams.set('sort', filters.sort); %>
-              <% if (pagination.currentPage > 1) rowParams.set('page', String(pagination.currentPage)); %>
-              <% rowParams.set('animal_id', String(animal.id)); %>
-              <a
-                href="/animals?<%= rowParams.toString() %>"
-                class="list-group-item list-group-item-action bg-transparent px-3 py-3 <%= selectedAnimalState && String(selectedAnimalState.id) === String(animal.id) ? 'active' : '' %>"
-                data-animal-workspace-link="true"
-                data-no-soft-nav="true"
-                data-panel-url="/animals/<%= animal.id %>/workspace-panel?<%= rowParams.toString() %>"
-              >
-                <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
-                  <div class="d-flex gap-3 align-items-center">
-                    <% if (animal.profile_image_stored_name) { %>
-                      <img class="rounded object-fit-cover" src="/media/<%= animal.profile_image_stored_name %>" alt="Profilbild von <%= animal.name %>" width="56" height="56" />
-                    <% } else { %>
-                      <div class="rounded bg-secondary-subtle d-flex align-items-center justify-content-center fw-semibold" style="width:56px;height:56px;"><%= getAnimalInitial(animal.name) %></div>
-                    <% } %>
-                    <div>
-                      <div class="fw-semibold"><%= animal.name %></div>
-                      <div class="small text-body-secondary"><%= animal.species_name || '-' %> · <%= animal.breed || '-' %></div>
+          <div class="collapse <%= selectedAnimalState ? '' : 'show' %>" id="animals-list-collapse">
+            <div class="list-group">
+              <% animals.forEach((animal) => { %>
+                <% const rowParams = new URLSearchParams(); %>
+                <% if (filters.search) rowParams.set('q', filters.search); %>
+                <% if (filters.status) rowParams.set('status', filters.status); %>
+                <% if (filters.speciesId) rowParams.set('species_id', filters.speciesId); %>
+                <% if (filters.sort) rowParams.set('sort', filters.sort); %>
+                <% if (pagination.currentPage > 1) rowParams.set('page', String(pagination.currentPage)); %>
+                <% rowParams.set('animal_id', String(animal.id)); %>
+                <a
+                  href="/animals?<%= rowParams.toString() %>"
+                  class="list-group-item list-group-item-action bg-transparent px-3 py-3 <%= selectedAnimalState && String(selectedAnimalState.id) === String(animal.id) ? 'active' : '' %>"
+                  data-animal-workspace-link="true"
+                  data-no-soft-nav="true"
+                  data-panel-url="/animals/<%= animal.id %>/workspace-panel?<%= rowParams.toString() %>"
+                >
+                  <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+                    <div class="d-flex gap-3 align-items-center">
+                      <% if (animal.profile_image_stored_name) { %>
+                        <img class="rounded object-fit-cover" src="/media/<%= animal.profile_image_stored_name %>" alt="Profilbild von <%= animal.name %>" width="56" height="56" />
+                      <% } else { %>
+                        <div class="rounded bg-secondary-subtle d-flex align-items-center justify-content-center fw-semibold" style="width:56px;height:56px;"><%= getAnimalInitial(animal.name) %></div>
+                      <% } %>
+                      <div>
+                        <div class="fw-semibold"><%= animal.name %></div>
+                        <div class="small text-body-secondary"><%= animal.species_name || '-' %> · <%= animal.breed || '-' %></div>
+                      </div>
+                    </div>
+                    <div class="text-lg-end">
+                      <div class="small text-body-secondary"><%= animal.veterinarian_name || 'Kein Tierarzt' %></div>
+                      <% if (animal.next_term) { %>
+                        <div class="fw-semibold"><%= animal.next_term.type %></div>
+                        <div class="small text-body-secondary"><%= animal.next_term.displayLabel %></div>
+                      <% } else { %>
+                        <div class="small text-body-secondary">Kein nächster Termin</div>
+                      <% } %>
                     </div>
                   </div>
-                  <div class="text-lg-end">
-                    <div class="small text-body-secondary"><%= animal.veterinarian_name || 'Kein Tierarzt' %></div>
-                    <% if (animal.next_term) { %>
-                      <div class="fw-semibold"><%= animal.next_term.type %></div>
-                      <div class="small text-body-secondary"><%= animal.next_term.displayLabel %></div>
-                    <% } else { %>
-                      <div class="small text-body-secondary">Kein nächster Termin</div>
-                    <% } %>
-                  </div>
-                </div>
-              </a>
-            <% }) %>
-          </div>
+                </a>
+              <% }) %>
+            </div>
 
-          <% if (pagination.totalPages > 1) { %>
-            <nav class="mt-3">
-              <ul class="pagination pagination-sm mb-0">
-                <% for (let page = 1; page <= pagination.totalPages; page += 1) { %>
-                  <% const url = `/animals?q=${encodeURIComponent(filters.search || '')}&status=${encodeURIComponent(filters.status || '')}&species_id=${encodeURIComponent(filters.speciesId || '')}&sort=${encodeURIComponent(filters.sort || 'name_asc')}&page=${page}${selectedAnimalState ? `&animal_id=${selectedAnimalState.id}` : ''}`; %>
-                  <li class="page-item <%= page === pagination.currentPage ? 'active' : '' %>">
-                    <a href="<%= url %>" class="page-link"><%= page %></a>
-                  </li>
-                <% } %>
-              </ul>
-            </nav>
-          <% } %>
+            <% if (pagination.totalPages > 1) { %>
+              <nav class="mt-3">
+                <ul class="pagination pagination-sm mb-0">
+                  <% for (let page = 1; page <= pagination.totalPages; page += 1) { %>
+                    <% const url = `/animals?q=${encodeURIComponent(filters.search || '')}&status=${encodeURIComponent(filters.status || '')}&species_id=${encodeURIComponent(filters.speciesId || '')}&sort=${encodeURIComponent(filters.sort || 'name_asc')}&page=${page}${selectedAnimalState ? `&animal_id=${selectedAnimalState.id}` : ''}`; %>
+                    <li class="page-item <%= page === pagination.currentPage ? 'active' : '' %>">
+                      <a href="<%= url %>" class="page-link"><%= page %></a>
+                    </li>
+                  <% } %>
+                </ul>
+              </nav>
+            <% } %>
+          </div>
         <% } %>
       </div>
     </section>
