@@ -2,6 +2,7 @@ node_modules
 data/heartpet.sqlite
 data/heartpet.sqlite-shm
 data/heartpet.sqlite-wal
+data/heartpet.db
 data/sessions.sqlite
 data/uploads/*
 !data/uploads/.gitkeep

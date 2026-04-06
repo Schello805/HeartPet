@@ -80,7 +80,7 @@ async function loadPendingReminders() {
     }
 
     const href = window.location.pathname === "/" ? "#dringende-erinnerungen" : "/#dringende-erinnerungen";
-    const bannerMarkup = `<strong>${payload.count} offene Erinnerung(en)</strong><span>Jetzt direkt anzeigen</span>`;
+    const bannerMarkup = `<strong>${payload.count} fällige Erinnerung(en)</strong><span>Jetzt anzeigen</span>`;
     if (!existing) {
       const banner = document.createElement("a");
       banner.className = "floating-reminder";

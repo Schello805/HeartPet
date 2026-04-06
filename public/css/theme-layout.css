@@ -1,7 +1,8 @@
+ .compact-ordered-list {
   padding-left: 20px;
   display: grid;
   gap: 4px;
-}
+ }
 
 .compact-ordered-list li {
   line-height: 1.45;
@@ -942,6 +943,12 @@ small {
   display: flex;
   flex-direction: column;
   margin-left: var(--sidebar-width);
+}
+
+@media (max-width: 991.98px) {
+  .bootstrap-app .app-main {
+    margin-left: 0;
+  }
 }
 
 .bootstrap-app .main-content {

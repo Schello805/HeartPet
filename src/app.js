@@ -477,7 +477,7 @@ app.get("/", (req, res) => {
         FROM reminders
         INNER JOIN animals ON animals.id = reminders.animal_id
         WHERE reminders.completed_at IS NULL
-          AND reminders.due_at <= ?
+          AND REPLACE(reminders.due_at, ' ', 'T') <= ?
           AND animals.status = 'Aktiv'
       `)
       .get(dayjs().format("YYYY-MM-DDTHH:mm")).count,
@@ -498,30 +498,30 @@ app.get("/", (req, res) => {
     LEFT JOIN animals ON animals.id = reminders.animal_id
     WHERE reminders.completed_at IS NULL
       AND animals.status = 'Aktiv'
-      AND reminders.due_at > ?
-    ORDER BY reminders.due_at ASC
+      AND REPLACE(reminders.due_at, ' ', 'T') > ?
+    ORDER BY REPLACE(reminders.due_at, ' ', 'T') ASC
     LIMIT 10
   `).all(dayjs().endOf("day").format("YYYY-MM-DDTHH:mm"));
 
   const urgentReminders = db.prepare(`
     SELECT reminders.*, animals.name AS animal_name,
       CASE
-        WHEN reminders.due_at < ? THEN 'overdue'
-        WHEN reminders.due_at <= ? THEN 'today'
+        WHEN REPLACE(reminders.due_at, ' ', 'T') < ? THEN 'overdue'
+        WHEN REPLACE(reminders.due_at, ' ', 'T') <= ? THEN 'today'
         ELSE 'upcoming'
       END AS urgency
     FROM reminders
     LEFT JOIN animals ON animals.id = reminders.animal_id
     WHERE reminders.completed_at IS NULL
       AND animals.status = 'Aktiv'
-      AND reminders.due_at <= ?
+      AND REPLACE(reminders.due_at, ' ', 'T') <= ?
     ORDER BY
       CASE
-        WHEN reminders.due_at < ? THEN 0
-        WHEN reminders.due_at <= ? THEN 1
+        WHEN REPLACE(reminders.due_at, ' ', 'T') < ? THEN 0
+        WHEN REPLACE(reminders.due_at, ' ', 'T') <= ? THEN 1
         ELSE 2
       END,
-      reminders.due_at ASC
+      REPLACE(reminders.due_at, ' ', 'T') ASC
     LIMIT 12
   `).all(
     dayjs().format("YYYY-MM-DDTHH:mm"),
@@ -2914,7 +2914,7 @@ app.get("/api/reminders/pending", (req, res) => {
     FROM reminders
     INNER JOIN animals ON animals.id = reminders.animal_id
     WHERE reminders.completed_at IS NULL
-      AND reminders.due_at <= ?
+      AND REPLACE(reminders.due_at, ' ', 'T') <= ?
       AND animals.status = 'Aktiv'
   `).get(now).count;
 
@@ -2923,9 +2923,9 @@ app.get("/api/reminders/pending", (req, res) => {
     FROM reminders
     INNER JOIN animals ON animals.id = reminders.animal_id
     WHERE reminders.completed_at IS NULL
-      AND reminders.due_at <= ?
+      AND REPLACE(reminders.due_at, ' ', 'T') <= ?
       AND animals.status = 'Aktiv'
-    ORDER BY reminders.due_at ASC
+    ORDER BY REPLACE(reminders.due_at, ' ', 'T') ASC
     LIMIT 5
   `).all(now);
 
