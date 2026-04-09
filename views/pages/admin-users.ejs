@@ -160,12 +160,27 @@
 
                         <div class="d-flex flex-wrap gap-2">
                           <a href="/admin/users/<%= user.id %>/edit" class="btn btn-outline-secondary btn-sm" data-drawer="admin-user" aria-label="Benutzer bearbeiten">Bearbeiten</a>
+                          <% if (user.must_change_password) { %>
+                            <button
+                              type="submit"
+                              class="btn btn-outline-primary btn-sm"
+                              form="user-resend-invite-<%= user.id %>"
+                              aria-label="Einladungs-Mail erneut senden"
+                            >
+                              Einladung erneut senden
+                            </button>
+                          <% } %>
                           <button type="submit" class="btn btn-outline-danger btn-sm" form="user-delete-<%= user.id %>" aria-label="Benutzer löschen">Löschen</button>
                         </div>
 
                         <small class="text-body-secondary">E-Mail-Änderungen werden erst nach Bestätigung durch den Nutzer aktiv.</small>
                       </div>
                     </div>
+                    <% if (user.must_change_password) { %>
+                      <form method="post" action="/admin/users/<%= user.id %>/resend-invite" id="user-resend-invite-<%= user.id %>" class="hidden-form">
+                        <input type="hidden" name="return_to" value="/admin/benutzer" />
+                      </form>
+                    <% } %>
                     <form method="post" action="/admin/users/<%= user.id %>/delete" id="user-delete-<%= user.id %>" class="hidden-form" data-confirm="Benutzer wirklich löschen?"></form>
                   <% }) %>
                 </div>

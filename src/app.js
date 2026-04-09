@@ -2470,53 +2470,53 @@ app.post("/admin/users", requireAdmin, async (req, res) => {
 
   if (req.body.send_invite_email) {
     try {
-      const inviteToken = crypto.randomBytes(32).toString("hex");
-      const inviteTokenHash = crypto.createHash("sha256").update(inviteToken).digest("hex");
-      const expiresAt = dayjs().add(48, "hour").format("YYYY-MM-DD HH:mm:ss");
-      db.prepare("DELETE FROM user_invites WHERE user_id = ? AND used_at IS NULL").run(userResult.lastInsertRowid);
-      db.prepare("INSERT INTO user_invites (user_id, token_hash, expires_at) VALUES (?, ?, ?)")
-        .run(userResult.lastInsertRowid, inviteTokenHash, expiresAt);
-
-      const settings = getSettingsObject(db);
-      const appBaseUrl = resolveAppBaseUrl(settings);
-      const inviteUrl = `${appBaseUrl}/invite/accept?token=${inviteToken}`;
-      await sendUserInviteEmail(getSettingsObject(db), {
-        userId: userResult.lastInsertRowid,
+      await sendInviteEmailForUser(req, {
+        id: userResult.lastInsertRowid,
         name,
         email,
-        roleLabel: getRoleLabel(role),
-        inviteUrl,
-      });
-      createNotificationLog({
-        userId: req.session.user?.id,
-        channel: "email",
-        type: "invite",
-        recipient: email,
-        subject: "Benutzer-Einladung",
-        status: "sent",
-        details: { target_user_id: userResult.lastInsertRowid },
+        role,
       });
       setFlash(req, "success", `Benutzer angelegt und Einladungs-Mail an ${email} versendet.`);
       return redirectAfterPost(res, returnTo);
     } catch (error) {
       console.error("[HeartPet] Einladungs-Mail fehlgeschlagen:", error.message);
-      db.prepare("DELETE FROM user_invites WHERE user_id = ? AND used_at IS NULL").run(userResult.lastInsertRowid);
-      createNotificationLog({
-        userId: req.session.user?.id,
-        channel: "email",
-        type: "invite",
-        recipient: email,
-        subject: "Benutzer-Einladung",
-        status: "error",
-        error: error.message,
-        details: { target_user_id: userResult.lastInsertRowid },
-      });
       setFlash(req, "error", `Benutzer angelegt, Einladungs-Mail an ${email} fehlgeschlagen: ${error.message}`);
       return redirectAfterPost(res, returnTo);
     }
   }
 
   setFlash(req, "success", "Benutzer angelegt.");
+  return redirectAfterPost(res, returnTo);
+});
+
+app.post("/admin/users/:id/resend-invite", requireAdmin, async (req, res) => {
+  const returnTo = safeLocalReturnPath(req.body.return_to, backTo(req, "/admin/benutzer"));
+  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.params.id);
+  if (!user) {
+    return renderNotFound(req, res, "Benutzer nicht gefunden.");
+  }
+
+  if (String(req.session.user.id) === String(req.params.id)) {
+    setFlash(req, "error", "Für dein eigenes Konto ist hier keine Einladungs-Mail vorgesehen.");
+    return redirectAfterPost(res, returnTo);
+  }
+
+  if (!user.must_change_password) {
+    setFlash(req, "error", "Für diesen Nutzer ist aktuell keine offene Einladung mehr nötig.");
+    return redirectAfterPost(res, returnTo);
+  }
+
+  try {
+    await sendInviteEmailForUser(req, user, {
+      auditSuccessAction: "user.invite_email_resent",
+      auditFailureAction: "user.invite_email_resend_failed",
+    });
+    setFlash(req, "success", `Einladungs-Mail an ${user.email} erneut versendet.`);
+  } catch (error) {
+    console.error("[HeartPet] Erneuter Einladungs-Versand fehlgeschlagen:", error.message);
+    setFlash(req, "error", `Einladungs-Mail an ${user.email} fehlgeschlagen: ${error.message}`);
+  }
+
   return redirectAfterPost(res, returnTo);
 });
 
@@ -4208,6 +4208,72 @@ function getRoleLabel(role) {
     viewer: "Nur Lesen",
   };
   return labels[role] || role;
+}
+
+async function sendInviteEmailForUser(req, user, options = {}) {
+  const userId = user?.id;
+  const name = String(user?.name || "").trim();
+  const email = String(user?.email || "").trim().toLowerCase();
+  const role = String(user?.role || "viewer");
+  const auditSuccessAction = options.auditSuccessAction || "user.invite_email_sent";
+  const auditFailureAction = options.auditFailureAction || "user.invite_email_failed";
+
+  const inviteToken = crypto.randomBytes(32).toString("hex");
+  const inviteTokenHash = crypto.createHash("sha256").update(inviteToken).digest("hex");
+  const expiresAt = dayjs().add(48, "hour").format("YYYY-MM-DD HH:mm:ss");
+
+  db.prepare("DELETE FROM user_invites WHERE user_id = ? AND used_at IS NULL").run(userId);
+  db.prepare("INSERT INTO user_invites (user_id, token_hash, expires_at) VALUES (?, ?, ?)")
+    .run(userId, inviteTokenHash, expiresAt);
+
+  try {
+    const settings = getSettingsObject(db);
+    const appBaseUrl = resolveAppBaseUrl(settings);
+    const inviteUrl = `${appBaseUrl}/invite/accept?token=${inviteToken}`;
+
+    await sendUserInviteEmail(settings, {
+      userId,
+      name,
+      email,
+      roleLabel: getRoleLabel(role),
+      inviteUrl,
+    });
+
+    createNotificationLog({
+      userId: req.session.user?.id,
+      channel: "email",
+      type: "invite",
+      recipient: email,
+      subject: "Benutzer-Einladung",
+      status: "sent",
+      details: { target_user_id: userId },
+    });
+    createAuditLog(
+      req,
+      auditSuccessAction,
+      { target_user_id: userId, email, role },
+      { entityType: "user", entityId: userId }
+    );
+  } catch (error) {
+    db.prepare("DELETE FROM user_invites WHERE user_id = ? AND used_at IS NULL").run(userId);
+    createNotificationLog({
+      userId: req.session.user?.id,
+      channel: "email",
+      type: "invite",
+      recipient: email,
+      subject: "Benutzer-Einladung",
+      status: "error",
+      error: error.message,
+      details: { target_user_id: userId },
+    });
+    createAuditLog(
+      req,
+      auditFailureAction,
+      { target_user_id: userId, email, role, error: error.message },
+      { entityType: "user", entityId: userId }
+    );
+    throw error;
+  }
 }
 
 function buildPermissions(user) {

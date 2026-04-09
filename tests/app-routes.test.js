@@ -6,6 +6,7 @@ const os = require("node:os");
 const { PassThrough } = require("node:stream");
 const request = require("supertest");
 const dayjs = require("dayjs");
+const nodemailer = require("nodemailer");
 
 const tempDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "heartpet-test-"));
 process.env.HEARTPET_DATA_DIR = tempDataDir;
@@ -101,10 +102,10 @@ test("Einmalige Tierarten-Bereinigung entfernt ungenutzte Vorgaben und behält v
 
 test("Datenbank-Migrationen werden protokolliert", () => {
   const migrationRows = db.prepare("SELECT id FROM schema_migrations ORDER BY id ASC").all();
-  assert.deepEqual(
-    migrationRows.map((row) => row.id),
-    ["001_initial_schema", "002_schema_updates"]
-  );
+  const migrationIds = migrationRows.map((row) => row.id);
+  assert.ok(migrationIds.includes("001_initial_schema"));
+  assert.ok(migrationIds.includes("002_schema_updates"));
+  assert.ok(migrationIds.includes("003_user_invites"));
 });
 
 test("Systemlog ist erreichbar (inkl. Alias)", async () => {
@@ -210,6 +211,229 @@ test("Weitere Admin-Aliase sind erreichbar", async () => {
     const response = await agent.get(source);
     assert.equal(response.status, 302, source);
     assert.equal(response.headers.location, target, source);
+  }
+});
+
+test("Einladungs-Mail für neue Benutzer wird versendet und im Audit- sowie Benachrichtigungslog erfasst", async () => {
+  db.prepare("UPDATE settings SET value = ? WHERE key = ?").run("smtp.test.local", "smtp_host");
+  db.prepare("UPDATE settings SET value = ? WHERE key = ?").run("noreply@test.local", "smtp_from");
+
+  const originalCreateTransport = nodemailer.createTransport;
+  let sentMail = null;
+  nodemailer.createTransport = () => ({
+    sendMail: async (payload) => {
+      sentMail = payload;
+      return { messageId: "invite-test" };
+    },
+  });
+
+  try {
+    const response = await agent.post("/admin/users").type("form").send({
+      name: "Neuer Nutzer",
+      email: "neu@test.local",
+      role: "user",
+      send_invite_email: "1",
+    });
+
+    assert.ok([302, 303].includes(response.status));
+    assert.equal(response.headers.location, "/admin/benutzer");
+    assert.equal(sentMail?.to, "neu@test.local");
+
+    const user = db.prepare("SELECT id FROM users WHERE email = ?").get("neu@test.local");
+    assert.ok(user?.id);
+
+    const notificationLog = db.prepare(`
+      SELECT channel, notification_type, recipient, status
+      FROM notification_logs
+      WHERE recipient = ?
+      ORDER BY id DESC
+      LIMIT 1
+    `).get("neu@test.local");
+    assert.deepEqual(notificationLog, {
+      channel: "email",
+      notification_type: "invite",
+      recipient: "neu@test.local",
+      status: "sent",
+    });
+
+    const auditLogs = db.prepare(`
+      SELECT action
+      FROM audit_logs
+      WHERE entity_type = 'user' AND entity_id = ?
+      ORDER BY id ASC
+    `).all(String(user.id));
+    assert.ok(auditLogs.some((entry) => entry.action === "user.create"));
+    assert.ok(auditLogs.some((entry) => entry.action === "user.invite_email_sent"));
+  } finally {
+    nodemailer.createTransport = originalCreateTransport;
+  }
+});
+
+test("Fehlgeschlagene Einladungs-Mail für neue Benutzer erscheint im Audit- und Benachrichtigungslog", async () => {
+  db.prepare("UPDATE settings SET value = ? WHERE key = ?").run("smtp.test.local", "smtp_host");
+  db.prepare("UPDATE settings SET value = ? WHERE key = ?").run("noreply@test.local", "smtp_from");
+
+  const originalCreateTransport = nodemailer.createTransport;
+  nodemailer.createTransport = () => ({
+    sendMail: async () => {
+      throw new Error("SMTP down");
+    },
+  });
+
+  try {
+    const response = await agent.post("/admin/users").type("form").send({
+      name: "Fehler Nutzer",
+      email: "fehler@test.local",
+      role: "user",
+      send_invite_email: "1",
+    });
+
+    assert.ok([302, 303].includes(response.status));
+    assert.equal(response.headers.location, "/admin/benutzer");
+
+    const user = db.prepare("SELECT id FROM users WHERE email = ?").get("fehler@test.local");
+    assert.ok(user?.id);
+
+    const notificationLog = db.prepare(`
+      SELECT channel, notification_type, recipient, status, error_message
+      FROM notification_logs
+      WHERE recipient = ?
+      ORDER BY id DESC
+      LIMIT 1
+    `).get("fehler@test.local");
+    assert.equal(notificationLog?.channel, "email");
+    assert.equal(notificationLog?.notification_type, "invite");
+    assert.equal(notificationLog?.status, "error");
+    assert.match(notificationLog?.error_message || "", /SMTP down/);
+
+    const inviteRows = db.prepare("SELECT COUNT(*) AS count FROM user_invites WHERE user_id = ? AND used_at IS NULL").get(user.id);
+    assert.equal(inviteRows.count, 0);
+
+    const auditLogs = db.prepare(`
+      SELECT action
+      FROM audit_logs
+      WHERE entity_type = 'user' AND entity_id = ?
+      ORDER BY id ASC
+    `).all(String(user.id));
+    assert.ok(auditLogs.some((entry) => entry.action === "user.create"));
+    assert.ok(auditLogs.some((entry) => entry.action === "user.invite_email_failed"));
+  } finally {
+    nodemailer.createTransport = originalCreateTransport;
+  }
+});
+
+test("Admin kann eine offene Einladungs-Mail erneut versenden", async () => {
+  db.prepare("UPDATE settings SET value = ? WHERE key = ?").run("smtp.test.local", "smtp_host");
+  db.prepare("UPDATE settings SET value = ? WHERE key = ?").run("noreply@test.local", "smtp_from");
+
+  const createdUser = db.prepare(`
+    INSERT INTO users (
+      name, email, password_hash, role, must_change_password,
+      can_edit_animals, can_manage_documents, can_manage_gallery, can_manage_health,
+      can_manage_feedings, can_manage_notes, can_manage_reminders
+    )
+    VALUES (?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 0)
+  `).run("Offene Einladung", "offen@test.local", "hash", "user", 1);
+
+  const originalCreateTransport = nodemailer.createTransport;
+  let sentMail = null;
+  nodemailer.createTransport = () => ({
+    sendMail: async (payload) => {
+      sentMail = payload;
+      return { messageId: "invite-resend" };
+    },
+  });
+
+  try {
+    const response = await agent.post(`/admin/users/${createdUser.lastInsertRowid}/resend-invite`).type("form").send({
+      return_to: "/admin/benutzer",
+    });
+
+    assert.equal(response.status, 303);
+    assert.equal(response.headers.location, "/admin/benutzer");
+    assert.equal(sentMail?.to, "offen@test.local");
+
+    const inviteRows = db.prepare("SELECT COUNT(*) AS count FROM user_invites WHERE user_id = ? AND used_at IS NULL").get(createdUser.lastInsertRowid);
+    assert.equal(inviteRows.count, 1);
+
+    const notificationLog = db.prepare(`
+      SELECT channel, notification_type, recipient, status
+      FROM notification_logs
+      WHERE recipient = ?
+      ORDER BY id DESC
+      LIMIT 1
+    `).get("offen@test.local");
+    assert.deepEqual(notificationLog, {
+      channel: "email",
+      notification_type: "invite",
+      recipient: "offen@test.local",
+      status: "sent",
+    });
+
+    const auditLogs = db.prepare(`
+      SELECT action
+      FROM audit_logs
+      WHERE entity_type = 'user' AND entity_id = ?
+      ORDER BY id ASC
+    `).all(String(createdUser.lastInsertRowid));
+    assert.ok(auditLogs.some((entry) => entry.action === "user.invite_email_resent"));
+  } finally {
+    nodemailer.createTransport = originalCreateTransport;
+  }
+});
+
+test("Fehlgeschlagenes erneutes Senden einer Einladungs-Mail wird protokolliert", async () => {
+  db.prepare("UPDATE settings SET value = ? WHERE key = ?").run("smtp.test.local", "smtp_host");
+  db.prepare("UPDATE settings SET value = ? WHERE key = ?").run("noreply@test.local", "smtp_from");
+
+  const createdUser = db.prepare(`
+    INSERT INTO users (
+      name, email, password_hash, role, must_change_password,
+      can_edit_animals, can_manage_documents, can_manage_gallery, can_manage_health,
+      can_manage_feedings, can_manage_notes, can_manage_reminders
+    )
+    VALUES (?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 0)
+  `).run("Erneut Fehler", "resend-fehler@test.local", "hash", "user", 1);
+
+  const originalCreateTransport = nodemailer.createTransport;
+  nodemailer.createTransport = () => ({
+    sendMail: async () => {
+      throw new Error("SMTP resend down");
+    },
+  });
+
+  try {
+    const response = await agent.post(`/admin/users/${createdUser.lastInsertRowid}/resend-invite`).type("form").send({
+      return_to: "/admin/benutzer",
+    });
+
+    assert.equal(response.status, 303);
+    assert.equal(response.headers.location, "/admin/benutzer");
+
+    const inviteRows = db.prepare("SELECT COUNT(*) AS count FROM user_invites WHERE user_id = ? AND used_at IS NULL").get(createdUser.lastInsertRowid);
+    assert.equal(inviteRows.count, 0);
+
+    const notificationLog = db.prepare(`
+      SELECT channel, notification_type, recipient, status, error_message
+      FROM notification_logs
+      WHERE recipient = ?
+      ORDER BY id DESC
+      LIMIT 1
+    `).get("resend-fehler@test.local");
+    assert.equal(notificationLog?.channel, "email");
+    assert.equal(notificationLog?.notification_type, "invite");
+    assert.equal(notificationLog?.status, "error");
+    assert.match(notificationLog?.error_message || "", /SMTP resend down/);
+
+    const auditLogs = db.prepare(`
+      SELECT action
+      FROM audit_logs
+      WHERE entity_type = 'user' AND entity_id = ?
+      ORDER BY id ASC
+    `).all(String(createdUser.lastInsertRowid));
+    assert.ok(auditLogs.some((entry) => entry.action === "user.invite_email_resend_failed"));
+  } finally {
+    nodemailer.createTransport = originalCreateTransport;
   }
 });
 

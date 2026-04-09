@@ -930,11 +930,20 @@ small {
 .bootstrap-app .app-sidebar-footer {
   padding-top: 0.65rem;
   border-top: 1px solid rgba(39, 39, 42, 0.14);
+  color: rgba(244, 244, 245, 0.92);
 }
 
 .bootstrap-app .app-sidebar-footer strong {
   display: block;
-  color: var(--paper-strong);
+  color: #ffffff;
+}
+
+.bootstrap-app .app-sidebar-footer .small-label {
+  color: rgba(212, 212, 216, 0.78);
+}
+
+.bootstrap-app .app-sidebar-footer span {
+  color: rgba(228, 228, 231, 0.9);
 }
 
 .bootstrap-app .app-main {
