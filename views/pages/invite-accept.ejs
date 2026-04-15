@@ -2,9 +2,20 @@
 <html lang="de">
   <head>
     <% const resolvedAppLogoUrl = typeof appLogoUrl !== 'undefined' && appLogoUrl ? appLogoUrl : '/static/images/logo-heartpet.png'; %>
+    <% const resolvedAppBaseUrl = typeof appBaseUrl !== 'undefined' && appBaseUrl ? appBaseUrl.replace(/\/+$/, '') : ''; %>
+    <% const canonicalUrl = `${resolvedAppBaseUrl}/invite/accept`; %>
+    <% const absoluteLogoUrl = /^https?:\/\//i.test(resolvedAppLogoUrl) ? resolvedAppLogoUrl : `${resolvedAppBaseUrl}${resolvedAppLogoUrl.startsWith('/') ? '' : '/'}${resolvedAppLogoUrl}`; %>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Passwort festlegen | HeartPet</title>
+    <meta name="description" content="Einladung zu HeartPet annehmen und ein Passwort für das Benutzerkonto festlegen." />
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="canonical" href="<%= canonicalUrl %>" />
+    <meta property="og:title" content="Passwort festlegen | HeartPet" />
+    <meta property="og:description" content="Einladung zu HeartPet annehmen und ein Passwort für das Benutzerkonto festlegen." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="<%= canonicalUrl %>" />
+    <meta property="og:image" content="<%= absoluteLogoUrl %>" />
     <link rel="icon" type="image/png" sizes="any" href="<%= resolvedAppLogoUrl %>" />
     <link rel="shortcut icon" type="image/png" href="<%= resolvedAppLogoUrl %>" />
     <link rel="apple-touch-icon" href="<%= resolvedAppLogoUrl %>" />

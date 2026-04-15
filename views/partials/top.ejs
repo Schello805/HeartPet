@@ -2,9 +2,38 @@
 <html lang="de">
   <head>
     <% const resolvedAppLogoUrl = typeof appLogoUrl !== 'undefined' && appLogoUrl ? appLogoUrl : '/static/images/logo-heartpet.png'; %>
+    <% const resolvedAppName = appSettings.app_name || "HeartPet"; %>
+    <% const defaultSeoMeta = typeof seoMeta !== 'undefined' && seoMeta ? seoMeta : {}; %>
+    <% const pageSeo = typeof seo !== 'undefined' && seo ? seo : {}; %>
+    <% const mergedSeo = Object.assign({}, defaultSeoMeta, pageSeo); %>
+    <% const resolvedAppBaseUrl = typeof appBaseUrl !== 'undefined' && appBaseUrl ? appBaseUrl.replace(/\/+$/, '') : ''; %>
+    <% const absoluteLogoUrl = /^https?:\/\//i.test(resolvedAppLogoUrl) ? resolvedAppLogoUrl : `${resolvedAppBaseUrl}${resolvedAppLogoUrl.startsWith('/') ? '' : '/'}${resolvedAppLogoUrl}`; %>
+    <% const canonicalUrl = mergedSeo.canonicalUrl || ''; %>
+    <% const metaDescription = mergedSeo.description || `${resolvedAppName} bündelt Tierakten, Dokumente, Erinnerungen und Verwaltungsaufgaben in einer Oberfläche.`; %>
+    <% const robotsValue = mergedSeo.robots || 'noindex,nofollow'; %>
+    <% const ogType = mergedSeo.type || 'website'; %>
+    <% const fullTitle = `${pageTitle} | ${resolvedAppName}`; %>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title><%= pageTitle %> | <%= appSettings.app_name || "HeartPet" %></title>
+    <title><%= fullTitle %></title>
+    <meta name="description" content="<%= metaDescription %>" />
+    <meta name="robots" content="<%= robotsValue %>" />
+    <% if (canonicalUrl) { %>
+      <link rel="canonical" href="<%= canonicalUrl %>" />
+    <% } %>
+    <meta property="og:locale" content="de_DE" />
+    <meta property="og:site_name" content="<%= mergedSeo.siteName || resolvedAppName %>" />
+    <meta property="og:type" content="<%= ogType %>" />
+    <meta property="og:title" content="<%= fullTitle %>" />
+    <meta property="og:description" content="<%= metaDescription %>" />
+    <% if (canonicalUrl) { %>
+      <meta property="og:url" content="<%= canonicalUrl %>" />
+    <% } %>
+    <meta property="og:image" content="<%= mergedSeo.imageUrl || absoluteLogoUrl %>" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="<%= fullTitle %>" />
+    <meta name="twitter:description" content="<%= metaDescription %>" />
+    <meta name="twitter:image" content="<%= mergedSeo.imageUrl || absoluteLogoUrl %>" />
     <script>
       try {
         if (sessionStorage.getItem("heartpet-nav-loaded")) {

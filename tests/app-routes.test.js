@@ -198,6 +198,34 @@ test("Importseite erklärt klar, was importiert wird und was nicht", async () =>
   assert.match(page.text, /PDF-Dateien oder andere Formate können nicht importiert werden/i);
 });
 
+test("Öffentliche Hilfeseite enthält indexierbare SEO-Metadaten", async () => {
+  const response = await agent.get("/hilfe");
+  assert.equal(response.status, 200);
+  assert.match(response.text, /<meta name="robots" content="index,follow"\s*\/?>/i);
+  assert.match(response.text, /<link rel="canonical" href="https?:\/\/[^"]+\/hilfe"\s*\/?>/i);
+  assert.match(response.text, /<meta property="og:title" content="Hilfe \| /i);
+});
+
+test("Interne Dashboard-Seite bleibt für Suchmaschinen auf noindex", async () => {
+  const response = await agent.get("/");
+  assert.equal(response.status, 200);
+  assert.match(response.text, /<meta name="robots" content="noindex,nofollow"\s*\/?>/i);
+});
+
+test("robots.txt und sitemap.xml listen nur die öffentlichen SEO-Ziele", async () => {
+  const robots = await agent.get("/robots.txt");
+  assert.equal(robots.status, 200);
+  assert.match(robots.text, /Allow: \/hilfe/);
+  assert.match(robots.text, /Disallow: \//);
+  assert.match(robots.text, /Sitemap: https?:\/\/.+\/sitemap\.xml/);
+
+  const sitemap = await agent.get("/sitemap.xml");
+  assert.equal(sitemap.status, 200);
+  assert.match(sitemap.text, /<loc>https?:\/\/.+\/hilfe<\/loc>/);
+  assert.match(sitemap.text, /<loc>https?:\/\/.+\/impressum<\/loc>/);
+  assert.doesNotMatch(sitemap.text, /\/animals<\/loc>/);
+});
+
 test("Weitere Admin-Aliase sind erreichbar", async () => {
   const aliases = [
     ["/admin/general", "/admin/allgemein"],

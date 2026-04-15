@@ -3,9 +3,19 @@
   <head>
     <% const resolvedAssetBaseUrl = typeof assetBaseUrl !== 'undefined' && assetBaseUrl ? assetBaseUrl.replace(/\/+$/, '') : ''; %>
     <% const resolvedAppLogoUrl = typeof appLogoUrl !== 'undefined' && appLogoUrl ? appLogoUrl : `${resolvedAssetBaseUrl}/static/images/logo-heartpet.png`; %>
+    <% const absoluteLogoUrl = /^https?:\/\//i.test(resolvedAppLogoUrl) ? resolvedAppLogoUrl : `${resolvedAssetBaseUrl}${resolvedAppLogoUrl.startsWith('/') ? '' : '/'}${resolvedAppLogoUrl}`; %>
+    <% const canonicalUrl = `${resolvedAssetBaseUrl}/reminders`; %>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title><%= pageTitle %> | <%= appSettings?.app_name || 'HeartPet' %></title>
+    <meta name="description" content="Rückmeldung zu einer HeartPet-Erinnerung. Interne Bestätigungsseite für E-Mail-Aktionen." />
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="canonical" href="<%= canonicalUrl %>" />
+    <meta property="og:title" content="<%= pageTitle %> | <%= appSettings?.app_name || 'HeartPet' %>" />
+    <meta property="og:description" content="Rückmeldung zu einer HeartPet-Erinnerung. Interne Bestätigungsseite für E-Mail-Aktionen." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="<%= canonicalUrl %>" />
+    <meta property="og:image" content="<%= absoluteLogoUrl %>" />
     <link rel="icon" type="image/png" sizes="any" href="<%= resolvedAppLogoUrl %>" />
     <link rel="shortcut icon" type="image/png" href="<%= resolvedAppLogoUrl %>" />
     <link rel="apple-touch-icon" href="<%= resolvedAppLogoUrl %>" />

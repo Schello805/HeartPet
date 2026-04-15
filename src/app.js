@@ -88,9 +88,11 @@ app.use((req, res, next) => {
   res.locals.flash = flash;
   res.locals.currentUser = req.session.user || null;
   res.locals.appSettings = getSettingsObject(db);
+  res.locals.appBaseUrl = resolveAppBaseUrl(res.locals.appSettings);
   res.locals.appLogoUrl = getAppLogoUrl(res.locals.appSettings);
   res.locals.currentPath = req.path;
   res.locals.currentQuery = req.query || {};
+  res.locals.seoMeta = buildSeoMeta(req, res.locals.appSettings);
   res.locals.animalSpeciesMenu = listActiveSpecies();
   res.locals.formatDate = formatDate;
   res.locals.formatDateTime = formatDateTime;
@@ -2984,6 +2986,37 @@ app.get("/cookies", (req, res) => {
   renderInfoPage(res, "Cookie-Hinweise", getSettingsObject(db).cookies_text);
 });
 
+app.get("/robots.txt", (req, res) => {
+  const appBaseUrl = resolveAppBaseUrl(getSettingsObject(db));
+  const lines = [
+    "User-agent: *",
+    "Disallow: /",
+    "Allow: /hilfe",
+    "Allow: /impressum",
+    "Allow: /datenschutz",
+    "Allow: /kontakt",
+    "Allow: /cookies",
+    `Sitemap: ${appBaseUrl}/sitemap.xml`,
+  ];
+  res.type("text/plain").send(lines.join("\n"));
+});
+
+app.get("/sitemap.xml", (req, res) => {
+  const appBaseUrl = resolveAppBaseUrl(getSettingsObject(db));
+  const lastmod = dayjs().format("YYYY-MM-DD");
+  const urls = ["/hilfe", "/impressum", "/datenschutz", "/kontakt", "/cookies"];
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.map((pathname) => `  <url>
+    <loc>${appBaseUrl}${pathname}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>${pathname === "/hilfe" ? "0.8" : "0.3"}</priority>
+  </url>`).join("\n")}
+</urlset>`;
+  res.type("application/xml").send(xml);
+});
+
 app.get("/api/species/search", (req, res) => {
   const query = String(req.query.q || "").trim();
   if (query.length < 2) {
@@ -4602,6 +4635,50 @@ function getLastSuccessfulNotificationCheck(channel, types = ["test"]) {
     ORDER BY datetime(created_at) DESC, id DESC
     LIMIT 1
   `).get(channel, ...types) || null;
+}
+
+function buildSeoMeta(req, settings) {
+  const appName = String(settings?.app_name || "HeartPet").trim();
+  const appBaseUrl = resolveAppBaseUrl(settings);
+  const logoUrl = getAppLogoUrl(settings);
+  const absoluteLogoUrl = /^https?:\/\//i.test(logoUrl) ? logoUrl : `${appBaseUrl}${logoUrl.startsWith("/") ? "" : "/"}${logoUrl}`;
+  const publicPages = {
+    "/hilfe": {
+      description: `${appName} Hilfe, Bedienhinweise und Antworten zu Tierakten, Erinnerungen, Dokumenten und Verwaltung.`,
+      robots: "index,follow",
+      type: "article",
+    },
+    "/impressum": {
+      description: `Impressum von ${appName} mit den rechtlich relevanten Anbieter- und Kontaktdaten.`,
+      robots: "index,follow",
+      type: "article",
+    },
+    "/datenschutz": {
+      description: `Datenschutzerklärung von ${appName} mit Informationen zur Verarbeitung personenbezogener Daten.`,
+      robots: "index,follow",
+      type: "article",
+    },
+    "/kontakt": {
+      description: `Kontaktinformationen und Ansprechpartner für ${appName}.`,
+      robots: "index,follow",
+      type: "article",
+    },
+    "/cookies": {
+      description: `Cookie-Hinweise und Informationen zu eingesetzten Technologien in ${appName}.`,
+      robots: "index,follow",
+      type: "article",
+    },
+  };
+
+  const publicMeta = publicPages[req.path] || {};
+  return {
+    description: publicMeta.description || `${appName} bündelt Tierakten, Dokumente, Erinnerungen und Verwaltungsaufgaben in einer Oberfläche.`,
+    robots: publicMeta.robots || "noindex,nofollow",
+    canonicalUrl: `${appBaseUrl}${req.path}`,
+    imageUrl: absoluteLogoUrl,
+    type: publicMeta.type || "website",
+    siteName: appName,
+  };
 }
 
 function buildAnimalTimeline(related) {

@@ -2,9 +2,20 @@
 <html lang="de">
   <head>
     <% const resolvedAppLogoUrl = typeof appLogoUrl !== 'undefined' && appLogoUrl ? appLogoUrl : '/static/images/logo-heartpet.png'; %>
+    <% const resolvedAppBaseUrl = typeof appBaseUrl !== 'undefined' && appBaseUrl ? appBaseUrl.replace(/\/+$/, '') : ''; %>
+    <% const canonicalUrl = `${resolvedAppBaseUrl}/setup`; %>
+    <% const absoluteLogoUrl = /^https?:\/\//i.test(resolvedAppLogoUrl) ? resolvedAppLogoUrl : `${resolvedAppBaseUrl}${resolvedAppLogoUrl.startsWith('/') ? '' : '/'}${resolvedAppLogoUrl}`; %>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title><%= pageTitle %> | HeartPet</title>
+    <meta name="description" content="Ersteinrichtung von HeartPet. Administrator, erster Tierarzt und erstes Tier in wenigen Schritten anlegen." />
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="canonical" href="<%= canonicalUrl %>" />
+    <meta property="og:title" content="<%= pageTitle %> | HeartPet" />
+    <meta property="og:description" content="Ersteinrichtung von HeartPet. Administrator, erster Tierarzt und erstes Tier in wenigen Schritten anlegen." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="<%= canonicalUrl %>" />
+    <meta property="og:image" content="<%= absoluteLogoUrl %>" />
     <link rel="icon" type="image/png" sizes="any" href="<%= resolvedAppLogoUrl %>" />
     <link rel="shortcut icon" type="image/png" href="<%= resolvedAppLogoUrl %>" />
     <link rel="apple-touch-icon" href="<%= resolvedAppLogoUrl %>" />
