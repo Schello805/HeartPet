@@ -1,19 +1,19 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap");
 
 :root {
-  --bg: #09090b;
-  --paper: rgba(24, 24, 27, 0.65);
-  --paper-strong: rgba(39, 39, 42, 0.95);
-  --line: rgba(39, 39, 42, 0.1);
-  --text: #f4f4f5;
-  --muted: #a1a1aa;
-  --accent: #8b5cf6;
-  --accent-dark: #7c3aed;
-  --forest: #6d28d9;
-  --warning: #fbbf24;
-  --danger: #ef4444;
-  --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-  --shadow-soft: 0 15px 35px -5px rgba(0, 0, 0, 0.3);
+  --bg: #eef8f8;
+  --paper: rgba(242, 250, 252, 0.92);
+  --paper-strong: rgba(255, 255, 255, 0.97);
+  --line: rgba(72, 132, 151, 0.14);
+  --text: #16323c;
+  --muted: #5f7d88;
+  --accent: #2f6fed;
+  --accent-dark: #245bd1;
+  --forest: #0ea5a1;
+  --warning: #f59e0b;
+  --danger: #dc2626;
+  --shadow: 0 22px 42px -18px rgba(48, 100, 122, 0.22);
+  --shadow-soft: 0 14px 26px -16px rgba(56, 121, 136, 0.18);
   --radius: 16px;
   --radius-ui: 7px;
   --sidebar-width: 228px;
@@ -21,16 +21,16 @@
   --text-small: 0.76rem;
   --accordion-title: 0.9rem;
   --accordion-subtitle: 0.74rem;
-  --surface-0: #09090b;
-  --surface-1: rgba(24, 24, 27, 0.82);
-  --surface-2: rgba(31, 31, 35, 0.9);
-  --surface-3: rgba(39, 39, 42, 0.95);
-  --surface-border: rgba(255, 255, 255, 0.08);
-  --surface-border-strong: rgba(139, 92, 246, 0.24);
-  --text-strong: #fafafa;
-  --text-soft: #d4d4d8;
-  --text-dim: #a1a1aa;
-  --success: #22c55e;
+  --surface-0: #eef8f8;
+  --surface-1: rgba(255, 255, 255, 0.88);
+  --surface-2: rgba(245, 252, 252, 0.96);
+  --surface-3: rgba(233, 246, 247, 0.98);
+  --surface-border: rgba(61, 115, 141, 0.14);
+  --surface-border-strong: rgba(47, 111, 237, 0.2);
+  --text-strong: #12303a;
+  --text-soft: #2c4a53;
+  --text-dim: #68858f;
+  --success: #0f9f87;
 }
 
 * {
@@ -43,16 +43,16 @@
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(139, 92, 246, 0.1);
+  background: rgba(47, 111, 237, 0.08);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.3);
+  background: rgba(47, 111, 237, 0.28);
   border-radius: 4px;
   transition: background 0.3s ease;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.6);
+  background: rgba(14, 165, 161, 0.5);
 }
 
 body {
@@ -62,9 +62,9 @@ body {
   line-height: 1.5;
   color: var(--text);
   background:
-    radial-gradient(1200px 800px at 0% 0%, rgba(139, 92, 246, 0.15), transparent 60%),
-    radial-gradient(1000px 600px at 100% 100%, rgba(124, 58, 237, 0.1), transparent 60%),
-    linear-gradient(135deg, #09090b 0%, #18181b 100%);
+    radial-gradient(1200px 800px at 0% 0%, rgba(59, 130, 246, 0.16), transparent 60%),
+    radial-gradient(1000px 600px at 100% 100%, rgba(16, 185, 129, 0.12), transparent 60%),
+    linear-gradient(135deg, #eef8f8 0%, #dff3f0 100%);
   background-attachment: fixed;
   animation: pageFadeIn 420ms ease-out;
 }
@@ -106,14 +106,14 @@ body {
 .skeleton-box {
   position: relative;
   overflow: hidden;
-  background-color: rgba(139, 92, 246, 0.08);
+  background-color: rgba(47, 111, 237, 0.08);
   border-radius: 8px;
 }
 .skeleton-box::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(39, 39, 42, 0.4), transparent);
+  background: linear-gradient(90deg, transparent, rgba(120, 170, 183, 0.26), transparent);
   animation: shimmer 1.5s infinite;
 }
 
@@ -183,7 +183,7 @@ textarea {
 
 .brand-text span,
 .small-label {
-  color: rgba(229, 255, 243, 0.78);
+  color: rgba(46, 92, 108, 0.78);
   font-size: 0.78rem;
 }
 
@@ -218,7 +218,7 @@ textarea {
 .page-header h1 {
   font-size: clamp(1.12rem, 1rem + 0.42vw, 1.42rem);
   font-weight: 650;
-  color: #fff;
+  color: #14343f;
   letter-spacing: -0.025em;
 }
 

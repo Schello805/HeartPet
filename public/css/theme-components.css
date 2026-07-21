@@ -75,9 +75,9 @@
 
 body.bootstrap-app {
   background:
-    radial-gradient(1100px 720px at 0% 0%, rgba(139, 92, 246, 0.16), transparent 58%),
-    radial-gradient(920px 620px at 100% 100%, rgba(168, 85, 247, 0.1), transparent 56%),
-    linear-gradient(180deg, #09090b 0%, #111114 100%);
+    radial-gradient(1100px 720px at 0% 0%, rgba(59, 130, 246, 0.16), transparent 58%),
+    radial-gradient(920px 620px at 100% 100%, rgba(16, 185, 129, 0.1), transparent 56%),
+    linear-gradient(180deg, #eef8f8 0%, #e3f4f1 100%);
   color: var(--text-soft);
 }
 
@@ -89,13 +89,13 @@ body.bootstrap-app {
 .bootstrap-app .app-mobile-offcanvas,
 .bootstrap-app .app-mobile-tabbar,
 .bootstrap-app .drawer-panel {
-  background: rgba(12, 12, 15, 0.82);
+  background: rgba(244, 251, 252, 0.9);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
 }
 
 .bootstrap-app .app-mobile-topbar {
-  background: rgba(9, 9, 11, 0.82);
+  background: rgba(247, 252, 252, 0.92);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--surface-border);
   min-height: 48px;
@@ -109,8 +109,8 @@ body.bootstrap-app {
 
 .bootstrap-app.login-body {
   background:
-    radial-gradient(760px 420px at 50% -10%, rgba(139, 92, 246, 0.22), transparent 64%),
-    linear-gradient(180deg, #09090b 0%, #111114 100%);
+    radial-gradient(760px 420px at 50% -10%, rgba(59, 130, 246, 0.18), transparent 64%),
+    linear-gradient(180deg, #eef8f8 0%, #e3f4f1 100%);
 }
 
 .bootstrap-app .page-header,
@@ -121,9 +121,9 @@ body.bootstrap-app {
 .bootstrap-app .masterdata-section > .accordion-content,
 .bootstrap-app .accordion-item,
 .bootstrap-app .login-panel {
-  background: linear-gradient(180deg, rgba(24, 24, 27, 0.88), rgba(31, 31, 35, 0.96));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(238, 248, 249, 0.98));
   border-color: var(--surface-border);
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 18px 42px rgba(83, 139, 156, 0.12);
 }
 
 .bootstrap-app .page-header,
@@ -141,8 +141,8 @@ body.bootstrap-app {
 }
 
 .bootstrap-app .page-header h1 {
-  color: #fff;
-  text-shadow: 0 6px 22px rgba(139, 92, 246, 0.14);
+  color: #14343f;
+  text-shadow: none;
 }
 
 .bootstrap-app h2,
@@ -182,19 +182,19 @@ body.bootstrap-app {
 .bootstrap-app .logo-upload-preview,
 .bootstrap-app .vet-contact-popover,
 .bootstrap-app .global-search-suggestions {
-  background: rgba(19, 19, 24, 0.9);
+  background: rgba(255, 255, 255, 0.95);
   border: 1px solid var(--surface-border);
 }
 
 .bootstrap-app .floating-reminder {
   background:
-    radial-gradient(240px 120px at 0% 50%, rgba(251, 191, 36, 0.18), transparent 70%),
-    linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(24, 24, 27, 0.98));
+    radial-gradient(240px 120px at 0% 50%, rgba(251, 191, 36, 0.14), transparent 70%),
+    linear-gradient(135deg, rgba(255, 245, 224, 0.96), rgba(242, 250, 247, 0.98));
   border-color: rgba(251, 191, 36, 0.28);
   box-shadow:
     0 0 0 1px rgba(251, 191, 36, 0.08),
-    0 0 26px rgba(245, 158, 11, 0.16),
-    0 12px 32px rgba(0, 0, 0, 0.24);
+    0 0 26px rgba(245, 158, 11, 0.08),
+    0 12px 32px rgba(65, 122, 138, 0.12);
 }
 
 .bootstrap-app .floating-reminder:hover,
@@ -202,18 +202,18 @@ body.bootstrap-app {
   border-color: rgba(251, 191, 36, 0.38);
   box-shadow:
     0 0 0 1px rgba(251, 191, 36, 0.12),
-    0 0 34px rgba(245, 158, 11, 0.22),
-    0 16px 36px rgba(0, 0, 0, 0.28);
+    0 0 34px rgba(245, 158, 11, 0.12),
+    0 16px 36px rgba(65, 122, 138, 0.16);
 }
 
 .bootstrap-app .drawer-backdrop {
-  background: rgba(4, 4, 7, 0.52);
+  background: rgba(86, 135, 146, 0.22);
   backdrop-filter: blur(10px);
 }
 
 .bootstrap-app .drawer-panel {
   border-left: 1px solid var(--surface-border);
-  box-shadow: -24px 0 44px rgba(0, 0, 0, 0.38);
+  box-shadow: -24px 0 44px rgba(73, 121, 138, 0.18);
 }
 
 .bootstrap-app .drawer-header {
@@ -223,12 +223,12 @@ body.bootstrap-app {
 .bootstrap-app .drawer-close {
   color: var(--text-soft);
   border-color: var(--surface-border);
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(47, 111, 237, 0.06);
 }
 
 .bootstrap-app .drawer-close:hover {
-  background: rgba(139, 92, 246, 0.14);
-  color: #fff;
+  background: rgba(47, 111, 237, 0.14);
+  color: var(--text-strong);
 }
 
 .bootstrap-app .banner-warning {
@@ -237,11 +237,11 @@ body.bootstrap-app {
 }
 
 .bootstrap-app .flash-success {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(24, 24, 27, 0.94));
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.14), rgba(242, 250, 247, 0.98));
 }
 
 .bootstrap-app .flash-error {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.14), rgba(24, 24, 27, 0.94));
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(255, 246, 246, 0.98));
 }
 
 .bootstrap-app .btn {
@@ -639,6 +639,26 @@ body.bootstrap-app {
   --bs-warning-rgb: 245, 158, 11;
 }
 
+[data-bs-theme="light"] {
+  --bs-body-bg: #eef8f8;
+  --bs-body-color: #21414a;
+  --bs-primary: #2f6fed;
+  --bs-primary-rgb: 47, 111, 237;
+  --bs-secondary-color: #5f7d88;
+  --bs-secondary-bg-subtle: rgba(47, 111, 237, 0.06);
+  --bs-tertiary-bg: #f1f8f9;
+  --bs-tertiary-bg-rgb: 241, 248, 249;
+  --bs-border-color: rgba(61, 115, 141, 0.14);
+  --bs-border-color-translucent: rgba(61, 115, 141, 0.12);
+  --bs-card-bg: rgba(255, 255, 255, 0.94);
+  --bs-card-cap-bg: transparent;
+  --bs-emphasis-color: #12303a;
+  --bs-link-color: #245bd1;
+  --bs-link-hover-color: #163ea1;
+  --bs-warning: #f59e0b;
+  --bs-warning-rgb: 245, 158, 11;
+}
+
 .bootstrap-app .nav-link {
   color: var(--bs-body-color);
 }
@@ -679,6 +699,31 @@ body.bootstrap-app {
   box-shadow: none !important;
 }
 
+.bootstrap-app .btn-primary {
+  background: linear-gradient(135deg, #2f6fed, #0ea5a1);
+  border-color: transparent;
+  color: #fff;
+}
+
+.bootstrap-app .btn-primary:hover,
+.bootstrap-app .btn-primary:focus-visible {
+  background: linear-gradient(135deg, #245bd1, #0b948f);
+  color: #fff;
+}
+
+.bootstrap-app .btn-outline-secondary {
+  border-color: rgba(61, 115, 141, 0.18);
+  color: #36545e;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.bootstrap-app .btn-outline-secondary:hover,
+.bootstrap-app .btn-outline-secondary:focus-visible {
+  border-color: rgba(47, 111, 237, 0.28);
+  background: rgba(47, 111, 237, 0.08);
+  color: #1f3f67;
+}
+
 .bootstrap-app .card-img-top {
   border-top-left-radius: 0.9rem;
   border-top-right-radius: 0.9rem;
@@ -715,6 +760,93 @@ body.bootstrap-app {
   background: rgba(245, 158, 11, 0.14);
   border: 1px solid rgba(245, 158, 11, 0.5);
   border-radius: 0.62rem;
+}
+
+.bootstrap-app .floating-reminder strong {
+  color: #5b4200;
+}
+
+.bootstrap-app .floating-reminder span {
+  color: #8b5b00;
+}
+
+.bootstrap-app .animal-record-accordion,
+.bootstrap-app .animal-subaccordion {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.bootstrap-app .animal-record-accordion .accordion-item,
+.bootstrap-app .animal-subaccordion .accordion-item {
+  overflow: hidden;
+  border: 1px solid rgba(61, 115, 141, 0.12) !important;
+  border-radius: 0.8rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(241, 248, 249, 0.96));
+}
+
+.bootstrap-app .animal-record-accordion .accordion-button,
+.bootstrap-app .animal-subaccordion .accordion-button {
+  display: grid;
+  gap: 0.18rem;
+  align-items: start;
+  padding: 0.9rem 1rem 0.55rem;
+  background: transparent;
+  color: var(--text-strong);
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.bootstrap-app .animal-record-accordion .accordion-button:not(.collapsed),
+.bootstrap-app .animal-subaccordion .accordion-button:not(.collapsed) {
+  background: transparent;
+  color: var(--text-strong);
+}
+
+.bootstrap-app .animal-record-accordion .accordion-button::after,
+.bootstrap-app .animal-subaccordion .accordion-button::after {
+  display: none;
+}
+
+.bootstrap-app .animal-record-accordion .accordion-collapse,
+.bootstrap-app .animal-subaccordion .accordion-collapse {
+  display: block !important;
+  height: auto !important;
+  visibility: visible !important;
+}
+
+.bootstrap-app .animal-record-accordion .accordion-body,
+.bootstrap-app .animal-subaccordion .accordion-body {
+  padding: 0 1rem 1rem;
+}
+
+.bootstrap-app .animal-record-accordion .accordion-summary-main,
+.bootstrap-app .animal-subaccordion .accordion-button {
+  font-weight: 700;
+}
+
+.bootstrap-app .animal-record-accordion .accordion-summary-meta {
+  color: var(--text-dim);
+  font-size: 0.74rem;
+}
+
+.bootstrap-app .animal-record-accordion > .accordion-item + .accordion-item,
+.bootstrap-app .animal-subaccordion > .accordion-item + .accordion-item {
+  margin-top: 0;
+}
+
+.bootstrap-app .bg-dark-subtle {
+  background: rgba(231, 243, 246, 0.9) !important;
+}
+
+.bootstrap-app .bg-body-tertiary,
+.bootstrap-app .bg-body-tertiary-subtle {
+  background: rgba(243, 250, 250, 0.88) !important;
+}
+
+.bootstrap-app .list-group-item.active {
+  background-color: rgba(var(--bs-primary-rgb), 0.1);
+  border-color: rgba(var(--bs-primary-rgb), 0.25);
+  color: #173947;
 }
 
 .bootstrap-app .floating-reminder:hover {

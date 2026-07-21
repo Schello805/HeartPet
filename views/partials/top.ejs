@@ -49,7 +49,7 @@
     <link rel="stylesheet" href="/static/css/theme-layout.css" />
     <link rel="stylesheet" href="/static/css/theme-components.css" />
   </head>
-  <body class="bootstrap-app<%= typeof pageClass !== 'undefined' && pageClass ? ` ${pageClass}` : '' %>" data-bs-theme="dark">
+  <body class="bootstrap-app<%= typeof pageClass !== 'undefined' && pageClass ? ` ${pageClass}` : '' %>" data-bs-theme="light">
     <div class="app-shell">
       <aside class="app-sidebar d-none d-lg-flex flex-column bg-body border-end">
         <div class="app-sidebar-brand">
@@ -132,7 +132,7 @@
                     <h5 class="offcanvas-title mb-1" id="mobileNavOffcanvasLabel"><%= appSettings.app_name || "HeartPet" %></h5>
                     <p class="mb-0 small text-body-secondary">Bereiche, Verwaltung und Schnellzugriffe</p>
                   </div>
-                  <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Schließen"></button>
+                  <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Schließen"></button>
                 </div>
                 <div class="offcanvas-body d-flex flex-column gap-4">
                   <div class="app-sidebar-brand app-sidebar-brand-mobile">
