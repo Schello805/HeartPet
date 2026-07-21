@@ -16,11 +16,11 @@
   --shadow-soft: 0 15px 35px -5px rgba(0, 0, 0, 0.3);
   --radius: 16px;
   --radius-ui: 7px;
-  --sidebar-width: 252px;
-  --text-base: 0.95rem;
-  --text-small: 0.86rem;
-  --accordion-title: 1.08rem;
-  --accordion-subtitle: 0.84rem;
+  --sidebar-width: 228px;
+  --text-base: 0.86rem;
+  --text-small: 0.76rem;
+  --accordion-title: 0.9rem;
+  --accordion-subtitle: 0.74rem;
   --surface-0: #09090b;
   --surface-1: rgba(24, 24, 27, 0.82);
   --surface-2: rgba(31, 31, 35, 0.9);
@@ -58,6 +58,8 @@
 body {
   margin: 0;
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: var(--text-base);
+  line-height: 1.5;
   color: var(--text);
   background:
     radial-gradient(1200px 800px at 0% 0%, rgba(139, 92, 246, 0.15), transparent 60%),
@@ -130,12 +132,12 @@ textarea {
 .main-content-inner {
   width: min(100%, 1460px);
   display: grid;
-  gap: 14px;
+  gap: 10px;
 }
 
 .brand-logo {
-  width: 74px;
-  height: 74px;
+  width: 54px;
+  height: 54px;
   object-fit: contain;
   display: block;
   filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.18));
@@ -143,8 +145,8 @@ textarea {
 }
 
 .brand-logo-login {
-  width: 110px;
-  height: 110px;
+  width: 92px;
+  height: 92px;
 }
 
 .logo-upload-panel {
@@ -169,27 +171,28 @@ textarea {
 }
 
 .brand-text {
-  margin-top: 12px;
+  margin-top: 8px;
   display: grid;
-  gap: 2px;
+  gap: 1px;
 }
 
 .brand-text strong {
-  font-size: 1.2rem;
+  font-size: 0.95rem;
   line-height: 1.15;
 }
 
 .brand-text span,
 .small-label {
   color: rgba(229, 255, 243, 0.78);
+  font-size: 0.78rem;
 }
 
 .page-header {
   display: flex;
   align-items: end;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
+  gap: 10px;
+  margin-bottom: 10px;
   width: min(100%, 1460px);
 }
 
@@ -213,19 +216,19 @@ textarea {
 
 
 .page-header h1 {
-  font-size: clamp(2rem, 1.8rem + 1.5vw, 2.75rem);
-  font-weight: 800;
+  font-size: clamp(1.12rem, 1rem + 0.42vw, 1.42rem);
+  font-weight: 650;
   color: #fff;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
 }
 
 
 .eyebrow {
-  margin: 0 0 8px;
+  margin: 0 0 5px;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  font-size: 0.74rem;
+  font-size: 0.66rem;
   font-weight: 700;
 }
 
@@ -235,14 +238,14 @@ textarea {
 }
 
 .icon-button {
-  min-width: 42px;
-  width: 42px;
-  height: 42px;
+  min-width: 34px;
+  width: 34px;
+  height: 34px;
   padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 0.92rem;
   line-height: 1;
 }
 

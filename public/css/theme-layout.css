@@ -863,10 +863,10 @@ small {
 
 
 .bootstrap-app {
-  --text-base: 0.91rem;
-  --text-small: 0.82rem;
-  --accordion-title: 0.98rem;
-  --accordion-subtitle: 0.8rem;
+  --text-base: 0.84rem;
+  --text-small: 0.74rem;
+  --accordion-title: 0.88rem;
+  --accordion-subtitle: 0.72rem;
 }
 
 .bootstrap-app .app-shell {
@@ -879,7 +879,7 @@ small {
   width: var(--sidebar-width);
   background: rgba(24, 24, 27, 0.4);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 0.85rem 0.75rem;
+  padding: 0.55rem 0.55rem;
   color: #f4f4f5;
   box-shadow: 10px 0 30px rgba(0, 0, 0, 0.4);
   position: fixed;
@@ -897,8 +897,8 @@ small {
 
 .bootstrap-app .app-sidebar .brand-logo,
 .bootstrap-app .app-mobile-offcanvas .brand-logo {
-  width: 48px;
-  height: 48px;
+  width: 38px;
+  height: 38px;
   object-fit: contain;
   border-radius: 10px;
   background: rgba(39, 39, 42, 0.12);
@@ -906,12 +906,12 @@ small {
 }
 
 .bootstrap-app .app-sidebar-brand {
-  margin: -0.85rem -0.75rem 0.8rem;
-  padding: 0.7rem 0.75rem 0.8rem;
+  margin: -0.55rem -0.55rem 0.45rem;
+  padding: 0.38rem 0.55rem 0.45rem;
   border-radius: 0 0 1rem 0;
   background: rgba(39, 39, 42, 0.86);
-  min-height: 76px;
-  height: 76px;
+  min-height: 52px;
+  height: 52px;
   box-sizing: border-box;
 }
 
@@ -924,11 +924,11 @@ small {
 .bootstrap-app .app-sidebar-nav-wrap {
   flex: 1;
   overflow-y: auto;
-  margin-top: 0.75rem;
+  margin-top: 0.3rem;
 }
 
 .bootstrap-app .app-sidebar-footer {
-  padding-top: 0.65rem;
+  padding-top: 0.4rem;
   border-top: 1px solid rgba(39, 39, 42, 0.14);
   color: rgba(244, 244, 245, 0.92);
 }
@@ -966,7 +966,7 @@ small {
 }
 
 .bootstrap-app .app-main-container {
-  padding: 0 0.85rem 1.1rem 0.6rem;
+  padding: 0 0.55rem 0.7rem 0.35rem;
 }
 
 .bootstrap-app .page-header {
@@ -977,33 +977,33 @@ small {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.35rem 0.75rem;
+  gap: 0.45rem;
+  padding: 0.16rem 0.5rem;
 }
 
 .bootstrap-app .page-header h1 {
-  font-size: 1.15rem;
-  font-weight: 800;
+  font-size: 0.96rem;
+  font-weight: 700;
   line-height: 1.05;
 }
 
 .bootstrap-app .row.g-3,
 .bootstrap-app .row.g-4 {
-  --bs-gutter-x: 0.75rem;
-  --bs-gutter-y: 0.75rem;
+  --bs-gutter-x: 0.45rem;
+  --bs-gutter-y: 0.45rem;
 }
 
 .bootstrap-app .vstack.gap-4 {
-  gap: 1rem !important;
+  gap: 0.6rem !important;
 }
 
 .bootstrap-app .vstack.gap-3 {
-  gap: 0.75rem !important;
+  gap: 0.45rem !important;
 }
 
 .bootstrap-app .p-4,
 .bootstrap-app .card-body.p-4 {
-  padding: 1rem !important;
+  padding: 0.7rem !important;
 }
 
 
@@ -1018,7 +1018,7 @@ small {
 
 
 .bootstrap-app .panel {
-  padding: 1rem;
+  padding: 0.7rem;
 }
 
 .bootstrap-app .form-section {
@@ -1044,7 +1044,7 @@ small {
 
 .bootstrap-app .form-section-header strong {
   color: var(--text-strong);
-  font-size: 1rem;
+  font-size: 0.92rem;
 }
 
 .bootstrap-app .form-section-header p,
@@ -1062,7 +1062,7 @@ small {
 .bootstrap-app .empty-state-card {
   display: grid;
   gap: 0.6rem;
-  padding: 0.9rem 0.95rem;
+  padding: 0.65rem 0.7rem;
   border-radius: var(--radius-ui);
   border: 1px dashed rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.02);
@@ -1070,7 +1070,7 @@ small {
 
 .bootstrap-app .empty-state-card strong {
   color: var(--text-strong);
-  font-size: 1rem;
+  font-size: 0.92rem;
 }
 
 .bootstrap-app .empty-state-card .empty-state {
