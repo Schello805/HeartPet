@@ -776,6 +776,11 @@ body.bootstrap-app {
   gap: 0.7rem;
 }
 
+.bootstrap-app .animal-subaccordion {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  align-items: start;
+}
+
 .bootstrap-app .animal-record-accordion .accordion-item,
 .bootstrap-app .animal-subaccordion .accordion-item {
   overflow: hidden;
@@ -832,6 +837,18 @@ body.bootstrap-app {
 .bootstrap-app .animal-record-accordion > .accordion-item + .accordion-item,
 .bootstrap-app .animal-subaccordion > .accordion-item + .accordion-item {
   margin-top: 0;
+}
+
+@media (min-width: 900px) {
+  .bootstrap-app .animal-subaccordion {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1400px) {
+  .bootstrap-app .animal-subaccordion {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .bootstrap-app .bg-dark-subtle {
