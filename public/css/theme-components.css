@@ -778,7 +778,7 @@ body.bootstrap-app {
 
 .bootstrap-app .animal-subaccordion {
   grid-template-columns: repeat(1, minmax(0, 1fr));
-  align-items: start;
+  align-items: stretch;
   grid-auto-rows: 1fr;
 }
 
@@ -794,6 +794,7 @@ body.bootstrap-app {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 100%;
 }
 
 .bootstrap-app .animal-record-accordion .accordion-button,
@@ -841,24 +842,65 @@ body.bootstrap-app {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
+  gap: 0.75rem;
+  height: 100%;
+}
+
+.bootstrap-app .animal-subaccordion .accordion-body > * {
+  min-width: 0;
 }
 
 .bootstrap-app .animal-subaccordion .accordion-body > .d-flex:first-child,
 .bootstrap-app .animal-subaccordion .accordion-body > .card:first-child,
 .bootstrap-app .animal-subaccordion .accordion-body > .row:first-child,
-.bootstrap-app .animal-subaccordion .accordion-body > form:first-child {
+.bootstrap-app .animal-subaccordion .accordion-body > form:first-child,
+.bootstrap-app .animal-subaccordion .accordion-body > .detail-card-stack:first-child {
   flex: 0 0 auto;
 }
 
 .bootstrap-app .animal-subaccordion .accordion-body > .empty-state:last-child,
 .bootstrap-app .animal-subaccordion .accordion-body > .gallery-grid:last-child,
 .bootstrap-app .animal-subaccordion .accordion-body > .d-grid:last-child,
-.bootstrap-app .animal-subaccordion .accordion-body > .card:last-child {
+.bootstrap-app .animal-subaccordion .accordion-body > .card:last-child,
+.bootstrap-app .animal-subaccordion .accordion-body > .detail-card-stack:last-child {
   flex: 1 1 auto;
 }
 
+.bootstrap-app .detail-card-stack {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.8rem;
+  min-height: 100%;
+}
+
+.bootstrap-app .detail-card-head {
+  flex: 0 0 auto;
+}
+
+.bootstrap-app .detail-card-grid,
+.bootstrap-app .detail-card-list {
+  flex: 1 1 auto;
+}
+
+.bootstrap-app .detail-card-grid {
+  align-content: start;
+}
+
+.bootstrap-app .detail-card-footer {
+  padding-top: 0.2rem;
+  border-top: 1px solid rgba(61, 115, 141, 0.1);
+}
+
 .bootstrap-app .animal-subaccordion .empty-state {
-  margin-top: auto;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  margin: 0;
+  padding: 0.9rem 1rem;
+  border: 1px dashed rgba(61, 115, 141, 0.18);
+  border-radius: 0.75rem;
+  background: rgba(247, 252, 252, 0.75);
 }
 
 .bootstrap-app .animal-record-accordion .accordion-summary-main,
@@ -1084,6 +1126,16 @@ body.bootstrap-app {
   color: #21414a !important;
   background: rgba(247, 252, 252, 0.98) !important;
   border-top: 1px solid rgba(70, 118, 133, 0.1);
+}
+
+[data-bs-theme="light"].bootstrap-app .animal-subaccordion .empty-state {
+  color: #446572 !important;
+  background: rgba(235, 246, 248, 0.92) !important;
+  border-color: rgba(70, 118, 133, 0.18) !important;
+}
+
+[data-bs-theme="light"].bootstrap-app .detail-card-footer {
+  border-top-color: rgba(70, 118, 133, 0.12);
 }
 
 [data-bs-theme="light"].bootstrap-app .accordion:not(.nav-accordion) .accordion-button,
