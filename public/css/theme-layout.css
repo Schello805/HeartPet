@@ -1087,6 +1087,46 @@ small {
   margin-top: 0.2rem;
 }
 
+.bootstrap-app.animals-page .animals-compact-card .card-body {
+  padding: 0.7rem 0.85rem !important;
+}
+
+.bootstrap-app.animals-page .animals-compact-card h2 {
+  font-size: 0.96rem;
+  margin-bottom: 0;
+}
+
+.bootstrap-app.animals-page .animals-compact-card .mb-3 {
+  margin-bottom: 0.45rem !important;
+}
+
+.bootstrap-app.animals-page .animals-selected-card .card-body {
+  padding: 0.65rem 0.8rem !important;
+}
+
+.bootstrap-app.animals-page .animals-selected-card h2 {
+  font-size: 0.95rem;
+}
+
+.bootstrap-app.animals-page .animals-selected-card p {
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.bootstrap-app.animals-page .animal-list-item {
+  padding-top: 0.55rem !important;
+  padding-bottom: 0.55rem !important;
+}
+
+.bootstrap-app.animals-page .animal-list-item .fw-semibold {
+  font-size: 0.88rem;
+}
+
+.bootstrap-app.animals-page .animal-list-item .small,
+.bootstrap-app.animals-page .animal-list-item .text-body-secondary {
+  font-size: 0.74rem;
+}
+
 .bootstrap-app .animal-hero-meta-card,
 .bootstrap-app .animal-hero-meta-card strong {
   display: block;
