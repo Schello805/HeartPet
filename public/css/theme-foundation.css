@@ -764,7 +764,7 @@ textarea {
   padding: 7px 9px;
   border-radius: 6px;
   border: 1px solid rgba(197, 222, 209, 0.9);
-  background: rgba(39, 39, 42, 0.72);
+  background: var(--surface-2);
 }
 
 .animal-hero-meta-card.has-action {
@@ -830,7 +830,7 @@ textarea {
   border: 1px solid rgba(139, 92, 246, 0.55);
   background:
     radial-gradient(340px 180px at 0% 0%, rgba(193, 246, 219, 0.26), transparent 70%),
-    rgba(39, 39, 42, 0.96);
+    rgba(255, 255, 255, 0.97);
   box-shadow: 0 30px 55px rgba(0, 0, 0, 0.22);
 }
 
@@ -851,8 +851,8 @@ textarea {
   height: 36px;
   border: 1px solid rgba(139, 92, 246, 0.55);
   border-radius: 999px;
-  background: rgba(39, 39, 42, 0.88);
-  color: var(--text);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text-strong);
   font-size: 1.2rem;
   line-height: 1;
   cursor: pointer;

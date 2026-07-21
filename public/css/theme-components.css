@@ -1119,3 +1119,37 @@ body.bootstrap-app {
 [data-bs-theme="light"].bootstrap-app .toast-close:hover {
   background: rgba(47, 111, 237, 0.16);
 }
+
+[data-bs-theme="light"].bootstrap-app .app-sidebar {
+  background: rgba(244, 251, 252, 0.92) !important;
+  color: #183640 !important;
+  border-right-color: rgba(70, 118, 133, 0.14) !important;
+  box-shadow: 10px 0 30px rgba(74, 123, 137, 0.12) !important;
+}
+
+[data-bs-theme="light"].bootstrap-app .app-sidebar-brand,
+[data-bs-theme="light"].bootstrap-app .app-sidebar-brand-mobile {
+  background: linear-gradient(135deg, rgba(220, 239, 244, 0.98), rgba(240, 249, 249, 0.98)) !important;
+}
+
+[data-bs-theme="light"].bootstrap-app .app-sidebar-footer,
+[data-bs-theme="light"].bootstrap-app .app-sidebar-footer strong,
+[data-bs-theme="light"].bootstrap-app .app-sidebar-footer .small-label,
+[data-bs-theme="light"].bootstrap-app .app-sidebar-footer span {
+  color: #23424b !important;
+}
+
+[data-bs-theme="light"].bootstrap-app .animal-hero-meta-card {
+  background: rgba(232, 244, 246, 0.98) !important;
+  border-color: rgba(70, 118, 133, 0.16) !important;
+}
+
+[data-bs-theme="light"].bootstrap-app .animal-hero-meta-card span {
+  color: #5b7883 !important;
+}
+
+[data-bs-theme="light"].bootstrap-app .animal-hero-meta-card strong,
+[data-bs-theme="light"].bootstrap-app .animal-vet-trigger,
+[data-bs-theme="light"].bootstrap-app .animal-vet-trigger small {
+  color: #183640 !important;
+}

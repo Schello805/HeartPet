@@ -877,11 +877,11 @@ small {
 
 .bootstrap-app .app-sidebar {
   width: var(--sidebar-width);
-  background: rgba(24, 24, 27, 0.4);
+  background: rgba(244, 251, 252, 0.9);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   padding: 0.55rem 0.55rem;
-  color: #f4f4f5;
-  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.4);
+  color: var(--text-strong);
+  box-shadow: 10px 0 30px rgba(74, 123, 137, 0.12);
   position: fixed;
   inset: 0 auto 0 0;
   overflow-y: auto;
@@ -901,7 +901,7 @@ small {
   height: 38px;
   object-fit: contain;
   border-radius: 10px;
-  background: rgba(39, 39, 42, 0.12);
+  background: rgba(47, 111, 237, 0.08);
   padding: 0.45rem;
 }
 
@@ -909,7 +909,7 @@ small {
   margin: -0.55rem -0.55rem 0.45rem;
   padding: 0.38rem 0.55rem 0.45rem;
   border-radius: 0 0 1rem 0;
-  background: rgba(39, 39, 42, 0.86);
+  background: linear-gradient(135deg, rgba(220, 239, 244, 0.98), rgba(240, 249, 249, 0.98));
   min-height: 52px;
   height: 52px;
   box-sizing: border-box;
@@ -918,7 +918,7 @@ small {
 .bootstrap-app .app-sidebar-brand-mobile {
   padding: 0.55rem 0.65rem;
   border-radius: 0 0 1rem 1rem;
-  background: rgba(39, 39, 42, 0.86);
+  background: linear-gradient(135deg, rgba(220, 239, 244, 0.98), rgba(240, 249, 249, 0.98));
 }
 
 .bootstrap-app .app-sidebar-nav-wrap {
@@ -930,20 +930,20 @@ small {
 .bootstrap-app .app-sidebar-footer {
   padding-top: 0.4rem;
   border-top: 1px solid rgba(39, 39, 42, 0.14);
-  color: rgba(244, 244, 245, 0.92);
+  color: var(--text-soft);
 }
 
 .bootstrap-app .app-sidebar-footer strong {
   display: block;
-  color: #ffffff;
+  color: var(--text-strong);
 }
 
 .bootstrap-app .app-sidebar-footer .small-label {
-  color: rgba(212, 212, 216, 0.78);
+  color: var(--text-dim);
 }
 
 .bootstrap-app .app-sidebar-footer span {
-  color: rgba(228, 228, 231, 0.9);
+  color: var(--text-dim);
 }
 
 .bootstrap-app .app-main {
