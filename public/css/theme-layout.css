@@ -1088,11 +1088,11 @@ small {
 }
 
 .bootstrap-app.animals-page .animals-compact-card .card-body {
-  padding: 0.7rem 0.85rem !important;
+  padding: 0.5rem 0.7rem !important;
 }
 
 .bootstrap-app.animals-page .animals-compact-card h2 {
-  font-size: 0.96rem;
+  font-size: 0.88rem;
   margin-bottom: 0;
 }
 
@@ -1100,31 +1100,92 @@ small {
   margin-bottom: 0.45rem !important;
 }
 
+.bootstrap-app.animals-page .animals-compact-card .mb-2 {
+  margin-bottom: 0.3rem !important;
+}
+
 .bootstrap-app.animals-page .animals-selected-card .card-body {
-  padding: 0.65rem 0.8rem !important;
+  padding: 0.45rem 0.7rem !important;
 }
 
 .bootstrap-app.animals-page .animals-selected-card h2 {
-  font-size: 0.95rem;
+  font-size: 0.88rem;
 }
 
 .bootstrap-app.animals-page .animals-selected-card p {
-  font-size: 0.8rem;
-  line-height: 1.4;
+  font-size: 0.74rem;
+  line-height: 1.3;
 }
 
 .bootstrap-app.animals-page .animal-list-item {
-  padding-top: 0.55rem !important;
-  padding-bottom: 0.55rem !important;
+  padding-top: 0.4rem !important;
+  padding-bottom: 0.4rem !important;
 }
 
 .bootstrap-app.animals-page .animal-list-item .fw-semibold {
-  font-size: 0.88rem;
+  font-size: 0.82rem;
 }
 
 .bootstrap-app.animals-page .animal-list-item .small,
 .bootstrap-app.animals-page .animal-list-item .text-body-secondary {
-  font-size: 0.74rem;
+  font-size: 0.7rem;
+}
+
+.bootstrap-app.animals-page .animal-hero-card {
+  padding: 0.65rem !important;
+  gap: 0.55rem;
+}
+
+.bootstrap-app.animals-page .animal-hero-content {
+  gap: 0.45rem;
+}
+
+.bootstrap-app.animals-page .animal-hero-head {
+  gap: 0.45rem;
+}
+
+.bootstrap-app.animals-page .animal-hero-title h2 {
+  font-size: 0.96rem;
+}
+
+.bootstrap-app.animals-page .animal-hero-meta-grid {
+  gap: 0.4rem;
+}
+
+.bootstrap-app.animals-page .animal-hero-meta-card {
+  padding: 0.45rem 0.55rem;
+}
+
+.bootstrap-app.animals-page .animal-hero-meta-card span {
+  font-size: 0.62rem;
+}
+
+.bootstrap-app.animals-page .animal-hero-meta-card strong {
+  margin-bottom: 0;
+  font-size: 0.82rem;
+}
+
+.bootstrap-app.animals-page .profile-image-panel,
+.bootstrap-app.animals-page .profile-image-frame,
+.bootstrap-app.animals-page .animal-profile-image {
+  width: 92px;
+  height: 92px;
+}
+
+.bootstrap-app.animals-page .hero-actions {
+  grid-auto-columns: 34px;
+  gap: 0.4rem;
+}
+
+.bootstrap-app.animals-page .hero-actions .btn {
+  min-width: 34px;
+  width: 34px;
+  height: 34px;
+}
+
+.bootstrap-app.animals-page .card-body > .row.g-3 {
+  --bs-gutter-x: 0.4rem;
+  --bs-gutter-y: 0.4rem;
 }
 
 .bootstrap-app .animal-hero-meta-card,

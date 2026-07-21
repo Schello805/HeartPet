@@ -13,12 +13,12 @@
 >
   <% if (selectedAnimalState && selectedAnimalViewState) { %>
     <section class="card border-0 mb-2 animals-selected-card">
-      <div class="card-body p-3">
+      <div class="card-body p-2">
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
           <div>
             <div class="text-uppercase small fw-semibold text-body-secondary mb-1">Ausgewähltes Tier</div>
-            <h2 class="h4 mb-1"><%= selectedAnimalState.name %></h2>
-            <p class="text-body-secondary mb-0">Hier startet die Akte mit den wichtigsten Stammdaten, offenen Punkten und direkten Aktionen.</p>
+            <h2 class="h5 mb-1"><%= selectedAnimalState.name %></h2>
+            <p class="text-body-secondary mb-0">Die wichtigsten Stammdaten und Aktionen direkt im Blick.</p>
           </div>
           <span class="badge text-bg-secondary-subtle border"><%= selectedAnimalState.species_name || 'Tier' %></span>
         </div>
