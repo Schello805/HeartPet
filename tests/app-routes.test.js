@@ -1184,6 +1184,7 @@ test("Beim Verschieben aus dem aktiven Bestand werden offene Erinnerungen abgesc
     weight_kg: "",
     veterinarian_id: "",
     notes: "",
+    status_transition_confirmed: "true",
     return_to: "/animals/ruhestaette",
   });
 
@@ -1199,6 +1200,35 @@ test("Beim Verschieben aus dem aktiven Bestand werden offene Erinnerungen abgesc
   assert.ok(reminderStates.length >= 1);
   assert.ok(reminderStates.every((item) => item.completed_at));
   assert.ok(reminderStates.every((item) => ["closed", "archived"].includes(item.last_delivery_status)));
+});
+
+test("Wechsel aus dem aktiven Bestand braucht eine ausdrückliche Bestätigung", async () => {
+  const speciesId = db.prepare("SELECT id FROM species ORDER BY id ASC LIMIT 1").get()?.id;
+  const speciesName = db.prepare("SELECT name FROM species WHERE id = ?").get(speciesId)?.name || "Katze";
+  const animalId = db.prepare("INSERT INTO animals (name, species_id, status) VALUES (?, ?, ?)").run("Wechseltest", speciesId, "Aktiv").lastInsertRowid;
+
+  const response = await agent.post(`/animals/${animalId}/update`).type("form").send({
+    name: "Wechseltest",
+    species_name: speciesName,
+    sex: "",
+    birth_date: "",
+    intake_date: "",
+    source: "",
+    microchip_number: "",
+    status: "Verkauft",
+    color: "",
+    breed: "",
+    weight_kg: "",
+    veterinarian_id: "",
+    notes: "",
+    return_to: "/animals/historie",
+  });
+
+  assert.equal(response.status, 302);
+  assert.match(response.headers.location || "", new RegExp(`^/animals/${animalId}/edit\\?`));
+
+  const animal = db.prepare("SELECT status FROM animals WHERE id = ?").get(animalId);
+  assert.equal(animal?.status, "Aktiv");
 });
 
 test("Tierseite zeigt Tierarzt-Kontakt per Klick und erklärt die Schnellerfassung", async () => {

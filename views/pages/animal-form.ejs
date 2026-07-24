@@ -1,4 +1,49 @@
 <%- include('../partials/top', { pageTitle }) %>
+<%
+  const currentStatus = animal?.status || 'Aktiv';
+  const statusWorkflow = {
+    Aktiv: {
+      title: 'Aktiver Bestand',
+      tone: 'success',
+      intro: 'Das Tier bleibt im aktiven Bestand und kann normal weiter gepflegt werden.',
+      bullets: [
+        'Erinnerungen, Termine und Alltags-Einträge bleiben aktiv.',
+        'Das Tier erscheint weiter unter „Meine Tiere“.',
+      ],
+      confirmLabel: '',
+    },
+    Vermittelt: {
+      title: 'Wechsel in die Historie',
+      tone: 'warning',
+      intro: 'Das Tier wird aus dem aktiven Bestand genommen und in die Historie verschoben.',
+      bullets: [
+        'Offene Erinnerungen werden geschlossen.',
+        'Das Tier erscheint danach nur noch unter „Historie“.',
+      ],
+      confirmLabel: 'Ich bestätige, dass dieses Tier als vermittelt in die Historie wechseln soll.',
+    },
+    Verkauft: {
+      title: 'Wechsel in die Historie',
+      tone: 'warning',
+      intro: 'Das Tier wird aus dem aktiven Bestand genommen und als verkauft archiviert.',
+      bullets: [
+        'Offene Erinnerungen werden geschlossen.',
+        'Das Tier erscheint danach nur noch unter „Historie“.',
+      ],
+      confirmLabel: 'Ich bestätige, dass dieses Tier als verkauft in die Historie wechseln soll.',
+    },
+    Verstorben: {
+      title: 'Wechsel in die Ruhestätte',
+      tone: 'secondary',
+      intro: 'Das Tier wird aus dem aktiven Bestand genommen und würdevoll in die Ruhestätte verschoben.',
+      bullets: [
+        'Offene Erinnerungen werden geschlossen.',
+        'Das Tier erscheint danach nur noch unter „Ruhestätte“.',
+      ],
+      confirmLabel: 'Ich bestätige, dass dieses Tier als verstorben in die Ruhestätte wechseln soll.',
+    },
+  };
+%>
 
 <section class="drawer-fragment card border-0 bg-body-tertiary" data-drawer-fragment="animal-form" data-drawer-title="<%= animal ? 'Tier bearbeiten' : 'Neues Tier anlegen' %>">
   <div class="card-body">
@@ -6,6 +51,7 @@
 
     <form method="post" action="<%= animal ? `/animals/${animal.id}/update` : '/animals' %>" class="vstack gap-4" data-drawer-form="animal">
       <input type="hidden" name="return_to" value="<%= typeof returnTo !== 'undefined' ? returnTo : '/animals' %>" />
+      <input type="hidden" name="original_status" value="<%= currentStatus %>" />
 
       <section class="card border bg-body">
         <div class="card-body">
@@ -45,9 +91,9 @@
             </div>
             <div class="col-md-6">
               <label class="form-label" for="animal-status">Status</label>
-              <select class="form-select" id="animal-status" name="status">
+              <select class="form-select" id="animal-status" name="status" data-animal-status-select>
                 <% ['Aktiv', 'Vermittelt', 'Verkauft', 'Verstorben'].forEach((status) => { %>
-                  <option value="<%= status %>" <%= (animal?.status || 'Aktiv') === status ? 'selected' : '' %>><%= status %></option>
+                  <option value="<%= status %>" <%= currentStatus === status ? 'selected' : '' %>><%= status %></option>
                 <% }) %>
               </select>
               <div class="form-text">Aktive Tiere erscheinen im Bestand. Vermittelte und verkaufte Tiere wechseln in die Historie. Verstorbene Tiere erscheinen ausschließlich in der Ruhestätte.</div>
@@ -67,6 +113,47 @@
             <div class="col-md-6">
               <label class="form-label" for="animal-intake-date">Aufnahmedatum</label>
               <input class="form-control" id="animal-intake-date" type="date" name="intake_date" value="<%= animal?.intake_date || '' %>" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card border bg-body" data-status-workflow data-original-status="<%= currentStatus %>">
+        <div class="card-body vstack gap-3">
+          <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+            <div>
+              <h3 class="h5 mb-1">Statuswechsel</h3>
+              <p class="text-body-secondary mb-0">HeartPet zeigt dir direkt, was beim gewählten Status als Nächstes passiert.</p>
+            </div>
+            <span class="status-chip status-<%= statusWorkflow[currentStatus].tone %>" data-status-workflow-chip><%= currentStatus %></span>
+          </div>
+
+          <% Object.entries(statusWorkflow).forEach(([statusName, config]) => { %>
+            <div class="alert alert-<%= config.tone %> mb-0 <%= currentStatus === statusName ? '' : 'd-none' %>" role="alert" data-status-panel="<%= statusName %>">
+              <strong class="d-block mb-2"><%= config.title %></strong>
+              <p class="mb-2"><%= config.intro %></p>
+              <ul class="mb-0 ps-3">
+                <% config.bullets.forEach((bullet) => { %>
+                  <li><%= bullet %></li>
+                <% }) %>
+              </ul>
+            </div>
+          <% }) %>
+
+          <div class="<%= currentStatus === 'Aktiv' ? 'd-none' : '' %>" data-status-confirm-wrap>
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="status-transition-confirmed"
+                name="status_transition_confirmed"
+                value="true"
+                data-status-confirm-input
+                <%= currentStatus === 'Aktiv' ? '' : 'required' %>
+              />
+              <label class="form-check-label" for="status-transition-confirmed" data-status-confirm-label>
+                <%= statusWorkflow[currentStatus].confirmLabel %>
+              </label>
             </div>
           </div>
         </div>

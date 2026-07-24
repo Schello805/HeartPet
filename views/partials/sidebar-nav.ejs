@@ -10,8 +10,6 @@
       <div class="nav-group d-grid gap-1">
         <div class="nav-group-title px-3 pt-2">Tiere</div>
         <a class="nav-link rounded-2 px-3 py-2 <%= currentPath === '/animals' && !activeSpeciesId ? 'active fw-semibold' : 'text-body-secondary' %>" href="/animals">Meine Tiere</a>
-        <a class="nav-link rounded-2 px-3 py-2 <%= currentPath === '/animals/historie' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/animals/historie">Historie</a>
-        <a class="nav-link rounded-2 px-3 py-2 <%= currentPath === '/animals/ruhestaette' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/animals/ruhestaette">Ruhestätte</a>
         <% if (currentPath === '/animals' && animalMenu.length > 0) { %>
           <div class="nav-species-list d-grid gap-1 pt-1">
             <% animalMenu.forEach((item) => { %>
@@ -19,6 +17,8 @@
             <% }) %>
           </div>
         <% } %>
+        <a class="nav-link rounded-2 px-3 py-2 <%= currentPath === '/animals/historie' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/animals/historie">Historie</a>
+        <a class="nav-link rounded-2 px-3 py-2 <%= currentPath === '/animals/ruhestaette' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/animals/ruhestaette">Ruhestätte</a>
       </div>
       <a class="nav-link rounded-2 px-3 py-2 <%= currentPath === '/hilfe' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/hilfe">Hilfe</a>
     </div>

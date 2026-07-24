@@ -757,6 +757,11 @@ app.post("/animals", requireAnimalEditor, (req, res) => {
     return res.redirect(`/animals/new?return_to=${encodeURIComponent(returnTo)}`);
   }
 
+  if (requiresAnimalStatusTransitionConfirmation("Aktiv", payload.status) && !isConfirmedAnimalStatusTransition(req.body)) {
+    setFlash(req, "error", "Bitte bestätige den Wechsel aus dem aktiven Bestand.");
+    return res.redirect(`/animals/new?return_to=${encodeURIComponent(returnTo)}`);
+  }
+
   const result = db.prepare(`
     INSERT INTO animals (
       name, species_id, sex, birth_date, intake_date, source, microchip_number,
@@ -954,6 +959,12 @@ app.post("/animals/:id/update", requireAnimalEditor, (req, res) => {
     setFlash(req, "error", "Name und Tierart sind Pflichtfelder.");
     return res.redirect(`/animals/${req.params.id}/edit?return_to=${encodeURIComponent(returnTo)}`);
   }
+
+  if (requiresAnimalStatusTransitionConfirmation(animal.status, payload.status) && !isConfirmedAnimalStatusTransition(req.body)) {
+    setFlash(req, "error", "Bitte bestätige den Wechsel aus dem aktiven Bestand.");
+    return res.redirect(`/animals/${req.params.id}/edit?return_to=${encodeURIComponent(returnTo)}`);
+  }
+
   payload.id = req.params.id;
 
   db.prepare(`
@@ -979,7 +990,14 @@ app.post("/animals/:id/update", requireAnimalEditor, (req, res) => {
     closeOpenRemindersForAnimal(req.params.id);
   }
 
-  setFlash(req, "success", "Tierdaten wurden aktualisiert.");
+  const lifecycle = getAnimalLifecycle(payload.status);
+  const successMessage = requiresAnimalStatusTransitionConfirmation(animal.status, payload.status)
+    ? lifecycle.inRestingPlace
+      ? "Tier wurde in die Ruhestätte verschoben."
+      : "Tier wurde in die Historie verschoben."
+    : "Tierdaten wurden aktualisiert.";
+
+  setFlash(req, "success", successMessage);
   res.redirect(returnTo);
 });
 
@@ -3571,6 +3589,14 @@ function normalizeAnimalPayload(body) {
     veterinarian_id: selectedVeterinarianId || resolveDefaultVeterinarianId(speciesId),
     notes: body.notes || "",
   };
+}
+
+function requiresAnimalStatusTransitionConfirmation(previousStatus, nextStatus) {
+  return normalizeAnimalStatus(previousStatus) === "Aktiv" && normalizeAnimalStatus(nextStatus) !== "Aktiv";
+}
+
+function isConfirmedAnimalStatusTransition(body) {
+  return String(body.status_transition_confirmed || "").trim().toLowerCase() === "true";
 }
 
 function resolveDefaultVeterinarianId(speciesId) {

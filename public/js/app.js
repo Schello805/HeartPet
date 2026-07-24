@@ -318,6 +318,7 @@ function initDrawerForms(scope = document) {
           initVeterinarianContactPopover();
           initSpeciesAutocomplete();
           initRequiredMarks();
+          initAnimalStatusWorkflow(drawerBody);
           initEventFormBehavior(drawerBody);
           return;
         }
@@ -382,6 +383,7 @@ async function openDrawer(urlLike) {
     initVeterinarianContactPopover();
     initSpeciesAutocomplete();
     initRequiredMarks();
+    initAnimalStatusWorkflow(drawerBody);
     initEventFormBehavior(drawerBody);
   } catch (error) {
     console.error("Drawer konnte nicht geladen werden", error);
@@ -598,6 +600,68 @@ function initEventFormBehavior(scope = document) {
     kindSelect?.addEventListener("change", updateEventForm);
     handledByVet?.addEventListener("change", updateEventForm);
     updateEventForm();
+  });
+}
+
+function initAnimalStatusWorkflow(scope = document) {
+  scope.querySelectorAll("[data-status-workflow]").forEach((workflow) => {
+    if (workflow.dataset.bound === "1") {
+      return;
+    }
+    workflow.dataset.bound = "1";
+
+    const form = workflow.closest("form");
+    const statusSelect = form?.querySelector("[data-animal-status-select]");
+    const chip = workflow.querySelector("[data-status-workflow-chip]");
+    const confirmWrap = workflow.querySelector("[data-status-confirm-wrap]");
+    const confirmInput = workflow.querySelector("[data-status-confirm-input]");
+    const confirmLabel = workflow.querySelector("[data-status-confirm-label]");
+    const originalStatus = String(workflow.getAttribute("data-original-status") || "Aktiv").trim();
+    const confirmLabels = {
+      Vermittelt: "Ich bestätige, dass dieses Tier als vermittelt in die Historie wechseln soll.",
+      Verkauft: "Ich bestätige, dass dieses Tier als verkauft in die Historie wechseln soll.",
+      Verstorben: "Ich bestätige, dass dieses Tier als verstorben in die Ruhestätte wechseln soll.",
+    };
+    const chipTones = {
+      Aktiv: "status-success",
+      Vermittelt: "status-warning",
+      Verkauft: "status-warning",
+      Verstorben: "status-muted",
+    };
+
+    const updateStatusWorkflow = () => {
+      const selectedStatus = String(statusSelect?.value || "Aktiv").trim();
+      const requiresConfirmation = originalStatus === "Aktiv" && selectedStatus !== "Aktiv";
+
+      workflow.querySelectorAll("[data-status-panel]").forEach((panel) => {
+        panel.classList.toggle("d-none", panel.getAttribute("data-status-panel") !== selectedStatus);
+      });
+
+      if (chip) {
+        chip.textContent = selectedStatus;
+        chip.classList.remove("status-success", "status-warning", "status-muted");
+        chip.classList.add(chipTones[selectedStatus] || "status-muted");
+      }
+
+      if (confirmWrap) {
+        confirmWrap.classList.toggle("d-none", !requiresConfirmation);
+      }
+
+      if (confirmInput) {
+        confirmInput.required = requiresConfirmation;
+        if (!requiresConfirmation) {
+          confirmInput.checked = false;
+          confirmInput.setCustomValidity("");
+        }
+      }
+
+      if (confirmLabel) {
+        confirmLabel.textContent = confirmLabels[selectedStatus] || "";
+      }
+    };
+
+    statusSelect?.addEventListener("change", updateStatusWorkflow);
+    updateStatusWorkflow();
   });
 }
 
@@ -876,7 +940,23 @@ function applyGermanValidationMessages(form) {
     }
   }
 
-  return validatePasswordConfirmation(form) || validateDateRelations(form);
+  const passwordError = validatePasswordConfirmation(form);
+  if (passwordError) {
+    return passwordError;
+  }
+
+  const dateError = validateDateRelations(form);
+  if (dateError) {
+    return dateError;
+  }
+
+  const statusConfirm = form.querySelector("[data-status-confirm-input]");
+  if (statusConfirm?.required && !statusConfirm.checked) {
+    statusConfirm.setCustomValidity("Bitte bestätige den Statuswechsel.");
+    return statusConfirm;
+  }
+
+  return null;
 }
 
 function canSoftNavigate(url, anchor) {
@@ -1010,6 +1090,7 @@ function initPage() {
   initDrawerForms();
   initSpeciesAutocomplete();
   initRequiredMarks();
+  initAnimalStatusWorkflow();
   initProfileUploadAutoSubmit();
   initEventFormBehavior();
   initGlobalSearchAutocomplete();
