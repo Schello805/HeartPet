@@ -44,6 +44,7 @@ test.beforeEach(async () => {
   tempDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "heartpet-playwright-"));
   process.env.HEARTPET_DATA_DIR = tempDataDir;
   process.env.HEARTPET_SESSION_SECRET = "playwright-secret";
+  process.env.HEARTPET_SESSION_STORE = "memory";
 
   delete require.cache[require.resolve("../../src/app")];
   const app = require("../../src/app");

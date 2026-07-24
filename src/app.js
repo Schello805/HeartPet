@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const express = require("express");
 const session = require("express-session");
 const SQLiteStoreFactory = require("connect-sqlite3");
+const sqlite3 = require("sqlite3");
 const multer = require("multer");
 const cron = require("node-cron");
 const bcrypt = require("bcryptjs");
@@ -30,6 +31,10 @@ const { buildAnimalExportPayload, createAnimalPdf } = require("./exporters");
 const SQLiteStore = SQLiteStoreFactory(session);
 const app = express();
 const db = initDatabase();
+const useMemorySessionStore = String(process.env.HEARTPET_SESSION_STORE || "").trim().toLowerCase() === "memory";
+const sessionDb = useMemorySessionStore
+  ? null
+  : new sqlite3.Database(path.join(__dirname, "..", "data", "sessions.sqlite"));
 
 const projectRoot = path.join(__dirname, "..");
 
@@ -66,10 +71,12 @@ app.use(
     secret: process.env.HEARTPET_SESSION_SECRET || "heartpet-session-secret",
     resave: false,
     saveUninitialized: false,
-    store: new SQLiteStore({
-      db: "sessions.sqlite",
-      dir: path.join(projectRoot, "data"),
-    }),
+    store: useMemorySessionStore
+      ? undefined
+      : new SQLiteStore({
+          db: sessionDb,
+          concurrentDb: true,
+        }),
   })
 );
 
@@ -105,6 +112,7 @@ app.use((req, res, next) => {
   res.locals.getAnimalInitial = getAnimalInitial;
   res.locals.getRoleLabel = getRoleLabel;
   res.locals.getAnimalLifecycle = getAnimalLifecycle;
+  res.locals.getReminderStatusMeta = getReminderStatusMeta;
   res.locals.applyInfoPagePlaceholders = (content) => applyInfoPagePlaceholders(content, res.locals.appSettings);
   res.locals.permissions = buildPermissions(currentUserRecord || req.session.user);
   res.locals.editState = { type: "", id: null };
@@ -826,6 +834,7 @@ function renderAnimalEntryDrawer(req, res, { entryType, mode = "create", item = 
     categories: db.prepare("SELECT * FROM document_categories ORDER BY name ASC").all(),
     veterinarians: db.prepare("SELECT * FROM veterinarians ORDER BY name ASC").all(),
     returnTo: safeLocalReturnPath(req.query.return_to, `/animals/${animal.id}`),
+    initialEventKind: String(req.query.kind || "").trim(),
   });
 }
 
@@ -1542,6 +1551,11 @@ app.post("/animals/:id/reminders/bulk", requireAnimalPermission("canManageRemind
   }
 
   if (action === "reopen") {
+    const animal = findAnimal(req.params.id);
+    if (!animal || !isActiveAnimalStatus(animal.status)) {
+      setFlash(req, "error", "Erinnerungen können nur bei aktiven Tieren wieder geöffnet werden.");
+      return res.redirect(`/animals/${req.params.id}`);
+    }
     db.prepare("UPDATE reminders SET completed_at = NULL, last_notified_at = NULL, last_delivery_status = 'pending', last_delivery_error = '' WHERE id IN (" + placeholders + ")")
       .run(...reminders.map((item) => item.id));
     createAuditLog(req, "reminder.bulk_reopen", { ids, animal_id: req.params.id }, { entityType: "animal", entityId: req.params.id });
@@ -1570,12 +1584,12 @@ app.post("/reminders/:id/complete", requireAnimalPermission("canManageReminders"
     applyCompletionSideEffects(reminder);
     db.prepare(`
       UPDATE reminders
-      SET due_at = ?, completed_at = NULL, last_notified_at = NULL, last_delivery_status = 'pending', last_delivery_error = ''
+      SET due_at = ?, completed_at = NULL, last_notified_at = NULL, last_delivery_status = 'rescheduled', last_delivery_error = ''
       WHERE id = ?
     `).run(dayjs(reminder.due_at).add(Number(reminder.repeat_interval_days), "day").format("YYYY-MM-DDTHH:mm"), reminder.id);
     setFlash(req, "success", "Wiederkehrende Erinnerung abgeschlossen und neu terminiert.");
   } else {
-    db.prepare("UPDATE reminders SET completed_at = CURRENT_TIMESTAMP WHERE id = ?").run(req.params.id);
+    db.prepare("UPDATE reminders SET completed_at = CURRENT_TIMESTAMP, last_delivery_status = 'completed', last_delivery_error = '' WHERE id = ?").run(req.params.id);
     applyCompletionSideEffects(reminder);
     setFlash(req, "success", "Erinnerung als erledigt markiert.");
   }
@@ -1584,6 +1598,17 @@ app.post("/reminders/:id/complete", requireAnimalPermission("canManageReminders"
 });
 
 app.post("/reminders/:id/reopen", requireAnimalPermission("canManageReminders"), (req, res) => {
+  const reminder = db.prepare("SELECT * FROM reminders WHERE id = ?").get(req.params.id);
+  if (!reminder) {
+    return renderNotFound(req, res, "Erinnerung nicht gefunden.");
+  }
+
+  const animal = findAnimal(reminder.animal_id);
+  if (!animal || !isActiveAnimalStatus(animal.status)) {
+    setFlash(req, "error", "Erinnerungen können nur bei aktiven Tieren wieder geöffnet werden.");
+    return res.redirect(req.get("referer") || "/");
+  }
+
   db.prepare(`
     UPDATE reminders
     SET completed_at = NULL, last_notified_at = NULL, last_delivery_status = 'pending', last_delivery_error = ''
@@ -2075,11 +2100,36 @@ app.get("/admin/systemlog", requireAdmin, (req, res) => {
     LIMIT 200
   `).all();
 
+  const settings = getSettingsObject(db);
+  const overview = {
+    instanceTimezone: getInstanceTimeZone(),
+    activeAnimals: db.prepare("SELECT COUNT(*) AS count FROM animals WHERE status = 'Aktiv'").get().count,
+    openReminders: db.prepare(`
+      SELECT COUNT(*) AS count
+      FROM reminders
+      INNER JOIN animals ON animals.id = reminders.animal_id
+      WHERE reminders.completed_at IS NULL
+        AND animals.status = 'Aktiv'
+    `).get().count,
+    notificationErrors24h: db.prepare(`
+      SELECT COUNT(*) AS count
+      FROM notification_logs
+      WHERE status = 'error'
+        AND datetime(created_at) >= datetime('now', '-1 day')
+    `).get().count,
+    lastNotificationAt: db.prepare("SELECT created_at FROM notification_logs ORDER BY created_at DESC LIMIT 1").get()?.created_at || "",
+    emailReady: isEmailConfigured(settings),
+    telegramReady: isTelegramConfigured(settings),
+    emailEnabled: settings.reminder_email_enabled === "true",
+    telegramEnabled: settings.reminder_telegram_enabled === "true",
+  };
+
   res.render("pages/admin-systemlog", {
     ...getAdminViewData("Systemlog", "/admin/systemlog"),
     filters: { level },
     notificationLogs,
     auditLogs,
+    overview,
   });
 });
 
@@ -3403,6 +3453,7 @@ function buildAnimalDetailViewData(animalId, req) {
     reminderBuckets: splitReminders(related.reminders),
     sourceReminderMap: buildReminderSourceMap(related.reminders),
     manualReminders: (related.reminders || []).filter((item) => !item.source_kind),
+    reminderStats: summarizeReminderState(related.reminders || []),
     editState,
     categories,
     documentFilter,
@@ -3746,6 +3797,53 @@ function getAnimalLifecycle(status) {
 
 function isActiveAnimalStatus(status) {
   return getAnimalLifecycle(status).isActive;
+}
+
+function getReminderStatusMeta(reminder) {
+  if (!reminder) {
+    return { label: "Unbekannt", tone: "muted", detail: "" };
+  }
+
+  if (reminder.completed_at) {
+    return {
+      label: "Erledigt",
+      tone: "ok",
+      detail: reminder.last_delivery_status === "completed" ? "manuell abgeschlossen" : "abgeschlossen",
+    };
+  }
+
+  const dueAt = dayjs(reminder.due_at);
+  if (dueAt.isValid() && dueAt.isBefore(dayjs())) {
+    return {
+      label: "Überfällig",
+      tone: "warning",
+      detail: reminder.last_delivery_status === "sent" ? "bereits versendet" : "wartet auf Rückmeldung",
+    };
+  }
+
+  if (reminder.last_delivery_status === "rescheduled") {
+    return { label: "Neu terminiert", tone: "active", detail: "wiederkehrend weitergeführt" };
+  }
+
+  if (reminder.last_delivery_status === "sent") {
+    return { label: "Offen", tone: "active", detail: "Benachrichtigung versendet" };
+  }
+
+  if (reminder.last_delivery_status === "error") {
+    return { label: "Fehler", tone: "danger", detail: "Versand fehlgeschlagen" };
+  }
+
+  return { label: "Offen", tone: "muted", detail: "noch nicht abgeschlossen" };
+}
+
+function summarizeReminderState(reminders = []) {
+  const items = Array.isArray(reminders) ? reminders : [];
+  return {
+    total: items.length,
+    open: items.filter((item) => !item.completed_at).length,
+    done: items.filter((item) => item.completed_at).length,
+    overdue: items.filter((item) => !item.completed_at && dayjs(item.due_at).isBefore(dayjs())).length,
+  };
 }
 
 function closeOpenRemindersForAnimal(animalId) {

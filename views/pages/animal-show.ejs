@@ -5,6 +5,7 @@
 <% const reminderSourceMap = typeof sourceReminderMap !== 'undefined' ? sourceReminderMap : {}; %>
 <% const freeReminders = typeof manualReminders !== 'undefined' ? manualReminders : []; %>
 <% const animalTimeline = typeof timeline !== 'undefined' ? timeline : []; %>
+<% const reminderStatsState = typeof reminderStats !== 'undefined' ? reminderStats : { total: 0, open: 0, done: 0, overdue: 0 }; %>
 <%
   const activeVeterinarianName = animal.veterinarian_name || animal.species_veterinarian_name || '';
   const activeVeterinarianAddress = animal.veterinarian_name
@@ -65,6 +66,14 @@
   const canManageRemindersNow = permissions.canManageReminders && animalIsActive;
   const canManageDocumentsNow = permissions.canManageDocuments && animalIsActive;
   const canManageGalleryNow = permissions.canManageGallery && animalIsActive;
+  const quickActions = [
+    canManageHealthNow ? { label: 'Medikament', href: `/animals/${animal.id}/events/new?kind=medication`, drawer: true } : null,
+    canManageHealthNow ? { label: 'Impfung', href: `/animals/${animal.id}/events/new?kind=vaccination`, drawer: true } : null,
+    canManageHealthNow ? { label: 'Termin', href: `/animals/${animal.id}/events/new?kind=appointment`, drawer: true } : null,
+    canManageRemindersNow ? { label: 'Erinnerung', href: `/animals/${animal.id}/events/new?kind=reminder`, drawer: true } : null,
+    canManageDocumentsNow ? { label: 'Dokument', href: `/animals/${animal.id}/documents/new`, drawer: true } : null,
+    canManageGalleryNow ? { label: 'Foto', href: `/animals/${animal.id}/images/new`, drawer: true } : null,
+  ].filter(Boolean);
 %>
 
 <section class="card border-0 shadow-sm animal-hero-card">
@@ -150,6 +159,23 @@
   </div>
 </section>
 
+<% if (quickActions.length > 0) { %>
+  <section class="card border-0 shadow-sm mb-3">
+    <div class="card-body d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3">
+      <div>
+        <p class="eyebrow mb-1">Schnellzugriffe</p>
+        <h3 class="h6 mb-1">Häufige Einträge ohne Umweg</h3>
+        <p class="text-body-secondary mb-0">Direkt das hinzufügen, was im Alltag am häufigsten gebraucht wird.</p>
+      </div>
+      <div class="d-flex flex-wrap gap-2 animal-quick-actions">
+        <% quickActions.forEach((action) => { %>
+          <a href="<%= action.href %>" class="btn btn-outline-secondary btn-sm" <% if (action.drawer) { %>data-drawer="animal-entry"<% } %>><%= action.label %></a>
+        <% }) %>
+      </div>
+    </div>
+  </section>
+<% } %>
+
 <% if (!animalIsActive) { %>
   <section class="card border-0 shadow-sm mb-3">
     <div class="card-body d-grid gap-2">
@@ -183,6 +209,15 @@
       </div>
       <div class="col-lg-8">
         <div class="row g-2">
+          <div class="col-md-6">
+            <article class="card border bg-body-tertiary h-100">
+              <div class="card-body p-3 d-grid gap-1">
+                <span class="small text-body-secondary">Reminder-Stand</span>
+                <strong><%= reminderStatsState.open %> offen · <%= reminderStatsState.done %> erledigt</strong>
+                <small class="text-body-secondary"><%= reminderStatsState.overdue ? `${reminderStatsState.overdue} überfällig` : 'Keine überfälligen Erinnerungen' %></small>
+              </div>
+            </article>
+          </div>
           <% focusFacts.forEach((fact) => { %>
             <div class="col-md-6">
               <article class="card border bg-body-tertiary h-100">
@@ -553,9 +588,11 @@
                 <% if (medicationReminders.length > 0) { %>
                   <div class="inline-reminder-list">
                     <% medicationReminders.forEach((reminder) => { %>
+                      <% const reminderStatus = getReminderStatusMeta(reminder); %>
                       <div class="inline-reminder">
                         <span><%= formatDateTime(reminder.due_at) %></span>
-                        <span class="status-chip status-<%= reminder.last_delivery_status || 'pending' %>"><%= reminder.completed_at ? 'erledigt' : 'offen' %></span>
+                        <span class="status-chip status-<%= reminderStatus.tone %>"><%= reminderStatus.label %></span>
+                        <small class="text-body-secondary"><%= reminderStatus.detail %></small>
                         <% if (canManageRemindersNow) { %>
                           <% if (!reminder.completed_at) { %>
                             <form method="post" action="/reminders/<%= reminder.id %>/complete">
@@ -615,10 +652,12 @@
                   <% if (item.notes) { %><small><%= item.notes %></small><% } %>
                   <% if (vaccinationReminders.length > 0) { %>
                     <div class="inline-reminder-list">
-                      <% vaccinationReminders.forEach((reminder) => { %>
+                    <% vaccinationReminders.forEach((reminder) => { %>
+                        <% const reminderStatus = getReminderStatusMeta(reminder); %>
                         <div class="inline-reminder">
                           <span><%= formatDateTime(reminder.due_at) %></span>
-                          <span class="status-chip status-<%= reminder.last_delivery_status || 'pending' %>"><%= reminder.completed_at ? 'erledigt' : 'offen' %></span>
+                          <span class="status-chip status-<%= reminderStatus.tone %>"><%= reminderStatus.label %></span>
+                          <small class="text-body-secondary"><%= reminderStatus.detail %></small>
                           <% if (canManageRemindersNow) { %>
                             <% if (!reminder.completed_at) { %>
                               <form method="post" action="/reminders/<%= reminder.id %>/complete">
@@ -679,10 +718,12 @@
                   <% if (item.notes) { %><small><%= item.notes %></small><% } %>
                   <% if (appointmentReminders.length > 0) { %>
                     <div class="inline-reminder-list">
-                      <% appointmentReminders.forEach((reminder) => { %>
+                    <% appointmentReminders.forEach((reminder) => { %>
+                        <% const reminderStatus = getReminderStatusMeta(reminder); %>
                         <div class="inline-reminder">
                           <span><%= formatDateTime(reminder.due_at) %></span>
-                          <span class="status-chip status-<%= reminder.last_delivery_status || 'pending' %>"><%= reminder.completed_at ? 'erledigt' : 'offen' %></span>
+                          <span class="status-chip status-<%= reminderStatus.tone %>"><%= reminderStatus.label %></span>
+                          <small class="text-body-secondary"><%= reminderStatus.detail %></small>
                           <% if (canManageRemindersNow) { %>
                             <% if (!reminder.completed_at) { %>
                               <form method="post" action="/reminders/<%= reminder.id %>/complete">
@@ -754,6 +795,7 @@
             </div>
           <% } %>
           <% freeReminders.forEach((item) => { %>
+            <% const reminderStatus = getReminderStatusMeta(item); %>
             <div class="card border-0 bg-body-tertiary d-flex flex-column flex-lg-row justify-content-between gap-3">
                 <div class="card-body d-grid gap-1 p-3 flex-grow-1">
                   <% if (canManageRemindersNow) { %>
@@ -764,6 +806,7 @@
                   <% } %>
                   <strong><%= item.title %></strong>
                   <p><%= item.reminder_type %> | Fällig: <%= formatDateTime(item.due_at) %></p>
+                  <small class="text-body-secondary">Status: <%= reminderStatus.label %><%= reminderStatus.detail ? ` · ${reminderStatus.detail}` : '' %></small>
                   <% if (item.notes) { %><small><%= item.notes %></small><% } %>
                 </div>
                 <% if (canManageRemindersNow) { %>

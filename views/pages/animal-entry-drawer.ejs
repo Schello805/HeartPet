@@ -11,6 +11,9 @@
   const isDocument = entryType === 'document';
   const isImage = entryType === 'image';
   const defaultReturnTo = returnTo || `/animals/${animal.id}`;
+  const normalizedInitialEventKind = ['medication', 'vaccination', 'appointment', 'reminder'].includes(initialEventKind)
+    ? initialEventKind
+    : 'medication';
 %>
 
 <section class="drawer-fragment card border-0 bg-body-tertiary" data-drawer-fragment="animal-entry" data-drawer-title="<%= pageTitle %>">
@@ -55,12 +58,12 @@
                 <label class="form-label" for="event-kind">Typ</label>
                 <select class="form-select" id="event-kind" name="event_kind" required data-event-kind-select title="Wähle hier, was du erfassen möchtest. Das Formular passt sich danach an.">
                   <% if (permissions.canManageHealth) { %>
-                    <option value="medication">Medikament</option>
-                    <option value="vaccination">Impfung</option>
-                    <option value="appointment">Arzttermin</option>
+                    <option value="medication" <%= normalizedInitialEventKind === 'medication' ? 'selected' : '' %>>Medikament</option>
+                    <option value="vaccination" <%= normalizedInitialEventKind === 'vaccination' ? 'selected' : '' %>>Impfung</option>
+                    <option value="appointment" <%= normalizedInitialEventKind === 'appointment' ? 'selected' : '' %>>Arzttermin</option>
                   <% } %>
                   <% if (permissions.canManageReminders) { %>
-                    <option value="reminder">Freie Erinnerung</option>
+                    <option value="reminder" <%= normalizedInitialEventKind === 'reminder' ? 'selected' : '' %>>Freie Erinnerung</option>
                   <% } %>
                 </select>
               </div>
