@@ -1,4 +1,4 @@
-<%- include('../partials/top', { pageTitle }) %>
+<%- include('../partials/top', { pageTitle, pageClass: 'admin-page' }) %>
 
 <% const me = (typeof selfUser !== 'undefined' ? selfUser : null) || currentUser || {}; %>
 <% const managedUsers = (users || []).filter((user) => {
@@ -8,12 +8,12 @@
 }); %>
 
 <div class="vstack gap-3">
-  <section class="card border-0 bg-body-tertiary">
+  <section class="card border-0 bg-body-tertiary admin-intro-card">
     <div class="card-body d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
       <div>
         <p class="eyebrow mb-1">Benutzer</p>
         <h2 class="h4 mb-2">Zugänge klar trennen</h2>
-        <p class="text-body-secondary mb-0">Oben verwaltest du dein eigenes Konto. Darunter legst du weitere Nutzer an, vergibst Rollen und kannst Einladungen erneut senden.</p>
+        <p class="text-body-secondary mb-0">Eigenes Konto oben, weitere Nutzer darunter.</p>
       </div>
       <span class="status-chip status-muted"><%= managedUsers.length %> weitere Nutzer</span>
     </div>
@@ -21,14 +21,14 @@
 
   <div class="row g-3">
     <div class="col-12">
-      <section class="card border-0 bg-body-tertiary">
+      <section class="card border-0 bg-body-tertiary admin-section-card">
         <div class="card-body">
           <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3 mb-3">
             <div>
               <h3 class="h5 mb-1">Eigenes Konto</h3>
               <p class="text-body-secondary mb-0">Dieses Konto betrifft nur deinen eigenen Login, deine E-Mail-Adresse und dein Passwort.</p>
             </div>
-            <div class="card border bg-body">
+            <div class="card border bg-body form-section-card">
               <div class="card-body py-2 px-3">
                 <strong class="d-block"><%= me.name || 'Administrator' %></strong>
                 <small class="text-body-secondary"><%= me.email || '-' %> · <%= getRoleLabel(me.role || 'admin') %></small>
@@ -38,12 +38,12 @@
 
           <div class="row g-3">
             <div class="col-lg-6">
-              <section class="card border bg-body h-100">
+              <section class="card border bg-body h-100 form-section-card">
                 <div class="card-body">
                   <form method="post" action="/admin/profile" class="vstack gap-3">
                     <div>
                       <h4 class="h6 mb-2">Profildaten</h4>
-                      <p class="text-body-secondary mb-0">Eine geänderte E-Mail-Adresse wird erst nach Bestätigung aktiv.</p>
+                      <p class="text-body-secondary mb-0">Neue E-Mail gilt erst nach Bestätigung.</p>
                     </div>
                     <div class="row g-3">
                       <div class="col-12">
@@ -56,7 +56,7 @@
                       </div>
                     </div>
                     <div class="d-flex justify-content-end pt-2 border-top">
-                      <button type="submit" class="btn btn-outline-secondary">Profil speichern</button>
+                      <button type="submit" class="btn btn-primary">Profil speichern</button>
                     </div>
                   </form>
                 </div>
@@ -64,12 +64,12 @@
             </div>
 
             <div class="col-lg-6">
-              <section class="card border bg-body h-100">
+              <section class="card border bg-body h-100 form-section-card">
                 <div class="card-body">
                   <form method="post" action="/admin/password" class="vstack gap-3">
                     <div>
                       <h4 class="h6 mb-2">Passwort ändern</h4>
-                      <p class="text-body-secondary mb-0">Das neue Passwort gilt direkt für das nächste Login.</p>
+                      <p class="text-body-secondary mb-0">Gilt direkt für das nächste Login.</p>
                     </div>
                     <div class="row g-3">
                       <div class="col-12">
@@ -86,7 +86,7 @@
                       </div>
                     </div>
                     <div class="d-flex justify-content-end pt-2 border-top">
-                      <button type="submit" class="btn btn-success">Passwort aktualisieren</button>
+                      <button type="submit" class="btn btn-primary">Passwort aktualisieren</button>
                     </div>
                   </form>
                 </div>
@@ -98,24 +98,24 @@
     </div>
 
     <div class="col-12">
-      <section class="card border-0 bg-body-tertiary">
+      <section class="card border-0 bg-body-tertiary admin-section-card">
         <div class="card-body d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
           <div>
             <h3 class="h5 mb-1">Weitere Nutzer</h3>
-            <p class="text-body-secondary mb-0">Lege hier Zugänge für Familie, Mitarbeitende oder Helfer an. Rechte lassen sich jederzeit anpassen.</p>
+            <p class="text-body-secondary mb-0">Zugänge für Familie, Mitarbeitende oder Helfer.</p>
           </div>
-          <a href="/admin/users/new" class="btn btn-success" data-drawer="admin-user">Benutzer anlegen</a>
+          <a href="/admin/users/new" class="btn btn-primary" data-drawer="admin-user">Benutzer anlegen</a>
         </div>
       </section>
     </div>
 
     <div class="col-12">
-      <section class="card border-0 bg-body-tertiary">
+      <section class="card border-0 bg-body-tertiary admin-section-card">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
             <div>
               <h3 class="h5 mb-1">Bestehende Nutzer</h3>
-              <p class="text-body-secondary mb-0">Bearbeite Rollen, Rechte und Kontaktdaten direkt pro Karte.</p>
+              <p class="text-body-secondary mb-0">Rollen, Rechte und Kontaktdaten direkt pro Karte.</p>
             </div>
             <span class="badge text-bg-secondary"><%= managedUsers.length %></span>
           </div>

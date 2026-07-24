@@ -1,13 +1,13 @@
-<%- include('../partials/top', { pageTitle }) %>
+<%- include('../partials/top', { pageTitle, pageClass: 'admin-page' }) %>
 <% const defaultVetIdState = typeof defaultVeterinarianId !== 'undefined' && defaultVeterinarianId ? String(defaultVeterinarianId) : ''; %>
 
 <div class="vstack gap-3">
-  <section class="card border-0 bg-body-tertiary">
+  <section class="card border-0 bg-body-tertiary admin-intro-card">
     <div class="card-body d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
       <div>
         <p class="eyebrow mb-1">Stammdaten</p>
         <h2 class="h4 mb-2">Tierärzte, Tierarten und Kategorien</h2>
-        <p class="text-body-secondary mb-0">Diese Seite bündelt alle zentralen Listen ohne versteckte Ebenen, damit Pflege und Korrekturen schneller gehen.</p>
+        <p class="text-body-secondary mb-0">Zentrale Listen für Pflege, Zuordnung und Korrekturen.</p>
       </div>
       <div class="d-flex flex-wrap gap-2">
         <span class="badge text-bg-secondary">Kategorien <%= categories.length %></span>
@@ -17,15 +17,15 @@
     </div>
   </section>
 
-  <section class="card border-0 bg-body-tertiary">
+  <section class="card border-0 bg-body-tertiary admin-section-card">
     <div class="card-body vstack gap-3">
       <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
         <div>
           <p class="eyebrow mb-1">Schritt 1</p>
           <h3 class="h5 mb-1">Dokumentkategorien</h3>
-          <p class="text-body-secondary mb-0">Hier legst du fest, wie hochgeladene Unterlagen einsortiert werden. Pflichtkategorien helfen beim späteren Wiederfinden.</p>
+          <p class="text-body-secondary mb-0">Legt fest, wie Unterlagen einsortiert werden.</p>
         </div>
-        <a href="/admin/categories/new" class="btn btn-success" data-drawer="masterdata-form">Neue Kategorie</a>
+        <a href="/admin/categories/new" class="btn btn-primary" data-drawer="masterdata-form">Neue Kategorie</a>
       </div>
 
       <% if (!categories.length) { %>
@@ -60,15 +60,15 @@
     </div>
   </section>
 
-  <section class="card border-0 bg-body-tertiary">
+  <section class="card border-0 bg-body-tertiary admin-section-card">
     <div class="card-body vstack gap-3">
       <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
         <div>
           <p class="eyebrow mb-1">Schritt 2</p>
           <h3 class="h5 mb-1">Tierärzte</h3>
-          <p class="text-body-secondary mb-0">Tierärzte können global hinterlegt und später Tierarten oder einzelnen Tieren zugewiesen werden. Ein Standardtierarzt dient als Fallback.</p>
+          <p class="text-body-secondary mb-0">Global hinterlegt und später Tierarten oder Tieren zuweisbar.</p>
         </div>
-        <a href="/admin/veterinarians/new" class="btn btn-success" data-drawer="masterdata-form">Neuer Tierarzt</a>
+        <a href="/admin/veterinarians/new" class="btn btn-primary" data-drawer="masterdata-form">Neuer Tierarzt</a>
       </div>
 
       <% if (!veterinarians.length) { %>
@@ -114,15 +114,15 @@
     </div>
   </section>
 
-  <section class="card border-0 bg-body-tertiary">
+  <section class="card border-0 bg-body-tertiary admin-section-card">
     <div class="card-body vstack gap-3">
       <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
         <div>
           <p class="eyebrow mb-1">Schritt 3</p>
           <h3 class="h5 mb-1">Tierarten</h3>
-          <p class="text-body-secondary mb-0">Tierarten halten den Bestand sauber. Pro Art kann ein Standardtierarzt hinterlegt werden, der beim Anlegen neuer Tiere vorgeschlagen wird.</p>
+          <p class="text-body-secondary mb-0">Hält den Bestand sauber und kann Standardtierärzte vorbelegen.</p>
         </div>
-        <a href="/admin/species/new" class="btn btn-success" data-drawer="masterdata-form">Neue Tierart</a>
+        <a href="/admin/species/new" class="btn btn-primary" data-drawer="masterdata-form">Neue Tierart</a>
       </div>
 
       <% if (!species.length) { %>
