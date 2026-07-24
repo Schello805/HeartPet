@@ -700,14 +700,51 @@ body.bootstrap-app {
   color: var(--text-dim);
 }
 
+.bootstrap-app .nav-link-parent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.bootstrap-app .nav-chevron {
+  display: inline-grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  place-items: center;
+  border-radius: 999px;
+  color: currentColor;
+  background: rgba(61, 115, 141, 0.09);
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+.bootstrap-app .nav-link-parent.active .nav-chevron {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.bootstrap-app .nav-submenu {
+  margin-left: 0.85rem;
+  padding: 0.2rem 0 0.2rem 0.65rem;
+  border-left: 1px solid rgba(70, 118, 133, 0.18);
+}
+
+.bootstrap-app .nav-link-secondary {
+  font-size: 0.78rem;
+  font-style: italic;
+  padding-top: 0.42rem !important;
+  padding-bottom: 0.42rem !important;
+}
+
 .bootstrap-app .nav-species-list {
-  padding-left: 0.8rem;
-  margin-left: 0.8rem;
-  border-left: 1px solid rgba(70, 118, 133, 0.14);
+  padding-left: 0;
+  margin-left: 0;
 }
 
 .bootstrap-app .nav-link-species {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
+  padding-top: 0.42rem !important;
+  padding-bottom: 0.42rem !important;
 }
 
 .bootstrap-app .card {

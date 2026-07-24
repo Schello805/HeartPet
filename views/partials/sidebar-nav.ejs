@@ -7,9 +7,12 @@
     <p class="nav-section-label mb-0">Navigation</p>
     <div class="nav flex-column gap-2">
       <a class="nav-link rounded-2 px-3 py-2 <%= currentPath === '/' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/">Dashboard</a>
-      <div class="nav-group d-grid gap-1">
-        <div class="nav-group-title px-3 pt-2">Tiere</div>
-        <a class="nav-link rounded-2 px-3 py-2 <%= currentPath === '/animals' && !activeSpeciesId ? 'active fw-semibold' : 'text-body-secondary' %>" href="/animals">Meine Tiere</a>
+      <div class="nav-group nav-group-animals d-grid gap-1">
+        <a class="nav-link nav-link-parent rounded-2 px-3 py-2 <%= (currentPath || '').startsWith('/animals') && currentPath !== '/animals/historie' && currentPath !== '/animals/ruhestaette' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/animals">
+          <span>Tiere</span>
+          <span class="nav-chevron" aria-hidden="true">⌄</span>
+        </a>
+        <div class="nav-submenu d-grid gap-1">
         <% if (currentPath === '/animals' && animalMenu.length > 0) { %>
           <div class="nav-species-list d-grid gap-1 pt-1">
             <% animalMenu.forEach((item) => { %>
@@ -17,10 +20,10 @@
             <% }) %>
           </div>
         <% } %>
-        <a class="nav-link rounded-2 px-3 py-2 <%= currentPath === '/animals/historie' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/animals/historie">Historie</a>
-        <a class="nav-link rounded-2 px-3 py-2 <%= currentPath === '/animals/ruhestaette' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/animals/ruhestaette">Ruhestätte</a>
+          <a class="nav-link nav-link-secondary rounded-2 px-3 py-2 <%= currentPath === '/animals/historie' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/animals/historie">Historie</a>
+          <a class="nav-link nav-link-secondary rounded-2 px-3 py-2 <%= currentPath === '/animals/ruhestaette' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/animals/ruhestaette">Ruhestätte</a>
+        </div>
       </div>
-      <a class="nav-link rounded-2 px-3 py-2 <%= currentPath === '/hilfe' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/hilfe">Hilfe</a>
     </div>
   </section>
 
