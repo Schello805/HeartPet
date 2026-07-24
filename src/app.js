@@ -99,6 +99,7 @@ app.use((req, res, next) => {
   res.locals.getAnimalAge = getAnimalAge;
   res.locals.getAnimalInitial = getAnimalInitial;
   res.locals.getRoleLabel = getRoleLabel;
+  res.locals.getAnimalLifecycle = getAnimalLifecycle;
   res.locals.applyInfoPagePlaceholders = (content) => applyInfoPagePlaceholders(content, res.locals.appSettings);
   res.locals.permissions = buildPermissions(currentUserRecord || req.session.user);
   res.locals.editState = { type: "", id: null };
@@ -2816,7 +2817,7 @@ app.post("/admin/import", requireAdmin, importUpload.single("import_file"), (req
       animalData.intake_date || null,
       animalData.source || "",
       animalData.microchip_number || "",
-      animalData.status || "Aktiv",
+      normalizeAnimalStatus(animalData.status),
       animalData.color || "",
       animalData.breed || "",
       animalData.weight_kg || null,
@@ -2932,7 +2933,7 @@ app.post("/admin/import", requireAdmin, importUpload.single("import_file"), (req
             animal_id, title, reminder_type, due_at, channel_email, channel_telegram, repeat_interval_days, notes,
             completed_at, last_notified_at, last_delivery_status, last_delivery_error, source_kind, source_id, source_index
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
           animalId,
           item.title,
@@ -2955,6 +2956,10 @@ app.post("/admin/import", requireAdmin, importUpload.single("import_file"), (req
       importedMedicationIds.forEach((id) => syncMedicationReminders(animalId, id));
       importedVaccinationIds.forEach((id) => syncVaccinationReminders(animalId, id));
       importedAppointmentIds.forEach((id) => syncAppointmentReminders(animalId, id));
+
+      if (!isActiveAnimalStatus(animalData.status)) {
+        closeOpenRemindersForAnimal(animalId);
+      }
     });
 
     tx();
@@ -3503,7 +3508,7 @@ function normalizeAnimalPayload(body) {
     intake_date: body.intake_date || null,
     source: body.source || "",
     microchip_number: body.microchip_number || "",
-    status: body.status || "Aktiv",
+    status: normalizeAnimalStatus(body.status),
     color: body.color || "",
     breed: body.breed || "",
     weight_kg: body.weight_kg || null,
@@ -3703,8 +3708,39 @@ function getAnimalSectionConfig(section) {
   return sectionMap[section] || sectionMap.active;
 }
 
+function normalizeAnimalStatus(status) {
+  const allowedStatuses = ["Aktiv", "Vermittelt", "Verkauft", "Verstorben"];
+  const normalized = String(status || "").trim();
+  return allowedStatuses.includes(normalized) ? normalized : "Aktiv";
+}
+
+function getAnimalLifecycle(status) {
+  const normalizedStatus = normalizeAnimalStatus(status);
+  const isActive = normalizedStatus === "Aktiv";
+  const inHistory = normalizedStatus === "Vermittelt" || normalizedStatus === "Verkauft";
+  const inRestingPlace = normalizedStatus === "Verstorben";
+
+  return {
+    status: normalizedStatus,
+    isActive,
+    isArchived: !isActive,
+    inHistory,
+    inRestingPlace,
+    label: inRestingPlace
+      ? "Diese Akte ist in der Ruhestätte und wird nur noch dokumentiert."
+      : inHistory
+        ? "Diese Akte liegt in der Historie und ist nicht mehr Teil des aktiven Bestands."
+        : "Diese Akte ist aktiv.",
+    hint: inRestingPlace
+      ? "Neue Erinnerungen oder Alltags-Einträge sollten hier nicht mehr entstehen. Bestehende Informationen bleiben zur Erinnerung erhalten."
+      : inHistory
+        ? "Neue Alltags-Einträge und laufende Erinnerungen sind für historische Tiere standardmäßig beendet."
+        : "",
+  };
+}
+
 function isActiveAnimalStatus(status) {
-  return String(status || "").trim() === "Aktiv";
+  return getAnimalLifecycle(status).isActive;
 }
 
 function closeOpenRemindersForAnimal(animalId) {

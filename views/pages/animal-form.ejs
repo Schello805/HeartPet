@@ -50,6 +50,7 @@
                   <option value="<%= status %>" <%= (animal?.status || 'Aktiv') === status ? 'selected' : '' %>><%= status %></option>
                 <% }) %>
               </select>
+              <div class="form-text">Aktive Tiere erscheinen im Bestand. Vermittelte und verkaufte Tiere wechseln in die Historie. Verstorbene Tiere erscheinen ausschließlich in der Ruhestätte.</div>
             </div>
             <div class="col-md-6">
               <label class="form-label" for="animal-sex">Geschlecht</label>

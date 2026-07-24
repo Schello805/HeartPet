@@ -7,6 +7,7 @@ const { PassThrough } = require("node:stream");
 const request = require("supertest");
 const dayjs = require("dayjs");
 const nodemailer = require("nodemailer");
+const bcrypt = require("bcryptjs");
 
 const tempDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "heartpet-test-"));
 process.env.HEARTPET_DATA_DIR = tempDataDir;
@@ -52,6 +53,31 @@ function assertNoTemplateError(response, label) {
   assert.equal(response.status, 200, label);
   assert.doesNotMatch(response.text, /(ReferenceError|TypeError|SyntaxError):/i, label);
   assert.doesNotMatch(response.text, /Seite nicht gefunden\./i, `${label} sollte keine Not-Found-Seite rendern`);
+}
+
+function createUserWithPassword({ name, email, password, role = "viewer", permissions = {} }) {
+  const passwordHash = bcrypt.hashSync(password, 10);
+  return db.prepare(`
+    INSERT INTO users (
+      name, email, password_hash, role, must_change_password,
+      can_edit_animals, can_manage_documents, can_manage_gallery, can_manage_health,
+      can_manage_feedings, can_manage_notes, can_manage_reminders
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    name,
+    String(email || "").trim().toLowerCase(),
+    passwordHash,
+    role,
+    0,
+    permissions.can_edit_animals ? 1 : 0,
+    permissions.can_manage_documents ? 1 : 0,
+    permissions.can_manage_gallery ? 1 : 0,
+    permissions.can_manage_health ? 1 : 0,
+    permissions.can_manage_feedings ? 1 : 0,
+    permissions.can_manage_notes ? 1 : 0,
+    permissions.can_manage_reminders ? 1 : 0
+  ).lastInsertRowid;
 }
 
 test.after(() => {
@@ -192,10 +218,119 @@ test("Login führt mit return_to wieder direkt zur Tierakte zurück", async () =
 test("Importseite erklärt klar, was importiert wird und was nicht", async () => {
   const page = await agent.get("/admin/import");
   assert.equal(page.status, 200);
-  assert.match(page.text, /legt daraus immer eine <strong>neue Tierakte<\/strong> an/i);
-  assert.match(page.text, /Was exportiert und importiert werden kann/i);
+  assert.match(page.text, /legt daraus eine neue Akte an/i);
+  assert.match(page.text, /Was übernommen wird/i);
   assert.match(page.text, /Was bewusst nicht übernommen wird/i);
   assert.match(page.text, /PDF-Dateien oder andere Formate können nicht importiert werden/i);
+  assert.match(page.text, /Statuslogik beim Import/i);
+});
+
+test("Viewer darf Tiere ansehen, aber keine Bearbeitungsansichten öffnen", async () => {
+  const viewerAgent = request.agent(app);
+  const viewerEmail = `viewer-${Date.now()}@test.local`;
+  createUserWithPassword({
+    name: "Viewer",
+    email: viewerEmail,
+    password: "viewer123",
+    role: "viewer",
+  });
+
+  const login = await viewerAgent.post("/login").type("form").send({
+    email: viewerEmail,
+    password: "viewer123",
+  });
+  assert.equal(login.status, 302);
+
+  const animalPage = await viewerAgent.get("/animals/1");
+  assert.equal(animalPage.status, 200);
+
+  const editPage = await viewerAgent.get("/animals/1/edit");
+  assert.equal(editPage.status, 302);
+
+  const newAnimalPage = await viewerAgent.get("/animals/new");
+  assert.equal(newAnimalPage.status, 302);
+});
+
+test("Benutzer ohne Adminrechte kommt nicht in den Adminbereich", async () => {
+  const userAgent = request.agent(app);
+  const userEmail = `user-${Date.now()}@test.local`;
+  createUserWithPassword({
+    name: "Fachnutzer",
+    email: userEmail,
+    password: "user12345",
+    role: "user",
+    permissions: {
+      can_edit_animals: true,
+      can_manage_health: true,
+      can_manage_reminders: true,
+    },
+  });
+
+  const login = await userAgent.post("/login").type("form").send({
+    email: userEmail,
+    password: "user12345",
+  });
+  assert.equal(login.status, 302);
+
+  const adminPage = await userAgent.get("/admin/import");
+  assert.equal(adminPage.status, 302);
+  assert.equal(adminPage.headers.location, "/");
+});
+
+test("Import normalisiert unbekannte Statuswerte und schließt Erinnerungen bei inaktiven Tieren", async () => {
+  const invalidStatusPayload = {
+    animal: {
+      name: "Import Invalid",
+      species_name: "Katze",
+      status: "Irgendwas",
+    },
+    related: {
+      reminders: [],
+    },
+  };
+
+  const invalidImport = await agent
+    .post("/admin/import")
+    .attach("import_file", Buffer.from(JSON.stringify(invalidStatusPayload), "utf8"), { filename: "invalid-status.json", contentType: "application/json" });
+  assert.equal(invalidImport.status, 302);
+
+  const importedActive = db.prepare("SELECT status FROM animals WHERE name = ? ORDER BY id DESC LIMIT 1").get("Import Invalid");
+  assert.equal(importedActive?.status, "Aktiv");
+
+  const restingPayload = {
+    animal: {
+      name: "Import Ruhestätte",
+      species_name: "Katze",
+      status: "Verstorben",
+    },
+    related: {
+      reminders: [
+        {
+          title: "Offene Import-Erinnerung",
+          reminder_type: "Allgemein",
+          due_at: dayjs().add(1, "day").format("YYYY-MM-DDTHH:mm"),
+          channel_email: 1,
+          channel_telegram: 0,
+          repeat_interval_days: 0,
+          notes: "",
+          completed_at: null,
+          last_notified_at: null,
+          last_delivery_status: "pending",
+        },
+      ],
+    },
+  };
+
+  const restingImport = await agent
+    .post("/admin/import")
+    .attach("import_file", Buffer.from(JSON.stringify(restingPayload), "utf8"), { filename: "resting.json", contentType: "application/json" });
+  assert.equal(restingImport.status, 302);
+
+  const importedResting = db.prepare("SELECT id, status FROM animals WHERE name = ? ORDER BY id DESC LIMIT 1").get("Import Ruhestätte");
+  assert.equal(importedResting?.status, "Verstorben");
+  const importedReminder = db.prepare("SELECT completed_at, last_delivery_status FROM reminders WHERE animal_id = ? AND title = ?").get(importedResting.id, "Offene Import-Erinnerung");
+  assert.ok(importedReminder?.completed_at);
+  assert.ok(["closed", "archived"].includes(importedReminder?.last_delivery_status));
 });
 
 test("Öffentliche Hilfeseite enthält indexierbare SEO-Metadaten", async () => {

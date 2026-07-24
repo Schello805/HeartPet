@@ -97,6 +97,29 @@ const locals = {
     };
     return labels[value] || value;
   },
+  getAnimalLifecycle(status) {
+    const allowedStatuses = ["Aktiv", "Vermittelt", "Verkauft", "Verstorben"];
+    const normalizedStatus = allowedStatuses.includes(String(status || "").trim()) ? String(status || "").trim() : "Aktiv";
+    const inHistory = normalizedStatus === "Vermittelt" || normalizedStatus === "Verkauft";
+    const inRestingPlace = normalizedStatus === "Verstorben";
+    return {
+      status: normalizedStatus,
+      isActive: normalizedStatus === "Aktiv",
+      isArchived: normalizedStatus !== "Aktiv",
+      inHistory,
+      inRestingPlace,
+      label: inRestingPlace
+        ? "Diese Akte ist in der Ruhestätte und wird nur noch dokumentiert."
+        : inHistory
+          ? "Diese Akte liegt in der Historie und ist nicht mehr Teil des aktiven Bestands."
+          : "Diese Akte ist aktiv.",
+      hint: inRestingPlace
+        ? "Neue Erinnerungen oder Alltags-Einträge sollten hier nicht mehr entstehen. Bestehende Informationen bleiben zur Erinnerung erhalten."
+        : inHistory
+          ? "Neue Alltags-Einträge und laufende Erinnerungen sind für historische Tiere standardmäßig beendet."
+          : "",
+    };
+  },
 };
 
 ejs.renderFile(path.join(process.cwd(), "views", "pages", "animal-show.ejs"), locals, {}, (error, html) => {

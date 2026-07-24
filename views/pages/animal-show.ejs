@@ -32,12 +32,20 @@
   if (!focusFacts.length) {
     focusFacts.push('Akte ist aktuell gut gepflegt');
   }
+  const lifecycle = getAnimalLifecycle(animal.status);
+  const animalIsActive = lifecycle.isActive;
+  const canManageFeedingsNow = permissions.canManageFeedings && animalIsActive;
+  const canManageNotesNow = permissions.canManageNotes && animalIsActive;
+  const canManageHealthNow = permissions.canManageHealth && animalIsActive;
+  const canManageRemindersNow = permissions.canManageReminders && animalIsActive;
+  const canManageDocumentsNow = permissions.canManageDocuments && animalIsActive;
+  const canManageGalleryNow = permissions.canManageGallery && animalIsActive;
 %>
 
 <section class="card border-0 shadow-sm animal-hero-card">
   <div class="animal-hero-profile">
     <div class="profile-image-panel">
-      <% if (permissions.canManageGallery) { %>
+      <% if (canManageGalleryNow) { %>
         <form method="post" action="/animals/<%= animal.id %>/profile-image" enctype="multipart/form-data" class="profile-image-inline-form">
           <input id="profile-upload-<%= animal.id %>" class="visually-hidden profile-upload-input" type="file" name="profile_image" accept="image/*" required />
           <label for="profile-upload-<%= animal.id %>" class="profile-image-frame profile-upload-surface" aria-label="<%= animal.profile_image_stored_name ? 'Profilbild ändern' : 'Profilbild hochladen' %>" title="<%= animal.profile_image_stored_name ? 'Profilbild ändern' : 'Profilbild hochladen' %>" tabindex="0">
@@ -116,6 +124,21 @@
     </div>
   </div>
 </section>
+
+<% if (!animalIsActive) { %>
+  <section class="card border-0 shadow-sm mb-3">
+    <div class="card-body d-grid gap-2">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <div>
+          <p class="eyebrow mb-1"><%= lifecycle.inRestingPlace ? 'Ruhestätte' : 'Historie' %></p>
+          <h3 class="h5 mb-1"><%= lifecycle.label %></h3>
+          <p class="text-body-secondary mb-0"><%= lifecycle.hint %></p>
+        </div>
+        <span class="status-chip <%= lifecycle.inRestingPlace ? 'status-muted' : 'status-warning' %>"><%= lifecycle.status %></span>
+      </div>
+    </div>
+  </section>
+<% } %>
 
 <% if (permissions.canEditAnimals) { %>
   <form method="post" action="/animals/<%= animal.id %>/delete" id="animal-delete-<%= animal.id %>" class="hidden-form" data-confirm="Tier wirklich endgültig löschen? Alle Einträge, Dokumente, Bilder und Erinnerungen werden gelöscht.">
@@ -312,7 +335,7 @@
           <div class="accordion-body d-grid gap-2">
           <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-2">
             <p class="small text-body-secondary mb-0">Zeiten, Futter und Mengen an einem Ort.</p>
-            <% if (permissions.canManageFeedings) { %>
+            <% if (canManageFeedingsNow) { %>
               <a href="/animals/<%= animal.id %>/feedings/new" class="btn btn-outline-secondary btn-sm" data-drawer="animal-entry">Fütterung anlegen</a>
             <% } %>
           </div>
@@ -323,7 +346,7 @@
                 <p><%= item.time_of_day || '-' %> | <%= item.food || '-' %> | <%= item.amount || '-' %></p>
                 <% if (item.notes) { %><small><%= item.notes %></small><% } %>
               </div>
-              <% if (permissions.canManageFeedings) { %>
+              <% if (canManageFeedingsNow) { %>
                 <div class="inline-actions">
                   <a href="/animals/<%= animal.id %>/feedings/<%= item.id %>/edit" class="btn btn-outline-secondary btn-sm icon-button" aria-label="Fütterung bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
                     <span aria-hidden="true">✎</span>
@@ -356,7 +379,7 @@
           <div class="accordion-body d-grid gap-2">
           <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-2">
             <p class="small text-body-secondary mb-0">Kurze Einträge für Verlauf, Beobachtungen und Nachweise.</p>
-            <% if (permissions.canManageNotes) { %>
+            <% if (canManageNotesNow) { %>
               <a href="/animals/<%= animal.id %>/notes/new" class="btn btn-outline-secondary btn-sm" data-drawer="animal-entry">Protokoll anlegen</a>
             <% } %>
           </div>
@@ -367,7 +390,7 @@
                 <p><%= item.content %></p>
                 <small><%= formatDateTime(item.created_at) %></small>
               </div>
-              <% if (permissions.canManageNotes) { %>
+              <% if (canManageNotesNow) { %>
                 <div class="inline-actions">
                   <a href="/animals/<%= animal.id %>/notes/<%= item.id %>/edit" class="btn btn-outline-secondary btn-sm icon-button" aria-label="Protokoll bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
                     <span aria-hidden="true">✎</span>
@@ -394,6 +417,7 @@
     </div>
   </section>
 
+  <% if (animalIsActive) { %>
   <section class="accordion-item" id="animal-neu">
     <h2 class="accordion-header" id="animal-neu-heading">
       <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#animal-neu-body" aria-expanded="false" aria-controls="animal-neu-body">
@@ -427,6 +451,7 @@
       </div>
     </div>
   </section>
+  <% } %>
 
   <section class="accordion-item" id="animal-medizin">
     <h2 class="accordion-header" id="animal-medizin-heading">
@@ -448,7 +473,7 @@
           <div class="accordion-body d-grid gap-2">
           <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-2">
             <p class="small text-body-secondary mb-0">Dauerhafte oder bekannte Vorerkrankungen mit kurzem Kontext.</p>
-            <% if (permissions.canManageHealth) { %>
+            <% if (canManageHealthNow) { %>
               <a href="/animals/<%= animal.id %>/conditions/new" class="btn btn-outline-secondary btn-sm" data-drawer="animal-entry">Vorerkrankung anlegen</a>
             <% } %>
           </div>
@@ -458,7 +483,7 @@
                 <strong><%= item.title %></strong>
                 <p><%= item.details || 'Keine Details' %></p>
               </div>
-              <% if (permissions.canManageHealth) { %>
+              <% if (canManageHealthNow) { %>
                 <div class="inline-actions">
                   <a href="/animals/<%= animal.id %>/conditions/<%= item.id %>/edit" class="btn btn-outline-secondary btn-sm icon-button" aria-label="Vorerkrankung bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
                     <span aria-hidden="true">✎</span>
@@ -506,7 +531,7 @@
                       <div class="inline-reminder">
                         <span><%= formatDateTime(reminder.due_at) %></span>
                         <span class="status-chip status-<%= reminder.last_delivery_status || 'pending' %>"><%= reminder.completed_at ? 'erledigt' : 'offen' %></span>
-                        <% if (permissions.canManageReminders) { %>
+                        <% if (canManageRemindersNow) { %>
                           <% if (!reminder.completed_at) { %>
                             <form method="post" action="/reminders/<%= reminder.id %>/complete">
                               <button type="submit" class="btn btn-outline-secondary btn-sm">Erledigt</button>
@@ -522,7 +547,7 @@
                   </div>
                 <% } %>
               </div>
-              <% if (permissions.canManageHealth) { %>
+              <% if (canManageHealthNow) { %>
                 <div class="inline-actions">
                   <a href="/animals/<%= animal.id %>/medications/<%= item.id %>/edit" class="btn btn-outline-secondary btn-sm icon-button" aria-label="Medikament bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
                     <span aria-hidden="true">✎</span>
@@ -569,7 +594,7 @@
                         <div class="inline-reminder">
                           <span><%= formatDateTime(reminder.due_at) %></span>
                           <span class="status-chip status-<%= reminder.last_delivery_status || 'pending' %>"><%= reminder.completed_at ? 'erledigt' : 'offen' %></span>
-                          <% if (permissions.canManageReminders) { %>
+                          <% if (canManageRemindersNow) { %>
                             <% if (!reminder.completed_at) { %>
                               <form method="post" action="/reminders/<%= reminder.id %>/complete">
                                 <button type="submit" class="btn btn-outline-secondary btn-sm">Erledigt</button>
@@ -585,7 +610,7 @@
                     </div>
                   <% } %>
                 </div>
-                <% if (permissions.canManageHealth) { %>
+                <% if (canManageHealthNow) { %>
                   <div class="inline-actions">
                     <a href="/animals/<%= animal.id %>/vaccinations/<%= item.id %>/edit" class="btn btn-outline-secondary btn-sm icon-button" aria-label="Impfung bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
                       <span aria-hidden="true">✎</span>
@@ -633,7 +658,7 @@
                         <div class="inline-reminder">
                           <span><%= formatDateTime(reminder.due_at) %></span>
                           <span class="status-chip status-<%= reminder.last_delivery_status || 'pending' %>"><%= reminder.completed_at ? 'erledigt' : 'offen' %></span>
-                          <% if (permissions.canManageReminders) { %>
+                          <% if (canManageRemindersNow) { %>
                             <% if (!reminder.completed_at) { %>
                               <form method="post" action="/reminders/<%= reminder.id %>/complete">
                                 <button type="submit" class="btn btn-outline-secondary btn-sm">Erledigt</button>
@@ -649,7 +674,7 @@
                     </div>
                   <% } %>
                 </div>
-                <% if (permissions.canManageHealth) { %>
+                <% if (canManageHealthNow) { %>
                   <div class="inline-actions">
                     <a href="/animals/<%= animal.id %>/appointments/<%= item.id %>/edit" class="btn btn-outline-secondary btn-sm icon-button" aria-label="Arzttermin bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
                       <span aria-hidden="true">✎</span>
@@ -683,7 +708,7 @@
           <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-2">
             <p class="small text-body-secondary mb-0">Unabhängige Erinnerungen, die nicht an ein medizinisches Ereignis gebunden sind.</p>
           </div>
-          <% if (permissions.canManageReminders && freeReminders.length > 0) { %>
+          <% if (canManageRemindersNow && freeReminders.length > 0) { %>
             <div class="card border-0 bg-body-tertiary">
               <div class="card-body p-3 d-grid gap-2">
               <div class="row g-2 align-items-end">
@@ -706,7 +731,7 @@
           <% freeReminders.forEach((item) => { %>
             <div class="card border-0 bg-body-tertiary d-flex flex-column flex-lg-row justify-content-between gap-3">
                 <div class="card-body d-grid gap-1 p-3 flex-grow-1">
-                  <% if (permissions.canManageReminders) { %>
+                  <% if (canManageRemindersNow) { %>
                     <label class="checkbox-line">
                       <input type="checkbox" name="reminder_ids" value="<%= item.id %>" form="bulk-reminders-<%= animal.id %>" />
                       <span>Auswählen</span>
@@ -716,7 +741,7 @@
                   <p><%= item.reminder_type %> | Fällig: <%= formatDateTime(item.due_at) %></p>
                   <% if (item.notes) { %><small><%= item.notes %></small><% } %>
                 </div>
-                <% if (permissions.canManageReminders) { %>
+                <% if (canManageRemindersNow) { %>
                   <div class="inline-actions">
                     <% if (!item.completed_at) { %>
                       <form method="post" action="/reminders/<%= item.id %>/complete">
@@ -741,7 +766,7 @@
                 <% } %>
             </div>
           <% }) %>
-          <% if (permissions.canManageReminders && freeReminders.length > 0) { %>
+          <% if (canManageRemindersNow && freeReminders.length > 0) { %>
             <form id="bulk-reminders-<%= animal.id %>" method="post" action="/animals/<%= animal.id %>/reminders/bulk" class="hidden-form" data-confirm="Ausgewählte Erinnerungen wirklich ändern?"></form>
           <% } %>
           <% if (freeReminders.length === 0) { %>
@@ -804,7 +829,7 @@
           <div class="detail-card-stack">
             <div class="detail-card-head d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-2">
               <p class="small text-body-secondary mb-0">Galerie, Profilbild und visuelle Dokumentation.</p>
-              <% if (permissions.canManageGallery) { %>
+              <% if (canManageGalleryNow) { %>
                 <a href="/animals/<%= animal.id %>/images/new" class="btn btn-outline-secondary btn-sm" data-drawer="animal-entry">Foto hochladen</a>
               <% } %>
             </div>
@@ -821,7 +846,7 @@
                       <strong><%= item.title || 'Bild' %></strong>
                       <small><%= formatDateTime(item.created_at) %></small>
                     </div>
-                    <% if (permissions.canManageGallery) { %>
+                    <% if (canManageGalleryNow) { %>
                       <div class="inline-actions">
                         <form method="post" action="/animals/<%= animal.id %>/images/<%= item.id %>/set-profile">
                           <button type="submit" class="btn btn-outline-secondary btn-sm">Als Profilbild</button>
@@ -861,7 +886,7 @@
             <div class="detail-card-head d-flex flex-column gap-3">
               <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-2">
                 <p class="small text-body-secondary mb-0">Impfnachweise, Verträge und weitere Unterlagen mit Filter.</p>
-                <% if (permissions.canManageDocuments) { %>
+                <% if (canManageDocumentsNow) { %>
                   <a href="/animals/<%= animal.id %>/documents/new" class="btn btn-outline-secondary" data-drawer="animal-entry">Dokument hochladen</a>
                 <% } %>
               </div>
@@ -902,7 +927,7 @@
                       <% } %>
                       <small><%= formatDateTime(item.uploaded_at) %></small>
                     </a>
-                    <% if (permissions.canManageDocuments) { %>
+                    <% if (canManageDocumentsNow) { %>
                       <div class="inline-actions">
                         <a href="/animals/<%= animal.id %>/documents/<%= item.id %>/edit" class="btn btn-outline-secondary btn-sm icon-button" aria-label="Dokument bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
                           <span aria-hidden="true">✎</span>
