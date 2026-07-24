@@ -15,6 +15,31 @@
   const hasVeterinarianContact = Boolean(activeVeterinarianName && (activeVeterinarianAddress || activeVeterinarianEmail || activeVeterinarianPhone));
 %>
 <% 
+  const resolveAnimalLifecycle = typeof getAnimalLifecycle === 'function'
+    ? getAnimalLifecycle
+    : (status) => {
+        const allowedStatuses = ['Aktiv', 'Vermittelt', 'Verkauft', 'Verstorben'];
+        const normalizedStatus = allowedStatuses.includes(String(status || '').trim()) ? String(status || '').trim() : 'Aktiv';
+        const inHistory = normalizedStatus === 'Vermittelt' || normalizedStatus === 'Verkauft';
+        const inRestingPlace = normalizedStatus === 'Verstorben';
+        return {
+          status: normalizedStatus,
+          isActive: normalizedStatus === 'Aktiv',
+          isArchived: normalizedStatus !== 'Aktiv',
+          inHistory,
+          inRestingPlace,
+          label: inRestingPlace
+            ? 'Diese Akte ist in der Ruhestätte und wird nur noch dokumentiert.'
+            : inHistory
+              ? 'Diese Akte liegt in der Historie und ist nicht mehr Teil des aktiven Bestands.'
+              : 'Diese Akte ist aktiv.',
+          hint: inRestingPlace
+            ? 'Neue Erinnerungen oder Alltags-Einträge sollten hier nicht mehr entstehen. Bestehende Informationen bleiben zur Erinnerung erhalten.'
+            : inHistory
+              ? 'Neue Alltags-Einträge und laufende Erinnerungen sind für historische Tiere standardmäßig beendet.'
+              : '',
+        };
+      };
   const openReminderCount = reminderBuckets.overdue.length + reminderBuckets.open.length;
   const nextFocusLabel = related.vaccinations[0]
     ? `Impfung: ${related.vaccinations[0].name}`
@@ -32,7 +57,7 @@
   if (!focusFacts.length) {
     focusFacts.push('Akte ist aktuell gut gepflegt');
   }
-  const lifecycle = getAnimalLifecycle(animal.status);
+  const lifecycle = resolveAnimalLifecycle(animal.status);
   const animalIsActive = lifecycle.isActive;
   const canManageFeedingsNow = permissions.canManageFeedings && animalIsActive;
   const canManageNotesNow = permissions.canManageNotes && animalIsActive;
