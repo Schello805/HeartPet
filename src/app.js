@@ -757,7 +757,7 @@ function renderAnimalsWorkspace(req, res, section = "active") {
   const animals = sortedAnimals.slice(startIndex, startIndex + pageSize);
   const selectedAnimal = selectedAnimalId
     ? animals.find((item) => String(item.id) === String(selectedAnimalId)) || sortedAnimals.find((item) => String(item.id) === String(selectedAnimalId)) || null
-    : animals[0] || null;
+    : null;
 
   res.render("pages/animals-index", {
     pageTitle: sectionConfig.pageTitle,

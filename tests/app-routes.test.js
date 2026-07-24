@@ -1111,6 +1111,16 @@ test("Tiere-Arbeitsansicht zeigt Liste und ausgewählte Akte", async () => {
   assert.doesNotMatch(response.text, /Administration/);
 });
 
+test("Tiere-Arbeitsansicht öffnet ohne animal_id keine Akte automatisch", async () => {
+  await ensureSetupComplete();
+  const response = await agent.get("/animals");
+  assert.equal(response.status, 200);
+  assert.match(response.text, /Tierliste ausblenden/);
+  assert.match(response.text, /id="animals-list-collapse"/);
+  assert.match(response.text, /Noch kein Tier ausgewählt/);
+  assert.doesNotMatch(response.text, /Tierliste anzeigen/);
+});
+
 test("Tiere-Arbeitsansicht kann die rechte Akte separat laden", async () => {
   const response = await agent.get("/animals/1/workspace-panel").query({ animal_id: "1" });
   assert.equal(response.status, 200);
