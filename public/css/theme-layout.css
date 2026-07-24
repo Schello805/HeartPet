@@ -1304,6 +1304,63 @@ small {
   transform: translateY(-1px);
 }
 
+.bootstrap-app .semantic-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.bootstrap-app .semantic-card::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  content: "";
+}
+
+.bootstrap-app .semantic-card--ok {
+  background:
+    linear-gradient(90deg, rgba(22, 163, 74, 0.13), transparent 44%),
+    var(--bs-card-bg);
+  border-color: rgba(22, 163, 74, 0.26) !important;
+}
+
+.bootstrap-app .semantic-card--ok::before {
+  background: #16a34a;
+}
+
+.bootstrap-app .semantic-card--danger {
+  background:
+    linear-gradient(90deg, rgba(220, 38, 38, 0.14), transparent 44%),
+    var(--bs-card-bg);
+  border-color: rgba(220, 38, 38, 0.3) !important;
+}
+
+.bootstrap-app .semantic-card--danger::before {
+  background: #dc2626;
+}
+
+.bootstrap-app .semantic-card--warning {
+  background:
+    linear-gradient(90deg, rgba(245, 158, 11, 0.16), transparent 44%),
+    var(--bs-card-bg);
+  border-color: rgba(245, 158, 11, 0.34) !important;
+}
+
+.bootstrap-app .semantic-card--warning::before {
+  background: #f59e0b;
+}
+
+.bootstrap-app .semantic-card--ok strong {
+  color: #166534;
+}
+
+.bootstrap-app .semantic-card--danger strong {
+  color: #991b1b;
+}
+
+.bootstrap-app .semantic-card--warning strong {
+  color: #92400e;
+}
+
 .bootstrap-app .animal-priority-grid .card-body,
 .bootstrap-app .dashboard-health-grid .card-body {
   gap: 0.3rem;
