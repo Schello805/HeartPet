@@ -616,6 +616,7 @@ function initAnimalStatusWorkflow(scope = document) {
     const confirmWrap = workflow.querySelector("[data-status-confirm-wrap]");
     const confirmInput = workflow.querySelector("[data-status-confirm-input]");
     const confirmLabel = workflow.querySelector("[data-status-confirm-label]");
+    const detailWrap = workflow.querySelector("[data-status-detail-wrap]");
     const originalStatus = String(workflow.getAttribute("data-original-status") || "Aktiv").trim();
     const confirmLabels = {
       Vermittelt: "Ich bestätige, dass dieses Tier als vermittelt in die Historie wechseln soll.",
@@ -627,6 +628,11 @@ function initAnimalStatusWorkflow(scope = document) {
       Vermittelt: "status-warning",
       Verkauft: "status-warning",
       Verstorben: "status-muted",
+    };
+    const detailRequirements = {
+      Vermittelt: { nameRequired: true, dateRequired: true },
+      Verkauft: { nameRequired: true, dateRequired: true },
+      Verstorben: { nameRequired: false, dateRequired: true },
     };
 
     const updateStatusWorkflow = () => {
@@ -657,6 +663,25 @@ function initAnimalStatusWorkflow(scope = document) {
 
       if (confirmLabel) {
         confirmLabel.textContent = confirmLabels[selectedStatus] || "";
+      }
+
+      if (detailWrap) {
+        const showDetails = selectedStatus !== "Aktiv";
+        detailWrap.classList.toggle("d-none", !showDetails);
+        detailWrap.querySelectorAll("[data-status-detail-panel]").forEach((panel) => {
+          const panelStatus = panel.getAttribute("data-status-detail-panel");
+          const active = panelStatus === selectedStatus;
+          panel.classList.toggle("d-none", !active);
+          const requirements = detailRequirements[selectedStatus] || { nameRequired: false, dateRequired: false };
+          const nameInput = panel.querySelector("[data-status-detail-name]");
+          const dateInput = panel.querySelector("[data-status-detail-date]");
+          if (nameInput) {
+            nameInput.required = active && requirements.nameRequired;
+          }
+          if (dateInput) {
+            dateInput.required = active && requirements.dateRequired;
+          }
+        });
       }
     };
 

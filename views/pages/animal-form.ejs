@@ -43,6 +43,40 @@
       confirmLabel: 'Ich bestätige, dass dieses Tier als verstorben in die Ruhestätte wechseln soll.',
     },
   };
+  const currentTransitionConfig = {
+    Aktiv: {
+      nameLabel: '',
+      nameRequired: false,
+      dateLabel: '',
+      dateRequired: false,
+      noteLabel: '',
+      helper: '',
+    },
+    Vermittelt: {
+      nameLabel: 'Vermittelt an',
+      nameRequired: true,
+      dateLabel: 'Vermittelt am',
+      dateRequired: true,
+      noteLabel: 'Übergabehinweis',
+      helper: 'Halte fest, an wen das Tier vermittelt wurde und wann die Übergabe stattgefunden hat.',
+    },
+    Verkauft: {
+      nameLabel: 'Verkauft an',
+      nameRequired: true,
+      dateLabel: 'Verkauft am',
+      dateRequired: true,
+      noteLabel: 'Verkaufshinweis',
+      helper: 'Halte Käufer und Verkaufsdatum fest, damit die Historie nachvollziehbar bleibt.',
+    },
+    Verstorben: {
+      nameLabel: 'Ort / Zusammenhang',
+      nameRequired: false,
+      dateLabel: 'Abschied am',
+      dateRequired: true,
+      noteLabel: 'Erinnerungsnotiz',
+      helper: 'Ein stiller Eintrag für Abschiedsdatum und eine würdige Erinnerung.',
+    },
+  };
 %>
 
 <section class="drawer-fragment card border-0 bg-body-tertiary" data-drawer-fragment="animal-form" data-drawer-title="<%= animal ? 'Tier bearbeiten' : 'Neues Tier anlegen' %>">
@@ -156,6 +190,51 @@
               </label>
             </div>
           </div>
+
+          <section class="<%= currentStatus === 'Aktiv' ? 'd-none' : '' %> card border bg-body" data-status-detail-wrap>
+            <div class="card-body">
+              <% Object.entries(currentTransitionConfig).forEach(([statusName, config]) => { %>
+                <div class="<%= currentStatus === statusName ? '' : 'd-none' %>" data-status-detail-panel="<%= statusName %>">
+                  <% if (statusName !== 'Aktiv') { %>
+                    <div class="mb-3">
+                      <strong class="d-block mb-1">Abschluss dokumentieren</strong>
+                      <p class="text-body-secondary mb-0"><%= config.helper %></p>
+                    </div>
+                    <div class="row g-3">
+                      <div class="col-md-6 <%= config.nameLabel ? '' : 'd-none' %>">
+                        <label class="form-label" for="status-context-name"><%= config.nameLabel || 'Details' %></label>
+                        <input
+                          class="form-control"
+                          id="status-context-name"
+                          type="text"
+                          name="status_context_name"
+                          value="<%= animal?.status_context_name || '' %>"
+                          data-status-detail-name
+                          <%= currentStatus === statusName && config.nameRequired ? 'required' : '' %>
+                        />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label" for="status-context-date"><%= config.dateLabel || 'Datum' %></label>
+                        <input
+                          class="form-control"
+                          id="status-context-date"
+                          type="date"
+                          name="status_context_date"
+                          value="<%= animal?.status_context_date || '' %>"
+                          data-status-detail-date
+                          <%= currentStatus === statusName && config.dateRequired ? 'required' : '' %>
+                        />
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label" for="memorial-note"><%= config.noteLabel || 'Notiz' %></label>
+                        <textarea class="form-control" id="memorial-note" name="memorial_note" rows="4" data-status-detail-note><%= animal?.memorial_note || '' %></textarea>
+                      </div>
+                    </div>
+                  <% } %>
+                </div>
+              <% }) %>
+            </div>
+          </section>
         </div>
       </section>
 

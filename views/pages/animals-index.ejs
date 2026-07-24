@@ -19,8 +19,8 @@
       <div class="card border bg-body-tertiary-subtle">
         <div class="card-body p-4">
           <h3 class="h5 mb-2">Noch keine Einträge</h3>
-          <p class="text-body-secondary mb-1">Hier sind noch keine Tiere eingetragen.</p>
-          <div class="small text-body-secondary">Wenn ein Tier als verstorben markiert wird, bleibt seine Akte hier in einer ruhigeren, stilleren Ansicht erhalten.</div>
+          <p class="text-body-secondary mb-1">Aktuell wurde noch kein Tier in die Ruhestätte übernommen.</p>
+          <div class="small text-body-secondary">Sobald ein Tier als verstorben markiert wird, erscheint seine Akte hier getrennt vom aktiven Bestand in einer stilleren Ansicht.</div>
         </div>
       </div>
     <% } else { %>
@@ -39,16 +39,16 @@
                 <p class="text-body-secondary mb-3"><%= animal.species_name || 'Tier' %><%= animal.breed ? ` · ${animal.breed}` : '' %></p>
                 <div class="row g-3 small">
                   <div class="col-6">
-                    <div class="text-body-secondary">Geboren</div>
-                    <div class="fw-semibold"><%= formatDate(animal.birth_date) %></div>
+                    <div class="text-body-secondary"><%= animal.status_context_date ? 'Abschied' : 'Geboren' %></div>
+                    <div class="fw-semibold"><%= animal.status_context_date ? formatDate(animal.status_context_date) : formatDate(animal.birth_date) %></div>
                   </div>
                   <div class="col-6">
-                    <div class="text-body-secondary">Bei dir seit</div>
-                    <div class="fw-semibold"><%= formatDate(animal.intake_date) %></div>
+                    <div class="text-body-secondary"><%= animal.status_context_name ? 'Ort / Zusammenhang' : 'Bei dir seit' %></div>
+                    <div class="fw-semibold"><%= animal.status_context_name || formatDate(animal.intake_date) %></div>
                   </div>
                 </div>
-                <% if (animal.notes) { %>
-                  <p class="mt-3 mb-0 small text-body-secondary"><%= animal.notes %></p>
+                <% if (animal.memorial_note || animal.notes) { %>
+                  <p class="mt-3 mb-0 small text-body-secondary"><%= animal.memorial_note || animal.notes %></p>
                 <% } %>
               </div>
             </a>
@@ -157,16 +157,12 @@
               <h3 class="h6 mb-2">
                 <%= sectionState.key === 'history'
                   ? 'Noch keine historischen Einträge'
-                  : sectionState.key === 'resting'
-                    ? 'Noch keine Tiere in der Ruhestätte'
-                    : 'Noch kein aktiver Bestand' %>
+                  : 'Noch kein aktiver Bestand' %>
               </h3>
               <p class="text-body-secondary mb-0">
                 <%= sectionState.key === 'history'
                   ? 'Sobald Tiere als vermittelt oder verkauft markiert werden, erscheinen sie hier gesammelt in der Historie.'
-                  : sectionState.key === 'resting'
-                    ? 'Noch keine Tiere in der Ruhestätte vorhanden.'
-                    : 'Noch keine aktiven Tiere vorhanden. Lege dein erstes Tier über „Neues Tier“ an.' %>
+                  : 'Noch keine aktiven Tiere vorhanden. Lege dein erstes Tier über „Neues Tier“ an.' %>
               </p>
             </div>
           </div>
@@ -197,13 +193,24 @@
                     <div>
                       <div class="fw-semibold"><%= animal.name %></div>
                       <div class="small text-body-secondary"><%= animal.species_name || '-' %><%= animal.breed ? ` · ${animal.breed}` : '' %></div>
-                      <% if (animal.next_term) { %>
-                        <div class="small text-body-secondary mt-1">Nächster Fokus: <%= animal.next_term.displayLabel %></div>
-                      <% } %>
+                      <div class="d-flex flex-wrap gap-2 mt-1">
+                        <% if (animal.overdueReminderCount > 0) { %>
+                          <span class="badge text-bg-danger"><%= animal.overdueReminderCount %> überfällig</span>
+                        <% } else if (animal.openReminderCount > 0) { %>
+                          <span class="badge text-bg-warning"><%= animal.openReminderCount %> offen</span>
+                        <% } %>
+                        <% if (animal.next_term) { %>
+                          <span class="badge text-bg-secondary-subtle border"><%= animal.next_term.type %>: <%= animal.next_term.displayLabel %></span>
+                        <% } %>
+                        <% if (sectionState.key === 'history' && animal.statusSummary) { %>
+                          <span class="badge text-bg-secondary-subtle border"><%= animal.statusSummary %></span>
+                        <% } %>
+                      </div>
                     </div>
                   </div>
                   <div class="text-lg-end animal-list-item-meta">
                     <div class="small text-body-secondary"><%= animal.veterinarian_name || 'Kein Tierarzt hinterlegt' %></div>
+                    <div class="small text-body-secondary"><%= animal.updated_at ? `Zuletzt geändert ${formatDateTime(animal.updated_at)}` : '' %></div>
                     <div class="animal-list-item-action">Akte öffnen</div>
                   </div>
                 </div>

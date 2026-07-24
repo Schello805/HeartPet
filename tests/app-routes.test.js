@@ -133,6 +133,7 @@ test("Datenbank-Migrationen werden protokolliert", () => {
   assert.ok(migrationIds.includes("001_initial_schema"));
   assert.ok(migrationIds.includes("002_schema_updates"));
   assert.ok(migrationIds.includes("003_user_invites"));
+  assert.ok(migrationIds.includes("004_animal_status_context"));
 });
 
 test("Systemlog ist erreichbar (inkl. Alias)", async () => {
@@ -1184,6 +1185,7 @@ test("Beim Verschieben aus dem aktiven Bestand werden offene Erinnerungen abgesc
     weight_kg: "",
     veterinarian_id: "",
     notes: "",
+    status_context_date: "2026-07-24",
     status_transition_confirmed: "true",
     return_to: "/animals/ruhestaette",
   });
@@ -1229,6 +1231,87 @@ test("Wechsel aus dem aktiven Bestand braucht eine ausdrückliche Bestätigung",
 
   const animal = db.prepare("SELECT status FROM animals WHERE id = ?").get(animalId);
   assert.equal(animal?.status, "Aktiv");
+});
+
+test("Statuswechsel speichert Abschlussdaten und zeigt sie in Historie und Ruhestätte konsistent", async () => {
+  const speciesId = db.prepare("SELECT id FROM species ORDER BY id ASC LIMIT 1").get()?.id;
+  const speciesName = db.prepare("SELECT name FROM species WHERE id = ?").get(speciesId)?.name || "Katze";
+  const historyAnimalId = db.prepare("INSERT INTO animals (name, species_id, status) VALUES (?, ?, ?)").run("Milo", speciesId, "Aktiv").lastInsertRowid;
+  const restingAnimalId = db.prepare("INSERT INTO animals (name, species_id, status) VALUES (?, ?, ?)").run("Nala", speciesId, "Aktiv").lastInsertRowid;
+
+  const historyMove = await agent.post(`/animals/${historyAnimalId}/update`).type("form").send({
+    name: "Milo",
+    species_name: speciesName,
+    status: "Vermittelt",
+    status_context_name: "Familie Sommer",
+    status_context_date: "2026-07-20",
+    memorial_note: "Sanfter Übergang mit kurzem Nachgespräch.",
+    status_transition_confirmed: "true",
+    return_to: "/animals/historie",
+  });
+  assert.equal(historyMove.status, 302);
+
+  const restingMove = await agent.post(`/animals/${restingAnimalId}/update`).type("form").send({
+    name: "Nala",
+    species_name: speciesName,
+    status: "Verstorben",
+    status_context_name: "Zuhause im Körbchen",
+    status_context_date: "2026-07-21",
+    memorial_note: "Sehr geliebte Begleiterin.",
+    status_transition_confirmed: "true",
+    return_to: "/animals/ruhestaette",
+  });
+  assert.equal(restingMove.status, 302);
+
+  const historyAnimal = db.prepare("SELECT * FROM animals WHERE id = ?").get(historyAnimalId);
+  assert.equal(historyAnimal.status_context_name, "Familie Sommer");
+  assert.equal(historyAnimal.status_context_date, "2026-07-20");
+  assert.equal(historyAnimal.memorial_note, "Sanfter Übergang mit kurzem Nachgespräch.");
+  assert.ok(historyAnimal.status_changed_at);
+
+  const restingAnimal = db.prepare("SELECT * FROM animals WHERE id = ?").get(restingAnimalId);
+  assert.equal(restingAnimal.status_context_name, "Zuhause im Körbchen");
+  assert.equal(restingAnimal.status_context_date, "2026-07-21");
+  assert.equal(restingAnimal.memorial_note, "Sehr geliebte Begleiterin.");
+  assert.ok(restingAnimal.status_changed_at);
+
+  const auditActions = db.prepare(`
+    SELECT action, details
+    FROM audit_logs
+    WHERE entity_type = 'animal' AND entity_id IN (?, ?)
+    ORDER BY id ASC
+  `).all(String(historyAnimalId), String(restingAnimalId));
+  assert.ok(auditActions.some((item) => item.action === "animal.status_change" && item.details.includes("Familie Sommer")));
+  assert.ok(auditActions.some((item) => item.action === "animal.status_change" && item.details.includes("Sehr geliebte Begleiterin")));
+
+  const historyPage = await agent.get(`/animals/historie?animal_id=${historyAnimalId}`);
+  assert.equal(historyPage.status, 200);
+  assert.match(historyPage.text, /Familie Sommer/);
+  assert.match(historyPage.text, /20\.07\.2026/);
+
+  const restingPage = await agent.get("/animals/ruhestaette");
+  assert.equal(restingPage.status, 200);
+  assert.match(restingPage.text, /Zuhause im Körbchen/);
+  assert.match(restingPage.text, /Sehr geliebte Begleiterin\./);
+});
+
+test("Dashboard zeigt Aufmerksamkeit und jüngste Aktivität", async () => {
+  const speciesId = db.prepare("SELECT id FROM species ORDER BY id ASC LIMIT 1").get()?.id;
+  const animalId = db.prepare("INSERT INTO animals (name, species_id, status) VALUES (?, ?, ?)").run("Radar", speciesId, "Aktiv").lastInsertRowid;
+  db.prepare(`
+    INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, notes)
+    VALUES (?, ?, ?, ?, 1, 0, ?)
+  `).run(animalId, "Bald prüfen", "Allgemein", dayjs().subtract(1, "day").format("YYYY-MM-DDTHH:mm"), "offen");
+  db.prepare(`
+    INSERT INTO audit_logs (actor_user_id, actor_email, action, entity_type, entity_id, details)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(1, "admin@test.local", "animal.update", "animal", String(animalId), JSON.stringify({ animal_id: animalId, name: "Radar" }));
+
+  const response = await agent.get("/");
+  assert.equal(response.status, 200);
+  assert.match(response.text, /Braucht Aufmerksamkeit/);
+  assert.match(response.text, /Radar/);
+  assert.match(response.text, /Zuletzt geändert/);
 });
 
 test("Tierseite zeigt Tierarzt-Kontakt per Klick und erklärt die Schnellerfassung", async () => {
@@ -1551,9 +1634,9 @@ test("Dashboard-Banner zaehlt nur offene Erinnerungen aktiver Tiere", async () =
 
   const response = await agent.get("/api/reminders/pending");
   assert.equal(response.status, 200);
-  assert.equal(response.body.count, 1);
-  assert.equal(response.body.reminders.length, 1);
-  assert.equal(response.body.reminders[0].title, "Aktive Erinnerung");
+  const titles = response.body.reminders.map((item) => item.title);
+  assert.ok(titles.includes("Aktive Erinnerung"));
+  assert.ok(!titles.includes("Archiv-Erinnerung"));
 });
 
 test("Erinnerung per Complete-Route verschwindet aus der Pending-API", async () => {

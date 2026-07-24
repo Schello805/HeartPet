@@ -624,6 +624,29 @@ app.get("/", (req, res) => {
     dayjs().endOf("day").format("YYYY-MM-DDTHH:mm")
   );
 
+  const attentionAnimals = attachAnimalWorkspaceMeta(attachNextTermData(db.prepare(`
+    SELECT animals.*, species.name AS species_name, veterinarians.name AS veterinarian_name
+    FROM animals
+    LEFT JOIN species ON species.id = animals.species_id
+    LEFT JOIN veterinarians ON veterinarians.id = animals.veterinarian_id
+    WHERE animals.status = 'Aktiv'
+    ORDER BY datetime(animals.updated_at) DESC, animals.id DESC
+    LIMIT 10
+  `).all()))
+    .filter((animal) => animal.overdueReminderCount > 0 || animal.openReminderCount > 0 || !animal.veterinarian_name)
+    .sort((left, right) => {
+      if (left.overdueReminderCount !== right.overdueReminderCount) {
+        return right.overdueReminderCount - left.overdueReminderCount;
+      }
+      if (left.openReminderCount !== right.openReminderCount) {
+        return right.openReminderCount - left.openReminderCount;
+      }
+      return String(right.updated_at || "").localeCompare(String(left.updated_at || ""));
+    })
+    .slice(0, 6);
+
+  const recentActivity = buildDashboardActivityFeed();
+
   res.render("pages/dashboard", {
     pageTitle: "Dashboard",
     search: { q, searchable },
@@ -632,6 +655,8 @@ app.get("/", (req, res) => {
     recentAnimals,
     upcomingReminders,
     urgentReminders,
+    attentionAnimals,
+    recentActivity,
   });
 });
 
@@ -702,7 +727,7 @@ function renderAnimalsWorkspace(req, res, section = "active") {
     params.push(speciesId);
   }
   const allAnimals = db.prepare(sql).all(...params);
-  const animalsWithNextTerm = attachNextTermData(allAnimals);
+  const animalsWithNextTerm = attachAnimalWorkspaceMeta(attachNextTermData(allAnimals));
   const sortedAnimals = sortAnimals(animalsWithNextTerm, sort);
   const totalCount = sortedAnimals.length;
   const totalPages = Math.max(Math.ceil(totalCount / pageSize), 1);
@@ -751,6 +776,7 @@ app.get("/animals/new", requireAnimalEditor, (req, res) => {
 
 app.post("/animals", requireAnimalEditor, (req, res) => {
   const payload = normalizeAnimalPayload(req.body);
+  const transitionDetails = normalizeAnimalTransitionDetails(req.body, payload.status);
   const returnTo = safeLocalReturnPath(req.body.return_to, "/animals");
   if (!payload.name || !payload.species_id) {
     setFlash(req, "error", "Name und Tierart sind Pflichtfelder.");
@@ -762,20 +788,43 @@ app.post("/animals", requireAnimalEditor, (req, res) => {
     return res.redirect(`/animals/new?return_to=${encodeURIComponent(returnTo)}`);
   }
 
+  const transitionError = validateAnimalTransitionDetails(payload.status, transitionDetails);
+  if (transitionError) {
+    setFlash(req, "error", transitionError);
+    return res.redirect(`/animals/new?return_to=${encodeURIComponent(returnTo)}`);
+  }
+
+  const insertPayload = {
+    ...payload,
+    status_changed_at: isActiveAnimalStatus(payload.status) ? null : dayjs().toISOString(),
+    status_context_name: transitionDetails.status_context_name,
+    status_context_date: transitionDetails.status_context_date,
+    memorial_note: transitionDetails.memorial_note,
+  };
+
   const result = db.prepare(`
     INSERT INTO animals (
       name, species_id, sex, birth_date, intake_date, source, microchip_number,
-      status, color, breed, weight_kg, veterinarian_id, notes, updated_at
+      status, color, breed, weight_kg, veterinarian_id, notes,
+      status_changed_at, status_context_name, status_context_date, memorial_note, updated_at
     )
     VALUES (
       @name, @species_id, @sex, @birth_date, @intake_date, @source, @microchip_number,
-      @status, @color, @breed, @weight_kg, @veterinarian_id, @notes, CURRENT_TIMESTAMP
+      @status, @color, @breed, @weight_kg, @veterinarian_id, @notes,
+      @status_changed_at, @status_context_name, @status_context_date, @memorial_note, CURRENT_TIMESTAMP
     )
-  `).run(payload);
+  `).run(insertPayload);
 
   if (!isActiveAnimalStatus(payload.status)) {
     closeOpenRemindersForAnimal(result.lastInsertRowid);
   }
+
+  createAuditLog(req, "animal.create", {
+    animal_id: result.lastInsertRowid,
+    name: payload.name,
+    status: payload.status,
+    transition_summary: buildAnimalTransitionSummary(payload.status, transitionDetails),
+  }, { entityType: "animal", entityId: result.lastInsertRowid });
 
   setFlash(req, "success", "Tier wurde angelegt.");
   res.redirect(returnTo || `/animals/${result.lastInsertRowid}`);
@@ -799,7 +848,7 @@ app.get("/animals/:id/workspace-panel", (req, res) => {
     return renderNotFound(req, res, "Tier nicht gefunden.");
   }
 
-  const selectedAnimal = attachNextTermData([animalView.animal])[0] || animalView.animal;
+  const selectedAnimal = attachAnimalWorkspaceMeta(attachNextTermData([animalView.animal]))[0] || animalView.animal;
   res.render("pages/animal-workspace-detail", {
     selectedAnimal,
     selectedAnimalView: animalView,
@@ -954,6 +1003,7 @@ app.post("/animals/:id/update", requireAnimalEditor, (req, res) => {
   }
 
   const payload = normalizeAnimalPayload(req.body);
+  const transitionDetails = normalizeAnimalTransitionDetails(req.body, payload.status);
   const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.id}`);
   if (!payload.name || !payload.species_id) {
     setFlash(req, "error", "Name und Tierart sind Pflichtfelder.");
@@ -965,7 +1015,25 @@ app.post("/animals/:id/update", requireAnimalEditor, (req, res) => {
     return res.redirect(`/animals/${req.params.id}/edit?return_to=${encodeURIComponent(returnTo)}`);
   }
 
+  const transitionError = validateAnimalTransitionDetails(payload.status, transitionDetails);
+  if (transitionError) {
+    setFlash(req, "error", transitionError);
+    return res.redirect(`/animals/${req.params.id}/edit?return_to=${encodeURIComponent(returnTo)}`);
+  }
+
+  const statusChanged = normalizeAnimalStatus(animal.status) !== normalizeAnimalStatus(payload.status);
+  const transitionDetailsChanged =
+    String(animal.status_context_name || "") !== String(transitionDetails.status_context_name || "") ||
+    String(animal.status_context_date || "") !== String(transitionDetails.status_context_date || "") ||
+    String(animal.memorial_note || "") !== String(transitionDetails.memorial_note || "");
+
   payload.id = req.params.id;
+  payload.status_changed_at = isActiveAnimalStatus(payload.status)
+    ? null
+    : (statusChanged ? dayjs().toISOString() : (animal.status_changed_at || null));
+  payload.status_context_name = transitionDetails.status_context_name;
+  payload.status_context_date = transitionDetails.status_context_date;
+  payload.memorial_note = transitionDetails.memorial_note;
 
   db.prepare(`
     UPDATE animals
@@ -982,6 +1050,10 @@ app.post("/animals/:id/update", requireAnimalEditor, (req, res) => {
         weight_kg = @weight_kg,
         veterinarian_id = @veterinarian_id,
         notes = @notes,
+        status_changed_at = @status_changed_at,
+        status_context_name = @status_context_name,
+        status_context_date = @status_context_date,
+        memorial_note = @memorial_note,
         updated_at = CURRENT_TIMESTAMP
     WHERE id = @id
   `).run(payload);
@@ -996,6 +1068,23 @@ app.post("/animals/:id/update", requireAnimalEditor, (req, res) => {
       ? "Tier wurde in die Ruhestätte verschoben."
       : "Tier wurde in die Historie verschoben."
     : "Tierdaten wurden aktualisiert.";
+
+  if (statusChanged) {
+    createAuditLog(req, "animal.status_change", {
+      animal_id: req.params.id,
+      name: payload.name,
+      previous_status: animal.status,
+      next_status: payload.status,
+      transition_summary: buildAnimalTransitionSummary(payload.status, transitionDetails),
+    }, { entityType: "animal", entityId: req.params.id });
+  } else {
+    createAuditLog(req, "animal.update", {
+      animal_id: req.params.id,
+      name: payload.name,
+      status: payload.status,
+      transition_details_updated: transitionDetailsChanged,
+    }, { entityType: "animal", entityId: req.params.id });
+  }
 
   setFlash(req, "success", successMessage);
   res.redirect(returnTo);
@@ -1436,6 +1525,10 @@ app.post("/animals/:id/notes", requireAnimalPermission("canManageNotes"), (req, 
   const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.id}`);
   db.prepare("INSERT INTO animal_notes (animal_id, title, content) VALUES (?, ?, ?)")
     .run(req.params.id, req.body.title, req.body.content);
+  createAuditLog(req, "animal.note_create", {
+    animal_id: req.params.id,
+    title: String(req.body.title || "").trim(),
+  }, { entityType: "animal", entityId: req.params.id });
   setFlash(req, "success", "Protokolleintrag gespeichert.");
   res.redirect(returnTo);
 });
@@ -1447,6 +1540,10 @@ app.post("/animals/:animalId/notes/:entryId/update", requireAnimalPermission("ca
     SET title = ?, content = ?
     WHERE id = ? AND animal_id = ?
   `).run(req.body.title, req.body.content, req.params.entryId, req.params.animalId);
+  createAuditLog(req, "animal.note_update", {
+    animal_id: req.params.animalId,
+    title: String(req.body.title || "").trim(),
+  }, { entityType: "animal", entityId: req.params.animalId });
   setFlash(req, "success", "Protokolleintrag aktualisiert.");
   res.redirect(returnTo);
 });
@@ -1463,6 +1560,10 @@ app.get("/animals/:animalId/notes/:entryId/update", requireAnimalPermission("can
 
 app.post("/animals/:animalId/notes/:entryId/delete", requireAnimalPermission("canManageNotes"), (req, res) => {
   db.prepare("DELETE FROM animal_notes WHERE id = ? AND animal_id = ?").run(req.params.entryId, req.params.animalId);
+  createAuditLog(req, "animal.note_delete", {
+    animal_id: req.params.animalId,
+    note_id: req.params.entryId,
+  }, { entityType: "animal", entityId: req.params.animalId });
   setFlash(req, "success", "Protokolleintrag gelöscht.");
   res.redirect(`/animals/${req.params.animalId}`);
 });
@@ -2877,9 +2978,10 @@ app.post("/admin/import", requireAdmin, importUpload.single("import_file"), (req
     const insertAnimal = db.prepare(`
       INSERT INTO animals (
         name, species_id, sex, birth_date, intake_date, source, microchip_number, status,
-        color, breed, weight_kg, veterinarian_id, notes, updated_at
+        color, breed, weight_kg, veterinarian_id, notes,
+        status_changed_at, status_context_name, status_context_date, memorial_note, updated_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     `);
 
     const result = insertAnimal.run(
@@ -2895,7 +2997,11 @@ app.post("/admin/import", requireAdmin, importUpload.single("import_file"), (req
       animalData.breed || "",
       animalData.weight_kg || null,
       null,
-      animalData.notes || ""
+      animalData.notes || "",
+      animalData.status_changed_at || null,
+      animalData.status_context_name || "",
+      animalData.status_context_date || "",
+      animalData.memorial_note || ""
     );
 
     const animalId = result.lastInsertRowid;
@@ -3477,6 +3583,7 @@ function buildAnimalDetailViewData(animalId, req) {
     documentFilter,
     missingRequiredCategories: getMissingRequiredCategories(categories, related.documents),
     timeline: buildAnimalTimeline(related),
+    activityLog: getAnimalActivityEntries(animalId),
     species: db.prepare("SELECT * FROM species ORDER BY name ASC").all(),
     veterinarians: db.prepare("SELECT * FROM veterinarians ORDER BY name ASC").all(),
   };
@@ -3597,6 +3704,91 @@ function requiresAnimalStatusTransitionConfirmation(previousStatus, nextStatus) 
 
 function isConfirmedAnimalStatusTransition(body) {
   return String(body.status_transition_confirmed || "").trim().toLowerCase() === "true";
+}
+
+function getAnimalStatusContextConfig(status) {
+  const normalized = normalizeAnimalStatus(status);
+  const config = {
+    Aktiv: {
+      nameLabel: "",
+      nameRequired: false,
+      dateLabel: "",
+      dateRequired: false,
+      noteLabel: "",
+    },
+    Vermittelt: {
+      nameLabel: "Vermittelt an",
+      nameRequired: true,
+      dateLabel: "Vermittelt am",
+      dateRequired: true,
+      noteLabel: "Übergabehinweis",
+    },
+    Verkauft: {
+      nameLabel: "Verkauft an",
+      nameRequired: true,
+      dateLabel: "Verkauft am",
+      dateRequired: true,
+      noteLabel: "Verkaufshinweis",
+    },
+    Verstorben: {
+      nameLabel: "Ort / Zusammenhang",
+      nameRequired: false,
+      dateLabel: "Abschied am",
+      dateRequired: true,
+      noteLabel: "Erinnerungsnotiz",
+    },
+  };
+  return config[normalized];
+}
+
+function normalizeAnimalTransitionDetails(body, status) {
+  const config = getAnimalStatusContextConfig(status);
+  if (!config || normalizeAnimalStatus(status) === "Aktiv") {
+    return {
+      status_context_name: "",
+      status_context_date: "",
+      memorial_note: "",
+    };
+  }
+
+  return {
+    status_context_name: String(body.status_context_name || "").trim(),
+    status_context_date: String(body.status_context_date || "").trim(),
+    memorial_note: String(body.memorial_note || "").trim(),
+  };
+}
+
+function validateAnimalTransitionDetails(status, details) {
+  const config = getAnimalStatusContextConfig(status);
+  if (!config || normalizeAnimalStatus(status) === "Aktiv") {
+    return "";
+  }
+
+  if (config.nameRequired && !details.status_context_name) {
+    return `${config.nameLabel} ist ein Pflichtfeld.`;
+  }
+  if (config.dateRequired && !details.status_context_date) {
+    return `${config.dateLabel} ist ein Pflichtfeld.`;
+  }
+  if (details.status_context_date && !dayjs(details.status_context_date, "YYYY-MM-DD", true).isValid()) {
+    return `${config.dateLabel} ist ungültig.`;
+  }
+  return "";
+}
+
+function buildAnimalTransitionSummary(status, details) {
+  const config = getAnimalStatusContextConfig(status);
+  const summaryParts = [];
+  if (config?.nameLabel && details.status_context_name) {
+    summaryParts.push(`${config.nameLabel}: ${details.status_context_name}`);
+  }
+  if (config?.dateLabel && details.status_context_date) {
+    summaryParts.push(`${config.dateLabel}: ${formatDate(details.status_context_date)}`);
+  }
+  if (details.memorial_note) {
+    summaryParts.push(details.memorial_note);
+  }
+  return summaryParts.join(" | ");
 }
 
 function resolveDefaultVeterinarianId(speciesId) {
@@ -3896,6 +4088,41 @@ function attachNextTermData(animals) {
     ...animal,
     next_term: lookup.get(animal.id) || null,
   }));
+}
+
+function attachAnimalWorkspaceMeta(animals) {
+  if (!animals.length) {
+    return [];
+  }
+
+  const animalIds = animals.map((animal) => Number(animal.id)).filter(Boolean);
+  const placeholders = animalIds.map(() => "?").join(", ");
+  const reminderStats = db.prepare(`
+    SELECT
+      animal_id,
+      SUM(CASE WHEN completed_at IS NULL THEN 1 ELSE 0 END) AS open_count,
+      SUM(CASE WHEN completed_at IS NULL AND REPLACE(due_at, ' ', 'T') < ? THEN 1 ELSE 0 END) AS overdue_count
+    FROM reminders
+    WHERE animal_id IN (${placeholders})
+    GROUP BY animal_id
+  `).all(dayjs().format("YYYY-MM-DDTHH:mm"), ...animalIds);
+  const reminderMap = new Map(reminderStats.map((row) => [Number(row.animal_id), row]));
+
+  return animals.map((animal) => {
+    const lifecycle = getAnimalLifecycle(animal.status);
+    const reminderRow = reminderMap.get(Number(animal.id));
+    return {
+      ...animal,
+      lifecycle,
+      openReminderCount: Number(reminderRow?.open_count || 0),
+      overdueReminderCount: Number(reminderRow?.overdue_count || 0),
+      statusSummary: buildAnimalTransitionSummary(animal.status, {
+        status_context_name: animal.status_context_name || "",
+        status_context_date: animal.status_context_date || "",
+        memorial_note: animal.memorial_note || "",
+      }),
+    };
+  });
 }
 
 function buildNextTermLookup(animalIds) {
@@ -4923,6 +5150,93 @@ function buildAnimalTimeline(related) {
     .filter((item) => item.at)
     .sort((a, b) => String(b.at).localeCompare(String(a.at)))
     .slice(0, 120);
+}
+
+function parseAuditDetails(rawValue) {
+  try {
+    return rawValue ? JSON.parse(rawValue) : {};
+  } catch {
+    return {};
+  }
+}
+
+function formatAnimalActivityEntry(entry) {
+  const details = parseAuditDetails(entry.details);
+  const animalName = details.name || details.title || entry.current_animal_name || "Tier";
+  switch (entry.action) {
+    case "animal.create":
+      return {
+        at: entry.created_at,
+        title: `${animalName} angelegt`,
+        details: details.transition_summary || "Neue Tierakte erstellt.",
+      };
+    case "animal.status_change":
+      return {
+        at: entry.created_at,
+        title: `${animalName}: ${details.previous_status || "Aktiv"} → ${details.next_status || ""}`.trim(),
+        details: details.transition_summary || "Statuswechsel dokumentiert.",
+      };
+    case "animal.note_create":
+      return {
+        at: entry.created_at,
+        title: `Protokoll ergänzt: ${details.title || "Eintrag"}`,
+        details: "Neuer Verlaufseintrag gespeichert.",
+      };
+    case "animal.note_update":
+      return {
+        at: entry.created_at,
+        title: `Protokoll aktualisiert: ${details.title || "Eintrag"}`,
+        details: "Vorhandener Verlaufseintrag angepasst.",
+      };
+    case "animal.note_delete":
+      return {
+        at: entry.created_at,
+        title: "Protokoll entfernt",
+        details: "Ein Verlaufseintrag wurde gelöscht.",
+      };
+    case "animal.update":
+    default:
+      return {
+        at: entry.created_at,
+        title: `${animalName} bearbeitet`,
+        details: details.transition_details_updated ? "Abschlussdaten wurden angepasst." : "Tierdaten aktualisiert.",
+      };
+  }
+}
+
+function getAnimalActivityEntries(animalId, limit = 12) {
+  return db.prepare(`
+    SELECT audit_logs.*, animals.name AS current_animal_name
+    FROM audit_logs
+    LEFT JOIN animals
+      ON audit_logs.entity_type = 'animal'
+     AND CAST(audit_logs.entity_id AS INTEGER) = animals.id
+    WHERE audit_logs.entity_type = 'animal'
+      AND audit_logs.entity_id = ?
+      AND audit_logs.action IN ('animal.create', 'animal.update', 'animal.status_change', 'animal.note_create', 'animal.note_update', 'animal.note_delete')
+    ORDER BY audit_logs.id DESC
+    LIMIT ?
+  `).all(String(animalId), limit).map(formatAnimalActivityEntry);
+}
+
+function buildDashboardActivityFeed(limit = 8) {
+  return db.prepare(`
+    SELECT audit_logs.*, animals.name AS current_animal_name
+    FROM audit_logs
+    LEFT JOIN animals
+      ON audit_logs.entity_type = 'animal'
+     AND CAST(audit_logs.entity_id AS INTEGER) = animals.id
+    WHERE audit_logs.entity_type = 'animal'
+      AND audit_logs.action IN ('animal.create', 'animal.update', 'animal.status_change', 'animal.note_create')
+    ORDER BY audit_logs.id DESC
+    LIMIT ?
+  `).all(limit).map((entry) => {
+    const formatted = formatAnimalActivityEntry(entry);
+    return {
+      ...formatted,
+      animalId: entry.entity_id ? Number(entry.entity_id) : null,
+    };
+  });
 }
 
 function getAdminViewData(pageTitle, adminPath) {
