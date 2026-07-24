@@ -298,40 +298,40 @@
         </div>
         <div class="row g-2 animal-priority-grid">
       <div class="col-md-6 col-xl-3">
-        <article class="card border bg-body-tertiary h-100">
+        <a href="#animal-medizin" class="card border bg-body-tertiary h-100 text-decoration-none animal-priority-link">
           <div class="card-body p-3 d-grid gap-1">
             <span class="small text-body-secondary">Erinnerungen</span>
             <strong><%= openReminderCount ? `${openReminderCount} offen` : 'Alles ruhig' %></strong>
             <small class="text-body-secondary"><%= reminderStatsState.overdue ? `${reminderStatsState.overdue} überfällig` : 'Keine überfälligen Einträge' %></small>
           </div>
-        </article>
+        </a>
       </div>
       <div class="col-md-6 col-xl-3">
-        <article class="card border bg-body-tertiary h-100">
+        <a href="#animal-dokumente" class="card border bg-body-tertiary h-100 text-decoration-none animal-priority-link">
           <div class="card-body p-3 d-grid gap-1">
             <span class="small text-body-secondary">Pflichtdokumente</span>
             <strong><%= workflowSummaryState.missingRequiredCategories.length ? `${workflowSummaryState.missingRequiredCategories.length} fehlen` : 'Vollständig' %></strong>
             <small class="text-body-secondary"><%= workflowSummaryState.missingRequiredCategories.length ? workflowSummaryState.missingRequiredCategories.join(', ') : 'Alle Pflichtkategorien vorhanden' %></small>
           </div>
-        </article>
+        </a>
       </div>
       <div class="col-md-6 col-xl-3">
-        <article class="card border bg-body-tertiary h-100">
+        <a href="#animal-stammdaten" class="card border bg-body-tertiary h-100 text-decoration-none animal-priority-link">
           <div class="card-body p-3 d-grid gap-1">
             <span class="small text-body-secondary">Stammdaten</span>
             <strong><%= workflowSummaryState.isProfileIncomplete ? 'Ergänzen' : 'Vollständig' %></strong>
             <small class="text-body-secondary"><%= workflowSummaryState.isProfileIncomplete ? 'Geburts- oder Aufnahmedatum fehlt noch' : 'Die Grunddaten sind gepflegt' %></small>
           </div>
-        </article>
+        </a>
       </div>
       <div class="col-md-6 col-xl-3">
-        <article class="card border bg-body-tertiary h-100">
+        <a href="#animal-stammdaten" class="card border bg-body-tertiary h-100 text-decoration-none animal-priority-link">
           <div class="card-body p-3 d-grid gap-1">
             <span class="small text-body-secondary">Betreuung</span>
             <strong><%= workflowSummaryState.isStale ? 'Pflege prüfen' : (workflowSummaryState.hasVeterinarian ? 'Vorhanden' : 'Tierarzt fehlt') %></strong>
             <small class="text-body-secondary"><%= workflowSummaryState.isStale ? `Zuletzt geändert am ${formatDateTime(animal.updated_at)}` : (workflowSummaryState.hasVeterinarian ? 'Ansprechperson für medizinische Themen ist hinterlegt' : 'Bitte Tierarzt ergänzen oder Standardtierarzt setzen') %></small>
           </div>
-        </article>
+        </a>
       </div>
         </div>
       </div>
@@ -343,36 +343,36 @@
   <div class="col-lg-4">
     <section class="row row-cols-2 row-cols-lg-2 g-2 h-100 animal-stats-grid">
       <div class="col">
-        <article class="card border bg-body-tertiary h-100">
+        <a href="#animal-dokumente" class="card border bg-body-tertiary h-100 text-decoration-none animal-priority-link">
           <div class="card-body p-3 d-grid gap-1">
             <span class="small text-uppercase text-body-secondary">Dokumente</span>
             <strong class="h4 mb-0"><%= related.documents.length %></strong>
           </div>
-        </article>
+        </a>
       </div>
       <div class="col">
-        <article class="card border bg-body-tertiary h-100">
+        <a href="#animal-dokumente" class="card border bg-body-tertiary h-100 text-decoration-none animal-priority-link">
           <div class="card-body p-3 d-grid gap-1">
             <span class="small text-uppercase text-body-secondary">Fotos</span>
             <strong class="h4 mb-0"><%= related.images.length %></strong>
           </div>
-        </article>
+        </a>
       </div>
       <div class="col">
-        <article class="card border bg-body-tertiary h-100">
+        <a href="#animal-medizin" class="card border bg-body-tertiary h-100 text-decoration-none animal-priority-link">
           <div class="card-body p-3 d-grid gap-1">
             <span class="small text-uppercase text-body-secondary">Offene Erinnerungen</span>
             <strong class="h4 mb-0"><%= reminderBuckets.overdue.length + reminderBuckets.open.length %></strong>
           </div>
-        </article>
+        </a>
       </div>
       <div class="col">
-        <article class="card border bg-body-tertiary h-100">
+        <a href="#animal-medizin" class="card border bg-body-tertiary h-100 text-decoration-none animal-priority-link">
           <div class="card-body p-3 d-grid gap-1">
             <span class="small text-uppercase text-body-secondary">Nächste Termine</span>
             <strong class="h4 mb-0"><%= (related.appointments || []).length + related.vaccinations.length %></strong>
           </div>
-        </article>
+        </a>
       </div>
     </section>
   </div>
@@ -384,7 +384,7 @@
       <div>
         <p class="eyebrow mb-1">Chronik</p>
         <h3 class="h5 mb-1">Was zuletzt in dieser Akte passiert ist</h3>
-        <p class="text-body-secondary mb-0">Statuswechsel, Pflegehinweise und wichtige Änderungen in zeitlicher Reihenfolge.</p>
+        <p class="text-body-secondary mb-0">Statuswechsel, Pflegehinweise und wichtige Änderungen.</p>
       </div>
       <span class="badge text-bg-secondary-subtle border"><%= activityLogState.length %> Einträge</span>
         </div>
@@ -514,12 +514,12 @@
         <div class="card-body p-3">
         <h3>Basisdaten</h3>
         <dl class="row g-2 mb-3">
-          <div class="col-md-6"><div class="card border-0 bg-dark-subtle h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Herkunft</dt><dd class="mb-0 fw-semibold"><%= animal.source || '-' %></dd></div></div></div>
-          <div class="col-md-6"><div class="card border-0 bg-dark-subtle h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Rasse</dt><dd class="mb-0 fw-semibold"><%= animal.breed || '-' %></dd></div></div></div>
-          <div class="col-md-6"><div class="card border-0 bg-dark-subtle h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Farbe</dt><dd class="mb-0 fw-semibold"><%= animal.color || '-' %></dd></div></div></div>
-          <div class="col-md-6"><div class="card border-0 bg-dark-subtle h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Geschlecht</dt><dd class="mb-0 fw-semibold"><%= animal.sex || '-' %></dd></div></div></div>
-          <div class="col-md-6"><div class="card border-0 bg-dark-subtle h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Mikrochip</dt><dd class="mb-0 fw-semibold"><%= animal.microchip_number || '-' %></dd></div></div></div>
-          <div class="col-md-6"><div class="card border-0 bg-dark-subtle h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Gewicht</dt><dd class="mb-0 fw-semibold"><%= animal.weight_kg || '-' %></dd></div></div></div>
+          <div class="col-md-6"><div class="card border-0 bg-body h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Herkunft</dt><dd class="mb-0 fw-semibold"><%= animal.source || '-' %></dd></div></div></div>
+          <div class="col-md-6"><div class="card border-0 bg-body h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Rasse</dt><dd class="mb-0 fw-semibold"><%= animal.breed || '-' %></dd></div></div></div>
+          <div class="col-md-6"><div class="card border-0 bg-body h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Farbe</dt><dd class="mb-0 fw-semibold"><%= animal.color || '-' %></dd></div></div></div>
+          <div class="col-md-6"><div class="card border-0 bg-body h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Geschlecht</dt><dd class="mb-0 fw-semibold"><%= animal.sex || '-' %></dd></div></div></div>
+          <div class="col-md-6"><div class="card border-0 bg-body h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Mikrochip</dt><dd class="mb-0 fw-semibold"><%= animal.microchip_number || '-' %></dd></div></div></div>
+          <div class="col-md-6"><div class="card border-0 bg-body h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Gewicht</dt><dd class="mb-0 fw-semibold"><%= animal.weight_kg || '-' %></dd></div></div></div>
         </dl>
         <p class="small text-body-secondary mb-0"><%= animal.notes || 'Keine weiteren Notizen vorhanden.' %></p>
         </div>
