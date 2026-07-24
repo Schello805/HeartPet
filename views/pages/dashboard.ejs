@@ -1,25 +1,36 @@
 <%- include('../partials/top', { pageTitle, pageClass: 'dashboard-page' }) %>
 <% const searchState = typeof search !== 'undefined' ? search : { q: '', searchable: false }; %>
 <% const dashboardSearchResults = typeof searchResults !== 'undefined' ? searchResults : []; %>
+<% const healthState = typeof dashboardHealth !== 'undefined' ? dashboardHealth : { staleAnimals: [], animalsWithoutVeterinarian: [], animalsMissingRequiredDocuments: [], animalsWithIncompleteProfile: [] }; %>
+<% const urgentList = typeof urgentReminders !== 'undefined' ? urgentReminders : []; %>
+<% const attentionList = typeof attentionAnimals !== 'undefined' ? attentionAnimals : []; %>
+<% const activityList = typeof recentActivity !== 'undefined' ? recentActivity : []; %>
 
-<div class="row g-2 mb-3">
+<div class="row g-2 mb-2">
   <div class="col-12">
     <section class="card border-0 dashboard-hero-card">
       <div class="card-body p-4">
         <div class="row g-3 align-items-center">
-          <div class="col-lg-7">
+          <div class="col-lg-6">
             <div class="text-uppercase small fw-semibold text-body-secondary mb-1">Heute im Blick</div>
-            <h2 class="h3 mb-2">Bestand, Erinnerungen und nächste Schritte auf einen Blick.</h2>
-            <p class="text-body-secondary mb-2">
-              Starte hier mit der Suche oder springe direkt in die wichtigsten Bereiche. Die Karten darunter zeigen dir, wo gerade Handlungsbedarf besteht.
-            </p>
+            <h2 class="h3 mb-2">Alles Wichtige auf einer Startseite.</h2>
+            <p class="text-body-secondary mb-2">Direkt suchen, offene Punkte erkennen und mit einem Klick in den richtigen Bereich springen.</p>
             <div class="d-flex flex-wrap gap-2">
               <span class="badge text-bg-secondary-subtle border">Aktiver Bestand: <%= stats.animalCount %></span>
               <span class="badge text-bg-secondary-subtle border">Offene Erinnerungen: <%= stats.openReminderCount %></span>
               <span class="badge text-bg-secondary-subtle border">Heute fällig: <%= stats.dueReminderCount %></span>
             </div>
+            <div class="d-flex flex-wrap gap-2 mt-2 dashboard-hero-actions">
+              <a href="/animals" class="btn btn-outline-secondary btn-sm">Tiere öffnen</a>
+              <% if (permissions.canEditAnimals) { %>
+                <a href="/animals/new" class="btn btn-primary btn-sm" data-drawer="animal-form">Neues Tier</a>
+              <% } %>
+              <% if (permissions.canManageAdmin) { %>
+                <a href="/admin/allgemein" class="btn btn-outline-secondary btn-sm">Verwaltung</a>
+              <% } %>
+            </div>
           </div>
-          <div class="col-lg-5">
+          <div class="col-lg-6">
             <form method="get" action="/" class="row g-2 dashboard-search-form">
               <div class="col-12 col-md">
                 <div class="search-autocomplete-field">
@@ -41,7 +52,7 @@
 
   <% if (searchState.searchable) { %>
     <div class="col-12">
-      <section class="card border-0">
+      <section class="card border-0 dashboard-feed-card">
         <div class="card-body p-4">
           <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
             <h2 class="h5 mb-0">Suchergebnisse</h2>
@@ -50,9 +61,9 @@
           <% if (!dashboardSearchResults.length) { %>
             <p class="text-body-secondary mb-0">Keine Ergebnisse gefunden.</p>
           <% } else { %>
-            <div class="list-group list-group-flush">
-              <% dashboardSearchResults.forEach((item) => { %>
-                <a class="list-group-item list-group-item-action bg-transparent px-0 py-3" href="<%= item.href %>">
+            <div class="list-group list-group-flush dashboard-compact-list">
+              <% dashboardSearchResults.slice(0, 6).forEach((item) => { %>
+                <a class="list-group-item list-group-item-action bg-transparent rounded-3 border px-3 py-3 mb-2" href="<%= item.href %>">
                   <div class="d-flex flex-wrap justify-content-between gap-2">
                     <div>
                       <div class="fw-semibold"><%= item.title %></div>
@@ -70,106 +81,107 @@
   <% } %>
 </div>
 
-<div class="row g-2 mb-3">
+<div class="row g-2 mb-2">
   <div class="col-6 col-xl-3">
-        <a class="card h-100 border-0 text-decoration-none dashboard-stat-card" href="/animals">
-          <div class="card-body p-4 text-primary dashboard-stat-primary">
-            <span>Tiere</span>
-            <strong><%= stats.animalCount %></strong>
-            <small class="text-body-secondary d-block">Direkt zur Tierübersicht</small>
-          </div>
-        </a>
+    <a class="card h-100 border-0 text-decoration-none dashboard-stat-card dashboard-kpi-link" href="/animals">
+      <div class="card-body p-4 text-primary dashboard-stat-primary">
+        <span>Tiere</span>
+        <strong><%= stats.animalCount %></strong>
+        <small class="text-body-secondary d-block">Zur Tierübersicht</small>
       </div>
-      <div class="col-6 col-xl-3">
-        <article class="card h-100 border-0 dashboard-stat-card">
-          <div class="card-body p-4">
-            <span class="small text-body-secondary d-block mb-2">Dokumente</span>
-            <strong class="fw-semibold text-primary d-block mb-2"><%= stats.documentCount %></strong>
-            <small class="text-body-secondary">Hinterlegte Unterlagen und Bilder</small>
-          </div>
-        </article>
+    </a>
+  </div>
+  <div class="col-6 col-xl-3">
+    <a class="card h-100 border-0 text-decoration-none dashboard-stat-card dashboard-kpi-link" href="/animals#animal-dokumente">
+      <div class="card-body p-4">
+        <span class="small text-body-secondary d-block mb-2">Dokumente</span>
+        <strong class="fw-semibold text-primary d-block mb-2"><%= stats.documentCount %></strong>
+        <small class="text-body-secondary">Unterlagen und Bilder</small>
       </div>
-      <div class="col-6 col-xl-3">
-        <article class="card h-100 border-0 dashboard-stat-card">
-          <div class="card-body p-4">
-            <span class="small text-body-secondary d-block mb-2">Offene Erinnerungen</span>
-            <strong class="fw-semibold text-primary d-block mb-2"><%= stats.openReminderCount %></strong>
-            <small class="text-body-secondary">Alles, was noch auf Rückmeldung wartet</small>
-          </div>
-        </article>
+    </a>
+  </div>
+  <div class="col-6 col-xl-3">
+    <a class="card h-100 border-0 text-decoration-none dashboard-stat-card dashboard-kpi-link" href="/animals#animal-medizin">
+      <div class="card-body p-4">
+        <span class="small text-body-secondary d-block mb-2">Offene Erinnerungen</span>
+        <strong class="fw-semibold text-primary d-block mb-2"><%= stats.openReminderCount %></strong>
+        <small class="text-body-secondary">Was noch auf Rückmeldung wartet</small>
       </div>
-      <div class="col-6 col-xl-3">
-        <article class="card h-100 border-0 dashboard-stat-card">
-          <div class="card-body p-4">
-            <span class="small text-body-secondary d-block mb-2">Jetzt fällig</span>
-            <strong class="fw-semibold text-warning d-block mb-2"><%= stats.dueReminderCount %></strong>
-            <small class="text-body-secondary">Heute oder bereits überfällig</small>
-          </div>
-        </article>
+    </a>
+  </div>
+  <div class="col-6 col-xl-3">
+    <a class="card h-100 border-0 text-decoration-none dashboard-stat-card dashboard-kpi-link" href="/#dringende-erinnerungen">
+      <div class="card-body p-4">
+        <span class="small text-body-secondary d-block mb-2">Jetzt fällig</span>
+        <strong class="fw-semibold text-warning d-block mb-2"><%= stats.dueReminderCount %></strong>
+        <small class="text-body-secondary">Heute oder überfällig</small>
       </div>
+    </a>
+  </div>
 </div>
 
-<% const healthState = typeof dashboardHealth !== 'undefined' ? dashboardHealth : { staleAnimals: [], animalsWithoutVeterinarian: [], animalsMissingRequiredDocuments: [], animalsWithIncompleteProfile: [] }; %>
-<div class="row g-2 mb-3">
+<div class="row g-2 mb-2">
   <div class="col-md-6 col-xl-3">
-    <article class="card border-0 h-100 dashboard-health-card">
+    <a class="card border-0 h-100 text-decoration-none dashboard-health-card dashboard-kpi-link" href="/animals">
       <div class="card-body p-3">
         <span class="small text-body-secondary d-block mb-2">Seit 7 Tagen ruhig</span>
         <strong class="h3 d-block mb-2"><%= healthState.staleAnimals.length %></strong>
-        <small class="text-body-secondary">Tiere ohne frische Pflegeänderung</small>
+        <small class="text-body-secondary">Ohne frische Pflegeänderung</small>
       </div>
-    </article>
+    </a>
   </div>
   <div class="col-md-6 col-xl-3">
-    <article class="card border-0 h-100 dashboard-health-card">
+    <a class="card border-0 h-100 text-decoration-none dashboard-health-card dashboard-kpi-link" href="/animals">
       <div class="card-body p-3">
         <span class="small text-body-secondary d-block mb-2">Tierarzt fehlt</span>
         <strong class="h3 d-block mb-2"><%= healthState.animalsWithoutVeterinarian.length %></strong>
-        <small class="text-body-secondary">Aktive Tiere ohne hinterlegte Betreuung</small>
+        <small class="text-body-secondary">Ohne hinterlegte Betreuung</small>
       </div>
-    </article>
+    </a>
   </div>
   <div class="col-md-6 col-xl-3">
-    <article class="card border-0 h-100 dashboard-health-card">
+    <a class="card border-0 h-100 text-decoration-none dashboard-health-card dashboard-kpi-link" href="/animals#animal-dokumente">
       <div class="card-body p-3">
         <span class="small text-body-secondary d-block mb-2">Pflichtdokumente offen</span>
         <strong class="h3 d-block mb-2"><%= healthState.animalsMissingRequiredDocuments.length %></strong>
-        <small class="text-body-secondary">Tiere mit fehlenden Kategorien</small>
+        <small class="text-body-secondary">Fehlende Kategorien</small>
       </div>
-    </article>
+    </a>
   </div>
   <div class="col-md-6 col-xl-3">
-    <article class="card border-0 h-100 dashboard-health-card">
+    <a class="card border-0 h-100 text-decoration-none dashboard-health-card dashboard-kpi-link" href="/animals">
       <div class="card-body p-3">
         <span class="small text-body-secondary d-block mb-2">Stammdaten unvollständig</span>
         <strong class="h3 d-block mb-2"><%= healthState.animalsWithIncompleteProfile.length %></strong>
-        <small class="text-body-secondary">Geburts- oder Aufnahmedatum fehlt</small>
+        <small class="text-body-secondary">Datum fehlt</small>
       </div>
-    </article>
+    </a>
   </div>
 </div>
 
-<div class="row g-2">
-  <div class="col-xl-6">
-    <article class="card border-0 h-100 dashboard-feed-card" id="dringende-erinnerungen">
+<div class="row g-2 mb-2 dashboard-priority-grid">
+  <div class="col-lg-6 col-xxl-3">
+    <article class="card border-0 h-100 dashboard-feed-card dashboard-surface-card" id="dringende-erinnerungen">
       <div class="card-body p-4">
-        <div class="mb-3">
-          <h2 class="h4 mb-1">Dringend: Überfällig & Heute</h2>
-          <p class="text-body-secondary mb-0">Diese Einträge brauchen als Nächstes Aufmerksamkeit.</p>
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+          <div>
+            <h2 class="h5 mb-1">Dringend</h2>
+            <p class="text-body-secondary mb-0 small">Überfällig oder heute fällig.</p>
+          </div>
+          <a href="/animals" class="small text-decoration-none">Öffnen</a>
         </div>
-        <% const urgentList = typeof urgentReminders !== 'undefined' ? urgentReminders : []; %>
         <% if (urgentList.length === 0) { %>
-          <p class="text-body-secondary mb-0">Keine dringenden Erinnerungen vorhanden.</p>
+          <p class="text-body-secondary mb-0 small">Keine dringenden Erinnerungen vorhanden.</p>
         <% } else { %>
-          <div class="list-group list-group-flush">
-            <% urgentList.forEach((reminder) => { %>
+          <div class="list-group list-group-flush dashboard-compact-list">
+            <% urgentList.slice(0, 3).forEach((reminder) => { %>
               <% const reminderHref = reminder.animal_id ? `/animals/${reminder.animal_id}${reminder.source_kind ? '#animal-medizin' : '#animal-neu'}` : null; %>
               <<%= reminderHref ? 'a' : 'div' %> class="list-group-item <%= reminderHref ? 'list-group-item-action' : '' %> bg-transparent rounded-3 border px-3 py-3 mb-2" <% if (reminderHref) { %>href="<%= reminderHref %>"<% } %>>
                 <div class="d-flex justify-content-between align-items-start gap-3">
                   <div>
                     <div class="fw-semibold"><%= reminder.title %></div>
-                    <div class="text-body-secondary"><%= reminder.animal_name || "Ohne Tierzuordnung" %> | <%= reminder.reminder_type %></div>
-                    <div class="small text-body-secondary mt-2">Fällig: <%= formatDateTime(reminder.due_at) %></div>
+                    <div class="small text-body-secondary"><%= reminder.animal_name || "Ohne Tierzuordnung" %> | <%= reminder.reminder_type %></div>
+                    <div class="small text-body-secondary mt-1">Fällig: <%= formatDateTime(reminder.due_at) %></div>
                   </div>
                   <span class="badge <%= reminder.urgency === 'overdue' ? 'text-bg-danger' : reminder.urgency === 'today' ? 'text-bg-warning' : 'text-bg-secondary' %>">
                     <%= reminder.urgency === 'overdue' ? 'Überfällig' : reminder.urgency === 'today' ? 'Heute' : 'Bald' %>
@@ -183,24 +195,27 @@
     </article>
   </div>
 
-  <div class="col-xl-6">
-    <article class="card border-0 h-100 dashboard-feed-card" id="naechste-erinnerungen">
+  <div class="col-lg-6 col-xxl-3">
+    <article class="card border-0 h-100 dashboard-feed-card dashboard-surface-card" id="naechste-erinnerungen">
       <div class="card-body p-4">
-        <div class="mb-3">
-          <h2 class="h4 mb-1">Nächste Erinnerungen</h2>
-          <p class="text-body-secondary mb-0">Vormerken, bevor daraus etwas Dringendes wird.</p>
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+          <div>
+            <h2 class="h5 mb-1">Als Nächstes</h2>
+            <p class="text-body-secondary mb-0 small">Die nächsten offenen Termine.</p>
+          </div>
+          <a href="/animals" class="small text-decoration-none">Öffnen</a>
         </div>
         <% if (upcomingReminders.length === 0) { %>
-          <p class="text-body-secondary mb-0">Keine offenen Erinnerungen vorhanden.</p>
+          <p class="text-body-secondary mb-0 small">Keine offenen Erinnerungen vorhanden.</p>
         <% } else { %>
-          <div class="list-group list-group-flush">
-            <% upcomingReminders.forEach((reminder) => { %>
+          <div class="list-group list-group-flush dashboard-compact-list">
+            <% upcomingReminders.slice(0, 3).forEach((reminder) => { %>
               <div class="list-group-item bg-transparent rounded-3 border px-3 py-3 mb-2">
-                <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+                <div class="d-flex flex-column justify-content-between gap-2">
                   <div>
                     <div class="fw-semibold"><%= reminder.title %></div>
-                    <div class="text-body-secondary"><%= reminder.animal_name || "Ohne Tierzuordnung" %> | <%= reminder.reminder_type %></div>
-                    <div class="small text-body-secondary mt-2">Fällig: <%= formatDateTime(reminder.due_at) %></div>
+                    <div class="small text-body-secondary"><%= reminder.animal_name || "Ohne Tierzuordnung" %> | <%= reminder.reminder_type %></div>
+                    <div class="small text-body-secondary mt-1">Fällig: <%= formatDateTime(reminder.due_at) %></div>
                   </div>
                   <% if (!reminder.completed_at && permissions.canManageReminders) { %>
                     <form method="post" action="/reminders/<%= reminder.id %>/complete">
@@ -216,19 +231,21 @@
     </article>
   </div>
 
-  <div class="col-xl-6">
-    <article class="card border-0 h-100">
+  <div class="col-lg-6 col-xxl-3">
+    <article class="card border-0 h-100 dashboard-surface-card">
       <div class="card-body p-4">
-        <div class="mb-3">
-          <h2 class="h4 mb-1">Braucht Aufmerksamkeit</h2>
-          <p class="text-body-secondary mb-0">Diese Tiere haben offene Themen oder sollten als Nächstes kurz geprüft werden.</p>
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+          <div>
+            <h2 class="h5 mb-1">Braucht Aufmerksamkeit</h2>
+            <p class="text-body-secondary mb-0 small">Tiere mit offenen Punkten.</p>
+          </div>
+          <a href="/animals" class="small text-decoration-none">Alle Tiere</a>
         </div>
-        <% const attentionList = typeof attentionAnimals !== 'undefined' ? attentionAnimals : []; %>
         <% if (!attentionList.length) { %>
-          <p class="text-body-secondary mb-0">Aktuell braucht kein Tier besondere Aufmerksamkeit.</p>
+          <p class="text-body-secondary mb-0 small">Aktuell braucht kein Tier besondere Aufmerksamkeit.</p>
         <% } else { %>
-          <div class="list-group list-group-flush">
-            <% attentionList.forEach((animal) => { %>
+          <div class="list-group list-group-flush dashboard-compact-list">
+            <% attentionList.slice(0, 3).forEach((animal) => { %>
               <a class="list-group-item list-group-item-action bg-transparent rounded-3 border px-3 py-3 mb-2" href="/animals/<%= animal.id %>">
                 <div class="d-flex flex-wrap justify-content-between gap-2">
                   <div>
@@ -254,72 +271,55 @@
     </article>
   </div>
 
-  <div class="col-xl-6">
-    <article class="card border-0 h-100">
+  <div class="col-lg-6 col-xxl-3">
+    <article class="card border-0 h-100 dashboard-surface-card">
       <div class="card-body p-4">
-        <div class="mb-3">
-          <h2 class="h4 mb-1">Pflegequalität</h2>
-          <p class="text-body-secondary mb-0">Diese Listen helfen dir beim Aufräumen, nicht nur beim Tagesgeschäft.</p>
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+          <div>
+            <h2 class="h5 mb-1">Pflegequalität</h2>
+            <p class="text-body-secondary mb-0 small">Bestand sauber und vollständig halten.</p>
+          </div>
+          <a href="/animals" class="small text-decoration-none">Prüfen</a>
         </div>
-        <div class="row g-2 dashboard-health-grid">
-          <div class="col-md-6">
-            <article class="card border bg-body-tertiary h-100">
-              <div class="card-body p-3">
-                <strong class="d-block mb-2">Pflichtdokumente offen</strong>
-                <% if (!healthState.animalsMissingRequiredDocuments.length) { %>
-                  <small class="text-body-secondary">Alle aktiven Tiere haben ihre Pflichtkategorien vollständig.</small>
-                <% } else { %>
-                  <div class="d-grid gap-2">
-                    <% healthState.animalsMissingRequiredDocuments.slice(0, 3).forEach((animal) => { %>
-                      <a href="/animals/<%= animal.id %>" class="text-decoration-none small">
-                        <strong><%= animal.name %></strong>
-                        <span class="text-body-secondary d-block"><%= animal.missingRequiredCategories.join(', ') %></span>
-                      </a>
-                    <% }) %>
-                  </div>
-                <% } %>
-              </div>
-            </article>
-          </div>
-          <div class="col-md-6">
-            <article class="card border bg-body-tertiary h-100">
-              <div class="card-body p-3">
-                <strong class="d-block mb-2">Profil ergänzen</strong>
-                <% if (!healthState.animalsWithIncompleteProfile.length) { %>
-                  <small class="text-body-secondary">Geburts- und Aufnahmedaten sind aktuell vollständig.</small>
-                <% } else { %>
-                  <div class="d-grid gap-2">
-                    <% healthState.animalsWithIncompleteProfile.slice(0, 3).forEach((animal) => { %>
-                      <a href="/animals/<%= animal.id %>" class="text-decoration-none small">
-                        <strong><%= animal.name %></strong>
-                        <span class="text-body-secondary d-block">Geburts- oder Aufnahmedatum fehlt</span>
-                      </a>
-                    <% }) %>
-                  </div>
-                <% } %>
-              </div>
-            </article>
-          </div>
+        <div class="dashboard-health-summary">
+          <a href="/animals#animal-dokumente" class="dashboard-health-link">
+            <strong><%= healthState.animalsMissingRequiredDocuments.length %></strong>
+            <span>Pflichtdokumente offen</span>
+          </a>
+          <a href="/animals" class="dashboard-health-link">
+            <strong><%= healthState.animalsWithIncompleteProfile.length %></strong>
+            <span>Profile ergänzen</span>
+          </a>
+          <a href="/animals" class="dashboard-health-link">
+            <strong><%= healthState.animalsWithoutVeterinarian.length %></strong>
+            <span>Tierarzt fehlt</span>
+          </a>
+          <a href="/animals" class="dashboard-health-link">
+            <strong><%= healthState.staleAnimals.length %></strong>
+            <span>Ruht seit 7 Tagen</span>
+          </a>
         </div>
       </div>
     </article>
   </div>
+</div>
 
+<div class="row g-2">
   <div class="col-xl-6">
-    <article class="card border-0 h-100">
+    <article class="card border-0 h-100 dashboard-feed-card">
       <div class="card-body p-4">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
           <div>
-            <h2 class="h4 mb-1">Neueste Tierakten</h2>
-            <p class="text-body-secondary mb-0">Schneller Einstieg in die zuletzt gepflegten Akten.</p>
+            <h2 class="h5 mb-1">Neueste Tierakten</h2>
+            <p class="text-body-secondary mb-0 small">Schneller Einstieg in die zuletzt gepflegten Akten.</p>
           </div>
           <a href="/animals" class="btn btn-outline-secondary btn-sm">Alle anzeigen</a>
         </div>
         <% if (recentAnimals.length === 0) { %>
-          <p class="text-body-secondary mb-0">Es wurden noch keine Tiere angelegt.</p>
+          <p class="text-body-secondary mb-0 small">Es wurden noch keine Tiere angelegt.</p>
         <% } else { %>
-          <div class="list-group list-group-flush">
-            <% recentAnimals.forEach((animal) => { %>
+          <div class="list-group list-group-flush dashboard-compact-list">
+            <% recentAnimals.slice(0, 4).forEach((animal) => { %>
               <a class="list-group-item list-group-item-action bg-transparent rounded-3 border px-3 py-3 mb-2" href="/animals/<%= animal.id %>">
                 <div class="d-flex flex-wrap justify-content-between gap-2">
                   <div>
@@ -337,18 +337,17 @@
   </div>
 
   <div class="col-xl-6">
-    <article class="card border-0 h-100">
+    <article class="card border-0 h-100 dashboard-feed-card">
       <div class="card-body p-4">
         <div class="mb-3">
-          <h2 class="h4 mb-1">Zuletzt geändert</h2>
-          <p class="text-body-secondary mb-0">Die letzten Vorgänge im Bestand, damit du direkt wieder anknüpfen kannst.</p>
+          <h2 class="h5 mb-1">Zuletzt geändert</h2>
+          <p class="text-body-secondary mb-0 small">Die letzten Vorgänge im Bestand.</p>
         </div>
-        <% const activityList = typeof recentActivity !== 'undefined' ? recentActivity : []; %>
         <% if (!activityList.length) { %>
-          <p class="text-body-secondary mb-0">Noch keine Aktivität vorhanden.</p>
+          <p class="text-body-secondary mb-0 small">Noch keine Aktivität vorhanden.</p>
         <% } else { %>
-          <div class="list-group list-group-flush">
-            <% activityList.forEach((entry) => { %>
+          <div class="list-group list-group-flush dashboard-compact-list">
+            <% activityList.slice(0, 4).forEach((entry) => { %>
               <<%= entry.animalId ? 'a' : 'div' %> class="list-group-item <%= entry.animalId ? 'list-group-item-action' : '' %> bg-transparent rounded-3 border px-3 py-3 mb-2" <% if (entry.animalId) { %>href="/animals/<%= entry.animalId %>"<% } %>>
                 <div class="d-flex flex-wrap justify-content-between gap-2">
                   <div>
@@ -369,16 +368,16 @@
     <section class="card border-0 h-100">
       <div class="card-body p-4">
         <div class="mb-3">
-          <h2 class="h4 mb-1">Schnell weiter</h2>
-          <p class="text-body-secondary mb-0">Die häufigsten Wege direkt von hier aus.</p>
+          <h2 class="h5 mb-1">Schnell weiter</h2>
+          <p class="text-body-secondary mb-0 small">Die häufigsten Wege direkt von hier aus.</p>
         </div>
-        <div class="row g-3">
+        <div class="row g-2">
           <% if (permissions.canEditAnimals) { %>
             <div class="col-md-6">
               <a href="/animals/new" class="card border h-100 text-decoration-none" data-drawer="animal-form">
-                <div class="card-body">
+                <div class="card-body p-3">
                   <div class="fw-semibold mb-1">Tier anlegen</div>
-                  <div class="small text-body-secondary">Neue Akte mit Stammdaten, Herkunft und Tierarzt erstellen.</div>
+                  <div class="small text-body-secondary">Neue Akte starten.</div>
                 </div>
               </a>
             </div>
@@ -386,18 +385,18 @@
           <% if (permissions.canManageAdmin) { %>
             <div class="col-md-6">
               <a href="/admin/allgemein" class="card border h-100 text-decoration-none">
-                <div class="card-body">
-                  <div class="fw-semibold mb-1">Admin öffnen</div>
-                  <div class="small text-body-secondary">SMTP, Telegram, Benutzer, Tierarten und Dokumentkategorien verwalten.</div>
+                <div class="card-body p-3">
+                  <div class="fw-semibold mb-1">Verwaltung</div>
+                  <div class="small text-body-secondary">Benutzer, Kanäle und Stammdaten.</div>
                 </div>
               </a>
             </div>
           <% } %>
           <div class="col-md-6">
             <a href="/hilfe" class="card border h-100 text-decoration-none">
-              <div class="card-body">
-                <div class="fw-semibold mb-1">Hilfe lesen</div>
-                <div class="small text-body-secondary">Anleitungen für Einrichtung, Telegram-Bot und Updatescript.</div>
+              <div class="card-body p-3">
+                <div class="fw-semibold mb-1">Hilfe</div>
+                <div class="small text-body-secondary">Anleitungen und Betrieb.</div>
               </div>
             </a>
           </div>
