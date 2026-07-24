@@ -66,6 +66,8 @@ HeartPet liest derzeit folgende Umgebungsvariablen:
 
 - `PORT`
 - `HEARTPET_SESSION_SECRET`
+- `HEARTPET_SESSION_DAYS` (optional, Standard: `30`)
+- `HEARTPET_SESSION_STORE` (optional; nicht auf `memory` setzen, wenn Logins Updates ueberleben sollen)
 
 Eine Vorlage liegt in [.env.example](/Users/michael/Programmerierung/HeartPet/.env.example).
 

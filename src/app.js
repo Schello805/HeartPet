@@ -31,12 +31,16 @@ const { buildAnimalExportPayload, createAnimalPdf } = require("./exporters");
 const SQLiteStore = SQLiteStoreFactory(session);
 const app = express();
 const db = initDatabase();
+const projectRoot = path.join(__dirname, "..");
+const configuredDataDir = String(process.env.HEARTPET_DATA_DIR || "").trim();
+const dataDir = configuredDataDir ? path.resolve(configuredDataDir) : path.join(projectRoot, "data");
 const useMemorySessionStore = String(process.env.HEARTPET_SESSION_STORE || "").trim().toLowerCase() === "memory";
+const configuredSessionDays = Number.parseInt(String(process.env.HEARTPET_SESSION_DAYS || "30"), 10);
+const sessionDays = Number.isFinite(configuredSessionDays) && configuredSessionDays > 0 ? configuredSessionDays : 30;
+const sessionMaxAgeMs = sessionDays * 24 * 60 * 60 * 1000;
 const sessionDb = useMemorySessionStore
   ? null
-  : new sqlite3.Database(path.join(__dirname, "..", "data", "sessions.sqlite"));
-
-const projectRoot = path.join(__dirname, "..");
+  : new sqlite3.Database(path.join(dataDir, "sessions.sqlite"));
 
 const uploadStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -68,9 +72,16 @@ app.get("/favicon.ico", (req, res) => {
 
 app.use(
   session({
+    name: "heartpet.sid",
     secret: process.env.HEARTPET_SESSION_SECRET || "heartpet-session-secret",
     resave: false,
+    rolling: true,
     saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      maxAge: sessionMaxAgeMs,
+      sameSite: "lax",
+    },
     store: useMemorySessionStore
       ? undefined
       : new SQLiteStore({

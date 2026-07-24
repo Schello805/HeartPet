@@ -215,6 +215,11 @@ test("Login führt mit return_to wieder direkt zur Tierakte zurück", async () =
 
   assert.equal(login.status, 302);
   assert.equal(login.headers.location, "/animals/1");
+  const sessionCookie = (login.headers["set-cookie"] || []).find((cookie) => cookie.startsWith("heartpet.sid="));
+  assert.ok(sessionCookie);
+  const expiresMatch = sessionCookie.match(/Expires=([^;]+)/i);
+  assert.ok(expiresMatch);
+  assert.ok(new Date(expiresMatch[1]).getTime() - Date.now() > 20 * 24 * 60 * 60 * 1000);
 });
 
 test("Importseite erklärt klar, was importiert wird und was nicht", async () => {
