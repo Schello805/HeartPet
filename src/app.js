@@ -576,19 +576,17 @@ app.get("/", (req, res) => {
       .get(dayjs().format("YYYY-MM-DDTHH:mm")).count,
   };
 
-  const recentAnimals = attachAnimalWorkspaceMeta(attachNextTermData(db.prepare(`
+  const speciesCounts = db.prepare(`
     SELECT
-      animals.*,
-      species.name AS species_name,
-      COALESCE(veterinarians.name, species_vet.name) AS veterinarian_name
+      COALESCE(species.name, 'Ohne Tierart') AS name,
+      species.id AS species_id,
+      COUNT(animals.id) AS count
     FROM animals
     LEFT JOIN species ON species.id = animals.species_id
-    LEFT JOIN veterinarians ON veterinarians.id = animals.veterinarian_id
-    LEFT JOIN veterinarians AS species_vet ON species_vet.id = species.default_veterinarian_id
     WHERE animals.status = 'Aktiv'
-    ORDER BY animals.created_at DESC
-    LIMIT 6
-  `).all()));
+    GROUP BY species.id, species.name
+    ORDER BY species.name COLLATE NOCASE ASC
+  `).all();
 
   const upcomingReminders = db.prepare(`
     SELECT reminders.*, animals.name AS animal_name
@@ -662,9 +660,12 @@ app.get("/", (req, res) => {
       }
       return String(right.updated_at || "").localeCompare(String(left.updated_at || ""));
     })
-    .slice(0, 6);
+    .slice(0, 6)
+    .map((animal) => ({
+      ...animal,
+      dashboardAttentionReasons: buildDashboardAttentionReasons(animal),
+    }));
 
-  const recentActivity = buildDashboardActivityFeed();
   const dashboardHealth = buildDashboardHealthSummary();
 
   res.render("pages/dashboard", {
@@ -672,11 +673,10 @@ app.get("/", (req, res) => {
     search: { q, searchable },
     searchResults,
     stats,
-    recentAnimals,
+    speciesCounts,
     upcomingReminders,
     urgentReminders,
     attentionAnimals,
-    recentActivity,
     dashboardHealth,
   });
 });
@@ -4340,6 +4340,33 @@ function buildDashboardHealthSummary() {
     animalsMissingRequiredDocuments: activeAnimals.filter((animal) => animal.missingRequiredDocumentCount > 0),
     animalsWithIncompleteProfile: activeAnimals.filter((animal) => animal.isProfileIncomplete),
   };
+}
+
+function buildDashboardAttentionReasons(animal) {
+  const reasons = [];
+  if (Number(animal.overdueReminderCount || 0) > 0) {
+    reasons.push(`${animal.overdueReminderCount} überfällig`);
+  }
+  const openOnlyCount = Math.max(Number(animal.openReminderCount || 0) - Number(animal.overdueReminderCount || 0), 0);
+  if (openOnlyCount > 0) {
+    reasons.push(`${openOnlyCount} offen`);
+  }
+  if (!animal.veterinarian_name) {
+    reasons.push("Tierarzt fehlt");
+  }
+  if (!animal.birth_date) {
+    reasons.push("Geburtsdatum fehlt");
+  }
+  if (!animal.intake_date) {
+    reasons.push("Aufnahmedatum fehlt");
+  }
+  if (Number(animal.missingRequiredDocumentCount || 0) > 0) {
+    reasons.push(`${animal.missingRequiredDocumentCount} Pflichtdokument${Number(animal.missingRequiredDocumentCount) === 1 ? "" : "e"} fehlt`);
+  }
+  if (animal.isStale) {
+    reasons.push("Seit 7 Tagen keine Änderung");
+  }
+  return reasons;
 }
 
 function buildNextTermLookup(animalIds) {

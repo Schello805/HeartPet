@@ -1143,8 +1143,10 @@ test("Dashboard verlinkt die Tier-Karte auf die Tierübersicht und zeigt die ein
   const expectedAnimalCount = db.prepare("SELECT COUNT(DISTINCT id) AS count FROM animals WHERE status = 'Aktiv'").get().count;
   assert.match(
     response.text,
-    new RegExp(`<a class="[^"]*card[^"]*" href="\\/animals">[\\s\\S]*?<span>Tiere<\\/span>[\\s\\S]*?<strong[^>]*>${expectedAnimalCount}<\\/strong>[\\s\\S]*?<\\/a>`)
+    new RegExp(`<a class="[^"]*card[^"]*" href="\\/animals">[\\s\\S]*?<span[^>]*>Gesamt<\\/span>[\\s\\S]*?<strong[^>]*>${expectedAnimalCount}<\\/strong>[\\s\\S]*?<\\/a>`)
   );
+  assert.match(response.text, /Tierbestand/);
+  assert.match(response.text, /Aktive Tiere nach Tierart/);
 });
 
 test("Tiere, Historie und Ruhestätte trennen die Bestände sauber", async () => {
@@ -1354,7 +1356,7 @@ test("Statuswechsel speichert Abschlussdaten und zeigt sie in Historie und Ruhes
   assert.match(restingPage.text, /Sehr geliebte Begleiterin\./);
 });
 
-test("Dashboard zeigt Aufmerksamkeit und jüngste Aktivität", async () => {
+test("Dashboard zeigt Tierarten und konkrete Aufmerksamkeitspunkte", async () => {
   const speciesId = db.prepare("SELECT id FROM species ORDER BY id ASC LIMIT 1").get()?.id;
   const animalId = db.prepare("INSERT INTO animals (name, species_id, status) VALUES (?, ?, ?)").run("Radar", speciesId, "Aktiv").lastInsertRowid;
   db.prepare(`
@@ -1368,9 +1370,12 @@ test("Dashboard zeigt Aufmerksamkeit und jüngste Aktivität", async () => {
 
   const response = await agent.get("/");
   assert.equal(response.status, 200);
-  assert.match(response.text, /Braucht Aufmerksamkeit/);
+  assert.match(response.text, /Hinweise/);
   assert.match(response.text, /Radar/);
-  assert.match(response.text, /Zuletzt geändert/);
+  assert.match(response.text, /Tierarzt fehlt/);
+  assert.match(response.text, /Geburtsdatum fehlt/);
+  assert.doesNotMatch(response.text, /Zuletzt geändert/);
+  assert.doesNotMatch(response.text, /Schnell weiter/);
 });
 
 test("Tierseite zeigt Tierarzt-Kontakt per Klick und erklärt die Schnellerfassung", async () => {

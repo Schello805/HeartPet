@@ -1349,6 +1349,17 @@ small {
   background: #f59e0b;
 }
 
+.bootstrap-app .semantic-card--info {
+  background:
+    linear-gradient(90deg, rgba(14, 165, 233, 0.14), transparent 44%),
+    var(--bs-card-bg);
+  border-color: rgba(14, 165, 233, 0.3) !important;
+}
+
+.bootstrap-app .semantic-card--info::before {
+  background: #0ea5e9;
+}
+
 .bootstrap-app .semantic-card--ok strong {
   color: #166534;
 }
@@ -1359,6 +1370,10 @@ small {
 
 .bootstrap-app .semantic-card--warning strong {
   color: #92400e;
+}
+
+.bootstrap-app .semantic-card--info strong {
+  color: #075985;
 }
 
 .bootstrap-app .animal-priority-grid .card-body,
