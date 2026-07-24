@@ -1088,20 +1088,20 @@ small {
 }
 
 .bootstrap-app.animals-page .animals-compact-card .card-body {
-  padding: 0.5rem 0.7rem !important;
+  padding: 0.8rem 0.95rem !important;
 }
 
 .bootstrap-app.animals-page .animals-compact-card h2 {
-  font-size: 0.88rem;
+  font-size: 0.96rem;
   margin-bottom: 0;
 }
 
 .bootstrap-app.animals-page .animals-compact-card .mb-3 {
-  margin-bottom: 0.45rem !important;
+  margin-bottom: 0.7rem !important;
 }
 
 .bootstrap-app.animals-page .animals-compact-card .mb-2 {
-  margin-bottom: 0.3rem !important;
+  margin-bottom: 0.45rem !important;
 }
 
 .bootstrap-app.animals-page .animals-selected-card .card-body {
@@ -1118,17 +1118,46 @@ small {
 }
 
 .bootstrap-app.animals-page .animal-list-item {
-  padding-top: 0.4rem !important;
-  padding-bottom: 0.4rem !important;
+  padding-top: 0.65rem !important;
+  padding-bottom: 0.65rem !important;
 }
 
 .bootstrap-app.animals-page .animal-list-item .fw-semibold {
-  font-size: 0.82rem;
+  font-size: 0.92rem;
 }
 
 .bootstrap-app.animals-page .animal-list-item .small,
 .bootstrap-app.animals-page .animal-list-item .text-body-secondary {
-  font-size: 0.7rem;
+  font-size: 0.78rem;
+}
+
+.bootstrap-app.animals-page .animals-filter-form .form-label {
+  margin-bottom: 0.3rem;
+  font-size: 0.72rem;
+}
+
+.bootstrap-app.animals-page .animal-list-item-meta {
+  display: grid;
+  align-content: center;
+  gap: 0.35rem;
+}
+
+.bootstrap-app.animals-page .animal-list-item-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--bs-primary);
+}
+
+.bootstrap-app .animal-form-optional .accordion-button {
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.bootstrap-app .animal-form-optional .accordion-body {
+  padding: 0.9rem;
 }
 
 .bootstrap-app.animals-page .animal-hero-card {
