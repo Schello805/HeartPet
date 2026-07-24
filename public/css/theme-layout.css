@@ -1287,6 +1287,86 @@ small {
   gap: 0.3rem;
 }
 
+.bootstrap-app .animal-summary-card .card-body,
+.bootstrap-app .animal-stats-grid .card-body {
+  padding: 0.72rem 0.78rem !important;
+}
+
+.bootstrap-app .animal-summary-layout .h4,
+.bootstrap-app .animal-summary-layout .h5,
+.bootstrap-app .animal-insight-layout .h5 {
+  line-height: 1.12;
+}
+
+.bootstrap-app .animal-stats-grid .h4 {
+  font-size: 1.12rem;
+  line-height: 1;
+}
+
+.bootstrap-app .detail-entry-grid {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+.bootstrap-app .detail-entry-grid--wide,
+.bootstrap-app .detail-entry-grid--timeline {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+.bootstrap-app .detail-entry-card {
+  min-width: 0;
+  height: 100%;
+}
+
+.bootstrap-app .detail-entry-card .card-body p,
+.bootstrap-app .detail-entry-card .card-body small {
+  margin-bottom: 0;
+}
+
+.bootstrap-app .detail-entry-card .inline-actions {
+  padding: 0 0.68rem 0.68rem;
+  justify-content: flex-start;
+}
+
+.bootstrap-app .compact-workflow-form {
+  gap: 0.78rem !important;
+}
+
+.bootstrap-app .compact-workflow-form > .text-body-secondary.small {
+  margin-top: -0.12rem;
+}
+
+.bootstrap-app .form-section-card .card-body {
+  padding: 0.78rem 0.84rem !important;
+}
+
+.bootstrap-app .form-section-card .form-text {
+  font-size: 0.69rem;
+  line-height: 1.35;
+}
+
+.bootstrap-app .form-section-card--nested {
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.bootstrap-app .compact-form-footer {
+  margin-top: 0.12rem;
+}
+
+.bootstrap-app .drawer-body .form-label {
+  margin-bottom: 0.24rem;
+  font-size: 0.72rem;
+}
+
+.bootstrap-app .drawer-body textarea.form-control {
+  min-height: 92px;
+}
+
+.bootstrap-app .drawer-body .btn {
+  min-height: 2.25rem;
+}
+
 .bootstrap-app .document-card-grid-item {
   display: flex;
   flex-direction: column;
@@ -1380,6 +1460,23 @@ small {
   padding: 0.62rem !important;
 }
 
+@media (min-width: 768px) {
+  .bootstrap-app .detail-entry-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bootstrap-app .detail-entry-grid--wide,
+  .bootstrap-app .detail-entry-grid--timeline {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1400px) {
+  .bootstrap-app .detail-entry-grid--timeline {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 767px) {
   .bootstrap-app .card-body.p-4 {
     padding: 0.82rem !important;
@@ -1412,6 +1509,23 @@ small {
 
   .bootstrap-app .animal-list-item-meta {
     text-align: left !important;
+  }
+
+  .bootstrap-app .animal-summary-card .card-body,
+  .bootstrap-app .animal-stats-grid .card-body,
+  .bootstrap-app .form-section-card .card-body {
+    padding: 0.72rem !important;
+  }
+
+  .bootstrap-app .detail-entry-grid,
+  .bootstrap-app .detail-entry-grid--wide,
+  .bootstrap-app .detail-entry-grid--timeline {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bootstrap-app .detail-entry-card .inline-actions {
+    padding: 0 0.72rem 0.72rem;
+    gap: 0.38rem;
   }
 
   .bootstrap-app .app-main-container {

@@ -49,9 +49,9 @@
     <% } %>
 
     <% if (isEvent) { %>
-      <form method="post" action="/animals/<%= animal.id %>/events" class="vstack gap-4 event-form" data-drawer-form="animal-entry" data-event-form>
+      <form method="post" action="/animals/<%= animal.id %>/events" class="vstack gap-4 event-form compact-workflow-form" data-drawer-form="animal-entry" data-event-form>
         <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
-        <section class="card border bg-body">
+        <section class="card border bg-body form-section-card">
           <div class="card-body">
             <div class="row g-3">
               <div class="col-md-4">
@@ -119,9 +119,9 @@
     <% } %>
 
     <% if (isCondition) { %>
-      <form method="post" action="<%= isEdit ? `/animals/${animal.id}/conditions/${item.id}/update` : `/animals/${animal.id}/conditions` %>" class="vstack gap-4" data-drawer-form="animal-entry">
+      <form method="post" action="<%= isEdit ? `/animals/${animal.id}/conditions/${item.id}/update` : `/animals/${animal.id}/conditions` %>" class="vstack gap-4 compact-workflow-form" data-drawer-form="animal-entry">
         <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
-        <section class="card border bg-body">
+        <section class="card border bg-body form-section-card">
           <div class="card-body">
             <div class="row g-3">
               <div class="col-12">
@@ -144,9 +144,9 @@
     <% } %>
 
     <% if (isFeeding) { %>
-      <form method="post" action="<%= isEdit ? `/animals/${animal.id}/feedings/${item.id}/update` : `/animals/${animal.id}/feedings` %>" class="vstack gap-4" data-drawer-form="animal-entry">
+      <form method="post" action="<%= isEdit ? `/animals/${animal.id}/feedings/${item.id}/update` : `/animals/${animal.id}/feedings` %>" class="vstack gap-4 compact-workflow-form" data-drawer-form="animal-entry">
         <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
-        <section class="card border bg-body">
+        <section class="card border bg-body form-section-card">
           <div class="card-body">
             <div class="row g-3">
               <div class="col-md-6">
@@ -181,9 +181,9 @@
     <% } %>
 
     <% if (isNote) { %>
-      <form method="post" action="<%= isEdit ? `/animals/${animal.id}/notes/${item.id}/update` : `/animals/${animal.id}/notes` %>" class="vstack gap-4" data-drawer-form="animal-entry">
+      <form method="post" action="<%= isEdit ? `/animals/${animal.id}/notes/${item.id}/update` : `/animals/${animal.id}/notes` %>" class="vstack gap-4 compact-workflow-form" data-drawer-form="animal-entry">
         <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
-        <section class="card border bg-body">
+        <section class="card border bg-body form-section-card">
           <div class="card-body">
             <div class="row g-3">
               <div class="col-12">
@@ -206,9 +206,9 @@
     <% } %>
 
     <% if (isMedication) { %>
-      <form method="post" action="/animals/<%= animal.id %>/medications/<%= item.id %>/update" class="vstack gap-4" data-drawer-form="animal-entry">
+      <form method="post" action="/animals/<%= animal.id %>/medications/<%= item.id %>/update" class="vstack gap-4 compact-workflow-form" data-drawer-form="animal-entry">
         <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
-        <section class="card border bg-body">
+        <section class="card border bg-body form-section-card">
           <div class="card-body">
             <div class="row g-3">
               <div class="col-12">
@@ -247,7 +247,7 @@
     <% } %>
 
     <% if (isVaccination) { %>
-      <form method="post" action="/animals/<%= animal.id %>/vaccinations/<%= item.id %>/update" class="vstack gap-4" data-drawer-form="animal-entry">
+      <form method="post" action="/animals/<%= animal.id %>/vaccinations/<%= item.id %>/update" class="vstack gap-4 compact-workflow-form" data-drawer-form="animal-entry">
         <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
         <section class="card border bg-body">
           <div class="card-body">
