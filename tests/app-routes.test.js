@@ -972,6 +972,48 @@ test("Tiere, Historie und Ruhestätte trennen die Bestände sauber", async () =>
   assert.equal(db.prepare("SELECT status FROM animals WHERE id = ?").get(verstorbenId)?.status, "Verstorben");
 });
 
+test("Ruhestätte bleibt auf verstorbene Tiere begrenzt und verlinkt nicht in den aktiven Bestand", async () => {
+  const speciesId = db.prepare("SELECT species_id FROM animals WHERE id = 1").get()?.species_id;
+  assert.ok(speciesId);
+  db.prepare("INSERT INTO animals (name, species_id, status) VALUES (?, ?, ?)").run("Archivkater", speciesId, "Verstorben");
+  db.prepare("INSERT INTO animals (name, species_id, status) VALUES (?, ?, ?)").run("Aktivkater", speciesId, "Aktiv");
+
+  const filteredPage = await agent.get(`/animals/ruhestaette?species_id=${speciesId}&sort=name_asc`);
+  assert.equal(filteredPage.status, 200);
+  assert.match(filteredPage.text, /Ruhestätte/);
+  assert.match(filteredPage.text, /Archivkater/);
+  assert.doesNotMatch(filteredPage.text, /Aktivkater/);
+  assert.doesNotMatch(filteredPage.text, /href="\/animals\?species_id=/);
+  assert.match(filteredPage.text, /href="\/animals\/\d+"/);
+});
+
+test("Historie behält Filter- und Listenaktionen im Historie-Bereich", async () => {
+  const speciesId = db.prepare("SELECT species_id FROM animals WHERE id = 1").get()?.species_id;
+  assert.ok(speciesId);
+  db.prepare("INSERT INTO animals (name, species_id, status) VALUES (?, ?, ?)").run("VermitteltTest", speciesId, "Vermittelt");
+
+  const historyPage = await agent.get(`/animals/historie?species_id=${speciesId}&status=Vermittelt&sort=name_asc`);
+  assert.equal(historyPage.status, 200);
+  assert.match(historyPage.text, /Historie/);
+  assert.match(historyPage.text, /action="\/animals\/historie"/);
+  assert.match(historyPage.text, /href="\/animals\/historie\?/);
+  assert.doesNotMatch(historyPage.text, /href="\/animals\?species_id=/);
+});
+
+test("Tierarten-Untermenü erscheint nur im aktiven Bestand", async () => {
+  const activePage = await agent.get("/animals");
+  assert.equal(activePage.status, 200);
+  assert.match(activePage.text, /href="\/animals\?species_id=/);
+
+  const historyPage = await agent.get("/animals/historie");
+  assert.equal(historyPage.status, 200);
+  assert.doesNotMatch(historyPage.text, /href="\/animals\?species_id=/);
+
+  const restingPage = await agent.get("/animals/ruhestaette");
+  assert.equal(restingPage.status, 200);
+  assert.doesNotMatch(restingPage.text, /href="\/animals\?species_id=/);
+});
+
 test("Beim Verschieben aus dem aktiven Bestand werden offene Erinnerungen abgeschlossen", async () => {
   db.prepare(`
     INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, notes)

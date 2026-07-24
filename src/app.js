@@ -3667,6 +3667,7 @@ function getAnimalSectionConfig(section) {
   const sectionMap = {
     active: {
       key: "active",
+      basePath: "/animals",
       pageTitle: "Meine Tiere",
       workspaceTitle: "Meine Tiere",
       workspaceIntro: "Hier findest du alle Tiere aus deinem aktuellen Bestand.",
@@ -3677,6 +3678,7 @@ function getAnimalSectionConfig(section) {
     },
     history: {
       key: "history",
+      basePath: "/animals/historie",
       pageTitle: "Historie",
       workspaceTitle: "Historie",
       workspaceIntro: "Hier findest du vermittelte oder verkaufte Tiere als Bestandsverlauf.",
@@ -3687,6 +3689,7 @@ function getAnimalSectionConfig(section) {
     },
     resting: {
       key: "resting",
+      basePath: "/animals/ruhestaette",
       pageTitle: "Ruhestätte",
       workspaceTitle: "Ruhestätte",
       workspaceIntro: "Hier bleiben verstorbene Tiere würdevoll dokumentiert und getrennt vom aktiven Bestand.",

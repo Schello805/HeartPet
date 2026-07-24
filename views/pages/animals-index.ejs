@@ -1,4 +1,5 @@
 <% const sectionState = typeof animalSection !== 'undefined' ? animalSection : { key: 'active', workspaceTitle: 'Tierbestand', workspaceIntro: '', totalLabel: 'Einträge', allowStatusFilter: true }; %>
+<% const sectionBasePath = sectionState.basePath || '/animals'; %>
 <%- include('../partials/top', { pageTitle, pageClass: `animals-page animals-page--${sectionState.key}` }) %>
 <% const selectedAnimalState = typeof selectedAnimal !== 'undefined' ? selectedAnimal : null; %>
 <% const selectedAnimalViewState = typeof selectedAnimalView !== 'undefined' ? selectedAnimalView : null; %>
@@ -69,7 +70,7 @@
           </div>
           <span class="badge text-bg-secondary-subtle border"><%= pagination.totalCount %> <%= sectionState.totalLabel %></span>
         </div>
-        <form method="get" action="/animals" class="row g-3 align-items-end animals-filter-form">
+        <form method="get" action="<%= sectionBasePath %>" class="row g-3 align-items-end animals-filter-form">
           <div class="col-lg-5">
             <label class="form-label">Suche</label>
             <div class="search-autocomplete-field">
@@ -115,7 +116,7 @@
             <button type="submit" class="btn btn-primary">Anwenden</button>
           </div>
           <div class="col-sm-6 col-lg-auto d-grid">
-            <a href="<%= sectionState.key === 'history' ? '/animals/historie' : sectionState.key === 'resting' ? '/animals/ruhestaette' : '/animals' %>" class="btn btn-outline-secondary">Zurücksetzen</a>
+            <a href="<%= sectionBasePath %>" class="btn btn-outline-secondary">Zurücksetzen</a>
           </div>
         </form>
       </div>
@@ -163,7 +164,7 @@
               <% if (pagination.currentPage > 1) rowParams.set('page', String(pagination.currentPage)); %>
               <% rowParams.set('animal_id', String(animal.id)); %>
               <a
-                href="/animals?<%= rowParams.toString() %>"
+                href="<%= sectionBasePath %>?<%= rowParams.toString() %>"
                 class="list-group-item list-group-item-action bg-transparent px-3 py-2 animal-list-item <%= selectedAnimalState && String(selectedAnimalState.id) === String(animal.id) ? 'active' : '' %>"
                 data-animal-workspace-link="true"
                 data-no-soft-nav="true"
@@ -197,7 +198,7 @@
             <nav class="mt-3">
               <ul class="pagination pagination-sm mb-0">
                 <% for (let page = 1; page <= pagination.totalPages; page += 1) { %>
-                  <% const url = `/animals?q=${encodeURIComponent(filters.search || '')}&status=${encodeURIComponent(filters.status || '')}&species_id=${encodeURIComponent(filters.speciesId || '')}&sort=${encodeURIComponent(filters.sort || 'name_asc')}&page=${page}${selectedAnimalState ? `&animal_id=${selectedAnimalState.id}` : ''}`; %>
+                  <% const url = `${sectionBasePath}?q=${encodeURIComponent(filters.search || '')}&status=${encodeURIComponent(filters.status || '')}&species_id=${encodeURIComponent(filters.speciesId || '')}&sort=${encodeURIComponent(filters.sort || 'name_asc')}&page=${page}${selectedAnimalState ? `&animal_id=${selectedAnimalState.id}` : ''}`; %>
                   <li class="page-item <%= page === pagination.currentPage ? 'active' : '' %>">
                     <a href="<%= url %>" class="page-link"><%= page %></a>
                   </li>
