@@ -399,6 +399,7 @@
                     <option value="<%= category.id %>" <%= String(item?.category_id || '') === String(category.id) ? 'selected' : '' %>><%= category.name %><%= category.is_required ? ' (Pflicht)' : '' %></option>
                   <% }) %>
                 </select>
+                <div class="form-text">Pflichtkategorien helfen dir dabei, fehlende Nachweise im Dashboard und in der Akte schneller zu erkennen.</div>
               </div>
               <% if (!isEdit) { %>
                 <div class="col-12">
@@ -430,6 +431,7 @@
               <div class="col-12">
                 <label class="form-label" for="image-file">Bilddatei</label>
                 <input class="form-control" id="image-file" type="file" name="image" accept="image/*" required />
+                <div class="form-text">Für Verlauf und Dokumentation reichen oft schon wenige, klar benannte Fotos.</div>
               </div>
             </div>
           </div>

@@ -576,14 +576,19 @@ app.get("/", (req, res) => {
       .get(dayjs().format("YYYY-MM-DDTHH:mm")).count,
   };
 
-  const recentAnimals = db.prepare(`
-    SELECT animals.*, species.name AS species_name
+  const recentAnimals = attachAnimalWorkspaceMeta(attachNextTermData(db.prepare(`
+    SELECT
+      animals.*,
+      species.name AS species_name,
+      COALESCE(veterinarians.name, species_vet.name) AS veterinarian_name
     FROM animals
     LEFT JOIN species ON species.id = animals.species_id
+    LEFT JOIN veterinarians ON veterinarians.id = animals.veterinarian_id
+    LEFT JOIN veterinarians AS species_vet ON species_vet.id = species.default_veterinarian_id
     WHERE animals.status = 'Aktiv'
     ORDER BY animals.created_at DESC
     LIMIT 6
-  `).all();
+  `).all()));
 
   const upcomingReminders = db.prepare(`
     SELECT reminders.*, animals.name AS animal_name
@@ -625,18 +630,32 @@ app.get("/", (req, res) => {
   );
 
   const attentionAnimals = attachAnimalWorkspaceMeta(attachNextTermData(db.prepare(`
-    SELECT animals.*, species.name AS species_name, veterinarians.name AS veterinarian_name
+    SELECT
+      animals.*,
+      species.name AS species_name,
+      COALESCE(veterinarians.name, species_vet.name) AS veterinarian_name
     FROM animals
     LEFT JOIN species ON species.id = animals.species_id
     LEFT JOIN veterinarians ON veterinarians.id = animals.veterinarian_id
+    LEFT JOIN veterinarians AS species_vet ON species_vet.id = species.default_veterinarian_id
     WHERE animals.status = 'Aktiv'
     ORDER BY datetime(animals.updated_at) DESC, animals.id DESC
     LIMIT 10
   `).all()))
-    .filter((animal) => animal.overdueReminderCount > 0 || animal.openReminderCount > 0 || !animal.veterinarian_name)
+    .filter((animal) =>
+      animal.overdueReminderCount > 0 ||
+      animal.openReminderCount > 0 ||
+      animal.missingRequiredDocumentCount > 0 ||
+      !animal.veterinarian_name ||
+      animal.isStale ||
+      animal.isProfileIncomplete
+    )
     .sort((left, right) => {
       if (left.overdueReminderCount !== right.overdueReminderCount) {
         return right.overdueReminderCount - left.overdueReminderCount;
+      }
+      if (left.missingRequiredDocumentCount !== right.missingRequiredDocumentCount) {
+        return right.missingRequiredDocumentCount - left.missingRequiredDocumentCount;
       }
       if (left.openReminderCount !== right.openReminderCount) {
         return right.openReminderCount - left.openReminderCount;
@@ -646,6 +665,7 @@ app.get("/", (req, res) => {
     .slice(0, 6);
 
   const recentActivity = buildDashboardActivityFeed();
+  const dashboardHealth = buildDashboardHealthSummary();
 
   res.render("pages/dashboard", {
     pageTitle: "Dashboard",
@@ -657,6 +677,7 @@ app.get("/", (req, res) => {
     urgentReminders,
     attentionAnimals,
     recentActivity,
+    dashboardHealth,
   });
 });
 
@@ -700,10 +721,14 @@ function renderAnimalsWorkspace(req, res, section = "active") {
     : sectionConfig.defaultStatus;
 
   let sql = `
-    SELECT animals.*, species.name AS species_name, veterinarians.name AS veterinarian_name
+    SELECT
+      animals.*,
+      species.name AS species_name,
+      COALESCE(veterinarians.name, species_vet.name) AS veterinarian_name
     FROM animals
     LEFT JOIN species ON species.id = animals.species_id
     LEFT JOIN veterinarians ON veterinarians.id = animals.veterinarian_id
+    LEFT JOIN veterinarians AS species_vet ON species_vet.id = species.default_veterinarian_id
     WHERE 1 = 1
   `;
   const params = [];
@@ -1745,7 +1770,7 @@ app.post("/animals/:id/documents", requireAnimalPermission("canManageDocuments")
     return res.redirect(`/animals/${req.params.id}/documents/new?return_to=${encodeURIComponent(returnTo)}`);
   }
 
-  db.prepare(`
+  const result = db.prepare(`
     INSERT INTO documents (animal_id, category_id, title, original_name, stored_name, mime_type, file_size)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `).run(
@@ -1758,6 +1783,11 @@ app.post("/animals/:id/documents", requireAnimalPermission("canManageDocuments")
     req.file.size
   );
 
+  createAuditLog(req, "animal.document_create", {
+    animal_id: req.params.id,
+    document_id: result.lastInsertRowid,
+    title: req.body.title || req.file.originalname,
+  }, { entityType: "animal", entityId: req.params.id });
   setFlash(req, "success", "Dokument hochgeladen.");
   res.redirect(returnTo);
 });
@@ -1769,6 +1799,11 @@ app.post("/animals/:animalId/documents/:entryId/update", requireAnimalPermission
     SET title = ?, category_id = ?
     WHERE id = ? AND animal_id = ?
   `).run(req.body.title, req.body.category_id || null, req.params.entryId, req.params.animalId);
+  createAuditLog(req, "animal.document_update", {
+    animal_id: req.params.animalId,
+    document_id: req.params.entryId,
+    title: String(req.body.title || "").trim(),
+  }, { entityType: "animal", entityId: req.params.animalId });
   setFlash(req, "success", "Dokument aktualisiert.");
   res.redirect(returnTo);
 });
@@ -1792,6 +1827,11 @@ app.post("/animals/:animalId/documents/:entryId/delete", requireAnimalPermission
     }
   }
   db.prepare("DELETE FROM documents WHERE id = ? AND animal_id = ?").run(req.params.entryId, req.params.animalId);
+  createAuditLog(req, "animal.document_delete", {
+    animal_id: req.params.animalId,
+    document_id: req.params.entryId,
+    title: document?.title || "",
+  }, { entityType: "animal", entityId: req.params.animalId });
   setFlash(req, "success", "Dokument gelöscht.");
   res.redirect(`/animals/${req.params.animalId}`);
 });
@@ -1824,6 +1864,10 @@ app.post("/animals/:id/profile-image", requireAnimalPermission("canManageGallery
 
   deleteUploadedFileIfUnreferenced(animal.profile_image_stored_name);
 
+  createAuditLog(req, "animal.profile_image_update", {
+    animal_id: req.params.id,
+    original_name: req.file.originalname,
+  }, { entityType: "animal", entityId: req.params.id });
   setFlash(req, "success", "Profilbild gespeichert.");
   res.redirect(`/animals/${req.params.id}`);
 });
@@ -1845,6 +1889,9 @@ app.post("/animals/:id/profile-image/delete", requireAnimalPermission("canManage
 
   deleteUploadedFileIfUnreferenced(animal.profile_image_stored_name);
 
+  createAuditLog(req, "animal.profile_image_delete", {
+    animal_id: req.params.id,
+  }, { entityType: "animal", entityId: req.params.id });
   setFlash(req, "success", "Profilbild entfernt.");
   res.redirect(`/animals/${req.params.id}`);
 });
@@ -1862,7 +1909,7 @@ app.post("/animals/:id/images", requireAnimalPermission("canManageGallery"), upl
     return res.redirect(`/animals/${req.params.id}/images/new?return_to=${encodeURIComponent(returnTo)}`);
   }
 
-  db.prepare(`
+  const result = db.prepare(`
     INSERT INTO animal_images (animal_id, title, original_name, stored_name, mime_type, file_size)
     VALUES (?, ?, ?, ?, ?, ?)
   `).run(
@@ -1874,6 +1921,11 @@ app.post("/animals/:id/images", requireAnimalPermission("canManageGallery"), upl
     req.file.size
   );
 
+  createAuditLog(req, "animal.image_create", {
+    animal_id: req.params.id,
+    image_id: result.lastInsertRowid,
+    title: String(req.body.title || "").trim(),
+  }, { entityType: "animal", entityId: req.params.id });
   setFlash(req, "success", "Bild zur Galerie hinzugefügt.");
   res.redirect(returnTo);
 });
@@ -1890,6 +1942,11 @@ app.post("/animals/:animalId/images/:entryId/delete", requireAnimalPermission("c
   }
 
   db.prepare("DELETE FROM animal_images WHERE id = ? AND animal_id = ?").run(req.params.entryId, req.params.animalId);
+  createAuditLog(req, "animal.image_delete", {
+    animal_id: req.params.animalId,
+    image_id: req.params.entryId,
+    title: image.title || "",
+  }, { entityType: "animal", entityId: req.params.animalId });
   setFlash(req, "success", "Galeriebild gelöscht.");
   res.redirect(`/animals/${req.params.animalId}`);
 });
@@ -1905,6 +1962,12 @@ app.post("/animals/:animalId/images/:entryId/set-profile", requireAnimalPermissi
     SET profile_image_stored_name = ?, profile_image_original_name = ?, profile_image_mime_type = ?, updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `).run(image.stored_name, image.original_name, image.mime_type || "", req.params.animalId);
+
+  createAuditLog(req, "animal.profile_image_update", {
+    animal_id: req.params.animalId,
+    source_image_id: req.params.entryId,
+    original_name: image.original_name,
+  }, { entityType: "animal", entityId: req.params.animalId });
 
   setFlash(req, "success", "Galeriebild als Profilbild gesetzt.");
   res.redirect(`/animals/${req.params.animalId}`);
@@ -3542,7 +3605,7 @@ function getAnimalRelatedData(animalId) {
     reminders: db.prepare("SELECT * FROM reminders WHERE animal_id = ? ORDER BY due_at ASC").all(animalId),
     images: db.prepare("SELECT * FROM animal_images WHERE animal_id = ? ORDER BY created_at DESC").all(animalId),
     documents: db.prepare(`
-      SELECT documents.*, document_categories.name AS category_name
+      SELECT documents.*, document_categories.name AS category_name, document_categories.is_required AS category_is_required
       FROM documents
       LEFT JOIN document_categories ON document_categories.id = documents.category_id
       WHERE documents.animal_id = ?
@@ -3559,6 +3622,7 @@ function buildAnimalDetailViewData(animalId, req) {
 
   const related = getAnimalRelatedData(animalId);
   const categories = db.prepare("SELECT * FROM document_categories ORDER BY name ASC").all();
+  const missingRequiredCategories = getMissingRequiredCategories(categories, related.documents);
   const documentFilter = {
     categoryId: req.query.documentCategory || "",
     fileType: req.query.documentType || "",
@@ -3581,7 +3645,13 @@ function buildAnimalDetailViewData(animalId, req) {
     editState,
     categories,
     documentFilter,
-    missingRequiredCategories: getMissingRequiredCategories(categories, related.documents),
+    missingRequiredCategories,
+    workflowSummary: {
+      missingRequiredCategories,
+      isProfileIncomplete: isAnimalProfileIncomplete(animal),
+      isStale: isAnimalStale(animal),
+      hasVeterinarian: Boolean(animal.veterinarian_name || animal.species_veterinarian_name),
+    },
     timeline: buildAnimalTimeline(related),
     activityLog: getAnimalActivityEntries(animalId),
     species: db.prepare("SELECT * FROM species ORDER BY name ASC").all(),
@@ -3895,6 +3965,49 @@ function getMissingRequiredCategories(categories, documents) {
   return categories.filter((category) => category.is_required && !presentCategoryIds.has(Number(category.id)));
 }
 
+function buildAnimalDocumentHealthMap(animalIds) {
+  const normalizedIds = (animalIds || []).map((id) => Number(id)).filter(Boolean);
+  if (!normalizedIds.length) {
+    return new Map();
+  }
+
+  const requiredCategories = db.prepare("SELECT id, name FROM document_categories WHERE is_required = 1 ORDER BY name ASC").all();
+  const map = new Map(normalizedIds.map((id) => [id, {
+    missingRequiredCategories: [],
+    missingRequiredDocumentCount: 0,
+  }]));
+
+  if (!requiredCategories.length) {
+    return map;
+  }
+
+  const placeholders = normalizedIds.map(() => "?").join(", ");
+  const documents = db.prepare(`
+    SELECT animal_id, category_id
+    FROM documents
+    WHERE animal_id IN (${placeholders})
+  `).all(...normalizedIds);
+
+  const presentByAnimal = new Map(normalizedIds.map((id) => [id, new Set()]));
+  documents.forEach((item) => {
+    const animalId = Number(item.animal_id);
+    if (presentByAnimal.has(animalId) && item.category_id) {
+      presentByAnimal.get(animalId).add(Number(item.category_id));
+    }
+  });
+
+  normalizedIds.forEach((animalId) => {
+    const present = presentByAnimal.get(animalId) || new Set();
+    const missing = requiredCategories.filter((category) => !present.has(Number(category.id)));
+    map.set(animalId, {
+      missingRequiredCategories: missing.map((item) => item.name),
+      missingRequiredDocumentCount: missing.length,
+    });
+  });
+
+  return map;
+}
+
 function filterDocuments(documents, filters) {
   return documents.filter((item) => {
     if (filters.categoryId && String(item.category_id || "") !== String(filters.categoryId)) {
@@ -3911,6 +4024,17 @@ function filterDocuments(documents, filters) {
 
     return true;
   });
+}
+
+function isAnimalProfileIncomplete(animal) {
+  return !animal.birth_date || !animal.intake_date;
+}
+
+function isAnimalStale(animal, days = 7) {
+  if (!animal?.updated_at) {
+    return true;
+  }
+  return dayjs(animal.updated_at).isBefore(dayjs().subtract(days, "day"));
 }
 
 function parsePositiveInteger(value) {
@@ -4096,6 +4220,7 @@ function attachAnimalWorkspaceMeta(animals) {
   }
 
   const animalIds = animals.map((animal) => Number(animal.id)).filter(Boolean);
+  const documentHealthMap = buildAnimalDocumentHealthMap(animalIds);
   const placeholders = animalIds.map(() => "?").join(", ");
   const reminderStats = db.prepare(`
     SELECT
@@ -4111,11 +4236,19 @@ function attachAnimalWorkspaceMeta(animals) {
   return animals.map((animal) => {
     const lifecycle = getAnimalLifecycle(animal.status);
     const reminderRow = reminderMap.get(Number(animal.id));
+    const documentHealth = documentHealthMap.get(Number(animal.id)) || {
+      missingRequiredCategories: [],
+      missingRequiredDocumentCount: 0,
+    };
     return {
       ...animal,
       lifecycle,
       openReminderCount: Number(reminderRow?.open_count || 0),
       overdueReminderCount: Number(reminderRow?.overdue_count || 0),
+      missingRequiredCategories: documentHealth.missingRequiredCategories,
+      missingRequiredDocumentCount: documentHealth.missingRequiredDocumentCount,
+      isStale: isAnimalStale(animal),
+      isProfileIncomplete: isAnimalProfileIncomplete(animal),
       statusSummary: buildAnimalTransitionSummary(animal.status, {
         status_context_name: animal.status_context_name || "",
         status_context_date: animal.status_context_date || "",
@@ -4123,6 +4256,28 @@ function attachAnimalWorkspaceMeta(animals) {
       }),
     };
   });
+}
+
+function buildDashboardHealthSummary() {
+  const activeAnimals = attachAnimalWorkspaceMeta(attachNextTermData(db.prepare(`
+    SELECT
+      animals.*,
+      species.name AS species_name,
+      COALESCE(veterinarians.name, species_vet.name) AS veterinarian_name
+    FROM animals
+    LEFT JOIN species ON species.id = animals.species_id
+    LEFT JOIN veterinarians ON veterinarians.id = animals.veterinarian_id
+    LEFT JOIN veterinarians AS species_vet ON species_vet.id = species.default_veterinarian_id
+    WHERE animals.status = 'Aktiv'
+    ORDER BY animals.name COLLATE NOCASE ASC
+  `).all()));
+
+  return {
+    staleAnimals: activeAnimals.filter((animal) => animal.isStale),
+    animalsWithoutVeterinarian: activeAnimals.filter((animal) => !animal.veterinarian_name),
+    animalsMissingRequiredDocuments: activeAnimals.filter((animal) => animal.missingRequiredDocumentCount > 0),
+    animalsWithIncompleteProfile: activeAnimals.filter((animal) => animal.isProfileIncomplete),
+  };
 }
 
 function buildNextTermLookup(animalIds) {
@@ -5194,6 +5349,48 @@ function formatAnimalActivityEntry(entry) {
         title: "Protokoll entfernt",
         details: "Ein Verlaufseintrag wurde gelöscht.",
       };
+    case "animal.document_create":
+      return {
+        at: entry.created_at,
+        title: `Dokument hochgeladen: ${details.title || "Dokument"}`,
+        details: "Neue Unterlage an der Akte gespeichert.",
+      };
+    case "animal.document_update":
+      return {
+        at: entry.created_at,
+        title: `Dokument aktualisiert: ${details.title || "Dokument"}`,
+        details: "Titel oder Kategorie wurden angepasst.",
+      };
+    case "animal.document_delete":
+      return {
+        at: entry.created_at,
+        title: `Dokument gelöscht: ${details.title || "Dokument"}`,
+        details: "Unterlage aus der Akte entfernt.",
+      };
+    case "animal.image_create":
+      return {
+        at: entry.created_at,
+        title: `Foto ergänzt${details.title ? `: ${details.title}` : ""}`,
+        details: "Galerie wurde erweitert.",
+      };
+    case "animal.image_delete":
+      return {
+        at: entry.created_at,
+        title: `Foto gelöscht${details.title ? `: ${details.title}` : ""}`,
+        details: "Galeriebild aus der Akte entfernt.",
+      };
+    case "animal.profile_image_update":
+      return {
+        at: entry.created_at,
+        title: "Profilbild aktualisiert",
+        details: details.original_name || "Profilbild wurde neu gesetzt.",
+      };
+    case "animal.profile_image_delete":
+      return {
+        at: entry.created_at,
+        title: "Profilbild entfernt",
+        details: "Das Titelbild der Akte wurde gelöscht.",
+      };
     case "animal.update":
     default:
       return {
@@ -5213,7 +5410,13 @@ function getAnimalActivityEntries(animalId, limit = 12) {
      AND CAST(audit_logs.entity_id AS INTEGER) = animals.id
     WHERE audit_logs.entity_type = 'animal'
       AND audit_logs.entity_id = ?
-      AND audit_logs.action IN ('animal.create', 'animal.update', 'animal.status_change', 'animal.note_create', 'animal.note_update', 'animal.note_delete')
+      AND audit_logs.action IN (
+        'animal.create', 'animal.update', 'animal.status_change',
+        'animal.note_create', 'animal.note_update', 'animal.note_delete',
+        'animal.document_create', 'animal.document_update', 'animal.document_delete',
+        'animal.image_create', 'animal.image_delete',
+        'animal.profile_image_update', 'animal.profile_image_delete'
+      )
     ORDER BY audit_logs.id DESC
     LIMIT ?
   `).all(String(animalId), limit).map(formatAnimalActivityEntry);
@@ -5227,7 +5430,10 @@ function buildDashboardActivityFeed(limit = 8) {
       ON audit_logs.entity_type = 'animal'
      AND CAST(audit_logs.entity_id AS INTEGER) = animals.id
     WHERE audit_logs.entity_type = 'animal'
-      AND audit_logs.action IN ('animal.create', 'animal.update', 'animal.status_change', 'animal.note_create')
+      AND audit_logs.action IN (
+        'animal.create', 'animal.update', 'animal.status_change', 'animal.note_create',
+        'animal.document_create', 'animal.image_create', 'animal.profile_image_update'
+      )
     ORDER BY audit_logs.id DESC
     LIMIT ?
   `).all(limit).map((entry) => {

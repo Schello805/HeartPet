@@ -1246,3 +1246,75 @@ small {
   padding: 0.42rem 0.78rem;
   border-radius: var(--radius-ui);
 }
+
+.bootstrap-app .animal-priority-grid .col-md-6,
+.bootstrap-app .dashboard-health-grid .col-md-6,
+.bootstrap-app .detail-card-list .col-md-6 {
+  display: flex;
+}
+
+.bootstrap-app .animal-priority-grid .card,
+.bootstrap-app .dashboard-health-grid .card,
+.bootstrap-app .document-card-grid-item {
+  width: 100%;
+}
+
+.bootstrap-app .animal-priority-grid .card-body,
+.bootstrap-app .dashboard-health-grid .card-body {
+  gap: 0.3rem;
+}
+
+.bootstrap-app .document-card-grid-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.bootstrap-app .document-card-grid-item .card-body {
+  align-content: start;
+}
+
+.bootstrap-app .document-card-grid-item .document-preview-image {
+  width: 100%;
+  max-height: 140px;
+  object-fit: cover;
+  border-radius: 0.65rem;
+}
+
+.bootstrap-app .detail-card-list .inline-actions {
+  margin-top: auto;
+}
+
+@media (max-width: 767px) {
+  .bootstrap-app .card-body.p-4 {
+    padding: 0.95rem !important;
+  }
+
+  .bootstrap-app .animal-record-accordion .accordion-body {
+    padding: 0.8rem;
+  }
+
+  .bootstrap-app .animal-priority-grid,
+  .bootstrap-app .dashboard-health-grid,
+  .bootstrap-app .detail-card-list {
+    --bs-gutter-x: 0.5rem;
+    --bs-gutter-y: 0.5rem;
+  }
+
+  .bootstrap-app .dashboard-health-grid .card-body,
+  .bootstrap-app .animal-priority-grid .card-body {
+    padding: 0.75rem;
+  }
+
+  .bootstrap-app .detail-card-list .document-card-grid-item .card-body {
+    padding: 0.8rem;
+  }
+
+  .bootstrap-app .animals-filter-form .btn,
+  .bootstrap-app .document-filter-form .btn {
+    min-height: 40px;
+  }
+
+  .bootstrap-app .animal-list-item-meta {
+    text-align: left !important;
+  }
+}
