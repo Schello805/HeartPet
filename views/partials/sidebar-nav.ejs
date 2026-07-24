@@ -27,9 +27,8 @@
 
   <% if (permissions.canManageAdmin) { %>
     <section class="nav-section-card nav-section-card-admin">
-      <p class="nav-section-label mb-0">Administration</p>
+      <p class="nav-section-label mb-0">Verwaltung</p>
       <div class="nav flex-column gap-1">
-        <div class="nav-group-title px-3 pt-2">Verwaltung</div>
         <a class="nav-link rounded-2 px-3 py-2 <%= currentPath === '/admin/allgemein' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/admin/allgemein">Allgemein</a>
         <a class="nav-link rounded-2 px-3 py-2 <%= currentPath === '/admin/benachrichtigungen' || currentPath === '/admin/kommunikation' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/admin/benachrichtigungen">Benachrichtigungen</a>
         <a class="nav-link rounded-2 px-3 py-2 <%= currentPath === '/admin/stammdaten' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/admin/stammdaten">Stammdaten</a>

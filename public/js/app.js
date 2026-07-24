@@ -817,6 +817,18 @@ function setAnimalsWorkspaceActiveLink(activeLink) {
   });
 }
 
+function syncAnimalsListToggle() {
+  const listCollapseTarget = document.getElementById("animals-list-collapse");
+  const listToggle = document.querySelector("[data-animals-list-toggle]");
+  if (!listCollapseTarget || !listToggle) {
+    return;
+  }
+
+  const isOpen = listCollapseTarget.classList.contains("show");
+  listToggle.textContent = isOpen ? "Tierliste ausblenden" : "Tierliste anzeigen";
+  listToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+}
+
 async function loadAnimalWorkspacePanel(link, { push = true } = {}) {
   if (!link) {
     return false;
@@ -880,6 +892,14 @@ async function loadAnimalWorkspacePanel(link, { push = true } = {}) {
 }
 
 function initAnimalWorkspace() {
+  const listCollapseTarget = document.getElementById("animals-list-collapse");
+  if (listCollapseTarget && listCollapseTarget.dataset.boundListToggle !== "1") {
+    listCollapseTarget.dataset.boundListToggle = "1";
+    listCollapseTarget.addEventListener("shown.bs.collapse", syncAnimalsListToggle);
+    listCollapseTarget.addEventListener("hidden.bs.collapse", syncAnimalsListToggle);
+    syncAnimalsListToggle();
+  }
+
   document.querySelectorAll("[data-animal-workspace-link]").forEach((link) => {
     if (link.dataset.boundWorkspace === "1") {
       return;

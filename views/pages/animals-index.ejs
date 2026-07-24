@@ -152,9 +152,18 @@
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
           <div>
             <h2 class="h5 mb-1">Tierliste</h2>
-            <p class="text-body-secondary mb-0 small">Ein Klick öffnet die Akte darunter.</p>
+            <p class="text-body-secondary mb-0 small">
+              <%= selectedAnimalState ? 'Auswahl ändern, falls du eine andere Akte öffnen möchtest.' : 'Ein Klick öffnet die Akte direkt darunter.' %>
+            </p>
           </div>
-          <span class="badge text-bg-secondary-subtle border"><%= animals.length %> sichtbar</span>
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge text-bg-secondary-subtle border"><%= animals.length %> sichtbar</span>
+            <% if (animals.length > 0) { %>
+              <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#animals-list-collapse" data-animals-list-toggle aria-expanded="<%= selectedAnimalState ? 'false' : 'true' %>" aria-controls="animals-list-collapse">
+                <%= selectedAnimalState ? 'Tierliste anzeigen' : 'Tierliste ausblenden' %>
+              </button>
+            <% } %>
+          </div>
         </div>
 
         <% if (animals.length === 0) { %>
@@ -173,69 +182,71 @@
             </div>
           </div>
         <% } else { %>
-          <div class="list-group">
-            <% animals.forEach((animal) => { %>
-              <% const rowParams = new URLSearchParams(); %>
-              <% if (filters.search) rowParams.set('q', filters.search); %>
-              <% if (filters.status) rowParams.set('status', filters.status); %>
-              <% if (filters.speciesId) rowParams.set('species_id', filters.speciesId); %>
-              <% if (filters.sort) rowParams.set('sort', filters.sort); %>
-              <% if (pagination.currentPage > 1) rowParams.set('page', String(pagination.currentPage)); %>
-              <% rowParams.set('animal_id', String(animal.id)); %>
-              <a
-                href="<%= sectionBasePath %>?<%= rowParams.toString() %>"
-                class="list-group-item list-group-item-action bg-transparent px-3 py-2 animal-list-item <%= selectedAnimalState && String(selectedAnimalState.id) === String(animal.id) ? 'active' : '' %>"
-                data-animal-workspace-link="true"
-                data-no-soft-nav="true"
-                data-panel-url="/animals/<%= animal.id %>/workspace-panel?<%= rowParams.toString() %>"
-              >
-                <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
-                  <div class="d-flex gap-3 align-items-center">
-                    <% if (animal.profile_image_stored_name) { %>
-                      <img class="rounded object-fit-cover" src="/media/<%= animal.profile_image_stored_name %>" alt="Profilbild von <%= animal.name %>" width="56" height="56" />
-                    <% } else { %>
-                      <div class="rounded bg-secondary-subtle d-flex align-items-center justify-content-center fw-semibold" style="width:56px;height:56px;"><%= getAnimalInitial(animal.name) %></div>
-                    <% } %>
-                    <div>
-                      <div class="fw-semibold"><%= animal.name %></div>
-                      <div class="small text-body-secondary"><%= animal.species_name || '-' %><%= animal.breed ? ` · ${animal.breed}` : '' %></div>
-                      <div class="d-flex flex-wrap gap-2 mt-1">
-                        <% if (animal.overdueReminderCount > 0) { %>
-                          <span class="badge text-bg-danger"><%= animal.overdueReminderCount %> überfällig</span>
-                        <% } else if (animal.openReminderCount > 0) { %>
-                          <span class="badge text-bg-warning"><%= animal.openReminderCount %> offen</span>
-                        <% } %>
-                        <% if (animal.next_term) { %>
-                          <span class="badge text-bg-secondary-subtle border"><%= animal.next_term.type %>: <%= animal.next_term.displayLabel %></span>
-                        <% } %>
-                        <% if (sectionState.key === 'history' && animal.statusSummary) { %>
-                          <span class="badge text-bg-secondary-subtle border"><%= animal.statusSummary %></span>
-                        <% } %>
+          <div class="collapse <%= selectedAnimalState ? '' : 'show' %>" id="animals-list-collapse">
+            <div class="list-group">
+              <% animals.forEach((animal) => { %>
+                <% const rowParams = new URLSearchParams(); %>
+                <% if (filters.search) rowParams.set('q', filters.search); %>
+                <% if (filters.status) rowParams.set('status', filters.status); %>
+                <% if (filters.speciesId) rowParams.set('species_id', filters.speciesId); %>
+                <% if (filters.sort) rowParams.set('sort', filters.sort); %>
+                <% if (pagination.currentPage > 1) rowParams.set('page', String(pagination.currentPage)); %>
+                <% rowParams.set('animal_id', String(animal.id)); %>
+                <a
+                  href="<%= sectionBasePath %>?<%= rowParams.toString() %>"
+                  class="list-group-item list-group-item-action bg-transparent px-3 py-2 animal-list-item <%= selectedAnimalState && String(selectedAnimalState.id) === String(animal.id) ? 'active' : '' %>"
+                  data-animal-workspace-link="true"
+                  data-no-soft-nav="true"
+                  data-panel-url="/animals/<%= animal.id %>/workspace-panel?<%= rowParams.toString() %>"
+                >
+                  <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+                    <div class="d-flex gap-3 align-items-center">
+                      <% if (animal.profile_image_stored_name) { %>
+                        <img class="rounded object-fit-cover" src="/media/<%= animal.profile_image_stored_name %>" alt="Profilbild von <%= animal.name %>" width="56" height="56" />
+                      <% } else { %>
+                        <div class="rounded bg-secondary-subtle d-flex align-items-center justify-content-center fw-semibold" style="width:56px;height:56px;"><%= getAnimalInitial(animal.name) %></div>
+                      <% } %>
+                      <div>
+                        <div class="fw-semibold"><%= animal.name %></div>
+                        <div class="small text-body-secondary"><%= animal.species_name || '-' %><%= animal.breed ? ` · ${animal.breed}` : '' %></div>
+                        <div class="d-flex flex-wrap gap-2 mt-1">
+                          <% if (animal.overdueReminderCount > 0) { %>
+                            <span class="badge text-bg-danger"><%= animal.overdueReminderCount %> überfällig</span>
+                          <% } else if (animal.openReminderCount > 0) { %>
+                            <span class="badge text-bg-warning"><%= animal.openReminderCount %> offen</span>
+                          <% } %>
+                          <% if (animal.next_term) { %>
+                            <span class="badge text-bg-secondary-subtle border"><%= animal.next_term.type %>: <%= animal.next_term.displayLabel %></span>
+                          <% } %>
+                          <% if (sectionState.key === 'history' && animal.statusSummary) { %>
+                            <span class="badge text-bg-secondary-subtle border"><%= animal.statusSummary %></span>
+                          <% } %>
+                        </div>
                       </div>
                     </div>
+                    <div class="text-lg-end animal-list-item-meta">
+                      <div class="small text-body-secondary"><%= animal.veterinarian_name || 'Kein Tierarzt hinterlegt' %></div>
+                      <div class="small text-body-secondary"><%= animal.updated_at ? `Zuletzt geändert ${formatDateTime(animal.updated_at)}` : '' %></div>
+                      <div class="animal-list-item-action">Akte öffnen</div>
+                    </div>
                   </div>
-                  <div class="text-lg-end animal-list-item-meta">
-                    <div class="small text-body-secondary"><%= animal.veterinarian_name || 'Kein Tierarzt hinterlegt' %></div>
-                    <div class="small text-body-secondary"><%= animal.updated_at ? `Zuletzt geändert ${formatDateTime(animal.updated_at)}` : '' %></div>
-                    <div class="animal-list-item-action">Akte öffnen</div>
-                  </div>
-                </div>
-              </a>
-            <% }) %>
-          </div>
+                </a>
+              <% }) %>
+            </div>
 
-          <% if (pagination.totalPages > 1) { %>
-            <nav class="mt-3">
-              <ul class="pagination pagination-sm mb-0">
-                <% for (let page = 1; page <= pagination.totalPages; page += 1) { %>
-                  <% const url = `${sectionBasePath}?q=${encodeURIComponent(filters.search || '')}&status=${encodeURIComponent(filters.status || '')}&species_id=${encodeURIComponent(filters.speciesId || '')}&sort=${encodeURIComponent(filters.sort || 'name_asc')}&page=${page}${selectedAnimalState ? `&animal_id=${selectedAnimalState.id}` : ''}`; %>
-                  <li class="page-item <%= page === pagination.currentPage ? 'active' : '' %>">
-                    <a href="<%= url %>" class="page-link"><%= page %></a>
-                  </li>
-                <% } %>
-              </ul>
-            </nav>
-          <% } %>
+            <% if (pagination.totalPages > 1) { %>
+              <nav class="mt-3">
+                <ul class="pagination pagination-sm mb-0">
+                  <% for (let page = 1; page <= pagination.totalPages; page += 1) { %>
+                    <% const url = `${sectionBasePath}?q=${encodeURIComponent(filters.search || '')}&status=${encodeURIComponent(filters.status || '')}&species_id=${encodeURIComponent(filters.speciesId || '')}&sort=${encodeURIComponent(filters.sort || 'name_asc')}&page=${page}${selectedAnimalState ? `&animal_id=${selectedAnimalState.id}` : ''}`; %>
+                    <li class="page-item <%= page === pagination.currentPage ? 'active' : '' %>">
+                      <a href="<%= url %>" class="page-link"><%= page %></a>
+                    </li>
+                  <% } %>
+                </ul>
+              </nav>
+            <% } %>
+          </div>
         <% } %>
       </div>
     </section>

@@ -119,6 +119,10 @@ test("Tiere-Arbeitsansicht zeigt die Akte im Browser-Kontext", async ({ page }) 
   await ensureAuthenticated(page);
   await page.goto("/animals");
   await expect(page.locator("h1", { hasText: "Meine Tiere" })).toBeVisible();
+  const listToggle = page.getByRole("button", { name: "Tierliste anzeigen" });
+  if (await listToggle.isVisible()) {
+    await listToggle.click();
+  }
   const animalWorkspaceLink = page.locator("[data-animal-workspace-link]").first();
   await expect(animalWorkspaceLink).toBeVisible();
   const workspaceHref = await animalWorkspaceLink.getAttribute("href");

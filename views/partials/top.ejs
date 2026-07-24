@@ -68,10 +68,6 @@
           <div class="small-label">Eingeloggt als</div>
           <% const displayName = String(currentUser?.name || "").trim(); %>
           <strong><%= displayName || "-" %></strong>
-          <% const roleLabel = currentUser?.role ? getRoleLabel(currentUser.role) : ""; %>
-          <% if (roleLabel && String(displayName || "").trim().toLowerCase() !== String(roleLabel).trim().toLowerCase()) { %>
-            <span><%= roleLabel %></span>
-          <% } %>
           <form method="post" action="/logout" class="mt-3">
             <button type="submit" class="btn btn-outline-secondary w-100">Abmelden</button>
           </form>
@@ -119,18 +115,12 @@
               </div>
             </header>
 
-            <% if (currentUser?.mustChangePassword) { %>
-              <div class="alert alert-warning banner-warning mt-3">
-                Das Standardpasswort ist noch aktiv. Bitte ändere es im Adminbereich.
-              </div>
-            <% } %>
-
             <div class="main-content-inner">
               <div class="offcanvas offcanvas-start app-mobile-offcanvas d-lg-none" tabindex="-1" id="mobileNavOffcanvas" aria-labelledby="mobileNavOffcanvasLabel">
                 <div class="offcanvas-header border-bottom">
                   <div>
                     <h5 class="offcanvas-title mb-1" id="mobileNavOffcanvasLabel"><%= appSettings.app_name || "HeartPet" %></h5>
-                    <p class="mb-0 small text-body-secondary">Bereiche, Verwaltung und Schnellzugriffe</p>
+                    <p class="mb-0 small text-body-secondary">Navigation</p>
                   </div>
                   <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Schließen"></button>
                 </div>
