@@ -56,6 +56,11 @@ app.use(express.json());
 app.use("/static", express.static(path.join(projectRoot, "public")));
 app.use("/media", express.static(path.join(projectRoot, "data", "uploads")));
 
+app.get("/favicon.ico", (req, res) => {
+  const logoUrl = getAppLogoUrl(getSettingsObject(db)) || "/static/images/logo-heartpet.png";
+  return res.redirect(302, logoUrl);
+});
+
 app.use(
   session({
     secret: process.env.HEARTPET_SESSION_SECRET || "heartpet-session-secret",

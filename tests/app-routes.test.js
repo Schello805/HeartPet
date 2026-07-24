@@ -361,6 +361,13 @@ test("robots.txt und sitemap.xml listen nur die öffentlichen SEO-Ziele", async 
   assert.doesNotMatch(sitemap.text, /\/animals<\/loc>/);
 });
 
+test("favicon.ico leitet auf das aktuelle App-Logo weiter", async () => {
+  const response = await agent.get("/favicon.ico");
+  assert.equal(response.status, 302);
+  assert.ok(response.headers.location);
+  assert.match(response.headers.location, /logo-heartpet\.png|\/media\//i);
+});
+
 test("Weitere Admin-Aliase sind erreichbar", async () => {
   const aliases = [
     ["/admin/general", "/admin/allgemein"],
