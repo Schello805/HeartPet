@@ -692,30 +692,22 @@ body.bootstrap-app {
   color: var(--text-dim);
 }
 
-.bootstrap-app .nav-subnav .nav-link {
+.bootstrap-app .nav-group-title {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.bootstrap-app .nav-species-list {
+  padding-left: 0.8rem;
+  margin-left: 0.8rem;
+  border-left: 1px solid rgba(70, 118, 133, 0.14);
+}
+
+.bootstrap-app .nav-link-species {
   font-size: 0.82rem;
-}
-
-.bootstrap-app .nav-accordion .accordion-button {
-  background: transparent;
-  color: var(--bs-body-color);
-  box-shadow: none;
-  padding-left: 0.75rem;
-  padding-right: 0.75rem;
-}
-
-.bootstrap-app .nav-accordion .accordion-button:not(.collapsed) {
-  background-color: rgba(var(--bs-primary-rgb), 0.18);
-  color: #fff;
-}
-
-.bootstrap-app .nav-accordion .accordion-button::after {
-  filter: invert(1) grayscale(1);
-  opacity: 0.8;
-}
-
-.bootstrap-app .nav-accordion .accordion-body {
-  padding-right: 0;
 }
 
 .bootstrap-app .card {
