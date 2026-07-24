@@ -342,11 +342,24 @@ body.bootstrap-app {
   background: rgba(10, 10, 13, 0.78);
   border-color: rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-ui);
+  caret-color: currentColor;
 }
 
 .bootstrap-app input::placeholder,
 .bootstrap-app textarea::placeholder {
   color: rgba(161, 161, 170, 0.72);
+}
+
+.bootstrap-app .form-label,
+.bootstrap-app .form-check-label,
+.bootstrap-app legend {
+  color: var(--text-strong);
+}
+
+.bootstrap-app .form-text,
+.bootstrap-app .text-body-secondary.small,
+.bootstrap-app small.text-body-secondary {
+  color: var(--text-dim);
 }
 
 .bootstrap-app input:focus,
@@ -1065,6 +1078,18 @@ body.bootstrap-app {
   border-color: rgba(70, 118, 133, 0.18) !important;
 }
 
+[data-bs-theme="light"].bootstrap-app .form-label,
+[data-bs-theme="light"].bootstrap-app .form-check-label,
+[data-bs-theme="light"].bootstrap-app legend {
+  color: #24424d !important;
+}
+
+[data-bs-theme="light"].bootstrap-app .form-text,
+[data-bs-theme="light"].bootstrap-app small.text-body-secondary,
+[data-bs-theme="light"].bootstrap-app .text-body-secondary.small {
+  color: #5d7b86 !important;
+}
+
 [data-bs-theme="light"].bootstrap-app input::placeholder,
 [data-bs-theme="light"].bootstrap-app textarea::placeholder {
   color: #7a949d !important;
@@ -1079,6 +1104,13 @@ body.bootstrap-app {
   background: #ffffff !important;
   border-color: rgba(47, 111, 237, 0.45) !important;
   box-shadow: 0 0 0 0.2rem rgba(47, 111, 237, 0.12);
+}
+
+[data-bs-theme="light"].bootstrap-app input:-webkit-autofill,
+[data-bs-theme="light"].bootstrap-app textarea:-webkit-autofill,
+[data-bs-theme="light"].bootstrap-app select:-webkit-autofill {
+  -webkit-text-fill-color: #16343e;
+  box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.98) inset;
 }
 
 [data-bs-theme="light"].bootstrap-app .btn-outline-secondary,
