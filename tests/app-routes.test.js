@@ -629,6 +629,65 @@ test("Tierarzt kann als Standard markiert werden", async () => {
   assert.equal(setDefault.headers.location, "/admin/stammdaten");
 });
 
+test("Stammdaten-Aktivitäten erscheinen im Audit-Log", async () => {
+  const createCategory = await agent.post("/admin/categories").type("form").send({
+    name: "Reisepass",
+    is_required: "1",
+    return_to: "/admin/stammdaten",
+  });
+  assert.ok([302, 303].includes(createCategory.status));
+
+  const categoryId = db.prepare("SELECT id FROM document_categories WHERE name = ?").get("Reisepass")?.id;
+  assert.ok(categoryId);
+
+  const createVet = await agent.post("/admin/veterinarians").type("form").send({
+    name: "Praxis Nord",
+    street: "Hauptweg 3",
+    postal_code: "24568",
+    city: "Kaltenkirchen",
+    country: "Deutschland",
+    email: "nord@example.test",
+    phone: "+49 4101 12345",
+    return_to: "/admin/stammdaten",
+  });
+  assert.ok([302, 303].includes(createVet.status));
+
+  const vet = db.prepare("SELECT id FROM veterinarians WHERE name = ?").get("Praxis Nord");
+  assert.ok(vet?.id);
+
+  const setDefaultVet = await agent.post(`/admin/veterinarians/${vet.id}/set-default`).type("form").send({});
+  assert.ok([302, 303].includes(setDefaultVet.status));
+
+  const createSpecies = await agent.post("/admin/species").type("form").send({
+    name: "Kaninchen",
+    default_veterinarian_id: String(vet.id),
+    notes: "Innenhaltung",
+    return_to: "/admin/stammdaten",
+  });
+  assert.ok([302, 303].includes(createSpecies.status));
+
+  const species = db.prepare("SELECT id FROM species WHERE name = ?").get("Kaninchen");
+  assert.ok(species?.id);
+
+  const systemlogPage = await agent.get("/admin/systemlog");
+  assert.equal(systemlogPage.status, 200);
+  assert.match(systemlogPage.text, /Kategorie angelegt/);
+  assert.match(systemlogPage.text, /Tierarzt angelegt/);
+  assert.match(systemlogPage.text, /Standardtierarzt gesetzt/);
+  assert.match(systemlogPage.text, /Tierart angelegt/);
+
+  const auditActions = db.prepare(`
+    SELECT action
+    FROM audit_logs
+    WHERE action IN ('category.create', 'veterinarian.create', 'veterinarian.set_default', 'species.create')
+    ORDER BY id ASC
+  `).all();
+  assert.ok(auditActions.some((entry) => entry.action === "category.create"));
+  assert.ok(auditActions.some((entry) => entry.action === "veterinarian.create"));
+  assert.ok(auditActions.some((entry) => entry.action === "veterinarian.set_default"));
+  assert.ok(auditActions.some((entry) => entry.action === "species.create"));
+});
+
 test("Adressvalidierung für Tierarzt greift", async () => {
   const invalid = await agent.post("/admin/veterinarians").type("form").send({
     name: "Ungültig",

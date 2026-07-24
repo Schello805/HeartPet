@@ -2280,7 +2280,7 @@ app.get("/admin/systemlog", requireAdmin, (req, res) => {
     FROM audit_logs
     ORDER BY created_at DESC
     LIMIT 200
-  `).all();
+  `).all().map(formatAuditLogEntry);
 
   const settings = getSettingsObject(db);
   const overview = {
@@ -2508,8 +2508,14 @@ app.post("/admin/categories", requireAdmin, (req, res) => {
   const body = req.body || {};
   const returnTo = safeLocalReturnPath(body.return_to, backTo(req, "/admin/stammdaten"));
   try {
-    db.prepare("INSERT INTO document_categories (name, is_required) VALUES (?, ?)")
-      .run(String(body.name || "").trim(), body.is_required ? 1 : 0);
+    const categoryName = String(body.name || "").trim();
+    const result = db.prepare("INSERT INTO document_categories (name, is_required) VALUES (?, ?)")
+      .run(categoryName, body.is_required ? 1 : 0);
+    createAuditLog(req, "category.create", {
+      category_id: result.lastInsertRowid,
+      name: categoryName,
+      is_required: Boolean(body.is_required),
+    }, { entityType: "category", entityId: result.lastInsertRowid });
     setFlash(req, "success", "Dokumentkategorie angelegt.");
   } catch (error) {
     setFlash(req, "error", "Dokumentkategorie konnte nicht angelegt werden (Name ggf. bereits vorhanden).");
@@ -2521,11 +2527,18 @@ app.post("/admin/categories/:id/update", requireAdmin, (req, res) => {
   const body = req.body || {};
   const returnTo = safeLocalReturnPath(body.return_to, backTo(req, "/admin/stammdaten"));
   try {
+    const existingCategory = db.prepare("SELECT * FROM document_categories WHERE id = ?").get(req.params.id);
     db.prepare(`
       UPDATE document_categories
       SET name = ?, is_required = ?
       WHERE id = ?
     `).run(String(body.name || "").trim(), body.is_required ? 1 : 0, req.params.id);
+    createAuditLog(req, "category.update", {
+      category_id: req.params.id,
+      name: String(body.name || "").trim(),
+      previous_name: existingCategory?.name || "",
+      is_required: Boolean(body.is_required),
+    }, { entityType: "category", entityId: req.params.id });
     setFlash(req, "success", "Dokumentkategorie aktualisiert.");
   } catch (error) {
     setFlash(req, "error", "Dokumentkategorie konnte nicht aktualisiert werden.");
@@ -2534,7 +2547,12 @@ app.post("/admin/categories/:id/update", requireAdmin, (req, res) => {
 });
 
 app.post("/admin/categories/:id/delete", requireAdmin, (req, res) => {
+  const category = db.prepare("SELECT * FROM document_categories WHERE id = ?").get(req.params.id);
   db.prepare("DELETE FROM document_categories WHERE id = ?").run(req.params.id);
+  createAuditLog(req, "category.delete", {
+    category_id: req.params.id,
+    name: category?.name || "",
+  }, { entityType: "category", entityId: req.params.id });
   setFlash(req, "success", "Dokumentkategorie entfernt.");
   res.redirect(backTo(req, "/admin/stammdaten"));
 });
@@ -2543,12 +2561,18 @@ app.post("/admin/species", requireAdmin, (req, res) => {
   const body = req.body || {};
   const returnTo = safeLocalReturnPath(body.return_to, backTo(req, "/admin/stammdaten"));
   try {
-    db.prepare("INSERT INTO species (name, default_veterinarian_id, notes) VALUES (?, ?, ?)")
+    const speciesName = String(body.name || "").trim();
+    const result = db.prepare("INSERT INTO species (name, default_veterinarian_id, notes) VALUES (?, ?, ?)")
       .run(
-        String(body.name || "").trim(),
+        speciesName,
         body.default_veterinarian_id || null,
         String(body.notes || "").trim()
       );
+    createAuditLog(req, "species.create", {
+      species_id: result.lastInsertRowid,
+      name: speciesName,
+      default_veterinarian_id: body.default_veterinarian_id || null,
+    }, { entityType: "species", entityId: result.lastInsertRowid });
     setFlash(req, "success", "Tierart angelegt.");
   } catch (error) {
     setFlash(req, "error", "Tierart konnte nicht angelegt werden (Name ggf. bereits vorhanden).");
@@ -2560,6 +2584,7 @@ app.post("/admin/species/:id/update", requireAdmin, (req, res) => {
   const body = req.body || {};
   const returnTo = safeLocalReturnPath(body.return_to, backTo(req, "/admin/stammdaten"));
   try {
+    const existingSpecies = db.prepare("SELECT * FROM species WHERE id = ?").get(req.params.id);
     db.prepare(`
       UPDATE species
       SET name = ?, default_veterinarian_id = ?, notes = ?
@@ -2570,6 +2595,12 @@ app.post("/admin/species/:id/update", requireAdmin, (req, res) => {
       String(body.notes || "").trim(),
       req.params.id
     );
+    createAuditLog(req, "species.update", {
+      species_id: req.params.id,
+      name: String(body.name || "").trim(),
+      previous_name: existingSpecies?.name || "",
+      default_veterinarian_id: body.default_veterinarian_id || null,
+    }, { entityType: "species", entityId: req.params.id });
     setFlash(req, "success", "Tierart aktualisiert.");
   } catch (error) {
     setFlash(req, "error", "Tierart konnte nicht aktualisiert werden.");
@@ -2578,7 +2609,12 @@ app.post("/admin/species/:id/update", requireAdmin, (req, res) => {
 });
 
 app.post("/admin/species/:id/delete", requireAdmin, (req, res) => {
+  const species = db.prepare("SELECT * FROM species WHERE id = ?").get(req.params.id);
   db.prepare("DELETE FROM species WHERE id = ?").run(req.params.id);
+  createAuditLog(req, "species.delete", {
+    species_id: req.params.id,
+    name: species?.name || "",
+  }, { entityType: "species", entityId: req.params.id });
   setFlash(req, "success", "Tierart entfernt.");
   res.redirect(backTo(req, "/admin/stammdaten"));
 });
@@ -2593,11 +2629,12 @@ app.post("/admin/veterinarians", requireAdmin, (req, res) => {
   }
 
   try {
-    db.prepare(`
+    const vetName = String(req.body.name || "").trim();
+    const result = db.prepare(`
       INSERT INTO veterinarians (name, street, postal_code, city, country, email, phone, notes)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      String(req.body.name || "").trim(),
+      vetName,
       payload.street,
       payload.postal_code,
       payload.city,
@@ -2606,6 +2643,13 @@ app.post("/admin/veterinarians", requireAdmin, (req, res) => {
       payload.phone,
       payload.notes
     );
+    createAuditLog(req, "veterinarian.create", {
+      veterinarian_id: result.lastInsertRowid,
+      name: vetName,
+      city: payload.city,
+      email: payload.email,
+      phone: payload.phone,
+    }, { entityType: "veterinarian", entityId: result.lastInsertRowid });
     setFlash(req, "success", "Tierarzt gespeichert.");
   } catch (error) {
     setFlash(req, "error", "Tierarzt konnte nicht gespeichert werden.");
@@ -2623,6 +2667,7 @@ app.post("/admin/veterinarians/:id/update", requireAdmin, (req, res) => {
   }
 
   try {
+    const existingVeterinarian = db.prepare("SELECT * FROM veterinarians WHERE id = ?").get(req.params.id);
     db.prepare(`
       UPDATE veterinarians
       SET name = ?, street = ?, postal_code = ?, city = ?, country = ?, email = ?, phone = ?, notes = ?
@@ -2638,6 +2683,14 @@ app.post("/admin/veterinarians/:id/update", requireAdmin, (req, res) => {
       payload.notes,
       req.params.id
     );
+    createAuditLog(req, "veterinarian.update", {
+      veterinarian_id: req.params.id,
+      name: String(req.body.name || "").trim(),
+      previous_name: existingVeterinarian?.name || "",
+      city: payload.city,
+      email: payload.email,
+      phone: payload.phone,
+    }, { entityType: "veterinarian", entityId: req.params.id });
     setFlash(req, "success", "Tierarzt aktualisiert.");
   } catch (error) {
     setFlash(req, "error", "Tierarzt konnte nicht aktualisiert werden.");
@@ -2646,21 +2699,30 @@ app.post("/admin/veterinarians/:id/update", requireAdmin, (req, res) => {
 });
 
 app.post("/admin/veterinarians/:id/set-default", requireAdmin, (req, res) => {
-  const vet = db.prepare("SELECT id FROM veterinarians WHERE id = ?").get(req.params.id);
+  const vet = db.prepare("SELECT id, name FROM veterinarians WHERE id = ?").get(req.params.id);
   if (!vet) {
     setFlash(req, "error", "Tierarzt nicht gefunden.");
     return res.redirect(backTo(req, "/admin/stammdaten"));
   }
   upsertSetting(db, "default_veterinarian_id", String(vet.id));
+  createAuditLog(req, "veterinarian.set_default", {
+    veterinarian_id: vet.id,
+    name: vet.name || "",
+  }, { entityType: "veterinarian", entityId: vet.id });
   setFlash(req, "success", "Standardtierarzt gesetzt.");
   res.redirect(backTo(req, "/admin/stammdaten"));
 });
 
 app.post("/admin/veterinarians/:id/delete", requireAdmin, (req, res) => {
+  const veterinarian = db.prepare("SELECT * FROM veterinarians WHERE id = ?").get(req.params.id);
   if (String(getSettingsObject(db).default_veterinarian_id || "") === String(req.params.id)) {
     upsertSetting(db, "default_veterinarian_id", "");
   }
   db.prepare("DELETE FROM veterinarians WHERE id = ?").run(req.params.id);
+  createAuditLog(req, "veterinarian.delete", {
+    veterinarian_id: req.params.id,
+    name: veterinarian?.name || "",
+  }, { entityType: "veterinarian", entityId: req.params.id });
   setFlash(req, "success", "Tierarzt entfernt.");
   res.redirect(backTo(req, "/admin/stammdaten"));
 });
@@ -5312,6 +5374,71 @@ function parseAuditDetails(rawValue) {
     return rawValue ? JSON.parse(rawValue) : {};
   } catch {
     return {};
+  }
+}
+
+function formatAuditLogEntry(entry) {
+  const details = parseAuditDetails(entry.details);
+  const actorLabel = entry.actor_email || "-";
+  const entityType = entry.entity_type || "-";
+  const entityId = entry.entity_id || "";
+  const fallback = {
+    actorLabel,
+    actionLabel: entry.action,
+    entityLabel: `${entityType}${entityId ? ` #${entityId}` : ""}`.trim(),
+    detailsLabel: Object.keys(details || {}).length ? JSON.stringify(details) : "-",
+    ...entry,
+  };
+
+  const make = (actionLabel, entityLabel, detailsLabel) => ({
+    ...fallback,
+    actionLabel,
+    entityLabel,
+    detailsLabel,
+  });
+
+  switch (entry.action) {
+    case "animal.create":
+      return make("Tier angelegt", details.name || `Tier #${details.animal_id || entityId}`, details.transition_summary || `Status: ${details.status || "Aktiv"}`);
+    case "animal.update":
+      return make("Tier bearbeitet", details.name || `Tier #${details.animal_id || entityId}`, details.transition_details_updated ? "Abschlussdaten angepasst" : "Tierdaten aktualisiert");
+    case "animal.status_change":
+      return make("Tierstatus geändert", details.name || `Tier #${details.animal_id || entityId}`, `${details.previous_status || "-"} -> ${details.next_status || "-"}${details.transition_summary ? ` · ${details.transition_summary}` : ""}`);
+    case "animal.delete":
+      return make("Tier gelöscht", details.name || `Tier #${details.animal_id || entityId}`, "Akte und zugehörige Inhalte entfernt");
+    case "veterinarian.create":
+      return make("Tierarzt angelegt", details.name || `Tierarzt #${details.veterinarian_id || entityId}`, [details.city, details.email].filter(Boolean).join(" · ") || "Neuer Tierarzt hinterlegt");
+    case "veterinarian.update":
+      return make("Tierarzt bearbeitet", details.name || `Tierarzt #${details.veterinarian_id || entityId}`, [details.city, details.email].filter(Boolean).join(" · ") || "Kontaktdaten aktualisiert");
+    case "veterinarian.set_default":
+      return make("Standardtierarzt gesetzt", details.name || `Tierarzt #${details.veterinarian_id || entityId}`, "Wird als Fallback für neue Zuordnungen verwendet");
+    case "veterinarian.delete":
+      return make("Tierarzt gelöscht", details.name || `Tierarzt #${details.veterinarian_id || entityId}`, "Eintrag aus den Stammdaten entfernt");
+    case "species.create":
+      return make("Tierart angelegt", details.name || `Tierart #${details.species_id || entityId}`, details.default_veterinarian_id ? `Standardtierarzt: #${details.default_veterinarian_id}` : "Ohne Standardtierarzt");
+    case "species.update":
+      return make("Tierart bearbeitet", details.name || `Tierart #${details.species_id || entityId}`, details.default_veterinarian_id ? `Standardtierarzt: #${details.default_veterinarian_id}` : "Einstellungen aktualisiert");
+    case "species.delete":
+      return make("Tierart gelöscht", details.name || `Tierart #${details.species_id || entityId}`, "Eintrag aus den Stammdaten entfernt");
+    case "category.create":
+      return make("Kategorie angelegt", details.name || `Kategorie #${details.category_id || entityId}`, details.is_required ? "Pflichtkategorie" : "Optionale Kategorie");
+    case "category.update":
+      return make("Kategorie bearbeitet", details.name || `Kategorie #${details.category_id || entityId}`, details.is_required ? "Pflichtkategorie" : "Optionale Kategorie");
+    case "category.delete":
+      return make("Kategorie gelöscht", details.name || `Kategorie #${details.category_id || entityId}`, "Eintrag aus den Stammdaten entfernt");
+    case "user.create":
+      return make("Benutzer angelegt", details.email || `Benutzer #${details.target_user_id || entityId}`, `Rolle: ${details.role || "-"}`);
+    case "user.delete":
+      return make("Benutzer gelöscht", details.email || `Benutzer #${details.target_user_id || entityId}`, "Zugang entfernt");
+    case "user.invite_email_sent":
+      return make("Einladungs-Mail versendet", details.email || `Benutzer #${details.user_id || entityId}`, "Erste Einladung erfolgreich verschickt");
+    case "user.invite_email_resent":
+      return make("Einladungs-Mail erneut versendet", details.email || `Benutzer #${details.user_id || entityId}`, "Offene Einladung erneut verschickt");
+    case "user.invite_email_failed":
+    case "user.invite_email_resend_failed":
+      return make("Einladungs-Mail fehlgeschlagen", details.email || `Benutzer #${details.user_id || entityId}`, details.error || "Versandfehler");
+    default:
+      return fallback;
   }
 }
 

@@ -147,10 +147,10 @@
               <% auditLogs.forEach((item) => { %>
                 <tr>
                   <td><%= formatDateTime(item.created_at) %></td>
-                  <td><%= item.actor_email || '-' %></td>
-                  <td><%= item.action %></td>
-                  <td><%= item.entity_type || '-' %> <%= item.entity_id || '' %></td>
-                  <td><code><%= item.details || '-' %></code></td>
+                  <td><%= item.actorLabel || item.actor_email || '-' %></td>
+                  <td><%= item.actionLabel || item.action %></td>
+                  <td><%= item.entityLabel || `${item.entity_type || '-'} ${item.entity_id || ''}` %></td>
+                  <td><%= item.detailsLabel || item.details || '-' %></td>
                 </tr>
               <% }) %>
             </tbody>
