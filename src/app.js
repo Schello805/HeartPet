@@ -643,7 +643,6 @@ app.get("/", (req, res) => {
     .filter((animal) =>
       animal.overdueReminderCount > 0 ||
       animal.openReminderCount > 0 ||
-      animal.missingRequiredDocumentCount > 0 ||
       !animal.veterinarian_name ||
       animal.isStale ||
       animal.isProfileIncomplete
@@ -651,9 +650,6 @@ app.get("/", (req, res) => {
     .sort((left, right) => {
       if (left.overdueReminderCount !== right.overdueReminderCount) {
         return right.overdueReminderCount - left.overdueReminderCount;
-      }
-      if (left.missingRequiredDocumentCount !== right.missingRequiredDocumentCount) {
-        return right.missingRequiredDocumentCount - left.missingRequiredDocumentCount;
       }
       if (left.openReminderCount !== right.openReminderCount) {
         return right.openReminderCount - left.openReminderCount;
@@ -4337,7 +4333,6 @@ function buildDashboardHealthSummary() {
   return {
     staleAnimals: activeAnimals.filter((animal) => animal.isStale),
     animalsWithoutVeterinarian: activeAnimals.filter((animal) => !animal.veterinarian_name),
-    animalsMissingRequiredDocuments: activeAnimals.filter((animal) => animal.missingRequiredDocumentCount > 0),
     animalsWithIncompleteProfile: activeAnimals.filter((animal) => animal.isProfileIncomplete),
   };
 }
@@ -4359,9 +4354,6 @@ function buildDashboardAttentionReasons(animal) {
   }
   if (!animal.intake_date) {
     reasons.push("Aufnahmedatum fehlt");
-  }
-  if (Number(animal.missingRequiredDocumentCount || 0) > 0) {
-    reasons.push(`${animal.missingRequiredDocumentCount} Pflichtdokument${Number(animal.missingRequiredDocumentCount) === 1 ? "" : "e"} fehlt`);
   }
   if (animal.isStale) {
     reasons.push("Seit 7 Tagen keine Änderung");

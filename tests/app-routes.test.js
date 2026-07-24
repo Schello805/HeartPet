@@ -1101,7 +1101,7 @@ test("Tiere-Arbeitsansicht zeigt Liste und ausgewählte Akte", async () => {
   await ensureSetupComplete();
   const response = await agent.get("/animals").query({ animal_id: "1" });
   assert.equal(response.status, 200);
-  assert.match(response.text, /Tiere finden/);
+  assert.match(response.text, /Filter anzeigen|Filter ändern/);
   assert.match(response.text, /Tierliste/);
   assert.match(response.text, /data-animal-workspace-link/);
   assert.match(response.text, /data-animal-workspace-target/);
@@ -1209,6 +1209,8 @@ test("Tierarten-Untermenü erscheint nur im aktiven Bestand", async () => {
   const activePage = await agent.get("/animals");
   assert.equal(activePage.status, 200);
   assert.match(activePage.text, /href="\/animals\?species_id=/);
+  assert.match(activePage.text, /nav-link-archive[\s\S]*href="\/animals\/historie"/);
+  assert.match(activePage.text, /nav-link-archive[\s\S]*href="\/animals\/ruhestaette"/);
 
   const historyPage = await agent.get("/animals/historie");
   assert.equal(historyPage.status, 200);
@@ -1374,6 +1376,7 @@ test("Dashboard zeigt Tierarten und konkrete Aufmerksamkeitspunkte", async () =>
   assert.match(response.text, /Radar/);
   assert.match(response.text, /Tierarzt fehlt/);
   assert.match(response.text, /Geburtsdatum fehlt/);
+  assert.doesNotMatch(response.text, /Pflichtdokumente offen/);
   assert.doesNotMatch(response.text, /Zuletzt geändert/);
   assert.doesNotMatch(response.text, /Schnell weiter/);
 });

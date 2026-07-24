@@ -1,7 +1,7 @@
 <%- include('../partials/top', { pageTitle, pageClass: 'dashboard-page' }) %>
 <% const searchState = typeof search !== 'undefined' ? search : { q: '', searchable: false }; %>
 <% const dashboardSearchResults = typeof searchResults !== 'undefined' ? searchResults : []; %>
-<% const healthState = typeof dashboardHealth !== 'undefined' ? dashboardHealth : { staleAnimals: [], animalsWithoutVeterinarian: [], animalsMissingRequiredDocuments: [], animalsWithIncompleteProfile: [] }; %>
+<% const healthState = typeof dashboardHealth !== 'undefined' ? dashboardHealth : { staleAnimals: [], animalsWithoutVeterinarian: [], animalsWithIncompleteProfile: [] }; %>
 <% const urgentList = typeof urgentReminders !== 'undefined' ? urgentReminders : []; %>
 <% const attentionList = typeof attentionAnimals !== 'undefined' ? attentionAnimals : []; %>
 <% const speciesOverview = typeof speciesCounts !== 'undefined' ? speciesCounts : []; %>

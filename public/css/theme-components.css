@@ -729,16 +729,16 @@ body.bootstrap-app {
   border-left: 1px solid rgba(70, 118, 133, 0.18);
 }
 
-.bootstrap-app .nav-link-secondary {
+.bootstrap-app .nav-link-archive {
   font-size: 0.78rem;
   font-style: italic;
   padding-top: 0.42rem !important;
   padding-bottom: 0.42rem !important;
+  margin-left: 0.35rem;
 }
 
 .bootstrap-app .nav-species-list {
-  padding-left: 0;
-  margin-left: 0;
+  margin-top: 0.1rem;
 }
 
 .bootstrap-app .nav-link-species {
@@ -793,14 +793,6 @@ body.bootstrap-app {
   background-color: rgba(var(--bs-primary-rgb), 0.16);
   border-color: rgba(var(--bs-primary-rgb), 0.45);
   color: #fff;
-}
-
-.bootstrap-app .dashboard-stat-primary strong {
-  display: block;
-  margin: 0.28rem 0;
-  font-size: clamp(1.22rem, 2vw, 1.75rem);
-  line-height: 1;
-  font-weight: 700;
 }
 
 .bootstrap-app .floating-reminder {

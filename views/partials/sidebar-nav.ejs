@@ -12,18 +12,16 @@
           <span>Tiere</span>
           <span class="nav-chevron" aria-hidden="true">⌄</span>
         </a>
-        <div class="nav-submenu d-grid gap-1">
         <% if (currentPath === '/animals' && animalMenu.length > 0) { %>
-          <div class="nav-species-list d-grid gap-1 pt-1">
+          <div class="nav-submenu nav-species-list d-grid gap-1">
             <% animalMenu.forEach((item) => { %>
               <a class="nav-link rounded-2 px-3 py-2 nav-link-species <%= activeSpeciesId === String(item.id) ? 'active fw-semibold' : 'text-body-secondary' %>" href="/animals?species_id=<%= item.id %>"><%= item.name %></a>
             <% }) %>
           </div>
         <% } %>
-          <a class="nav-link nav-link-secondary rounded-2 px-3 py-2 <%= currentPath === '/animals/historie' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/animals/historie">Historie</a>
-          <a class="nav-link nav-link-secondary rounded-2 px-3 py-2 <%= currentPath === '/animals/ruhestaette' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/animals/ruhestaette">Ruhestätte</a>
-        </div>
       </div>
+      <a class="nav-link nav-link-archive rounded-2 px-3 py-2 <%= currentPath === '/animals/historie' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/animals/historie">Historie</a>
+      <a class="nav-link nav-link-archive rounded-2 px-3 py-2 <%= currentPath === '/animals/ruhestaette' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/animals/ruhestaette">Ruhestätte</a>
     </div>
   </section>
 
