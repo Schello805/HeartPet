@@ -4,6 +4,8 @@ data/heartpet.sqlite-shm
 data/heartpet.sqlite-wal
 data/heartpet.db
 data/sessions.sqlite
+data/sessions.sqlite-shm
+data/sessions.sqlite-wal
 data/uploads/*
 !data/uploads/.gitkeep
 data/exports/*
