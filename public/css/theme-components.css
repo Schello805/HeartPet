@@ -695,11 +695,15 @@ body.bootstrap-app {
 
 .bootstrap-app .nav-section-card {
   display: grid;
-  gap: 0.55rem;
-  padding: 0.7rem;
+  gap: 0.45rem;
+  padding: 0.58rem;
   border: 1px solid rgba(61, 115, 141, 0.12);
   border-radius: 0.85rem;
   background: rgba(255, 255, 255, 0.58);
+}
+
+.bootstrap-app .nav-section-card .nav {
+  gap: 0.25rem !important;
 }
 
 .bootstrap-app .nav-section-card-admin {
@@ -756,11 +760,11 @@ body.bootstrap-app {
 }
 
 .bootstrap-app .nav-link-archive {
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-style: italic;
-  padding-top: 0.42rem !important;
-  padding-bottom: 0.42rem !important;
-  margin-left: 0.35rem;
+  padding-top: 0.32rem !important;
+  padding-bottom: 0.32rem !important;
+  margin-left: 0.42rem;
 }
 
 .bootstrap-app .nav-species-list {
@@ -768,9 +772,9 @@ body.bootstrap-app {
 }
 
 .bootstrap-app .nav-link-species {
-  font-size: 0.78rem;
-  padding-top: 0.42rem !important;
-  padding-bottom: 0.42rem !important;
+  font-size: 0.74rem;
+  padding-top: 0.32rem !important;
+  padding-bottom: 0.32rem !important;
 }
 
 .bootstrap-app .card {

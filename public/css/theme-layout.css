@@ -1544,7 +1544,7 @@ small {
 }
 
 .bootstrap-app.dashboard-page .dashboard-hero-card .card-body {
-  padding: 0.64rem 0.78rem !important;
+  padding: 0.58rem 0.72rem !important;
 }
 
 .bootstrap-app.dashboard-page .dashboard-hero-card h2 {
@@ -1555,21 +1555,37 @@ small {
 
 .bootstrap-app.dashboard-page .dashboard-hero-card p {
   font-size: 0.76rem;
-  line-height: 1.38;
+  line-height: 1.32;
   max-width: 50ch;
 }
 
+.bootstrap-app.dashboard-page .dashboard-search-form input[type="search"],
+.bootstrap-app.dashboard-page .dashboard-search-form .btn {
+  min-height: 2.45rem;
+  height: 2.45rem;
+  border-radius: var(--radius-ui);
+}
+
+.bootstrap-app.dashboard-page .dashboard-search-form input[type="search"] {
+  font-size: 0.86rem;
+  padding-inline: 0.8rem;
+}
+
+.bootstrap-app.dashboard-page .dashboard-search-form .btn {
+  padding-inline: 1rem;
+}
+
 .bootstrap-app.dashboard-page .dashboard-stat-card .card-body {
-  padding: 0.58rem 0.68rem !important;
+  padding: 0.5rem 0.62rem !important;
 }
 
 .bootstrap-app.dashboard-page .dashboard-stat-card strong {
-  font-size: 1.28rem;
+  font-size: 1.08rem;
   line-height: 1;
 }
 
 .bootstrap-app.dashboard-page .dashboard-feed-card .card-body {
-  padding: 0.62rem !important;
+  padding: 0.56rem !important;
 }
 
 .bootstrap-app.dashboard-page .dashboard-feed-card h2 {
@@ -1602,7 +1618,7 @@ small {
 
 .bootstrap-app.dashboard-page .dashboard-compact-list .list-group-item {
   margin-bottom: 0 !important;
-  padding: 0.7rem 0.78rem !important;
+  padding: 0.56rem 0.68rem !important;
 }
 
 .bootstrap-app.dashboard-page .dashboard-stat-card small,
