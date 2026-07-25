@@ -218,6 +218,16 @@ test("Kernseiten bleiben kompakt und kontrastreich", async ({ page }) => {
 
         const pageHeader = document.querySelector(".page-header h1");
         const headerFontSize = pageHeader ? Number.parseFloat(window.getComputedStyle(pageHeader).fontSize) : 0;
+        const bodyFontSize = Number.parseFloat(window.getComputedStyle(document.body).fontSize);
+        const undersizedHeadings = Array.from(document.querySelectorAll("h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6"))
+          .filter(isVisible)
+          .map((element) => ({
+            tag: element.tagName.toLowerCase(),
+            className: String(element.className || "").slice(0, 120),
+            text: String(element.textContent || "").replace(/\s+/g, " ").trim().slice(0, 80),
+            fontSize: Number.parseFloat(window.getComputedStyle(element).fontSize),
+          }))
+          .filter((item) => item.fontSize + 0.1 < bodyFontSize);
         const darkControls = Array.from(document.querySelectorAll("input:not(.form-check-input), select, textarea, .form-control, .form-select"))
           .filter(isVisible)
           .map((element) => ({
@@ -246,6 +256,7 @@ test("Kernseiten bleiben kompakt und kontrastreich", async ({ page }) => {
         return {
           overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
           headerFontSize,
+          undersizedHeadings,
           darkControls,
           wideElements,
         };
@@ -253,6 +264,7 @@ test("Kernseiten bleiben kompakt und kontrastreich", async ({ page }) => {
 
       expect(result.overflowX, `${path} @ ${viewport.width}px hat horizontalen Overflow: ${JSON.stringify(result.wideElements)}`).toBeLessThanOrEqual(2);
       expect(result.headerFontSize, `${path} @ ${viewport.width}px hat einen zu großen Header`).toBeLessThanOrEqual(viewport.width < 768 ? 22 : 24);
+      expect(result.undersizedHeadings, `${path} @ ${viewport.width}px hat Überschriften kleiner als Fließtext`).toEqual([]);
       expect(result.darkControls, `${path} @ ${viewport.width}px hat dunkle Formularfelder`).toEqual([]);
     }
   }
