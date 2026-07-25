@@ -616,6 +616,8 @@ function initAnimalStatusWorkflow(scope = document) {
     const confirmWrap = workflow.querySelector("[data-status-confirm-wrap]");
     const confirmInput = workflow.querySelector("[data-status-confirm-input]");
     const confirmLabel = workflow.querySelector("[data-status-confirm-label]");
+    const remindersWrap = workflow.querySelector("[data-status-reminders-wrap]");
+    const remindersInput = workflow.querySelector("[data-status-reminders-input]");
     const detailWrap = workflow.querySelector("[data-status-detail-wrap]");
     const originalStatus = String(workflow.getAttribute("data-original-status") || "Aktiv").trim();
     const confirmLabels = {
@@ -663,6 +665,14 @@ function initAnimalStatusWorkflow(scope = document) {
 
       if (confirmLabel) {
         confirmLabel.textContent = confirmLabels[selectedStatus] || "";
+      }
+
+      const canChooseReminderClosure = requiresConfirmation && ["Vermittelt", "Verkauft"].includes(selectedStatus);
+      if (remindersWrap) {
+        remindersWrap.classList.toggle("d-none", !canChooseReminderClosure);
+      }
+      if (remindersInput && !canChooseReminderClosure) {
+        remindersInput.checked = false;
       }
 
       if (detailWrap) {

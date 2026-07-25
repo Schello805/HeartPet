@@ -1240,7 +1240,7 @@ test("Tierarten-Untermenü erscheint nur im aktiven Bestand", async () => {
   assert.doesNotMatch(restingPage.text, /href="\/animals\?species_id=/);
 });
 
-test("Beim Verschieben aus dem aktiven Bestand werden offene Erinnerungen abgeschlossen", async () => {
+test("Beim Verschieben in die Ruhestätte werden offene Erinnerungen immer abgeschlossen", async () => {
   db.prepare(`
     INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, notes)
     VALUES (?, ?, ?, ?, 1, 0, ?)
@@ -1284,6 +1284,57 @@ test("Beim Verschieben aus dem aktiven Bestand werden offene Erinnerungen abgesc
   assert.ok(reminderStates.length >= 1);
   assert.ok(reminderStates.every((item) => item.completed_at));
   assert.ok(reminderStates.every((item) => ["closed", "archived"].includes(item.last_delivery_status)));
+});
+
+test("Beim Vermitteln oder Verkaufen bleiben offene Erinnerungen ohne Checkbox erhalten", async () => {
+  const speciesId = db.prepare("SELECT id FROM species ORDER BY id ASC LIMIT 1").get()?.id;
+  const speciesName = db.prepare("SELECT name FROM species WHERE id = ?").get(speciesId)?.name || "Katze";
+  const animalId = db.prepare("INSERT INTO animals (name, species_id, status) VALUES (?, ?, ?)").run("Exporttier", speciesId, "Aktiv").lastInsertRowid;
+  db.prepare(`
+    INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, notes)
+    VALUES (?, ?, ?, ?, 1, 0, ?)
+  `).run(animalId, "Für Käufer offen", "Allgemein", dayjs().add(2, "day").format("YYYY-MM-DDTHH:mm"), "Export relevant");
+
+  const response = await agent.post(`/animals/${animalId}/update`).type("form").send({
+    name: "Exporttier",
+    species_name: speciesName,
+    status: "Vermittelt",
+    status_context_name: "Neue Familie",
+    status_context_date: "2026-07-25",
+    status_transition_confirmed: "true",
+    return_to: "/animals/historie",
+  });
+
+  assert.equal(response.status, 302);
+  const reminder = db.prepare("SELECT completed_at, last_delivery_status FROM reminders WHERE animal_id = ? AND title = ?").get(animalId, "Für Käufer offen");
+  assert.equal(reminder.completed_at, null);
+  assert.notEqual(reminder.last_delivery_status, "closed");
+});
+
+test("Beim Vermitteln oder Verkaufen koennen offene Erinnerungen per Checkbox abgeschlossen werden", async () => {
+  const speciesId = db.prepare("SELECT id FROM species ORDER BY id ASC LIMIT 1").get()?.id;
+  const speciesName = db.prepare("SELECT name FROM species WHERE id = ?").get(speciesId)?.name || "Katze";
+  const animalId = db.prepare("INSERT INTO animals (name, species_id, status) VALUES (?, ?, ?)").run("Uebergabetier", speciesId, "Aktiv").lastInsertRowid;
+  db.prepare(`
+    INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, notes)
+    VALUES (?, ?, ?, ?, 1, 0, ?)
+  `).run(animalId, "Vor Übergabe schließen", "Allgemein", dayjs().add(2, "day").format("YYYY-MM-DDTHH:mm"), "nicht exportieren");
+
+  const response = await agent.post(`/animals/${animalId}/update`).type("form").send({
+    name: "Uebergabetier",
+    species_name: speciesName,
+    status: "Verkauft",
+    status_context_name: "Käufer",
+    status_context_date: "2026-07-25",
+    status_transition_confirmed: "true",
+    close_open_reminders: "true",
+    return_to: "/animals/historie",
+  });
+
+  assert.equal(response.status, 302);
+  const reminder = db.prepare("SELECT completed_at, last_delivery_status FROM reminders WHERE animal_id = ? AND title = ?").get(animalId, "Vor Übergabe schließen");
+  assert.ok(reminder.completed_at);
+  assert.equal(reminder.last_delivery_status, "closed");
 });
 
 test("Wechsel aus dem aktiven Bestand braucht eine ausdrückliche Bestätigung", async () => {
@@ -1705,6 +1756,36 @@ test("Erinnerung kann über Link um 60 Minuten zurückgestellt werden", async ()
   assert.equal(updatedReminder.completed_at, null);
   assert.equal(updatedReminder.last_notified_at, null);
   assert.equal(updatedReminder.last_delivery_status, "pending");
+});
+
+test("Erinnerungslinks blockieren Aktionen fuer inaktive Tiere", async () => {
+  const inactiveAnimal = db.prepare("INSERT INTO animals (name, status) VALUES (?, ?)").run("Alte Links", "Verkauft");
+  const completeInserted = db.prepare(`
+    INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, notes)
+    VALUES (?, ?, ?, ?, 1, 1, ?)
+  `).run(inactiveAnimal.lastInsertRowid, "Alter Complete-Link", "Allgemein", "2026-04-05T09:00", "inaktiv");
+  const snoozeInserted = db.prepare(`
+    INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, notes)
+    VALUES (?, ?, ?, ?, 1, 1, ?)
+  `).run(inactiveAnimal.lastInsertRowid, "Alter Snooze-Link", "Allgemein", "2026-04-05T10:00", "inaktiv");
+
+  const completeReminder = db.prepare("SELECT * FROM reminders WHERE id = ?").get(completeInserted.lastInsertRowid);
+  const snoozeReminder = db.prepare("SELECT * FROM reminders WHERE id = ?").get(snoozeInserted.lastInsertRowid);
+  const completeToken = buildReminderActionToken(completeReminder, "complete");
+  const snoozeToken = buildReminderActionToken(snoozeReminder, "snooze", "60");
+
+  const completeResponse = await agent.get(`/reminders/${completeReminder.id}/email-complete`).query({ token: completeToken });
+  assert.equal(completeResponse.status, 200);
+  assert.match(completeResponse.text, /Tier nicht mehr aktiv/);
+  const unchangedComplete = db.prepare("SELECT completed_at FROM reminders WHERE id = ?").get(completeReminder.id);
+  assert.equal(unchangedComplete.completed_at, null);
+
+  const snoozeResponse = await agent.get(`/reminders/${snoozeReminder.id}/email-snooze`).query({ token: snoozeToken, value: "60" });
+  assert.equal(snoozeResponse.status, 200);
+  assert.match(snoozeResponse.text, /Zurückstellen ist deshalb nicht mehr möglich/);
+  const unchangedSnooze = db.prepare("SELECT due_at, last_delivery_status FROM reminders WHERE id = ?").get(snoozeReminder.id);
+  assert.equal(unchangedSnooze.due_at, "2026-04-05T10:00");
+  assert.notEqual(unchangedSnooze.last_delivery_status, "pending");
 });
 
 test("Dashboard-Banner zaehlt nur offene Erinnerungen aktiver Tiere", async () => {

@@ -392,7 +392,12 @@ app.post("/invite/accept", (req, res) => {
 });
 
 app.get("/reminders/:id/email-complete", (req, res) => {
-  const reminder = db.prepare("SELECT * FROM reminders WHERE id = ?").get(req.params.id);
+  const reminder = db.prepare(`
+    SELECT reminders.*, animals.status AS animal_status
+    FROM reminders
+    LEFT JOIN animals ON animals.id = reminders.animal_id
+    WHERE reminders.id = ?
+  `).get(req.params.id);
   const settings = getSettingsObject(db);
   const appBaseUrl = resolveAppBaseUrl(settings);
   const dashboardUrl = `${appBaseUrl}/`;
@@ -415,6 +420,18 @@ app.get("/reminders/:id/email-complete", (req, res) => {
       success: false,
       title: "Link ungültig",
       message: "Der Bestätigungslink ist ungültig oder wurde verändert. Bitte öffne die Tierakte und markiere die Erinnerung dort.",
+      nextUrl: dashboardUrl,
+      nextLabel: "Zum Dashboard",
+      assetBaseUrl: appBaseUrl,
+    });
+  }
+
+  if (reminder.animal_id && !isActiveAnimalStatus(reminder.animal_status)) {
+    return res.render("pages/reminder-email-result", {
+      pageTitle: "Tier nicht mehr aktiv",
+      success: false,
+      title: "Tier nicht mehr aktiv",
+      message: "Diese Erinnerung gehört zu einem Tier, das nicht mehr im aktiven Bestand ist. Es werden dafür keine Erinnerungen mehr versendet.",
       nextUrl: dashboardUrl,
       nextLabel: "Zum Dashboard",
       assetBaseUrl: appBaseUrl,
@@ -461,7 +478,12 @@ app.get("/reminders/:id/email-complete", (req, res) => {
 });
 
 app.get("/reminders/:id/email-snooze", (req, res) => {
-  const reminder = db.prepare("SELECT * FROM reminders WHERE id = ?").get(req.params.id);
+  const reminder = db.prepare(`
+    SELECT reminders.*, animals.status AS animal_status
+    FROM reminders
+    LEFT JOIN animals ON animals.id = reminders.animal_id
+    WHERE reminders.id = ?
+  `).get(req.params.id);
   const settings = getSettingsObject(db);
   const appBaseUrl = resolveAppBaseUrl(settings);
   const dashboardUrl = `${appBaseUrl}/`;
@@ -500,6 +522,18 @@ app.get("/reminders/:id/email-snooze", (req, res) => {
       message: "Der Zurückstellen-Link ist ungültig oder wurde verändert. Bitte öffne die Erinnerung direkt in HeartPet.",
       nextUrl: reminder.animal_id ? `${appBaseUrl}/animals/${reminder.animal_id}` : dashboardUrl,
       nextLabel: reminder.animal_id ? "Zur Tierakte" : "Zum Dashboard",
+      assetBaseUrl: appBaseUrl,
+    });
+  }
+
+  if (reminder.animal_id && !isActiveAnimalStatus(reminder.animal_status)) {
+    return res.render("pages/reminder-email-result", {
+      pageTitle: "Tier nicht mehr aktiv",
+      success: false,
+      title: "Tier nicht mehr aktiv",
+      message: "Diese Erinnerung gehört zu einem Tier, das nicht mehr im aktiven Bestand ist. Zurückstellen ist deshalb nicht mehr möglich.",
+      nextUrl: dashboardUrl,
+      nextLabel: "Zum Dashboard",
       assetBaseUrl: appBaseUrl,
     });
   }
@@ -1062,7 +1096,11 @@ app.post("/animals/:id/update", requireAnimalEditor, (req, res) => {
   `).run(payload);
 
   if (isActiveAnimalStatus(animal.status) && !isActiveAnimalStatus(payload.status)) {
-    closeOpenRemindersForAnimal(req.params.id);
+    const lifecycle = getAnimalLifecycle(payload.status);
+    const shouldCloseOpenReminders = lifecycle.inRestingPlace || String(req.body.close_open_reminders || "").trim().toLowerCase() === "true";
+    if (shouldCloseOpenReminders) {
+      closeOpenRemindersForAnimal(req.params.id);
+    }
   }
 
   const lifecycle = getAnimalLifecycle(payload.status);

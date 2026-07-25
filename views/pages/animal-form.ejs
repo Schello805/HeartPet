@@ -17,7 +17,7 @@
       tone: 'warning',
       intro: 'Das Tier wird aus dem aktiven Bestand genommen und in die Historie verschoben.',
       bullets: [
-        'Offene Erinnerungen werden geschlossen.',
+        'Du entscheidest beim Speichern, ob offene Erinnerungen abgeschlossen oder für den Export offen bleiben.',
         'Das Tier erscheint danach nur noch unter „Historie“.',
       ],
       confirmLabel: 'Ich bestätige, dass dieses Tier als vermittelt in die Historie wechseln soll.',
@@ -27,7 +27,7 @@
       tone: 'warning',
       intro: 'Das Tier wird aus dem aktiven Bestand genommen und als verkauft archiviert.',
       bullets: [
-        'Offene Erinnerungen werden geschlossen.',
+        'Du entscheidest beim Speichern, ob offene Erinnerungen abgeschlossen oder für den Export offen bleiben.',
         'Das Tier erscheint danach nur noch unter „Historie“.',
       ],
       confirmLabel: 'Ich bestätige, dass dieses Tier als verkauft in die Historie wechseln soll.',
@@ -189,6 +189,25 @@
                 <%= statusWorkflow[currentStatus].confirmLabel %>
               </label>
             </div>
+          </div>
+
+          <div class="<%= currentStatus === 'Vermittelt' || currentStatus === 'Verkauft' ? '' : 'd-none' %>" data-status-reminders-wrap>
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="status-close-reminders"
+                name="close_open_reminders"
+                value="true"
+                data-status-reminders-input
+              />
+              <label class="form-check-label" for="status-close-reminders">
+                Offene Erinnerungen automatisch als erledigt markieren.
+              </label>
+            </div>
+            <p class="form-text mb-0">
+              Wenn das Tier später exportiert und vom Käufer importiert werden soll, kannst du die Erinnerungen offen lassen.
+            </p>
           </div>
 
           <section class="<%= currentStatus === 'Aktiv' ? 'd-none' : '' %> card border bg-body form-section-card form-section-card--nested" data-status-detail-wrap>
