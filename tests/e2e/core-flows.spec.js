@@ -168,6 +168,22 @@ test("Benachrichtigungs-Checkboxen sind mobil sichtbar aktivierbar", async ({ pa
   expect(checkedVisualState.accentColor).not.toBe("auto");
 });
 
+test("Checkbox-Labels sind visuell mittig ausgerichtet", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await ensureAuthenticated(page);
+  await page.goto("/admin/benachrichtigungen");
+
+  const alignment = await page.locator(".form-check").first().evaluate((element) => {
+    const checkbox = element.querySelector(".form-check-input");
+    const label = element.querySelector(".form-check-label");
+    const checkboxRect = checkbox.getBoundingClientRect();
+    const labelRect = label.getBoundingClientRect();
+    return Math.abs((checkboxRect.top + checkboxRect.height / 2) - (labelRect.top + labelRect.height / 2));
+  });
+
+  expect(alignment).toBeLessThanOrEqual(2);
+});
+
 test("Kernseiten bleiben kompakt und kontrastreich", async ({ page }) => {
   await ensureAuthenticated(page);
 

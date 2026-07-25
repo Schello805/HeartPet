@@ -381,8 +381,22 @@ body.bootstrap-app {
   flex: 0 0 auto;
 }
 
+.bootstrap-app .form-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 1.45rem;
+  padding-left: 0;
+}
+
+.bootstrap-app .form-check .form-check-input {
+  float: none;
+  margin: 0;
+}
+
 .bootstrap-app .form-check-label {
   cursor: pointer;
+  line-height: 1.35;
 }
 
 .bootstrap-app .status-chip,
