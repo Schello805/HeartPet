@@ -333,7 +333,7 @@ body.bootstrap-app {
   vertical-align: top;
 }
 
-.bootstrap-app input,
+.bootstrap-app input:not(.form-check-input),
 .bootstrap-app select,
 .bootstrap-app textarea,
 .bootstrap-app .form-control,
@@ -345,7 +345,7 @@ body.bootstrap-app {
   caret-color: currentColor;
 }
 
-.bootstrap-app input::placeholder,
+.bootstrap-app input:not(.form-check-input)::placeholder,
 .bootstrap-app textarea::placeholder {
   color: rgba(161, 161, 170, 0.72);
 }
@@ -362,7 +362,7 @@ body.bootstrap-app {
   color: var(--text-dim);
 }
 
-.bootstrap-app input:focus,
+.bootstrap-app input:not(.form-check-input):focus,
 .bootstrap-app select:focus,
 .bootstrap-app textarea:focus,
 .bootstrap-app .form-control:focus,
@@ -371,6 +371,18 @@ body.bootstrap-app {
   background: rgba(15, 15, 19, 0.92);
   border-color: rgba(139, 92, 246, 0.5);
   box-shadow: 0 0 0 0.24rem rgba(139, 92, 246, 0.16);
+}
+
+.bootstrap-app .form-check-input {
+  width: 1.15em;
+  height: 1.15em;
+  accent-color: #1ca7a0;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.bootstrap-app .form-check-label {
+  cursor: pointer;
 }
 
 .bootstrap-app .status-chip,
@@ -1089,7 +1101,7 @@ body.bootstrap-app {
   color: #4e6c77 !important;
 }
 
-[data-bs-theme="light"].bootstrap-app input,
+[data-bs-theme="light"].bootstrap-app input:not(.form-check-input),
 [data-bs-theme="light"].bootstrap-app select,
 [data-bs-theme="light"].bootstrap-app textarea,
 [data-bs-theme="light"].bootstrap-app .form-control,
@@ -1111,12 +1123,12 @@ body.bootstrap-app {
   color: #5d7b86 !important;
 }
 
-[data-bs-theme="light"].bootstrap-app input::placeholder,
+[data-bs-theme="light"].bootstrap-app input:not(.form-check-input)::placeholder,
 [data-bs-theme="light"].bootstrap-app textarea::placeholder {
   color: #7a949d !important;
 }
 
-[data-bs-theme="light"].bootstrap-app input:focus,
+[data-bs-theme="light"].bootstrap-app input:not(.form-check-input):focus,
 [data-bs-theme="light"].bootstrap-app select:focus,
 [data-bs-theme="light"].bootstrap-app textarea:focus,
 [data-bs-theme="light"].bootstrap-app .form-control:focus,
@@ -1127,7 +1139,7 @@ body.bootstrap-app {
   box-shadow: 0 0 0 0.2rem rgba(47, 111, 237, 0.12);
 }
 
-[data-bs-theme="light"].bootstrap-app input:-webkit-autofill,
+[data-bs-theme="light"].bootstrap-app input:not(.form-check-input):-webkit-autofill,
 [data-bs-theme="light"].bootstrap-app textarea:-webkit-autofill,
 [data-bs-theme="light"].bootstrap-app select:-webkit-autofill {
   -webkit-text-fill-color: #16343e;

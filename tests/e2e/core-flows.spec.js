@@ -147,3 +147,23 @@ test("Dokumentkategorie lässt sich im Bearbeiten-Dialog speichern", async ({ pa
 
   await expect(page.locator("body")).toContainText(updatedName);
 });
+
+test("Benachrichtigungs-Checkboxen sind mobil sichtbar aktivierbar", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await ensureAuthenticated(page);
+  await page.goto("/admin/benachrichtigungen");
+
+  const digestCheckbox = page.getByLabel("Tägliche Erinnerungs-Zusammenfassung aktivieren");
+  await expect(digestCheckbox).toBeVisible();
+  await digestCheckbox.check();
+  await expect(digestCheckbox).toBeChecked();
+
+  const checkedVisualState = await digestCheckbox.evaluate((element) => {
+    const styles = window.getComputedStyle(element);
+    return {
+      accentColor: styles.accentColor,
+    };
+  });
+
+  expect(checkedVisualState.accentColor).not.toBe("auto");
+});
