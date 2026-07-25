@@ -303,7 +303,7 @@ body.bootstrap-app {
   border-radius: var(--radius-ui);
   overflow: hidden;
   border: 1px solid var(--surface-border);
-  background: rgba(15, 15, 19, 0.7);
+  background: rgba(255, 255, 255, 0.92);
 }
 
 .bootstrap-app .table-wrap table {
@@ -311,16 +311,16 @@ body.bootstrap-app {
 }
 
 .bootstrap-app .table-wrap thead th {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(230, 241, 244, 0.96);
   color: var(--text-dim);
   font-size: 0.78rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--surface-border);
 }
 
 .bootstrap-app .table-wrap tbody tr + tr td {
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  border-top: 1px solid rgba(70, 118, 133, 0.1);
 }
 
 .bootstrap-app .table-wrap tbody tr:hover td {
@@ -339,8 +339,8 @@ body.bootstrap-app {
 .bootstrap-app .form-control,
 .bootstrap-app .form-select {
   color: var(--text-soft);
-  background: rgba(10, 10, 13, 0.78);
-  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(70, 118, 133, 0.18);
   border-radius: var(--radius-ui);
   caret-color: currentColor;
 }
@@ -368,7 +368,7 @@ body.bootstrap-app {
 .bootstrap-app .form-control:focus,
 .bootstrap-app .form-select:focus {
   color: var(--text-strong);
-  background: rgba(15, 15, 19, 0.92);
+  background: #ffffff;
   border-color: rgba(139, 92, 246, 0.5);
   box-shadow: 0 0 0 0.24rem rgba(139, 92, 246, 0.16);
 }
@@ -466,14 +466,14 @@ body.bootstrap-app {
 }
 
 .bootstrap-app .accordion:not(.nav-accordion) {
-  --bs-accordion-bg: rgba(19, 19, 24, 0.9);
+  --bs-accordion-bg: rgba(255, 255, 255, 0.97);
   --bs-accordion-border-color: var(--surface-border);
   --bs-accordion-border-radius: var(--radius-ui);
   --bs-accordion-inner-border-radius: var(--radius-ui);
-  --bs-accordion-btn-bg: linear-gradient(180deg, rgba(24, 24, 27, 0.84), rgba(31, 31, 35, 0.96));
+  --bs-accordion-btn-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(243, 250, 250, 0.98));
   --bs-accordion-btn-color: var(--text-strong);
-  --bs-accordion-active-bg: linear-gradient(180deg, rgba(24, 24, 27, 0.92), rgba(31, 31, 35, 0.98));
-  --bs-accordion-active-color: #fff;
+  --bs-accordion-active-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(243, 250, 250, 0.98));
+  --bs-accordion-active-color: var(--text-strong);
   --bs-accordion-btn-focus-box-shadow: 0 0 0 0.24rem rgba(139, 92, 246, 0.16);
   --bs-accordion-btn-focus-border-color: rgba(139, 92, 246, 0.45);
   --bs-accordion-btn-icon: none;
@@ -507,7 +507,7 @@ body.bootstrap-app {
   display: grid;
   gap: 0.6rem;
   color: var(--text-soft);
-  background: rgba(19, 19, 24, 0.94);
+  background: rgba(247, 252, 252, 0.98);
   padding: 0.65rem;
 }
 
@@ -520,7 +520,7 @@ body.bootstrap-app {
 }
 
 .bootstrap-app .accordion-item > summary {
-  background: linear-gradient(180deg, rgba(24, 24, 27, 0.84), rgba(31, 31, 35, 0.96));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(243, 250, 250, 0.98));
 }
 
 .bootstrap-app .nav-accordion .accordion-button::after {
@@ -616,7 +616,7 @@ body.bootstrap-app {
   }
 
   .bootstrap-app .masterdata-section > .accordion-content {
-    background: rgba(19, 19, 24, 0.94) !important;
+    background: rgba(247, 252, 252, 0.98) !important;
     border-color: var(--surface-border) !important;
   }
 }

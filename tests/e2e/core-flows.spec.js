@@ -167,3 +167,77 @@ test("Benachrichtigungs-Checkboxen sind mobil sichtbar aktivierbar", async ({ pa
 
   expect(checkedVisualState.accentColor).not.toBe("auto");
 });
+
+test("Kernseiten bleiben kompakt und kontrastreich", async ({ page }) => {
+  await ensureAuthenticated(page);
+
+  const pagesToCheck = [
+    "/",
+    "/animals",
+    "/admin/stammdaten",
+    "/admin/benachrichtigungen",
+  ];
+
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport);
+
+    for (const path of pagesToCheck) {
+      await page.goto(path);
+      await page.waitForLoadState("networkidle");
+
+      const result = await page.evaluate(() => {
+        const parseRgb = (value) => {
+          const match = value.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+          return match ? match.slice(1, 4).map(Number) : null;
+        };
+        const brightness = (rgb) => rgb ? ((rgb[0] * 299 + rgb[1] * 587 + rgb[2] * 114) / 1000) : 255;
+        const isVisible = (element) => {
+          const rect = element.getBoundingClientRect();
+          const styles = window.getComputedStyle(element);
+          return rect.width > 0 && rect.height > 0 && styles.visibility !== "hidden" && styles.display !== "none";
+        };
+
+        const pageHeader = document.querySelector(".page-header h1");
+        const headerFontSize = pageHeader ? Number.parseFloat(window.getComputedStyle(pageHeader).fontSize) : 0;
+        const darkControls = Array.from(document.querySelectorAll("input:not(.form-check-input), select, textarea, .form-control, .form-select"))
+          .filter(isVisible)
+          .map((element) => ({
+            tag: element.tagName.toLowerCase(),
+            id: element.id || "",
+            name: element.getAttribute("name") || "",
+            background: window.getComputedStyle(element).backgroundColor,
+          }))
+          .filter((item) => brightness(parseRgb(item.background)) < 150);
+        const wideElements = Array.from(document.body.querySelectorAll("*"))
+          .filter(isVisible)
+          .map((element) => {
+            const rect = element.getBoundingClientRect();
+            return {
+              tag: element.tagName.toLowerCase(),
+              className: String(element.className || "").slice(0, 120),
+              text: String(element.textContent || "").replace(/\s+/g, " ").trim().slice(0, 80),
+              left: Math.round(rect.left),
+              right: Math.round(rect.right),
+              width: Math.round(rect.width),
+            };
+          })
+          .filter((item) => item.left < -2 || item.right > window.innerWidth + 2)
+          .slice(0, 8);
+
+        return {
+          overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+          headerFontSize,
+          darkControls,
+          wideElements,
+        };
+      });
+
+      expect(result.overflowX, `${path} @ ${viewport.width}px hat horizontalen Overflow: ${JSON.stringify(result.wideElements)}`).toBeLessThanOrEqual(2);
+      expect(result.headerFontSize, `${path} @ ${viewport.width}px hat einen zu großen Header`).toBeLessThanOrEqual(viewport.width < 768 ? 22 : 24);
+      expect(result.darkControls, `${path} @ ${viewport.width}px hat dunkle Formularfelder`).toEqual([]);
+    }
+  }
+});

@@ -644,16 +644,12 @@ small {
   .page-header {
     display: grid;
     gap: 8px;
-    padding: 12px 12px 13px;
+    padding: 10px 12px;
     margin-bottom: 10px;
-    background:
-      radial-gradient(320px 180px at 0% 0%, rgba(193, 246, 219, 0.32), transparent 70%),
-      rgba(39, 39, 42, 0.9);
-    border: 1px solid rgba(39, 39, 42, 0.55);
-    border-radius: 22px;
+    background: var(--paper-strong);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--radius-ui);
     box-shadow: var(--shadow-soft);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
   }
 
   .page-header .eyebrow {
@@ -661,15 +657,6 @@ small {
     font-size: 0.66rem;
     letter-spacing: 0.18em;
   }
-
-  
-.page-header h1 {
-  font-size: clamp(2rem, 1.8rem + 1.5vw, 2.75rem);
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: -0.02em;
-}
-
 
   .panel,
   .hero-card,
@@ -810,15 +797,6 @@ small {
 }
 
 @media (max-width: 640px) {
-  
-.page-header h1 {
-  font-size: clamp(2rem, 1.8rem + 1.5vw, 2.75rem);
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: -0.02em;
-}
-
-
   .animals-summary-grid,
   .animal-hero-meta-grid,
   .resting-place-facts {
@@ -963,10 +941,25 @@ small {
 .bootstrap-app .main-content {
   margin-left: 0;
   padding: 0;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .bootstrap-app .app-main-container {
   padding: 0 0.48rem 0.58rem 0.26rem;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.bootstrap-app .main-content-inner {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.bootstrap-app .app-main-container .row {
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .bootstrap-app .page-header {
