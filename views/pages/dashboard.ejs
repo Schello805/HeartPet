@@ -8,12 +8,12 @@
 <% const issueCount = healthState.staleAnimals.length + healthState.animalsWithoutVeterinarian.length + healthState.animalsWithIncompleteProfile.length + urgentList.length + upcomingReminders.length; %>
 
 <section class="card border-0 dashboard-hero-card mb-2">
-  <div class="card-body p-3">
-    <div class="row g-3 align-items-center">
+  <div class="card-body p-2">
+    <div class="row g-2 align-items-center">
       <div class="col-lg-6">
         <div class="text-uppercase small fw-semibold text-body-secondary mb-1">Dashboard</div>
-        <h2 class="h4 mb-1">Bestand und Handlungsbedarf auf einen Blick.</h2>
-        <p class="text-body-secondary mb-0">Oben Bestand, darunter Erinnerungen, dann konkrete Hinweise. Jede Karte führt direkt in den passenden Bereich.</p>
+        <h2 class="h5 mb-1">Bestand und Handlungsbedarf auf einen Blick.</h2>
+        <p class="text-body-secondary mb-0">Bestand, Erinnerungen und konkrete Hinweise. Jede Karte führt direkt in den passenden Bereich.</p>
       </div>
       <div class="col-lg-6">
         <form method="get" action="/" class="row g-2 dashboard-search-form">
@@ -36,7 +36,7 @@
 
 <% if (searchState.searchable) { %>
   <section class="card border-0 dashboard-feed-card mb-2">
-    <div class="card-body p-3">
+    <div class="card-body p-2">
       <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
         <h2 class="h6 mb-0">Suchergebnisse</h2>
         <span class="badge text-bg-secondary-subtle border"><%= dashboardSearchResults.length %> Treffer</span>
@@ -65,8 +65,8 @@
 <div class="row g-2 mb-2">
   <div class="col-xl-5">
     <section class="card border-0 h-100 dashboard-surface-card">
-      <div class="card-body p-3">
-        <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+      <div class="card-body p-2">
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
           <div>
             <h2 class="h5 mb-1">Tierbestand</h2>
             <p class="text-body-secondary mb-0 small">Aktive Tiere nach Tierart.</p>
@@ -76,16 +76,16 @@
 
         <% if (!speciesOverview.length) { %>
           <a href="/animals/new" class="card border text-decoration-none h-100" data-drawer="animal-form">
-            <div class="card-body p-3">
+            <div class="card-body p-2">
               <div class="fw-semibold mb-1">Noch keine Tiere angelegt</div>
               <div class="small text-body-secondary">Starte mit der ersten Tierakte.</div>
             </div>
           </a>
         <% } else { %>
           <div class="row g-2">
-            <div class="col-12">
+            <div class="col-sm-6">
               <a class="card h-100 border-0 text-decoration-none dashboard-stat-card dashboard-kpi-link semantic-card semantic-card--info" href="/animals">
-                <div class="card-body p-3">
+                <div class="card-body p-2">
                   <span class="small text-body-secondary d-block mb-1">Gesamt</span>
                   <strong class="fw-semibold text-primary d-block"><%= stats.animalCount %></strong>
                 </div>
@@ -94,7 +94,7 @@
             <% speciesOverview.forEach((species) => { %>
               <div class="col-sm-6">
                 <a class="card h-100 border-0 text-decoration-none dashboard-stat-card dashboard-kpi-link" href="/animals<%= species.species_id ? `?species_id=${species.species_id}` : '' %>">
-                  <div class="card-body p-3">
+                  <div class="card-body p-2">
                     <span class="small text-body-secondary d-block mb-1"><%= species.name %></span>
                     <strong class="fw-semibold text-primary d-block"><%= species.count %></strong>
                   </div>
@@ -109,8 +109,8 @@
 
   <div class="col-xl-7">
     <section class="card border-0 h-100 dashboard-surface-card">
-      <div class="card-body p-3">
-        <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+      <div class="card-body p-2">
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
           <div>
             <h2 class="h5 mb-1">Erinnerungen</h2>
             <p class="text-body-secondary mb-0 small">Was aktuell offen ist oder bald ansteht.</p>
@@ -120,7 +120,7 @@
         <div class="row g-2">
           <div class="col-6 col-lg-3">
             <a class="card h-100 border-0 text-decoration-none dashboard-stat-card dashboard-kpi-link semantic-card <%= stats.openReminderCount > 0 ? 'semantic-card--danger' : 'semantic-card--ok' %>" href="/animals#animal-medizin">
-              <div class="card-body p-3">
+              <div class="card-body p-2">
                 <span class="small text-body-secondary d-block mb-1">Offen</span>
                 <strong class="fw-semibold d-block"><%= stats.openReminderCount %></strong>
               </div>
@@ -128,7 +128,7 @@
           </div>
           <div class="col-6 col-lg-3">
             <a class="card h-100 border-0 text-decoration-none dashboard-stat-card dashboard-kpi-link semantic-card <%= stats.dueReminderCount > 0 ? 'semantic-card--danger' : 'semantic-card--ok' %>" href="/#dringende-erinnerungen">
-              <div class="card-body p-3">
+              <div class="card-body p-2">
                 <span class="small text-body-secondary d-block mb-1">Jetzt fällig</span>
                 <strong class="fw-semibold d-block"><%= stats.dueReminderCount %></strong>
               </div>
@@ -136,7 +136,7 @@
           </div>
           <div class="col-6 col-lg-3">
             <a class="card h-100 border-0 text-decoration-none dashboard-stat-card dashboard-kpi-link semantic-card <%= healthState.staleAnimals.length > 0 ? 'semantic-card--warning' : 'semantic-card--ok' %>" href="/animals">
-              <div class="card-body p-3">
+              <div class="card-body p-2">
                 <span class="small text-body-secondary d-block mb-1">7 Tage ruhig</span>
                 <strong class="fw-semibold d-block"><%= healthState.staleAnimals.length %></strong>
               </div>
@@ -144,7 +144,7 @@
           </div>
           <div class="col-6 col-lg-3">
             <a class="card h-100 border-0 text-decoration-none dashboard-stat-card dashboard-kpi-link semantic-card <%= upcomingReminders.length > 0 ? 'semantic-card--info' : 'semantic-card--ok' %>" href="/#naechste-erinnerungen">
-              <div class="card-body p-3">
+              <div class="card-body p-2">
                 <span class="small text-body-secondary d-block mb-1">Demnächst</span>
                 <strong class="fw-semibold d-block"><%= upcomingReminders.length %></strong>
               </div>
@@ -159,7 +159,7 @@
 <div class="row g-2 dashboard-priority-grid">
   <div class="col-lg-6">
     <article class="card border-0 h-100 dashboard-feed-card dashboard-surface-card semantic-card <%= urgentList.length > 0 ? 'semantic-card--danger' : 'semantic-card--ok' %>" id="dringende-erinnerungen">
-      <div class="card-body p-3">
+      <div class="card-body p-2">
         <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
           <div>
             <h2 class="h5 mb-1">Dringend</h2>
@@ -194,7 +194,7 @@
 
   <div class="col-lg-6">
     <article class="card border-0 h-100 dashboard-feed-card dashboard-surface-card semantic-card <%= upcomingReminders.length > 0 ? 'semantic-card--info' : 'semantic-card--ok' %>" id="naechste-erinnerungen">
-      <div class="card-body p-3">
+      <div class="card-body p-2">
         <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
           <div>
             <h2 class="h5 mb-1">Demnächst</h2>
@@ -230,7 +230,7 @@
 
   <div class="col-12">
     <article class="card border-0 dashboard-surface-card semantic-card <%= issueCount > 0 ? 'semantic-card--warning' : 'semantic-card--ok' %>">
-      <div class="card-body p-3">
+      <div class="card-body p-2">
         <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
           <div>
             <h2 class="h5 mb-1">Hinweise</h2>
@@ -246,7 +246,7 @@
             <% attentionList.slice(0, 6).forEach((animal) => { %>
               <div class="col-md-6 col-xl-4">
                 <a class="card h-100 border text-decoration-none dashboard-kpi-link" href="/animals/<%= animal.id %>">
-                  <div class="card-body p-3">
+                  <div class="card-body p-2">
                     <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
                       <div>
                         <div class="fw-semibold"><%= animal.name %></div>

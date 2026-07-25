@@ -1548,26 +1548,26 @@ small {
 }
 
 .bootstrap-app.dashboard-page .dashboard-hero-card h2 {
-  font-size: 1.05rem;
+  font-size: 0.98rem;
   line-height: 1.08;
-  max-width: 24ch;
+  max-width: none;
 }
 
 .bootstrap-app.dashboard-page .dashboard-hero-card p {
-  font-size: 0.76rem;
-  line-height: 1.32;
-  max-width: 50ch;
+  font-size: 0.74rem;
+  line-height: 1.28;
+  max-width: 62ch;
 }
 
 .bootstrap-app.dashboard-page .dashboard-search-form input[type="search"],
 .bootstrap-app.dashboard-page .dashboard-search-form .btn {
-  min-height: 2.45rem;
-  height: 2.45rem;
+  min-height: 2.2rem;
+  height: 2.2rem;
   border-radius: var(--radius-ui);
 }
 
 .bootstrap-app.dashboard-page .dashboard-search-form input[type="search"] {
-  font-size: 0.86rem;
+  font-size: 0.8rem;
   padding-inline: 0.8rem;
 }
 
@@ -1580,7 +1580,7 @@ small {
 }
 
 .bootstrap-app.dashboard-page .dashboard-stat-card strong {
-  font-size: 1.08rem;
+  font-size: 0.98rem;
   line-height: 1;
 }
 
@@ -1589,7 +1589,7 @@ small {
 }
 
 .bootstrap-app.dashboard-page .dashboard-feed-card h2 {
-  font-size: 0.96rem;
+  font-size: 0.9rem;
 }
 
 .bootstrap-app.dashboard-page .dashboard-kpi-link {
@@ -1618,7 +1618,7 @@ small {
 
 .bootstrap-app.dashboard-page .dashboard-compact-list .list-group-item {
   margin-bottom: 0 !important;
-  padding: 0.56rem 0.68rem !important;
+  padding: 0.46rem 0.58rem !important;
 }
 
 .bootstrap-app.dashboard-page .dashboard-stat-card small,
@@ -1640,14 +1640,6 @@ small {
   .bootstrap-app.dashboard-page .page-content > .row.g-2,
   .bootstrap-app.dashboard-page .main-content-inner > .row.g-2 {
     --bs-gutter-y: 0.45rem;
-  }
-
-  .bootstrap-app.dashboard-page .dashboard-priority-grid .card-body {
-    min-height: 188px;
-  }
-
-  .bootstrap-app.dashboard-page .dashboard-feed-card .card-body {
-    min-height: 176px;
   }
 }
 
