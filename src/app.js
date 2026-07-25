@@ -2,15 +2,26 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const express = require("express");
-const session = require("express-session");
-const SQLiteStoreFactory = require("connect-sqlite3");
-const sqlite3 = require("sqlite3");
-const multer = require("multer");
 const cron = require("node-cron");
 const bcrypt = require("bcryptjs");
 const dayjs = require("dayjs");
 
 const { initDatabase, getSettingsObject, upsertSetting } = require("./db");
+const { createSessionMiddleware } = require("./http-session");
+const { createImportUploadMiddleware, createUploadMiddleware } = require("./uploads");
+const {
+  buildPermissions,
+  formatDate,
+  formatDateTime,
+  getAnimalAge,
+  getAnimalInitial,
+  getAnimalLifecycle,
+  getReminderStatusMeta,
+  getRoleLabel,
+  isActiveAnimalStatus,
+  normalizeAnimalStatus,
+  summarizeReminderState,
+} = require("./view-helpers");
 const {
   processDueReminders,
   sendDailyDigestEmail,
@@ -28,34 +39,13 @@ const {
 } = require("./reminders");
 const { buildAnimalExportPayload, createAnimalPdf } = require("./exporters");
 
-const SQLiteStore = SQLiteStoreFactory(session);
 const app = express();
 const db = initDatabase();
 const projectRoot = path.join(__dirname, "..");
 const configuredDataDir = String(process.env.HEARTPET_DATA_DIR || "").trim();
 const dataDir = configuredDataDir ? path.resolve(configuredDataDir) : path.join(projectRoot, "data");
-const useMemorySessionStore = String(process.env.HEARTPET_SESSION_STORE || "").trim().toLowerCase() === "memory";
-const configuredSessionDays = Number.parseInt(String(process.env.HEARTPET_SESSION_DAYS || "30"), 10);
-const sessionDays = Number.isFinite(configuredSessionDays) && configuredSessionDays > 0 ? configuredSessionDays : 30;
-const sessionMaxAgeMs = sessionDays * 24 * 60 * 60 * 1000;
-const sessionDb = useMemorySessionStore
-  ? null
-  : new sqlite3.Database(path.join(dataDir, "sessions.sqlite"));
-
-const uploadStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const targetDir = path.join(projectRoot, "data", "uploads");
-    fs.mkdirSync(targetDir, { recursive: true });
-    cb(null, targetDir);
-  },
-  filename: (req, file, cb) => {
-    const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_");
-    cb(null, `${Date.now()}-${safeName}`);
-  },
-});
-
-const upload = multer({ storage: uploadStorage });
-const importUpload = multer({ storage: multer.memoryStorage() });
+const upload = createUploadMiddleware(projectRoot);
+const importUpload = createImportUploadMiddleware();
 
 app.set("view engine", "ejs");
 app.set("views", path.join(projectRoot, "views"));
@@ -70,26 +60,7 @@ app.get("/favicon.ico", (req, res) => {
   return res.redirect(302, logoUrl);
 });
 
-app.use(
-  session({
-    name: "heartpet.sid",
-    secret: process.env.HEARTPET_SESSION_SECRET || "heartpet-session-secret",
-    resave: false,
-    rolling: true,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      maxAge: sessionMaxAgeMs,
-      sameSite: "lax",
-    },
-    store: useMemorySessionStore
-      ? undefined
-      : new SQLiteStore({
-          db: sessionDb,
-          concurrentDb: true,
-        }),
-  })
-);
+app.use(createSessionMiddleware(dataDir));
 
 app.use((req, res, next) => {
   const flash = req.session.flash || null;
@@ -3979,56 +3950,6 @@ function validateVeterinarianAddress(payload) {
   return "";
 }
 
-function formatDate(value) {
-  if (!value) {
-    return "-";
-  }
-  return dayjs(value).format("DD.MM.YYYY");
-}
-
-function formatDateTime(value) {
-  if (!value) {
-    return "-";
-  }
-  return dayjs(value).format("DD.MM.YYYY HH:mm");
-}
-
-function getAnimalAge(dateString) {
-  if (!dateString) {
-    return "-";
-  }
-
-  const birthDate = dayjs(dateString);
-  if (!birthDate.isValid()) {
-    return "-";
-  }
-
-  const now = dayjs();
-  if (birthDate.isAfter(now)) {
-    return "-";
-  }
-
-  const years = now.diff(birthDate, "year");
-  if (years >= 1) {
-    return years === 1 ? "1 Jahr" : `${years} Jahre`;
-  }
-
-  const months = now.diff(birthDate, "month");
-  if (months >= 1) {
-    return months === 1 ? "1 Monat" : `${months} Monate`;
-  }
-
-  const days = now.diff(birthDate, "day");
-  return days === 1 ? "1 Tag" : `${days} Tage`;
-}
-
-function getAnimalInitial(name) {
-  if (!name) {
-    return "?";
-  }
-  return String(name).trim().charAt(0).toUpperCase();
-}
-
 function getMissingRequiredCategories(categories, documents) {
   const presentCategoryIds = new Set(documents.map((item) => Number(item.category_id)).filter(Boolean));
   return categories.filter((category) => category.is_required && !presentCategoryIds.has(Number(category.id)));
@@ -4173,88 +4094,6 @@ function getAnimalSectionConfig(section) {
   };
 
   return sectionMap[section] || sectionMap.active;
-}
-
-function normalizeAnimalStatus(status) {
-  const allowedStatuses = ["Aktiv", "Vermittelt", "Verkauft", "Verstorben"];
-  const normalized = String(status || "").trim();
-  return allowedStatuses.includes(normalized) ? normalized : "Aktiv";
-}
-
-function getAnimalLifecycle(status) {
-  const normalizedStatus = normalizeAnimalStatus(status);
-  const isActive = normalizedStatus === "Aktiv";
-  const inHistory = normalizedStatus === "Vermittelt" || normalizedStatus === "Verkauft";
-  const inRestingPlace = normalizedStatus === "Verstorben";
-
-  return {
-    status: normalizedStatus,
-    isActive,
-    isArchived: !isActive,
-    inHistory,
-    inRestingPlace,
-    label: inRestingPlace
-      ? "Diese Akte ist in der Ruhestätte und wird nur noch dokumentiert."
-      : inHistory
-        ? "Diese Akte liegt in der Historie und ist nicht mehr Teil des aktiven Bestands."
-        : "Diese Akte ist aktiv.",
-    hint: inRestingPlace
-      ? "Neue Erinnerungen oder Alltags-Einträge sollten hier nicht mehr entstehen. Bestehende Informationen bleiben zur Erinnerung erhalten."
-      : inHistory
-        ? "Neue Alltags-Einträge und laufende Erinnerungen sind für historische Tiere standardmäßig beendet."
-        : "",
-  };
-}
-
-function isActiveAnimalStatus(status) {
-  return getAnimalLifecycle(status).isActive;
-}
-
-function getReminderStatusMeta(reminder) {
-  if (!reminder) {
-    return { label: "Unbekannt", tone: "muted", detail: "" };
-  }
-
-  if (reminder.completed_at) {
-    return {
-      label: "Erledigt",
-      tone: "ok",
-      detail: reminder.last_delivery_status === "completed" ? "manuell abgeschlossen" : "abgeschlossen",
-    };
-  }
-
-  const dueAt = dayjs(reminder.due_at);
-  if (dueAt.isValid() && dueAt.isBefore(dayjs())) {
-    return {
-      label: "Überfällig",
-      tone: "warning",
-      detail: reminder.last_delivery_status === "sent" ? "bereits versendet" : "wartet auf Rückmeldung",
-    };
-  }
-
-  if (reminder.last_delivery_status === "rescheduled") {
-    return { label: "Neu terminiert", tone: "active", detail: "wiederkehrend weitergeführt" };
-  }
-
-  if (reminder.last_delivery_status === "sent") {
-    return { label: "Offen", tone: "active", detail: "Benachrichtigung versendet" };
-  }
-
-  if (reminder.last_delivery_status === "error") {
-    return { label: "Fehler", tone: "danger", detail: "Versand fehlgeschlagen" };
-  }
-
-  return { label: "Offen", tone: "muted", detail: "noch nicht abgeschlossen" };
-}
-
-function summarizeReminderState(reminders = []) {
-  const items = Array.isArray(reminders) ? reminders : [];
-  return {
-    total: items.length,
-    open: items.filter((item) => !item.completed_at).length,
-    done: items.filter((item) => item.completed_at).length,
-    overdue: items.filter((item) => !item.completed_at && dayjs(item.due_at).isBefore(dayjs())).length,
-  };
 }
 
 function closeOpenRemindersForAnimal(animalId) {
@@ -4876,15 +4715,6 @@ function resyncAllGeneratedReminders() {
   db.prepare("SELECT id, animal_id FROM animal_appointments").all().forEach((item) => syncAppointmentReminders(item.animal_id, item.id));
 }
 
-function getRoleLabel(role) {
-  const labels = {
-    admin: "Administrator",
-    user: "Benutzer",
-    viewer: "Nur Lesen",
-  };
-  return labels[role] || role;
-}
-
 async function sendInviteEmailForUser(req, user, options = {}) {
   const userId = user?.id;
   const name = String(user?.name || "").trim();
@@ -4949,49 +4779,6 @@ async function sendInviteEmailForUser(req, user, options = {}) {
     );
     throw error;
   }
-}
-
-function buildPermissions(user) {
-  const role = user?.role || "viewer";
-  if (role === "admin") {
-    return {
-      isAdmin: true,
-      canManageAdmin: true,
-      canEditAnimals: true,
-      canManageDocuments: true,
-      canManageGallery: true,
-      canManageHealth: true,
-      canManageFeedings: true,
-      canManageNotes: true,
-      canManageReminders: true,
-    };
-  }
-
-  if (role === "viewer") {
-    return {
-      isAdmin: false,
-      canManageAdmin: false,
-      canEditAnimals: false,
-      canManageDocuments: false,
-      canManageGallery: false,
-      canManageHealth: false,
-      canManageFeedings: false,
-      canManageNotes: false,
-      canManageReminders: false,
-    };
-  }
-
-  return {
-    isAdmin: false,
-    canManageAdmin: false,
-    canEditAnimals: Boolean(user?.can_edit_animals),
-    canManageDocuments: Boolean(user?.can_manage_documents),
-    canManageGallery: Boolean(user?.can_manage_gallery),
-    canManageHealth: Boolean(user?.can_manage_health),
-    canManageFeedings: Boolean(user?.can_manage_feedings),
-    canManageNotes: Boolean(user?.can_manage_notes),
-    canManageReminders: Boolean(user?.can_manage_reminders),
-  };
 }
 
 function renderNotFound(req, res, message) {
