@@ -21,4 +21,8 @@ node --check src/app.js
 echo "5/5 Syntax public/js/app.js"
 node --check public/js/app.js
 
+if [ "${SKIP_HEARTPET_REVISION:-}" != "1" ]; then
+  node scripts/increment-revision.js
+fi
+
 echo "HeartPet Pre-Commit: alles gruen."

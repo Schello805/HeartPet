@@ -9,7 +9,8 @@
     "start": "node src/app.js",
     "dev": "node src/app.js",
     "check:animal-view": "node scripts/render-animal-show-check.js",
-    "verify": "node scripts/verify.js"
+    "verify": "node scripts/verify.js",
+    "prepare": "git config core.hooksPath .githooks || true"
   },
   "keywords": [],
   "author": "",

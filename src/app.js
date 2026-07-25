@@ -42,6 +42,7 @@ const { buildAnimalExportPayload, createAnimalPdf } = require("./exporters");
 const app = express();
 const db = initDatabase();
 const projectRoot = path.join(__dirname, "..");
+const revisionPath = path.join(projectRoot, "REVISION");
 const configuredDataDir = String(process.env.HEARTPET_DATA_DIR || "").trim();
 const dataDir = configuredDataDir ? path.resolve(configuredDataDir) : path.join(projectRoot, "data");
 const upload = createUploadMiddleware(projectRoot);
@@ -86,6 +87,7 @@ app.use((req, res, next) => {
   res.locals.appLogoUrl = getAppLogoUrl(res.locals.appSettings);
   res.locals.currentPath = req.path;
   res.locals.currentQuery = req.query || {};
+  res.locals.appRevision = readAppRevision();
   res.locals.seoMeta = buildSeoMeta(req, res.locals.appSettings);
   res.locals.animalSpeciesMenu = listActiveSpecies();
   res.locals.formatDate = formatDate;
@@ -101,6 +103,15 @@ app.use((req, res, next) => {
   res.locals.reminderBuckets = { overdue: [], open: [], done: [] };
   next();
 });
+
+function readAppRevision() {
+  try {
+    const revision = fs.readFileSync(revisionPath, "utf8").trim();
+    return revision || "dev";
+  } catch (error) {
+    return "dev";
+  }
+}
 
 app.use((req, res, next) => {
   const setupComplete = isSetupComplete();
