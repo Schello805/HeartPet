@@ -1278,6 +1278,25 @@ small {
   display: flex;
 }
 
+.bootstrap-app .animal-workflow-summary .animal-summary-card > .card-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.bootstrap-app .animal-workflow-summary .animal-summary-card > .card-body > .row,
+.bootstrap-app .animal-workflow-summary .animal-priority-grid {
+  flex: 1 1 auto;
+}
+
+.bootstrap-app .animal-workflow-summary .col-md-6 > .card,
+.bootstrap-app .animal-workflow-summary .animal-priority-grid .card {
+  min-height: 96px;
+}
+
+.bootstrap-app .animal-workflow-summary .card-body.p-3 {
+  padding: 0.64rem !important;
+}
+
 .bootstrap-app .animal-priority-grid .card,
 .bootstrap-app .document-card-grid-item {
   width: 100%;
@@ -1539,6 +1558,24 @@ small {
   border-radius: 0.65rem;
 }
 
+.bootstrap-app .document-filter-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(128px, auto);
+  gap: 0.5rem;
+  align-items: end;
+  min-width: 0;
+}
+
+.bootstrap-app .document-filter-form .form-select,
+.bootstrap-app .document-filter-form .btn {
+  width: 100%;
+  min-width: 0;
+}
+
+.bootstrap-app .document-filter-action .btn {
+  white-space: normal;
+}
+
 .bootstrap-app .detail-card-list .inline-actions {
   margin-top: auto;
 }
@@ -1725,6 +1762,10 @@ small {
   .bootstrap-app .animals-filter-form .btn,
   .bootstrap-app .document-filter-form .btn {
     min-height: 40px;
+  }
+
+  .bootstrap-app .document-filter-form {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .bootstrap-app .animal-list-item-meta {

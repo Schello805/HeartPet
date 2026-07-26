@@ -243,7 +243,7 @@
   </form>
 <% } %>
 
-<div class="row g-2 mb-3 animal-summary-layout">
+<div class="row g-2 mb-3 animal-summary-layout animal-workflow-summary">
   <div class="col-xl-5">
     <section class="card border-0 shadow-sm h-100 animal-summary-card">
       <div class="card-body">
@@ -257,7 +257,7 @@
       </div>
       <div class="col-lg-8">
         <div class="row g-2">
-          <div class="col-md-6">
+          <div class="col-md-6 d-flex">
             <article class="card border bg-body-tertiary h-100">
               <div class="card-body p-3 d-grid gap-1">
                 <span class="small text-body-secondary">Reminder-Stand</span>
@@ -267,7 +267,7 @@
             </article>
           </div>
           <% focusFacts.forEach((fact) => { %>
-            <div class="col-md-6">
+            <div class="col-md-6 d-flex">
               <article class="card border bg-body-tertiary h-100 semantic-card <%= fact === 'Akte ist aktuell gut gepflegt' ? 'semantic-card--ok' : 'semantic-card--warning' %>">
                 <div class="card-body p-3 d-grid gap-1">
                   <span class="small text-body-secondary">Hinweis</span>
@@ -1113,8 +1113,8 @@
                   <a href="/animals/<%= animal.id %>/documents/new" class="btn btn-outline-secondary" data-drawer="animal-entry">Dokument hochladen</a>
                 <% } %>
               </div>
-              <form method="get" action="/animals/<%= animal.id %>" class="row g-2 align-items-end document-filter-form">
-              <div class="col-md-5">
+              <form method="get" action="/animals/<%= animal.id %>" class="document-filter-form">
+              <div class="document-filter-field">
                 <label class="form-label" for="document-category-filter">Kategorie</label>
                 <select class="form-select" id="document-category-filter" name="documentCategory">
                   <option value="">Alle Kategorien</option>
@@ -1123,7 +1123,7 @@
                   <% }) %>
                 </select>
               </div>
-              <div class="col-md-5">
+              <div class="document-filter-field">
                 <label class="form-label" for="document-type-filter">Dateityp</label>
                 <select class="form-select" id="document-type-filter" name="documentType">
                   <option value="">Alle Typen</option>
@@ -1131,7 +1131,7 @@
                   <option value="files" <%= documentFilter.fileType === 'files' ? 'selected' : '' %>>Nur Dokumente</option>
                 </select>
               </div>
-              <div class="col-md-2 d-grid">
+              <div class="document-filter-action d-grid">
                 <button type="submit" class="btn btn-outline-secondary">Filter anwenden</button>
               </div>
               </form>
