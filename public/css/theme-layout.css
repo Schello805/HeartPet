@@ -1560,7 +1560,7 @@ small {
 
 .bootstrap-app .document-filter-form {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(128px, auto);
+  grid-template-columns: minmax(150px, 1fr) minmax(130px, 0.8fr) minmax(138px, auto);
   gap: 0.5rem;
   align-items: end;
   min-width: 0;
@@ -1578,6 +1578,18 @@ small {
 
 .bootstrap-app .detail-card-list .inline-actions {
   margin-top: auto;
+}
+
+@media (min-width: 900px) {
+  .bootstrap-app #animal-dokumente .animal-subaccordion {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1400px) {
+  .bootstrap-app #animal-dokumente .animal-subaccordion {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .bootstrap-app.dashboard-page .dashboard-hero-card .card-body {
