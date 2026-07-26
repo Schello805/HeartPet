@@ -3456,26 +3456,26 @@ async function maybeSendDailyDigest() {
     SELECT COUNT(*) AS count
     FROM reminders
     INNER JOIN animals ON animals.id = reminders.animal_id
-    WHERE completed_at IS NULL
-      AND due_at < ?
+    WHERE reminders.completed_at IS NULL
+      AND REPLACE(reminders.due_at, ' ', 'T') < ?
       AND animals.status = 'Aktiv'
   `).get(now.format("YYYY-MM-DDTHH:mm")).count;
   const todayCount = db.prepare(`
     SELECT COUNT(*) AS count
     FROM reminders
     INNER JOIN animals ON animals.id = reminders.animal_id
-    WHERE completed_at IS NULL
-      AND due_at >= ?
-      AND due_at <= ?
+    WHERE reminders.completed_at IS NULL
+      AND REPLACE(reminders.due_at, ' ', 'T') >= ?
+      AND REPLACE(reminders.due_at, ' ', 'T') <= ?
       AND animals.status = 'Aktiv'
   `).get(`${today}T00:00`, `${today}T23:59`).count;
   const nextDaysCount = db.prepare(`
     SELECT COUNT(*) AS count
     FROM reminders
     INNER JOIN animals ON animals.id = reminders.animal_id
-    WHERE completed_at IS NULL
-      AND due_at > ?
-      AND due_at <= ?
+    WHERE reminders.completed_at IS NULL
+      AND REPLACE(reminders.due_at, ' ', 'T') > ?
+      AND REPLACE(reminders.due_at, ' ', 'T') <= ?
       AND animals.status = 'Aktiv'
   `).get(`${today}T23:59`, now.add(3, "day").format("YYYY-MM-DDTHH:mm")).count;
 
@@ -3498,9 +3498,9 @@ async function maybeSendDailyDigest() {
     FROM reminders
     INNER JOIN animals ON animals.id = reminders.animal_id
     WHERE reminders.completed_at IS NULL
-      AND reminders.due_at <= ?
+      AND REPLACE(reminders.due_at, ' ', 'T') <= ?
       AND animals.status = 'Aktiv'
-    ORDER BY reminders.due_at ASC
+    ORDER BY REPLACE(reminders.due_at, ' ', 'T') ASC
     LIMIT 20
   `).all(now.add(3, "day").format("YYYY-MM-DDTHH:mm"))
     .map((item) => ({
@@ -3822,9 +3822,10 @@ function splitReminders(reminders) {
   const now = dayjs();
   return reminders.reduce(
     (acc, reminder) => {
+      const dueAt = String(reminder.due_at || "").replace(" ", "T");
       if (reminder.completed_at) {
         acc.done.push(reminder);
-      } else if (dayjs(reminder.due_at).isBefore(now)) {
+      } else if (dueAt && dayjs(dueAt).isBefore(now)) {
         acc.overdue.push(reminder);
       } else {
         acc.open.push(reminder);
@@ -5639,5 +5640,9 @@ function resolveAppBaseUrl(settings) {
   }
   return `https://${raw}`.replace(/\/+$/, "");
 }
+
+app.__test = {
+  maybeSendDailyDigest,
+};
 
 module.exports = app;

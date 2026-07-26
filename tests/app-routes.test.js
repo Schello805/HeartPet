@@ -14,7 +14,7 @@ process.env.HEARTPET_DATA_DIR = tempDataDir;
 process.env.HEARTPET_SESSION_SECRET = "test-secret";
 process.env.HEARTPET_SESSION_STORE = "memory";
 
-const { initDatabase } = require("../src/db");
+const { initDatabase, upsertSetting } = require("../src/db");
 const { createAnimalPdf } = require("../src/exporters");
 const { buildReminderActionToken, buildReminderEmailHtml, sendTelegramReminder, processDueReminders } = require("../src/reminders");
 const app = require("../src/app");
@@ -1806,6 +1806,73 @@ test("Dashboard-Banner zaehlt nur offene Erinnerungen aktiver Tiere", async () =
   assert.ok(!titles.includes("Archiv-Erinnerung"));
 });
 
+test("Tageszusammenfassung ignoriert offene Erinnerungen inaktiver Tiere", async () => {
+  db.prepare("UPDATE reminders SET completed_at = COALESCE(completed_at, CURRENT_TIMESTAMP)").run();
+  db.prepare("DELETE FROM notification_logs WHERE notification_type = ?").run("daily_digest");
+  ["daily_digest_enabled", "daily_digest_time", "daily_digest_only_when_open", "last_daily_digest_date", "reminder_email_enabled", "reminder_telegram_enabled"].forEach((key) => {
+    db.prepare("DELETE FROM settings WHERE key = ?").run(key);
+  });
+
+  upsertSetting(db, "daily_digest_enabled", "true");
+  upsertSetting(db, "daily_digest_time", "00:00");
+  upsertSetting(db, "daily_digest_only_when_open", "true");
+  upsertSetting(db, "reminder_email_enabled", "false");
+  upsertSetting(db, "reminder_telegram_enabled", "false");
+
+  const inactiveAnimal = db.prepare("INSERT INTO animals (name, status) VALUES (?, ?)").run("Digest Archiv", "Verstorben");
+  db.prepare(`
+    INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, notes)
+    VALUES (?, ?, ?, ?, 0, 1, ?)
+  `).run(inactiveAnimal.lastInsertRowid, "Archiv-Digest nicht senden", "Allgemein", dayjs().subtract(1, "day").format("YYYY-MM-DD HH:mm"), "inaktiv");
+
+  await app.__test.maybeSendDailyDigest();
+
+  const digestLog = db.prepare(`
+    SELECT status, details
+    FROM notification_logs
+    WHERE notification_type = ?
+    ORDER BY id DESC
+    LIMIT 1
+  `).get("daily_digest");
+  assert.equal(digestLog.status, "skipped");
+  assert.match(digestLog.details || "", /no_open_reminders/);
+});
+
+test("Tageszusammenfassung und Dashboard werten Leerzeichen-Zeitstempel gleich aus", async () => {
+  db.prepare("UPDATE reminders SET completed_at = COALESCE(completed_at, CURRENT_TIMESTAMP)").run();
+  db.prepare("DELETE FROM notification_logs WHERE notification_type = ?").run("daily_digest");
+  ["daily_digest_enabled", "daily_digest_time", "daily_digest_only_when_open", "last_daily_digest_date", "reminder_email_enabled", "reminder_telegram_enabled"].forEach((key) => {
+    db.prepare("DELETE FROM settings WHERE key = ?").run(key);
+  });
+
+  upsertSetting(db, "daily_digest_enabled", "true");
+  upsertSetting(db, "daily_digest_time", "00:00");
+  upsertSetting(db, "daily_digest_only_when_open", "true");
+  upsertSetting(db, "reminder_email_enabled", "false");
+  upsertSetting(db, "reminder_telegram_enabled", "false");
+
+  db.prepare(`
+    INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, notes)
+    VALUES (?, ?, ?, ?, 0, 1, ?)
+  `).run(1, "Digest Leerzeichen", "Allgemein", dayjs().subtract(2, "hour").format("YYYY-MM-DD HH:mm"), "aktiv");
+
+  const dashboard = await agent.get("/");
+  assert.equal(dashboard.status, 200);
+  assert.match(dashboard.text, /Digest Leerzeichen/);
+
+  await app.__test.maybeSendDailyDigest();
+
+  const digestLog = db.prepare(`
+    SELECT status, details
+    FROM notification_logs
+    WHERE notification_type = ?
+    ORDER BY id DESC
+    LIMIT 1
+  `).get("daily_digest");
+  assert.equal(digestLog.status, "skipped");
+  assert.match(digestLog.details || "", /"overdue":1/);
+});
+
 test("Erinnerung per Complete-Route verschwindet aus der Pending-API", async () => {
   const inserted = db.prepare(`
     INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, notes)
@@ -1881,6 +1948,7 @@ test("Resync generierter Erinnerungen behaelt Benachrichtigungsstatus bei unvera
 });
 
 test("Telegram-Erinnerungen werden nicht mehr fuer inaktive Tiere versendet", async () => {
+  db.prepare("UPDATE reminders SET completed_at = COALESCE(completed_at, CURRENT_TIMESTAMP)").run();
   const inactiveAnimal = db.prepare("INSERT INTO animals (name, status) VALUES (?, ?)").run("Kein Versand", "Verstorben");
   db.prepare(`
     INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, notes)
