@@ -1439,6 +1439,20 @@ small {
   justify-content: flex-start;
 }
 
+.bootstrap-app .card > .inline-actions {
+  padding: 0.68rem;
+}
+
+.bootstrap-app .card > .card-body + .inline-actions {
+  padding-top: 0;
+}
+
+@media (min-width: 992px) {
+  .bootstrap-app .card.flex-lg-row > .inline-actions {
+    padding: 0.68rem;
+  }
+}
+
 .bootstrap-app .compact-workflow-form {
   gap: 0.78rem !important;
 }

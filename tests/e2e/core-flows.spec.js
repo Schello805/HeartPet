@@ -190,8 +190,11 @@ test("Kernseiten bleiben kompakt und kontrastreich", async ({ page }) => {
   const pagesToCheck = [
     "/",
     "/animals",
+    "/animals/1",
     "/admin/stammdaten",
     "/admin/benachrichtigungen",
+    "/admin/import",
+    "/admin/benutzer",
   ];
 
   for (const viewport of [
@@ -252,6 +255,55 @@ test("Kernseiten bleiben kompakt und kontrastreich", async ({ page }) => {
           })
           .filter((item) => item.left < -2 || item.right > window.innerWidth + 2)
           .slice(0, 8);
+        const edgeTargets = Array.from(document.querySelectorAll([
+          "button",
+          "a.btn",
+          "input:not(.form-check-input)",
+          "select",
+          "textarea",
+          ".form-control",
+          ".form-select",
+          ".card p",
+          ".card h2",
+          ".card h3",
+          ".card h4",
+          ".card strong",
+        ].join(",")))
+          .filter(isVisible)
+          .map((element) => {
+            const container = element.closest(".card, .accordion-body, .drawer-body, .modal-body");
+            if (!container || !isVisible(container)) {
+              return null;
+            }
+            const rect = element.getBoundingClientRect();
+            const containerRect = container.getBoundingClientRect();
+            const leftGap = rect.left - containerRect.left;
+            const rightGap = containerRect.right - rect.right;
+            const nearlyFullWidth = rect.width >= containerRect.width - 14;
+            const isTextElement = ["P", "H2", "H3", "H4", "STRONG"].includes(element.tagName);
+            return {
+              tag: element.tagName.toLowerCase(),
+              className: String(element.className || "").slice(0, 120),
+              text: String(element.textContent || element.getAttribute("aria-label") || element.getAttribute("placeholder") || "").replace(/\s+/g, " ").trim().slice(0, 80),
+              leftGap: Math.round(leftGap),
+              rightGap: Math.round(rightGap),
+              width: Math.round(rect.width),
+              containerWidth: Math.round(containerRect.width),
+              nearlyFullWidth,
+              isTextElement,
+            };
+          })
+          .filter(Boolean)
+          .filter((item) => {
+            if (item.nearlyFullWidth) {
+              return false;
+            }
+            if (item.isTextElement) {
+              return item.leftGap < 7;
+            }
+            return item.leftGap < 7 || item.rightGap < 7;
+          })
+          .slice(0, 10);
 
         return {
           overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -259,6 +311,7 @@ test("Kernseiten bleiben kompakt und kontrastreich", async ({ page }) => {
           undersizedHeadings,
           darkControls,
           wideElements,
+          edgeTargets,
         };
       });
 
@@ -266,6 +319,7 @@ test("Kernseiten bleiben kompakt und kontrastreich", async ({ page }) => {
       expect(result.headerFontSize, `${path} @ ${viewport.width}px hat einen zu großen Header`).toBeLessThanOrEqual(viewport.width < 768 ? 22 : 24);
       expect(result.undersizedHeadings, `${path} @ ${viewport.width}px hat Überschriften kleiner als Fließtext`).toEqual([]);
       expect(result.darkControls, `${path} @ ${viewport.width}px hat dunkle Formularfelder`).toEqual([]);
+      expect(result.edgeTargets, `${path} @ ${viewport.width}px hat Elemente ohne ausreichenden Kartenabstand`).toEqual([]);
     }
   }
 });
