@@ -153,16 +153,11 @@
           <div>
             <h2 class="h5 mb-1">Tierliste</h2>
             <p class="text-body-secondary mb-0 small">
-              <%= selectedAnimalState ? 'Auswahl ändern, falls du eine andere Akte öffnen möchtest.' : 'Ein Klick öffnet die Akte direkt darunter.' %>
+              Wähle ein Tier aus der Liste. Danach öffnet sich die passende Akte direkt darunter.
             </p>
           </div>
           <div class="d-flex align-items-center gap-2">
             <span class="badge text-bg-secondary-subtle border"><%= animals.length %> sichtbar</span>
-            <% if (animals.length > 0) { %>
-              <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#animals-list-collapse" data-animals-list-toggle aria-expanded="<%= selectedAnimalState ? 'false' : 'true' %>" aria-controls="animals-list-collapse">
-                <%= selectedAnimalState ? 'Tierliste anzeigen' : 'Tierliste ausblenden' %>
-              </button>
-            <% } %>
           </div>
         </div>
 
@@ -182,8 +177,8 @@
             </div>
           </div>
         <% } else { %>
-          <div class="collapse <%= selectedAnimalState ? '' : 'show' %>" id="animals-list-collapse">
-            <div class="list-group">
+          <div id="animals-list-collapse">
+            <div class="list-group animals-choice-list">
               <% animals.forEach((animal) => { %>
                 <% const rowParams = new URLSearchParams(); %>
                 <% if (filters.search) rowParams.set('q', filters.search); %>

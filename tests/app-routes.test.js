@@ -1109,7 +1109,8 @@ test("Tiere-Arbeitsansicht zeigt Liste und ausgewählte Akte", async () => {
   assert.match(response.text, /Filter anzeigen|Filter ändern/);
   assert.match(response.text, /Tierliste/);
   assert.match(response.text, /id="animals-list-collapse"/);
-  assert.match(response.text, /Tierliste anzeigen/);
+  assert.match(response.text, /Wähle ein Tier aus der Liste/);
+  assert.doesNotMatch(response.text, /Tierliste anzeigen/);
   assert.match(response.text, /data-animal-workspace-link/);
   assert.match(response.text, /data-animal-workspace-target/);
   assert.doesNotMatch(response.text, /Standardpasswort ist noch aktiv/);
@@ -1120,10 +1121,11 @@ test("Tiere-Arbeitsansicht öffnet ohne animal_id keine Akte automatisch", async
   await ensureSetupComplete();
   const response = await agent.get("/animals");
   assert.equal(response.status, 200);
-  assert.match(response.text, /Tierliste ausblenden/);
   assert.match(response.text, /id="animals-list-collapse"/);
+  assert.match(response.text, /data-animal-workspace-link/);
   assert.match(response.text, /Noch kein Tier ausgewählt/);
   assert.doesNotMatch(response.text, /Tierliste anzeigen/);
+  assert.doesNotMatch(response.text, /Tierliste ausblenden/);
 });
 
 test("Tiere-Arbeitsansicht kann die rechte Akte separat laden", async () => {

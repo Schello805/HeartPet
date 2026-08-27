@@ -12,8 +12,8 @@
     <div class="row g-2 align-items-center">
       <div class="col-lg-6">
         <div class="text-uppercase small fw-semibold text-body-secondary mb-1">Dashboard</div>
-        <h2 class="h5 mb-1">Bestand und Handlungsbedarf auf einen Blick.</h2>
-        <p class="text-body-secondary mb-0">Bestand, Erinnerungen und konkrete Hinweise. Jede Karte führt direkt in den passenden Bereich.</p>
+        <h2 class="h5 mb-1">Was ist heute wichtig?</h2>
+        <p class="text-body-secondary mb-0">Erst Bestand, Erinnerungen und Hinweise. Alles Weitere erreichst du über die großen Einstiege.</p>
       </div>
       <div class="col-lg-6">
         <form method="get" action="/" class="row g-2 dashboard-search-form">
@@ -31,6 +31,45 @@
         <% } %>
       </div>
     </div>
+  </div>
+</section>
+
+<section class="row g-2 dashboard-action-grid mb-2" aria-label="Schnelleinstieg">
+  <div class="col-6 col-xl-3">
+    <a class="card border-0 text-decoration-none h-100 dashboard-action-tile semantic-card semantic-card--info" href="/animals">
+      <div class="card-body">
+        <span class="dashboard-action-index">01</span>
+        <strong>Meine Tiere</strong>
+        <small><%= stats.animalCount %> aktive Tiere ansehen</small>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-xl-3">
+    <a class="card border-0 text-decoration-none h-100 dashboard-action-tile <%= stats.openReminderCount > 0 || stats.dueReminderCount > 0 ? 'semantic-card semantic-card--danger' : 'semantic-card semantic-card--ok' %>" href="/#dringende-erinnerungen">
+      <div class="card-body">
+        <span class="dashboard-action-index">02</span>
+        <strong>Erinnerungen</strong>
+        <small><%= stats.openReminderCount %> offen, <%= stats.dueReminderCount %> jetzt fällig</small>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-xl-3">
+    <a class="card border-0 text-decoration-none h-100 dashboard-action-tile semantic-card semantic-card--warning" href="/animals">
+      <div class="card-body">
+        <span class="dashboard-action-index">03</span>
+        <strong>Pflege prüfen</strong>
+        <small><%= attentionList.length %> konkrete Hinweise</small>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-xl-3">
+    <a class="card border-0 text-decoration-none h-100 dashboard-action-tile" href="/animals/new" data-drawer="animal-form">
+      <div class="card-body">
+        <span class="dashboard-action-index">04</span>
+        <strong>Neues Tier</strong>
+        <small>Akte direkt anlegen</small>
+      </div>
+    </a>
   </div>
 </section>
 
