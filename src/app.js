@@ -3560,20 +3560,8 @@ app.get("/hilfe", (req, res) => {
   res.render("pages/help", { pageTitle: "Hilfe" });
 });
 
-app.get("/impressum", (req, res) => {
-  renderInfoPage(res, "Impressum", getSettingsObject(db).imprint_text);
-});
-
-app.get("/datenschutz", (req, res) => {
-  renderInfoPage(res, "Datenschutzerklärung", getSettingsObject(db).privacy_text);
-});
-
 app.get("/kontakt", (req, res) => {
   renderInfoPage(res, "Kontakt", getSettingsObject(db).contact_text);
-});
-
-app.get("/cookies", (req, res) => {
-  renderInfoPage(res, "Cookie-Hinweise", getSettingsObject(db).cookies_text);
 });
 
 app.get("/robots.txt", (req, res) => {
@@ -3582,10 +3570,7 @@ app.get("/robots.txt", (req, res) => {
     "User-agent: *",
     "Disallow: /",
     "Allow: /hilfe",
-    "Allow: /impressum",
-    "Allow: /datenschutz",
     "Allow: /kontakt",
-    "Allow: /cookies",
     `Sitemap: ${appBaseUrl}/sitemap.xml`,
   ];
   res.type("text/plain").send(lines.join("\n"));
@@ -3594,7 +3579,7 @@ app.get("/robots.txt", (req, res) => {
 app.get("/sitemap.xml", (req, res) => {
   const appBaseUrl = resolveAppBaseUrl(getSettingsObject(db));
   const lastmod = dayjs().format("YYYY-MM-DD");
-  const urls = ["/hilfe", "/impressum", "/datenschutz", "/kontakt", "/cookies"];
+  const urls = ["/hilfe", "/kontakt"];
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls.map((pathname) => `  <url>
@@ -5117,78 +5102,17 @@ function renderInfoPage(res, title, content) {
 
 function applyInfoPagePlaceholders(content, settings) {
   const organizationName = String(settings?.organization_name || settings?.app_name || "").trim();
-  const legalResponsibleName = String(settings?.legal_responsible_name || "").trim();
-  const legalContentResponsibleName = String(settings?.legal_content_responsible_name || "").trim();
-  const responsibleName = legalResponsibleName || organizationName;
-  const contentResponsibleName = legalContentResponsibleName || responsibleName;
-  const legalEmail = normalizeSettingsInputValue("legal_contact_email", settings?.legal_contact_email);
-  const legalStreet = normalizeSettingsInputValue("legal_contact_street", settings?.legal_contact_street);
-  const legalPostalCity = normalizeSettingsInputValue("legal_contact_postal_city", settings?.legal_contact_postal_city);
-  const legalCountry = normalizeSettingsInputValue("legal_contact_country", settings?.legal_contact_country);
-  const legalPhone = normalizeSettingsInputValue("legal_contact_phone", settings?.legal_contact_phone);
-  const legalAddress = [legalStreet, legalPostalCity, legalCountry].filter(Boolean).join("\n");
-
   let result = String(content || "");
-
-  if (responsibleName) {
+  if (organizationName) {
     result = result
-      .replace(/\[Name der verantwortlichen Person oder Organisation\]/g, responsibleName)
-      .replace(/\[Name \/ Organisation\]/g, responsibleName)
-      .replace(/Name \/ Organisation:\s*\[Bitte eintragen\]/g, `Name / Organisation: ${responsibleName}`);
+      .replace(/\[Name \/ Organisation\]/g, organizationName)
+      .replace(/Name \/ Organisation:\s*\[Bitte eintragen\]/g, `Name / Organisation: ${organizationName}`);
   }
-
-  if (contentResponsibleName) {
-    result = result.replace(/\[Name der verantwortlichen Person\]/g, contentResponsibleName);
-  }
-
-  if (legalEmail) {
-    result = result
-      .replace(/\[recht@beispiel\.de\]/g, legalEmail)
-      .replace(/\[kontakt@beispiel\.de\]/g, legalEmail);
-  }
-
-  if (legalStreet) {
-    result = result.replace(/\[Straße und Hausnummer\]/g, legalStreet);
-  }
-
-  if (legalPostalCity) {
-    result = result.replace(/\[PLZ Ort\]/g, legalPostalCity);
-  }
-
-  if (legalCountry) {
-    result = result.replace(/\[Land\]/g, legalCountry);
-  }
-
-  if (legalPhone) {
-    result = result
-      .replace(/\[Telefonnummer optional\]/g, legalPhone)
-      .replace(/\[optional\]/g, legalPhone);
-  }
-
-  if (legalAddress) {
-    result = result
-      .replace(/\[Anschrift\]/g, legalAddress)
-      .replace(/\[Anschrift, falls abweichend\]/g, legalAddress);
-  }
-
   return result;
 }
 
 function normalizeSettingsInputValue(key, value) {
-  const normalizedValue = String(value || "").trim();
-  const placeholderValues = {
-    legal_contact_street: "[Straße und Hausnummer]",
-    legal_contact_postal_city: "[PLZ Ort]",
-    legal_contact_country: "[Land]",
-    legal_contact_phone: "[Telefonnummer optional]",
-    legal_contact_email: "[recht@beispiel.de]",
-  };
-
-  if (placeholderValues[key] && normalizedValue === placeholderValues[key]) {
-    return "";
-  }
-
-  return normalizedValue;
+  return String(value || "").trim();
 }
 
 function parseBooleanSettingValue(value) {
@@ -5599,23 +5523,8 @@ function buildSeoMeta(req, settings) {
       robots: "index,follow",
       type: "article",
     },
-    "/impressum": {
-      description: `Impressum von ${appName} mit den rechtlich relevanten Anbieter- und Kontaktdaten.`,
-      robots: "index,follow",
-      type: "article",
-    },
-    "/datenschutz": {
-      description: `Datenschutzerklärung von ${appName} mit Informationen zur Verarbeitung personenbezogener Daten.`,
-      robots: "index,follow",
-      type: "article",
-    },
     "/kontakt": {
       description: `Kontaktinformationen und Ansprechpartner für ${appName}.`,
-      robots: "index,follow",
-      type: "article",
-    },
-    "/cookies": {
-      description: `Cookie-Hinweise und Informationen zu eingesetzten Technologien in ${appName}.`,
       robots: "index,follow",
       type: "article",
     },

@@ -62,77 +62,7 @@ function seedDefaults(db) {
     homematic_temperature_url: "",
     homematic_humidity_url: "",
     help_contact: "Support-Kontakt: [Name / Organisation], [E-Mail], [Telefon optional]",
-    legal_responsible_name: "",
-    legal_content_responsible_name: "",
-    legal_contact_street: "",
-    legal_contact_postal_city: "",
-    legal_contact_country: "",
-    legal_contact_phone: "",
-    legal_contact_email: "",
-    imprint_text: [
-      "Wichtiger Hinweis: Dieser Text ist nur eine allgemeine Vorlage, nicht vollständig und nicht rechtssicher. Bitte vor produktivem Einsatz rechtlich prüfen lassen.",
-      "",
-      "Angaben gemäß § 5 TMG",
-      "[Name der verantwortlichen Person oder Organisation]",
-      "[Straße und Hausnummer]",
-      "[PLZ Ort]",
-      "[Land]",
-      "",
-      "Kontakt",
-      "E-Mail: [recht@beispiel.de]",
-      "Telefon: [Telefonnummer optional]",
-      "",
-      "Verantwortlich für den Inhalt",
-      "[Name der verantwortlichen Person]",
-      "[Anschrift, falls abweichend]",
-      "",
-      "Projekt-Hinweis",
-      "HeartPet ist eine selbst gehostete Webanwendung zur Verwaltung von Tierakten. Je nach Art des Betriebs, des Angebots und der Veröffentlichung können weitere Pflichtangaben erforderlich sein.",
-    ].join("\n"),
-    privacy_text: [
-      "Wichtiger Hinweis: Dieser Text ist nur eine allgemeine Vorlage, nicht vollständig und nicht rechtssicher. Bitte vor produktivem Einsatz rechtlich prüfen lassen.",
-      "",
-      "Datenschutzerklärung",
-      "",
-      "1. Allgemeine Hinweise",
-      "Diese Webanwendung verarbeitet personenbezogene Daten nur in dem Umfang, der für den Betrieb, die Anmeldung und die Nutzung von HeartPet erforderlich ist.",
-      "",
-      "2. Verantwortliche Stelle",
-      "[Name / Organisation]",
-      "[Anschrift]",
-      "E-Mail: [recht@beispiel.de]",
-      "",
-      "3. Verarbeitete Daten",
-      "- Benutzerkonten und Anmeldedaten",
-      "- Session-Daten zur Anmeldung",
-      "- eingegebene Tierdaten, Dokumente und Bilder",
-      "- Kommunikationsdaten für SMTP und optional Telegram",
-      "- technische Server- und Protokolldaten, soweit für den Betrieb erforderlich",
-      "",
-      "4. Zweck der Verarbeitung",
-      "Die Verarbeitung erfolgt zum Betrieb der Anwendung, zur Verwaltung von Tierakten, zur Dokumentation und für Erinnerungsfunktionen.",
-      "",
-      "5. Rechtsgrundlagen",
-      "Je nach Nutzung kommen insbesondere Art. 6 Abs. 1 lit. b DSGVO, Art. 6 Abs. 1 lit. c DSGVO und Art. 6 Abs. 1 lit. f DSGVO in Betracht.",
-      "",
-      "6. Speicherort und Hosting",
-      "HeartPet speichert Daten lokal auf dem eingesetzten Server. Uploads, Datenbankinhalte und Exporte verbleiben grundsätzlich in der eigenen Hosting-Umgebung.",
-      "",
-      "7. Empfänger / Drittanbieter",
-      "Bei Nutzung der E-Mail-Funktion werden Daten an den konfigurierten SMTP-Dienst übermittelt. Bei Nutzung von Telegram werden Daten an Telegram übermittelt.",
-      "",
-      "8. Speicherdauer",
-      "Daten werden so lange gespeichert, wie sie für die Nutzung, Dokumentation oder rechtliche Nachweise benötigt werden oder bis sie gelöscht werden.",
-      "",
-      "9. Betroffenenrechte",
-      "Betroffene Personen haben im Rahmen der gesetzlichen Vorschriften insbesondere Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung und Beschwerde bei einer Aufsichtsbehörde.",
-      "",
-      "10. Sicherheit",
-      "Es sollten geeignete technische und organisatorische Maßnahmen umgesetzt werden, insbesondere Zugriffsschutz, Backups, sichere Passwörter und ein abgesicherter Serverbetrieb.",
-    ].join("\n"),
     contact_text: [
-      "Wichtiger Hinweis: Dieser Text ist nur eine allgemeine Vorlage, nicht vollständig und nicht rechtssicher. Bitte vor produktivem Einsatz rechtlich prüfen lassen.",
-      "",
       "Kontakt",
       "",
       "Bei Fragen zu HeartPet oder zum Betrieb dieser Instanz:",
@@ -140,23 +70,6 @@ function seedDefaults(db) {
       "Name / Organisation: [Bitte eintragen]",
       "E-Mail: [kontakt@beispiel.de]",
       "Telefon: [optional]",
-      "",
-      "Technischer Hinweis",
-      "Bitte keine sensiblen Unterlagen unverschlüsselt per E-Mail versenden, wenn dies vermeidbar ist.",
-    ].join("\n"),
-    cookies_text: [
-      "Wichtiger Hinweis: Dieser Text ist nur eine allgemeine Vorlage, nicht vollständig und nicht rechtssicher. Bitte vor produktivem Einsatz rechtlich prüfen lassen.",
-      "",
-      "Cookie- und Session-Hinweise",
-      "",
-      "HeartPet verwendet technisch notwendige Session-Daten, damit Anmeldungen und geschützte Bereiche funktionieren.",
-      "",
-      "Aktuell sind in dieser Vorlage keine Marketing-, Tracking- oder Analyse-Cookies beschrieben. Falls solche Dienste später eingesetzt werden, muss dieser Hinweis angepasst und rechtlich geprüft werden.",
-      "",
-      "Technisch notwendige Funktionen können insbesondere umfassen:",
-      "- Anmeldung und Sitzungsverwaltung",
-      "- Schutz interner Bereiche vor unbefugtem Zugriff",
-      "- sichere Formular- und Benutzerinteraktion",
     ].join("\n"),
   };
 
@@ -168,7 +81,16 @@ function seedDefaults(db) {
   const settingRows = Object.entries(defaultSettings).map(([key, value]) => ({ key, value }));
   const settingsTx = db.transaction((rows) => rows.forEach((row) => insertSetting.run(row)));
   settingsTx(settingRows);
-  normalizeLegacyPlaceholderSettings(db);
+  db.prepare(`DELETE FROM settings WHERE key IN (
+    'legal_responsible_name', 'legal_content_responsible_name', 'legal_contact_street',
+    'legal_contact_postal_city', 'legal_contact_country', 'legal_contact_phone',
+    'legal_contact_email', 'imprint_text', 'privacy_text', 'cookies_text'
+  )`).run();
+  db.prepare(`
+    UPDATE settings
+    SET value = REPLACE(value, ?, '')
+    WHERE key = 'contact_text'
+  `).run("Wichtiger Hinweis: Dieser Text ist nur eine allgemeine Vorlage, nicht vollständig und nicht rechtssicher. Bitte vor produktivem Einsatz rechtlich prüfen lassen.\n\n");
   normalizeSpeciesCatalog(db);
 
   if (db.prepare("SELECT COUNT(*) AS count FROM document_categories").get().count === 0) {
@@ -186,27 +108,6 @@ function seedDefaults(db) {
     const hasUsers = db.prepare("SELECT COUNT(*) AS count FROM users").get().count > 0;
     upsertSetting(db, "setup_complete", hasUsers ? "true" : "false");
   }
-}
-
-function normalizeLegacyPlaceholderSettings(db) {
-  const placeholderSettings = {
-    legal_contact_street: "[Straße und Hausnummer]",
-    legal_contact_postal_city: "[PLZ Ort]",
-    legal_contact_country: "[Land]",
-    legal_contact_phone: "[Telefonnummer optional]",
-    legal_contact_email: "[recht@beispiel.de]",
-  };
-
-  Object.entries(placeholderSettings).forEach(([key, legacyValue]) => {
-    const row = db.prepare("SELECT value FROM settings WHERE key = ?").get(key);
-    if (!row) {
-      return;
-    }
-
-    if (String(row.value || "").trim() === legacyValue) {
-      upsertSetting(db, key, "");
-    }
-  });
 }
 
 function normalizeSpeciesCatalog(db) {

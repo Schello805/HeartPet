@@ -6,17 +6,17 @@
     <div class="card-body d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
       <div>
         <p class="eyebrow mb-1">Allgemein</p>
-        <h2 class="h4 mb-2">Instanz und Rechtstexte</h2>
-        <p class="text-body-secondary mb-0">Name, Logo und öffentliche Pflichtangaben an einem Ort.</p>
+        <h2 class="h4 mb-2">Instanz und Kontakt</h2>
+        <p class="text-body-secondary mb-0">Name, Logo und interner Hilfekontakt an einem Ort.</p>
       </div>
-      <span class="status-chip status-muted">Öffentliche Angaben</span>
+      <span class="status-chip status-muted">Allgemeine Angaben</span>
     </div>
   </section>
 
   <section class="card border-0 bg-body-tertiary admin-section-card">
     <div class="card-body">
       <form method="post" action="/admin/settings" enctype="multipart/form-data" class="vstack gap-4 compact-workflow-form">
-        <input type="hidden" name="_fields" value="app_name,app_domain,organization_name,help_contact,legal_responsible_name,legal_content_responsible_name,legal_contact_street,legal_contact_postal_city,legal_contact_country,legal_contact_phone,legal_contact_email" />
+        <input type="hidden" name="_fields" value="app_name,app_domain,organization_name,help_contact" />
 
         <div class="row g-3">
           <div class="col-lg-6">
@@ -38,6 +38,10 @@
                   <div class="col-12">
                     <label class="form-label" for="organization_name_general">Name der Haltung / Organisation</label>
                     <input class="form-control" id="organization_name_general" type="text" name="organization_name" value="<%= settings.organization_name || '' %>" />
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label" for="help_contact">Kontakt für Hilfe</label>
+                    <input class="form-control" id="help_contact" type="text" name="help_contact" value="<%= settings.help_contact || '' %>" />
                   </div>
                 </div>
               </div>
@@ -62,50 +66,6 @@
             </section>
           </div>
 
-          <div class="col-12">
-            <section class="card border bg-body form-section-card">
-              <div class="card-body">
-                <div class="mb-3">
-                  <h3 class="h5 mb-1">Rechtliche Angaben und Kontakt</h3>
-                  <p class="text-body-secondary mb-0">Wird automatisch in Kontakt, Impressum und Betreiberangaben eingesetzt.</p>
-                </div>
-                <div class="row g-3">
-                  <div class="col-md-6">
-                    <label class="form-label" for="legal_responsible_name">Verantwortliche Person / Betreiber</label>
-                    <input class="form-control" id="legal_responsible_name" type="text" name="legal_responsible_name" value="<%= settings.legal_responsible_name || '' %>" placeholder="z. B. Max Mustermann oder Musterhof GmbH" />
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label" for="legal_content_responsible_name">Abweichende Inhaltsverantwortung</label>
-                    <input class="form-control" id="legal_content_responsible_name" type="text" name="legal_content_responsible_name" value="<%= settings.legal_content_responsible_name || '' %>" placeholder="Optional, falls nicht identisch mit dem Betreiber" />
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label" for="help_contact">Kontakt für Hilfe</label>
-                    <input class="form-control" id="help_contact" type="text" name="help_contact" value="<%= settings.help_contact || '' %>" />
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label" for="legal_contact_email">Kontakt-E-Mail für Rechtstexte</label>
-                    <input class="form-control" id="legal_contact_email" type="email" name="legal_contact_email" value="<%= settings.legal_contact_email || '' %>" placeholder="z. B. recht@deinedomain.de" />
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label" for="legal_contact_street">Straße und Hausnummer</label>
-                    <input class="form-control" id="legal_contact_street" type="text" name="legal_contact_street" value="<%= settings.legal_contact_street || '' %>" placeholder="z. B. Musterstraße 12" />
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label" for="legal_contact_postal_city">PLZ und Ort</label>
-                    <input class="form-control" id="legal_contact_postal_city" type="text" name="legal_contact_postal_city" value="<%= settings.legal_contact_postal_city || '' %>" placeholder="z. B. 12345 Musterstadt" />
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label" for="legal_contact_country">Land</label>
-                    <input class="form-control" id="legal_contact_country" type="text" name="legal_contact_country" value="<%= settings.legal_contact_country || '' %>" placeholder="z. B. Deutschland" />
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label" for="legal_contact_phone">Telefon</label>
-                    <input class="form-control" id="legal_contact_phone" type="text" name="legal_contact_phone" value="<%= settings.legal_contact_phone || '' %>" placeholder="z. B. +49 123 456789" />
-                  </div>
-                </div>
-              </div>
-            </section>
-          </div>
         </div>
 
         <div class="d-flex justify-content-end pt-2 border-top">
@@ -170,50 +130,14 @@
   </section>
 
   <div class="row g-3">
-    <div class="col-xl-6">
-      <section class="card border-0 bg-body-tertiary h-100 admin-section-card">
-        <div class="card-body">
-          <form method="post" action="/admin/settings" class="vstack gap-3 h-100 compact-workflow-form">
-            <input type="hidden" name="_fields" value="imprint_text" />
-            <div>
-              <h3 class="h5 mb-1">Impressum</h3>
-              <p class="text-body-secondary mb-0">Öffentliches Impressum.</p>
-            </div>
-            <textarea class="form-control flex-grow-1" name="imprint_text" rows="10" placeholder="Impressumstext"><%= applyInfoPageContent(settings.imprint_text || '') %></textarea>
-            <div class="d-flex justify-content-end">
-              <button type="submit" class="btn btn-primary">Impressum speichern</button>
-            </div>
-          </form>
-        </div>
-      </section>
-    </div>
-
-    <div class="col-xl-6">
-      <section class="card border-0 bg-body-tertiary h-100 admin-section-card">
-        <div class="card-body">
-          <form method="post" action="/admin/settings" class="vstack gap-3 h-100 compact-workflow-form">
-            <input type="hidden" name="_fields" value="privacy_text" />
-            <div>
-              <h3 class="h5 mb-1">Datenschutzerklärung</h3>
-              <p class="text-body-secondary mb-0">Öffentliche Datenschutzseite.</p>
-            </div>
-            <textarea class="form-control flex-grow-1" name="privacy_text" rows="12" placeholder="Datenschutzerklärung"><%= applyInfoPageContent(settings.privacy_text || '') %></textarea>
-            <div class="d-flex justify-content-end">
-              <button type="submit" class="btn btn-primary">Datenschutzerklärung speichern</button>
-            </div>
-          </form>
-        </div>
-      </section>
-    </div>
-
-    <div class="col-xl-6">
+    <div class="col-12">
       <section class="card border-0 bg-body-tertiary h-100 admin-section-card">
         <div class="card-body">
           <form method="post" action="/admin/settings" class="vstack gap-3 h-100 compact-workflow-form">
             <input type="hidden" name="_fields" value="contact_text" />
             <div>
               <h3 class="h5 mb-1">Kontakt</h3>
-              <p class="text-body-secondary mb-0">Öffentliche Kontaktinformationen.</p>
+              <p class="text-body-secondary mb-0">Interne Kontaktinformationen für die Benutzer dieser Instanz.</p>
             </div>
             <textarea class="form-control flex-grow-1" name="contact_text" rows="8" placeholder="Kontaktinformationen"><%= applyInfoPageContent(settings.contact_text || '') %></textarea>
             <div class="d-flex justify-content-end">
@@ -224,23 +148,6 @@
       </section>
     </div>
 
-    <div class="col-xl-6">
-      <section class="card border-0 bg-body-tertiary h-100 admin-section-card">
-        <div class="card-body">
-          <form method="post" action="/admin/settings" class="vstack gap-3 h-100 compact-workflow-form">
-            <input type="hidden" name="_fields" value="cookies_text" />
-            <div>
-              <h3 class="h5 mb-1">Cookie-Hinweise</h3>
-              <p class="text-body-secondary mb-0">Hinweise für die Cookie-Seite.</p>
-            </div>
-            <textarea class="form-control flex-grow-1" name="cookies_text" rows="8" placeholder="Cookie-Hinweise"><%= applyInfoPageContent(settings.cookies_text || '') %></textarea>
-            <div class="d-flex justify-content-end">
-              <button type="submit" class="btn btn-primary">Cookie-Hinweise speichern</button>
-            </div>
-          </form>
-        </div>
-      </section>
-    </div>
   </div>
 </div>
 
