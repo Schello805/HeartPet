@@ -77,6 +77,30 @@ function initCameraDiagnostics() {
   });
 }
 
+async function initClimateStatus() {
+  const status = document.querySelector("[data-climate-status]");
+  if (!status) return;
+  try {
+    const response = await fetch(status.dataset.statusUrl, { headers: { Accept: "application/json" } });
+    const payload = await response.json();
+    if (!response.ok || !payload.ok) {
+      status.className = "alert alert-danger mb-0";
+      status.innerHTML = `<strong class="d-block">Verbindung fehlgeschlagen</strong><span class="small"></span>`;
+      status.querySelector("span").textContent = payload.error || "XML-API konnte nicht abgefragt werden.";
+      return;
+    }
+    const values = [];
+    if (payload.temperature !== null) values.push(`${Number(payload.temperature).toLocaleString("de-DE")} °C`);
+    if (payload.humidity !== null) values.push(`${Number(payload.humidity).toLocaleString("de-DE")} % Luftfeuchte`);
+    status.className = "alert alert-success mb-0";
+    status.innerHTML = `<strong class="d-block">Verbindung erfolgreich</strong><span class="small"></span>`;
+    status.querySelector("span").textContent = values.join(" · ") || "XML-API antwortet erfolgreich.";
+  } catch (error) {
+    status.className = "alert alert-danger mb-0";
+    status.innerHTML = `<strong class="d-block">Verbindungstest fehlgeschlagen</strong><span class="small">Status konnte nicht geladen werden.</span>`;
+  }
+}
+
 async function loadPendingReminders() {
   const bannerTarget = document.querySelector(".page-header");
   if (!bannerTarget) {
@@ -1204,6 +1228,7 @@ function initPage() {
   initGlobalSearchAutocomplete();
   initAnimalWorkspace();
   initCameraDiagnostics();
+  initClimateStatus();
   loadPendingReminders();
   openHashTargetDetails();
   restoreCurrentViewState();

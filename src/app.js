@@ -692,7 +692,10 @@ app.get("/", async (req, res) => {
 
   const coopSettings = getSettingsObject(db);
   const coopCameras = parseCoopCameras(coopSettings.coop_camera_streams);
-  const climateUrl = normalizeConfiguredUrl(coopSettings.homematic_climate_url);
+  const climateUrl = buildHomematicClimateUrl(
+    coopSettings.homematic_climate_url,
+    coopSettings.homematic_xmlapi_token
+  );
   const climate = climateUrl
     ? await readHomematicClimate(climateUrl)
     : null;
@@ -808,6 +811,27 @@ app.get("/coop/cameras/:index/status", async (req, res) => {
   } catch (error) {
     return res.status(502).json({ ok: false, error: describeFetchError(error) });
   }
+});
+
+app.get("/admin/coop/climate-status", requireAdmin, async (req, res) => {
+  const settings = getSettingsObject(db);
+  const climateUrl = buildHomematicClimateUrl(
+    settings.homematic_climate_url,
+    settings.homematic_xmlapi_token
+  );
+  if (!isHttpUrl(climateUrl)) {
+    return res.status(400).json({ ok: false, error: "Noch keine gültige Klima-URL hinterlegt." });
+  }
+
+  const climate = await readHomematicClimate(climateUrl);
+  if (climate.error) {
+    return res.status(502).json({ ok: false, error: climate.error });
+  }
+  return res.json({
+    ok: true,
+    temperature: climate.temperature,
+    humidity: climate.humidity,
+  });
 });
 
 app.get("/animals/historie", (req, res) => {
@@ -5157,6 +5181,17 @@ function normalizeConfiguredUrl(value) {
   return match && isHttpUrl(match[0]) ? match[0] : input;
 }
 
+function buildHomematicClimateUrl(value, token) {
+  const normalizedUrl = normalizeConfiguredUrl(value);
+  if (!isHttpUrl(normalizedUrl)) return normalizedUrl;
+  const url = new URL(normalizedUrl);
+  const normalizedToken = String(token || "").trim();
+  if (normalizedToken && !url.searchParams.has("sid")) {
+    url.searchParams.set("sid", normalizedToken);
+  }
+  return url.toString();
+}
+
 function parseCoopCameraLines(value) {
   return String(value || "")
     .split(/\r?\n/)
@@ -6162,6 +6197,7 @@ app.__test = {
   createAuthenticatedFetchTarget,
   buildDigestAuthorization,
   normalizeConfiguredUrl,
+  buildHomematicClimateUrl,
   findHomematicValue,
   parseHomematicTextValue,
   findHomematicXmlDatapoint,

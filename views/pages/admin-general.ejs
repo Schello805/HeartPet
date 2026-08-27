@@ -78,7 +78,7 @@
   <section class="card border-0 bg-body-tertiary admin-section-card" id="huehnerstall">
     <div class="card-body">
       <form method="post" action="/admin/settings" class="vstack gap-3 compact-workflow-form">
-        <input type="hidden" name="_fields" value="coop_camera_streams,homematic_door_open_url,homematic_door_close_url,homematic_climate_url,homematic_temperature_url,homematic_humidity_url" />
+        <input type="hidden" name="_fields" value="coop_camera_streams,homematic_door_open_url,homematic_door_close_url,homematic_climate_url,homematic_xmlapi_token,homematic_temperature_url,homematic_humidity_url" />
         <div>
           <p class="eyebrow mb-1">Hühnerstall</p>
           <h2 class="h4 mb-1">Kameras und Steuerung</h2>
@@ -102,8 +102,17 @@
               </div>
               <div>
                 <label class="form-label" for="homematic_climate_url">Klima-URL für Gerät oder Kanal</label>
-                <input class="form-control" id="homematic_climate_url" type="url" name="homematic_climate_url" value="<%= settings.homematic_climate_url || '' %>" placeholder="http://192.168.1.22/addons/xmlapi/state.cgi?sid=TOKEN&amp;channel_id=2361" />
-                <div class="form-text">XML-API 2.x benötigt ein Token: <code>/addons/xmlapi/state.cgi?sid=TOKEN&amp;channel_id=2361</code>. Nur die reine URL einfügen, keinen formatierten Link.</div>
+                <input class="form-control" id="homematic_climate_url" type="url" name="homematic_climate_url" value="<%= settings.homematic_climate_url || '' %>" placeholder="http://192.168.1.22/addons/xmlapi/state.cgi?channel_id=2361" />
+                <div class="form-text">Gerät: <code>?device_id=2341</code>, Kanal: <code>?channel_id=2361</code>. Das Token wird separat ergänzt.</div>
+              </div>
+              <div>
+                <label class="form-label" for="homematic_xmlapi_token">XML-API-Token (sid)</label>
+                <input class="form-control" id="homematic_xmlapi_token" type="password" name="homematic_xmlapi_token" value="<%= settings.homematic_xmlapi_token || '' %>" autocomplete="off" placeholder="Token aus der XML-API-Verwaltung" />
+                <div class="form-text">XML-API 2.x verlangt dieses Token bei jeder Abfrage.</div>
+              </div>
+              <div class="alert alert-secondary mb-0" data-climate-status data-status-url="/admin/coop/climate-status">
+                <strong class="d-block">Verbindung wird geprüft …</strong>
+                <span class="small">HeartPet ruft die hinterlegte XML-API jetzt vom Server aus ab.</span>
               </div>
               <details>
                 <summary class="small fw-semibold">Alternative Einzel-URLs</summary>

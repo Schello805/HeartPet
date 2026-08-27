@@ -58,6 +58,23 @@ test("Als Markdown eingefügte Homematic-URLs werden auf die reine URL reduziert
   );
 });
 
+test("XML-API-Token wird sicher als sid-Parameter an die Klima-URL angehängt", () => {
+  assert.equal(
+    app.__test.buildHomematicClimateUrl(
+      "http://192.168.1.22/addons/xmlapi/state.cgi?channel_id=2361",
+      "token mit leerzeichen"
+    ),
+    "http://192.168.1.22/addons/xmlapi/state.cgi?channel_id=2361&sid=token+mit+leerzeichen"
+  );
+  assert.equal(
+    app.__test.buildHomematicClimateUrl(
+      "http://192.168.1.22/addons/xmlapi/state.cgi?sid=vorhanden&channel_id=2361",
+      "neu"
+    ),
+    "http://192.168.1.22/addons/xmlapi/state.cgi?sid=vorhanden&channel_id=2361"
+  );
+});
+
 async function ensureSetupComplete() {
   const setupPage = await agent.get("/setup");
   if (setupPage.status !== 200) {

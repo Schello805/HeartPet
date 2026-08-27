@@ -59,6 +59,7 @@ function seedDefaults(db) {
     homematic_door_open_url: "",
     homematic_door_close_url: "",
     homematic_climate_url: "",
+    homematic_xmlapi_token: "",
     homematic_temperature_url: "",
     homematic_humidity_url: "",
     help_contact: "Support-Kontakt: [Name / Organisation], [E-Mail], [Telefon optional]",
