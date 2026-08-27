@@ -27,6 +27,20 @@ test("Kamera-Zugangsdaten werden als Basic-Auth-Header statt in der Fetch-URL ve
   assert.equal(target.headers.Authorization, `Basic ${Buffer.from("admin:p@ss!").toString("base64")}`);
 });
 
+test("Kameraproxy kann Digest-Authentifizierung für IP-Kameras aufbauen", () => {
+  const authorization = app.__test.buildDigestAuthorization({
+    username: "admin",
+    password: "secret",
+    method: "GET",
+    requestUrl: "http://192.168.1.80/video/mjpg.cgi?chn=0",
+    challengeHeader: 'Digest realm="camera", nonce="abc123", qop="auth", algorithm=MD5',
+  });
+  assert.match(authorization, /^Digest /);
+  assert.match(authorization, /username="admin"/);
+  assert.match(authorization, /uri="\/video\/mjpg\.cgi\?chn=0"/);
+  assert.match(authorization, /response="[a-f0-9]{32}"/);
+});
+
 test("Homematic-Klimawerte ignorieren IDs und lesen JSON- oder XML-Werte", () => {
   assert.equal(app.__test.parseHomematicTextValue('<state><datapoint ise_id="1234" value="21.7"/></state>', ["temperature", "temperatur", "temp"]), 21.7);
   assert.equal(app.__test.findHomematicValue({ ise_id: 1234, HmIP_TEMPERATURE: 19.4 }, ["temperature", "temperatur", "temp"]), 19.4);

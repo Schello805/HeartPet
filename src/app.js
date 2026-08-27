@@ -710,6 +710,8 @@ app.get("/", async (req, res) => {
       cameras: coopCameras,
       temperature,
       humidity,
+      temperatureConfigured: isHttpUrl(coopSettings.homematic_temperature_url),
+      humidityConfigured: isHttpUrl(coopSettings.homematic_humidity_url),
       doorConfigured: isHttpUrl(coopSettings.homematic_door_open_url),
       doorCloseConfigured: isHttpUrl(coopSettings.homematic_door_close_url),
     },
@@ -766,8 +768,7 @@ app.get("/coop/cameras/:index/stream", async (req, res) => {
   if (!camera) return res.sendStatus(404);
 
   try {
-    const { url, headers } = createAuthenticatedFetchTarget(camera.url);
-    const response = await fetch(url, { headers, redirect: "follow" });
+    const response = await fetchCameraStream(camera.url);
     if (!response.ok || !response.body) {
       console.error(`[HeartPet] Kamera „${camera.name}“ antwortet mit HTTP ${response.status}.`);
       return res.sendStatus(502);
@@ -5229,14 +5230,73 @@ async function fetchWithTimeout(url, timeoutMs = 3000) {
 function createAuthenticatedFetchTarget(value) {
   const url = new URL(String(value || "").trim());
   const headers = {};
+  let username = "";
+  let password = "";
   if (url.username || url.password) {
-    const username = decodeURIComponent(url.username);
-    const password = decodeURIComponent(url.password);
+    username = decodeURIComponent(url.username);
+    password = decodeURIComponent(url.password);
     headers.Authorization = `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
     url.username = "";
     url.password = "";
   }
-  return { url: url.toString(), headers };
+  return { url: url.toString(), headers, username, password };
+}
+
+function parseDigestChallenge(value) {
+  const challenge = {};
+  String(value || "").replace(/(\w+)=(?:"([^"]*)"|([^,\s]+))/g, (match, key, quoted, plain) => {
+    challenge[key.toLowerCase()] = quoted ?? plain;
+    return match;
+  });
+  return challenge;
+}
+
+function md5(value) {
+  return crypto.createHash("md5").update(value).digest("hex");
+}
+
+function buildDigestAuthorization({ username, password, method, requestUrl, challengeHeader }) {
+  const challenge = parseDigestChallenge(challengeHeader);
+  if (!username || !challenge.realm || !challenge.nonce) return "";
+  const url = new URL(requestUrl);
+  const uri = `${url.pathname}${url.search}`;
+  const qop = String(challenge.qop || "").split(",").map((item) => item.trim()).find((item) => item === "auth") || "";
+  const nc = "00000001";
+  const cnonce = crypto.randomBytes(8).toString("hex");
+  const ha1 = md5(`${username}:${challenge.realm}:${password}`);
+  const ha2 = md5(`${method}:${uri}`);
+  const response = qop
+    ? md5(`${ha1}:${challenge.nonce}:${nc}:${cnonce}:${qop}:${ha2}`)
+    : md5(`${ha1}:${challenge.nonce}:${ha2}`);
+  const parts = [
+    `username="${username}"`,
+    `realm="${challenge.realm}"`,
+    `nonce="${challenge.nonce}"`,
+    `uri="${uri}"`,
+    `response="${response}"`,
+  ];
+  if (challenge.opaque) parts.push(`opaque="${challenge.opaque}"`);
+  if (challenge.algorithm) parts.push(`algorithm=${challenge.algorithm}`);
+  if (qop) parts.push(`qop=${qop}`, `nc=${nc}`, `cnonce="${cnonce}"`);
+  return `Digest ${parts.join(", ")}`;
+}
+
+async function fetchCameraStream(value) {
+  const target = createAuthenticatedFetchTarget(value);
+  let response = await fetch(target.url, { headers: target.headers, redirect: "follow" });
+  const challengeHeader = response.headers.get("www-authenticate") || "";
+  if (response.status === 401 && /^digest\s/i.test(challengeHeader) && target.username) {
+    await response.body?.cancel();
+    const authorization = buildDigestAuthorization({
+      username: target.username,
+      password: target.password,
+      method: "GET",
+      requestUrl: target.url,
+      challengeHeader,
+    });
+    response = await fetch(target.url, { headers: { Authorization: authorization }, redirect: "follow" });
+  }
+  return response;
 }
 
 function findHomematicValue(value, preferredKeys) {
@@ -6090,6 +6150,7 @@ function resolveAppBaseUrl(settings) {
 app.__test = {
   maybeSendDailyDigest,
   createAuthenticatedFetchTarget,
+  buildDigestAuthorization,
   findHomematicValue,
   parseHomematicTextValue,
 };

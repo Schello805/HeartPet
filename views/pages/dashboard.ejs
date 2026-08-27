@@ -7,8 +7,8 @@
 <% const issueCount = attentionList.length; %>
 <% const hasReminderOverview = stats.openReminderCount > 0 || stats.dueReminderCount > 0 || upcomingReminders.length > 0; %>
 <% const hasPriorityContent = urgentList.length > 0 || upcomingReminders.length > 0 || attentionList.length > 0; %>
-<% const coopState = typeof coop !== 'undefined' ? coop : { cameras: [], temperature: null, humidity: null, doorConfigured: false, doorCloseConfigured: false }; %>
-<% const hasCoopControl = coopState.doorConfigured || coopState.doorCloseConfigured || coopState.temperature !== null || coopState.humidity !== null; %>
+<% const coopState = typeof coop !== 'undefined' ? coop : { cameras: [], temperature: null, humidity: null, temperatureConfigured: false, humidityConfigured: false, doorConfigured: false, doorCloseConfigured: false }; %>
+<% const hasCoopControl = coopState.doorConfigured || coopState.doorCloseConfigured || coopState.temperatureConfigured || coopState.humidityConfigured; %>
 
 <% if (searchState.searchable) { %>
   <section class="card border-0 dashboard-feed-card mb-2">
@@ -266,19 +266,29 @@
         <div class="card-body p-2 d-flex flex-column">
           <h2 class="h5 mb-2">Steuerung</h2>
           <div class="row g-2 mb-2">
-            <% if (coopState.temperature !== null) { %>
+            <% if (coopState.temperatureConfigured) { %>
               <div class="col-6">
                 <div class="card border h-100"><div class="card-body p-2">
                   <span class="small text-body-secondary d-block">Temperatur</span>
-                  <strong class="fs-4"><%= coopState.temperature.toLocaleString('de-DE', { maximumFractionDigits: 1 }) %> °C</strong>
+                  <% if (coopState.temperature !== null) { %>
+                    <strong class="fs-4"><%= coopState.temperature.toLocaleString('de-DE', { maximumFractionDigits: 1 }) %> °C</strong>
+                  <% } else { %>
+                    <strong class="d-block text-warning-emphasis">Nicht verfügbar</strong>
+                    <span class="small text-body-secondary">Sensor nicht erreichbar</span>
+                  <% } %>
                 </div></div>
               </div>
             <% } %>
-            <% if (coopState.humidity !== null) { %>
+            <% if (coopState.humidityConfigured) { %>
               <div class="col-6">
                 <div class="card border h-100"><div class="card-body p-2">
                   <span class="small text-body-secondary d-block">Luftfeuchte</span>
-                  <strong class="fs-4"><%= coopState.humidity.toLocaleString('de-DE', { maximumFractionDigits: 1 }) %> %</strong>
+                  <% if (coopState.humidity !== null) { %>
+                    <strong class="fs-4"><%= coopState.humidity.toLocaleString('de-DE', { maximumFractionDigits: 1 }) %> %</strong>
+                  <% } else { %>
+                    <strong class="d-block text-warning-emphasis">Nicht verfügbar</strong>
+                    <span class="small text-body-secondary">Sensor nicht erreichbar</span>
+                  <% } %>
                 </div></div>
               </div>
             <% } %>
