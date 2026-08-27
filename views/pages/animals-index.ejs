@@ -131,17 +131,10 @@
 
   <div class="col-12">
     <section class="card border-0 animals-compact-card animals-list-card">
-      <div class="card-body p-3">
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-          <div>
-            <h2 class="h5 mb-1">Tierliste</h2>
-            <p class="text-body-secondary mb-0 small">
-              Wähle ein Tier aus der Liste. Danach öffnet sich die passende Akte direkt darunter.
-            </p>
-          </div>
-          <div class="d-flex align-items-center gap-2">
-            <span class="badge text-bg-secondary-subtle border"><%= animals.length %> sichtbar</span>
-          </div>
+      <div class="card-body p-2">
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+          <h2 class="h6 mb-0">Tier auswählen</h2>
+          <span class="badge text-bg-secondary-subtle border"><%= animals.length %></span>
         </div>
 
         <% if (animals.length === 0) { %>
@@ -161,7 +154,7 @@
           </div>
         <% } else { %>
           <div id="animals-list-collapse">
-            <div class="list-group animals-choice-list">
+            <div class="animals-choice-list">
               <% animals.forEach((animal) => { %>
                 <% const rowParams = new URLSearchParams(); %>
                 <% if (filters.search) rowParams.set('q', filters.search); %>
@@ -172,41 +165,21 @@
                 <% rowParams.set('animal_id', String(animal.id)); %>
                 <a
                   href="<%= sectionBasePath %>?<%= rowParams.toString() %>#selected-animal"
-                  class="list-group-item list-group-item-action bg-transparent px-3 py-2 animal-list-item <%= selectedAnimalState && String(selectedAnimalState.id) === String(animal.id) ? 'active' : '' %>"
+                  class="card border text-decoration-none animal-list-item <%= selectedAnimalState && String(selectedAnimalState.id) === String(animal.id) ? 'active' : '' %>"
                   data-animal-workspace-link="true"
                   data-no-soft-nav="true"
                   data-panel-url="/animals/<%= animal.id %>/workspace-panel?<%= rowParams.toString() %>"
                 >
-                  <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
-                    <div class="d-flex gap-3 align-items-center">
-                      <% if (animal.profile_image_stored_name) { %>
-                        <img class="rounded object-fit-cover" src="/media/<%= animal.profile_image_stored_name %>" alt="Profilbild von <%= animal.name %>" width="56" height="56" />
-                      <% } else { %>
-                        <div class="rounded bg-secondary-subtle d-flex align-items-center justify-content-center fw-semibold" style="width:56px;height:56px;"><%= getAnimalInitial(animal.name) %></div>
-                      <% } %>
-                      <div>
-                        <div class="fw-semibold"><%= animal.name %></div>
-                        <div class="small text-body-secondary"><%= animal.species_name || '-' %><%= animal.breed ? ` · ${animal.breed}` : '' %></div>
-                        <div class="d-flex flex-wrap gap-2 mt-1">
-                          <% if (animal.overdueReminderCount > 0) { %>
-                            <span class="badge text-bg-danger"><%= animal.overdueReminderCount %> überfällig</span>
-                          <% } else if (animal.openReminderCount > 0) { %>
-                            <span class="badge text-bg-warning"><%= animal.openReminderCount %> offen</span>
-                          <% } %>
-                          <% if (animal.next_term) { %>
-                            <span class="badge text-bg-secondary-subtle border"><%= animal.next_term.type %>: <%= animal.next_term.displayLabel %></span>
-                          <% } %>
-                          <% if (sectionState.key === 'history' && animal.statusSummary) { %>
-                            <span class="badge text-bg-secondary-subtle border"><%= animal.statusSummary %></span>
-                          <% } %>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="text-lg-end animal-list-item-meta">
-                      <div class="small text-body-secondary"><%= animal.veterinarian_name || 'Kein Tierarzt hinterlegt' %></div>
-                      <div class="small text-body-secondary"><%= animal.updated_at ? `Zuletzt geändert ${formatDateTime(animal.updated_at)}` : '' %></div>
-                      <div class="animal-list-item-action">Akte öffnen</div>
-                    </div>
+                  <div class="card-body p-2">
+                    <div class="fw-semibold text-truncate"><%= animal.name %></div>
+                    <div class="small text-body-secondary text-truncate"><%= animal.species_name || '-' %></div>
+                    <% if (animal.overdueReminderCount > 0) { %>
+                      <span class="badge text-bg-danger mt-1"><%= animal.overdueReminderCount %> überfällig</span>
+                    <% } else if (animal.openReminderCount > 0) { %>
+                      <span class="badge text-bg-warning mt-1"><%= animal.openReminderCount %> offen</span>
+                    <% } else if (sectionState.key === 'history' && animal.statusSummary) { %>
+                      <span class="badge text-bg-secondary-subtle border mt-1"><%= animal.statusSummary %></span>
+                    <% } %>
                   </div>
                 </a>
               <% }) %>

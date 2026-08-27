@@ -1117,8 +1117,22 @@ small {
 }
 
 .bootstrap-app.animals-page .animal-list-item {
-  padding-top: 0.42rem !important;
-  padding-bottom: 0.42rem !important;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.7);
+  transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
+}
+
+.bootstrap-app.animals-page .animal-list-item:hover,
+.bootstrap-app.animals-page .animal-list-item:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(20, 155, 165, 0.5) !important;
+}
+
+.bootstrap-app.animals-page .animal-list-item.active {
+  color: var(--text-strong);
+  border-color: var(--bs-primary) !important;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(20, 184, 166, 0.14));
+  box-shadow: inset 3px 0 0 var(--bs-primary);
 }
 
 .bootstrap-app.animals-page .animal-list-item .fw-semibold {
@@ -1138,21 +1152,6 @@ small {
 .bootstrap-app.animals-page .animals-filter-form {
   --bs-gutter-x: 0.42rem;
   --bs-gutter-y: 0.42rem;
-}
-
-.bootstrap-app.animals-page .animal-list-item-meta {
-  display: grid;
-  align-content: center;
-  gap: 0.2rem;
-}
-
-.bootstrap-app.animals-page .animal-list-item-action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--bs-primary);
 }
 
 .bootstrap-app .animal-form-optional .accordion-button {
@@ -1778,11 +1777,8 @@ small {
 
 .bootstrap-app.animals-page .animals-choice-list {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 0.45rem;
-}
-
-.bootstrap-app.animals-page .animals-choice-list .list-group-item {
-  border: 1px solid var(--surface-border) !important;
 }
 
 .bootstrap-app.animals-page .animal-record-accordion .accordion-button {
@@ -1852,10 +1848,6 @@ small {
 
   .bootstrap-app .document-filter-form {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .bootstrap-app .animal-list-item-meta {
-    text-align: left !important;
   }
 
   .bootstrap-app .animal-summary-card .card-body,

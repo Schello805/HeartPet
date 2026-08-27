@@ -201,6 +201,28 @@ body.bootstrap-app {
   }
 }
 
+@media (max-width: 575.98px) {
+  .bootstrap-app.animals-page .animals-choice-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .bootstrap-app.animals-page .animal-list-item .card-body {
+    padding: 0.55rem 0.6rem !important;
+  }
+
+  .bootstrap-app.animals-page .animal-list-item .fw-semibold {
+    font-size: 0.8rem;
+  }
+
+  .bootstrap-app.animals-page .animal-list-item .small {
+    font-size: 0.66rem;
+  }
+
+  .bootstrap-app.dashboard-page .dashboard-surface-card .card-body {
+    padding: 0.65rem !important;
+  }
+}
+
 @keyframes mobileContentIn {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }

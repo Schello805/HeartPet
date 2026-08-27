@@ -1107,9 +1107,10 @@ test("Tiere-Arbeitsansicht zeigt Liste und ausgewählte Akte", async () => {
   const response = await agent.get("/animals").query({ animal_id: "1" });
   assert.equal(response.status, 200);
   assert.match(response.text, /Filter anzeigen|Filter ändern/);
-  assert.match(response.text, /Tierliste/);
+  assert.match(response.text, /Tier auswählen/);
   assert.match(response.text, /id="animals-list-collapse"/);
-  assert.match(response.text, /Wähle ein Tier aus der Liste/);
+  assert.doesNotMatch(response.text, /Zuletzt geändert/);
+  assert.doesNotMatch(response.text, /Akte öffnen/);
   assert.doesNotMatch(response.text, /Tierliste anzeigen/);
   assert.match(response.text, /data-animal-workspace-link/);
   assert.match(response.text, /data-animal-workspace-target/);
@@ -1448,8 +1449,10 @@ test("Dashboard zeigt Tierarten und konkrete Aufmerksamkeitspunkte", async () =>
   const response = await agent.get("/");
   assert.equal(response.status, 200);
   assert.match(response.text, /Hinweise/);
-  assert.match(response.text, /Radar/);
-  assert.match(response.text, new RegExp(`href="/animals/${animalId}"`));
+  assert.doesNotMatch(response.text, />Radar</);
+  assert.match(response.text, /Tiere brauchen Aufmerksamkeit|Tier braucht Aufmerksamkeit/);
+  assert.doesNotMatch(response.text, /Profilbild von Radar/);
+  assert.doesNotMatch(response.text, new RegExp(`href="/animals/${animalId}"`));
   assert.doesNotMatch(response.text, new RegExp(`href="/animals\\?animal_id=${animalId}"`));
   assert.match(response.text, /Tierarzt fehlt/);
   assert.match(response.text, /Geburtsdatum fehlt/);

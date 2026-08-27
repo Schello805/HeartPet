@@ -6,6 +6,7 @@
 <% const attentionList = typeof attentionAnimals !== 'undefined' ? attentionAnimals : []; %>
 <% const speciesOverview = typeof speciesCounts !== 'undefined' ? speciesCounts : []; %>
 <% const issueCount = attentionList.length; %>
+<% const attentionReasonCounts = attentionList.reduce((counts, animal) => { (animal.dashboardAttentionReasons || []).forEach((reason) => { counts[reason] = (counts[reason] || 0) + 1; }); return counts; }, {}); %>
 <% const hasReminderOverview = stats.openReminderCount > 0 || stats.dueReminderCount > 0 || upcomingReminders.length > 0; %>
 <% const hasPriorityContent = urgentList.length > 0 || upcomingReminders.length > 0 || attentionList.length > 0; %>
 
@@ -199,37 +200,16 @@
           <a href="/animals" class="small text-decoration-none">Tiere prüfen</a>
         </div>
 
-          <div class="row g-2">
-            <% attentionList.slice(0, 6).forEach((animal) => { %>
-              <div class="col-md-6 col-xl-4">
-                <a class="card h-100 border text-decoration-none dashboard-kpi-link" href="/animals/<%= animal.id %>">
-                  <div class="card-body p-2">
-                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-                      <div class="d-flex align-items-center gap-2 min-w-0">
-                        <% if (animal.profile_image_stored_name) { %>
-                          <img class="rounded object-fit-cover flex-shrink-0" src="/media/<%= animal.profile_image_stored_name %>" alt="Profilbild von <%= animal.name %>" width="52" height="52" />
-                        <% } else { %>
-                          <div class="rounded bg-primary-subtle text-primary d-flex align-items-center justify-content-center fw-semibold flex-shrink-0" style="width:52px;height:52px;"><%= getAnimalInitial(animal.name) %></div>
-                        <% } %>
-                        <div class="min-w-0">
-                          <div class="fw-semibold text-truncate"><%= animal.name %></div>
-                          <div class="small text-body-secondary text-truncate"><%= animal.species_name || '-' %></div>
-                        </div>
-                      </div>
-                      <% if (animal.next_term) { %>
-                        <span class="badge text-bg-secondary-subtle border"><%= animal.next_term.displayLabel %></span>
-                      <% } %>
-                    </div>
-                    <div class="d-flex flex-wrap gap-1">
-                      <% animal.dashboardAttentionReasons.slice(0, 4).forEach((reason) => { %>
-                        <span class="badge text-bg-warning"><%= reason %></span>
-                      <% }) %>
-                    </div>
-                  </div>
-                </a>
+          <a class="card border text-decoration-none dashboard-kpi-link" href="/animals">
+            <div class="card-body p-2 d-flex flex-wrap justify-content-between align-items-center gap-2">
+              <div><strong><%= issueCount %> <%= issueCount === 1 ? 'Tier braucht' : 'Tiere brauchen' %> Aufmerksamkeit</strong></div>
+              <div class="d-flex flex-wrap gap-1">
+                <% Object.entries(attentionReasonCounts).slice(0, 4).forEach(([reason, count]) => { %>
+                  <span class="badge text-bg-warning"><%= count %>× <%= reason %></span>
+                <% }) %>
               </div>
-            <% }) %>
-          </div>
+            </div>
+          </a>
       </div>
     </article>
   </div>
