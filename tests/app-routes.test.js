@@ -1158,7 +1158,9 @@ test("Tiere-Arbeitsansicht zeigt Liste und ausgewählte Akte", async () => {
   await ensureSetupComplete();
   const response = await agent.get("/animals").query({ animal_id: "1" });
   assert.equal(response.status, 200);
-  assert.match(response.text, /Filter anzeigen|Filter ändern/);
+  assert.match(response.text, /Tiere filtern/);
+  assert.match(response.text, /id="animalFilterCollapse"/);
+  assert.doesNotMatch(response.text, /class="collapse show[^\"]*"[^>]*id="animalFilterCollapse"/);
   assert.match(response.text, /Tier auswählen/);
   assert.match(response.text, /id="animals-list-collapse"/);
   assert.doesNotMatch(response.text, /Zuletzt geändert/);
@@ -1168,6 +1170,14 @@ test("Tiere-Arbeitsansicht zeigt Liste und ausgewählte Akte", async () => {
   assert.match(response.text, /data-animal-workspace-target/);
   assert.doesNotMatch(response.text, /Standardpasswort ist noch aktiv/);
   assert.doesNotMatch(response.text, /Administration/);
+});
+
+test("Tierfilter bleibt auch mit aktivem Filter zunächst geschlossen", async () => {
+  const response = await agent.get("/animals").query({ species_id: "1" });
+  assert.equal(response.status, 200);
+  assert.match(response.text, /text-bg-info">aktiv</);
+  assert.match(response.text, /aria-expanded="false"/);
+  assert.doesNotMatch(response.text, /class="collapse show[^\"]*"[^>]*id="animalFilterCollapse"/);
 });
 
 test("Tiere-Arbeitsansicht öffnet ohne animal_id keine Akte automatisch", async () => {
