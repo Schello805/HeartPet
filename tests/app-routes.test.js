@@ -1164,8 +1164,9 @@ test("Dashboard verlinkt die Tier-Karte auf die Tierübersicht und zeigt die ein
   const expectedAnimalCount = db.prepare("SELECT COUNT(DISTINCT id) AS count FROM animals WHERE status = 'Aktiv'").get().count;
   assert.match(
     response.text,
-    new RegExp(`<a class="[^"]*card[^"]*" href="\\/animals">[\\s\\S]*?<span[^>]*>Gesamt<\\/span>[\\s\\S]*?<strong[^>]*>${expectedAnimalCount}<\\/strong>[\\s\\S]*?<\\/a>`)
+    new RegExp(`<a href="\\/animals" class="badge[^"]*">${expectedAnimalCount} Tiere<\\/a>`)
   );
+  assert.doesNotMatch(response.text, />Gesamt<\/span>/);
   assert.match(response.text, /Tierbestand/);
   assert.match(response.text, /Aktive Tiere nach Tierart/);
 });

@@ -130,6 +130,17 @@ test("Tiere-Arbeitsansicht zeigt die Akte im Browser-Kontext", async ({ page }) 
   await expect(workspaceTarget).toContainText("Weitere Details");
 });
 
+test("Dashboard zeigt mobil nur einen Einstieg für ein neues Tier", async ({ page }) => {
+  await ensureAuthenticated(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+
+  await expect(page.locator(".app-mobile-topbar")).toBeVisible();
+  await expect(page.locator(".page-header")).toBeHidden();
+  await expect(page.locator('a[data-drawer="animal-form"]:visible')).toHaveCount(1);
+  await expect(page.locator("main").getByText("Was ist heute wichtig?", { exact: true })).toHaveCount(0);
+});
+
 test("Dokumentkategorie lässt sich im Bearbeiten-Dialog speichern", async ({ page }) => {
   await ensureAuthenticated(page);
   await page.goto("/admin/stammdaten");

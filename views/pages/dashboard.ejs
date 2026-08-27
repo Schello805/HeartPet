@@ -6,33 +6,8 @@
 <% const attentionList = typeof attentionAnimals !== 'undefined' ? attentionAnimals : []; %>
 <% const speciesOverview = typeof speciesCounts !== 'undefined' ? speciesCounts : []; %>
 <% const issueCount = attentionList.length; %>
-
-<section class="card border-0 dashboard-hero-card mb-2">
-  <div class="card-body p-2">
-    <div class="row g-2 align-items-center">
-      <div class="col-lg-6">
-        <div class="text-uppercase small fw-semibold text-body-secondary mb-1">Dashboard</div>
-        <h2 class="h5 mb-1">Was ist heute wichtig?</h2>
-        <p class="text-body-secondary mb-0">Erst Bestand, Erinnerungen und Hinweise. Alles Weitere erreichst du über die großen Einstiege.</p>
-      </div>
-      <div class="col-lg-6">
-        <form method="get" action="/" class="row g-2 dashboard-search-form">
-          <div class="col-12 col-md">
-            <div class="search-autocomplete-field">
-              <input class="form-control" type="search" name="q" value="<%= searchState.q || '' %>" placeholder="Tiere, Dokumente, Ereignisse suchen ..." autocomplete="off" data-global-search-autocomplete="true" />
-            </div>
-          </div>
-          <div class="col-12 col-md-auto">
-            <button type="submit" class="btn btn-primary w-100">Suchen</button>
-          </div>
-        </form>
-        <% if (searchState.q && !searchState.searchable) { %>
-          <p class="small text-body-secondary mb-0 mt-2">Bitte mindestens 2 Zeichen eingeben.</p>
-        <% } %>
-      </div>
-    </div>
-  </div>
-</section>
+<% const hasReminderOverview = stats.openReminderCount > 0 || stats.dueReminderCount > 0 || upcomingReminders.length > 0; %>
+<% const hasPriorityContent = urgentList.length > 0 || upcomingReminders.length > 0 || attentionList.length > 0; %>
 
 <% if (searchState.searchable) { %>
   <section class="card border-0 dashboard-feed-card mb-2">
@@ -63,7 +38,7 @@
 <% } %>
 
 <div class="row g-2 mb-2">
-  <div class="col-xl-5">
+  <div class="<%= hasReminderOverview ? 'col-xl-5' : 'col-12' %>">
     <section class="card border-0 h-100 dashboard-surface-card">
       <div class="card-body p-2">
         <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
@@ -83,16 +58,8 @@
           </a>
         <% } else { %>
           <div class="row g-2">
-            <div class="col-sm-6">
-              <a class="card h-100 border-0 text-decoration-none dashboard-stat-card dashboard-kpi-link semantic-card semantic-card--info" href="/animals">
-                <div class="card-body p-2">
-                  <span class="small text-body-secondary d-block mb-1">Gesamt</span>
-                  <strong class="fw-semibold text-primary d-block"><%= stats.animalCount %></strong>
-                </div>
-              </a>
-            </div>
             <% speciesOverview.forEach((species) => { %>
-              <div class="col-sm-6">
+              <div class="col-6 col-lg-4 col-xl-3">
                 <a class="card h-100 border-0 text-decoration-none dashboard-stat-card dashboard-kpi-link" href="/animals<%= species.species_id ? `?species_id=${species.species_id}` : '' %>">
                   <div class="card-body p-2">
                     <span class="small text-body-secondary d-block mb-1"><%= species.name %></span>
@@ -107,6 +74,7 @@
     </section>
   </div>
 
+  <% if (hasReminderOverview) { %>
   <div class="col-xl-7">
     <section class="card border-0 h-100 dashboard-surface-card">
       <div class="card-body p-2">
@@ -146,10 +114,13 @@
       </div>
     </section>
   </div>
+  <% } %>
 </div>
 
+<% if (hasPriorityContent) { %>
 <div class="row g-2 dashboard-priority-grid">
-  <div class="col-lg-6">
+  <% if (urgentList.length > 0) { %>
+  <div class="<%= upcomingReminders.length > 0 ? 'col-lg-6' : 'col-12' %>">
     <article class="card border-0 h-100 dashboard-feed-card dashboard-surface-card semantic-card <%= urgentList.length > 0 ? 'semantic-card--danger' : 'semantic-card--ok' %>" id="dringende-erinnerungen">
       <div class="card-body p-2">
         <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
@@ -159,9 +130,6 @@
           </div>
           <span class="badge <%= urgentList.length > 0 ? 'text-bg-danger' : 'text-bg-success' %>"><%= urgentList.length %></span>
         </div>
-        <% if (urgentList.length === 0) { %>
-          <p class="text-body-secondary mb-0 small">Keine dringenden Erinnerungen vorhanden.</p>
-        <% } else { %>
           <div class="list-group list-group-flush dashboard-compact-list">
             <% urgentList.slice(0, 4).forEach((reminder) => { %>
               <% const reminderHref = reminder.animal_id ? `/animals?animal_id=${reminder.animal_id}#animal-medizin` : null; %>
@@ -179,12 +147,13 @@
               </<%= reminderHref ? 'a' : 'div' %>>
             <% }) %>
           </div>
-        <% } %>
       </div>
     </article>
   </div>
+  <% } %>
 
-  <div class="col-lg-6">
+  <% if (upcomingReminders.length > 0) { %>
+  <div class="<%= urgentList.length > 0 ? 'col-lg-6' : 'col-12' %>">
     <article class="card border-0 h-100 dashboard-feed-card dashboard-surface-card semantic-card <%= upcomingReminders.length > 0 ? 'semantic-card--info' : 'semantic-card--ok' %>" id="naechste-erinnerungen">
       <div class="card-body p-2">
         <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
@@ -194,9 +163,6 @@
           </div>
           <span class="badge <%= upcomingReminders.length > 0 ? 'text-bg-info' : 'text-bg-success' %>"><%= upcomingReminders.length %></span>
         </div>
-        <% if (upcomingReminders.length === 0) { %>
-          <p class="text-body-secondary mb-0 small">Keine kommenden Erinnerungen vorhanden.</p>
-        <% } else { %>
           <div class="list-group list-group-flush dashboard-compact-list">
             <% upcomingReminders.slice(0, 4).forEach((reminder) => { %>
               <% const upcomingHref = reminder.animal_id ? `/animals?animal_id=${reminder.animal_id}#animal-medizin` : null; %>
@@ -216,11 +182,12 @@
               </<%= upcomingHref ? 'a' : 'div' %>>
             <% }) %>
           </div>
-        <% } %>
       </div>
     </article>
   </div>
+  <% } %>
 
+  <% if (attentionList.length > 0) { %>
   <div class="col-12">
     <article class="card border-0 dashboard-surface-card semantic-card <%= issueCount > 0 ? 'semantic-card--warning' : 'semantic-card--ok' %>">
       <div class="card-body p-2">
@@ -232,9 +199,6 @@
           <a href="/animals" class="small text-decoration-none">Tiere prüfen</a>
         </div>
 
-        <% if (!attentionList.length) { %>
-          <p class="text-body-secondary mb-0 small">Alles sauber. Keine offenen Hinweise für aktive Tiere.</p>
-        <% } else { %>
           <div class="row g-2">
             <% attentionList.slice(0, 6).forEach((animal) => { %>
               <div class="col-md-6 col-xl-4">
@@ -259,10 +223,11 @@
               </div>
             <% }) %>
           </div>
-        <% } %>
       </div>
     </article>
   </div>
+  <% } %>
 </div>
+<% } %>
 
 <%- include('../partials/bottom') %>
