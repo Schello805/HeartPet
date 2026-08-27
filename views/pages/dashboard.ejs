@@ -205,9 +205,16 @@
                 <a class="card h-100 border text-decoration-none dashboard-kpi-link" href="/animals?animal_id=<%= animal.id %>">
                   <div class="card-body p-2">
                     <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-                      <div>
-                        <div class="fw-semibold"><%= animal.name %></div>
-                        <div class="small text-body-secondary"><%= animal.species_name || '-' %></div>
+                      <div class="d-flex align-items-center gap-2 min-w-0">
+                        <% if (animal.profile_image_stored_name) { %>
+                          <img class="rounded object-fit-cover flex-shrink-0" src="/media/<%= animal.profile_image_stored_name %>" alt="Profilbild von <%= animal.name %>" width="52" height="52" />
+                        <% } else { %>
+                          <div class="rounded bg-primary-subtle text-primary d-flex align-items-center justify-content-center fw-semibold flex-shrink-0" style="width:52px;height:52px;"><%= getAnimalInitial(animal.name) %></div>
+                        <% } %>
+                        <div class="min-w-0">
+                          <div class="fw-semibold text-truncate"><%= animal.name %></div>
+                          <div class="small text-body-secondary text-truncate"><%= animal.species_name || '-' %></div>
+                        </div>
                       </div>
                       <% if (animal.next_term) { %>
                         <span class="badge text-bg-secondary-subtle border"><%= animal.next_term.displayLabel %></span>

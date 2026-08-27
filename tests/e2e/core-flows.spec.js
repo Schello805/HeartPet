@@ -139,6 +139,10 @@ test("Dashboard zeigt mobil nur einen Einstieg für ein neues Tier", async ({ pa
   await expect(page.locator(".page-header")).toBeHidden();
   await expect(page.locator('a[data-drawer="animal-form"]:visible')).toHaveCount(1);
   await expect(page.locator("main").getByText("Was ist heute wichtig?", { exact: true })).toHaveCount(0);
+
+  await page.goto("/animals");
+  await expect(page.locator('a[data-drawer="animal-form"]:visible')).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Aktualisieren" })).toHaveCount(0);
 });
 
 test("Dokumentkategorie lässt sich im Bearbeiten-Dialog speichern", async ({ page }) => {

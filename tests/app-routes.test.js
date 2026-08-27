@@ -1180,6 +1180,8 @@ test("Tiere, Historie und Ruhestätte trennen die Bestände sauber", async () =>
   const activePage = await agent.get("/animals");
   assert.equal(activePage.status, 200);
   assert.match(activePage.text, /Meine Tiere/);
+  assert.doesNotMatch(activePage.text, /data-drawer="animal-form"/);
+  assert.doesNotMatch(activePage.text, />Aktualisieren<\/a>/);
   assert.doesNotMatch(activePage.text, /Luna/);
   assert.doesNotMatch(activePage.text, /Max/);
 
