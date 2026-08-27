@@ -1137,6 +1137,54 @@ app.post("/animals/:id/update", requireAnimalEditor, (req, res) => {
   res.redirect(returnTo);
 });
 
+app.post("/animals/:id/duplicate", requireAnimalEditor, (req, res) => {
+  const animal = findAnimal(req.params.id);
+  if (!animal) {
+    return renderNotFound(req, res, "Tier nicht gefunden.");
+  }
+
+  const uploadsDir = path.join(projectRoot, "data", "uploads");
+  const createdFiles = [];
+
+  try {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    const storedFileNames = [
+      animal.profile_image_stored_name,
+      ...db.prepare("SELECT stored_name FROM documents WHERE animal_id = ?").all(animal.id).map((item) => item.stored_name),
+      ...db.prepare("SELECT stored_name FROM animal_images WHERE animal_id = ?").all(animal.id).map((item) => item.stored_name),
+    ].filter(Boolean);
+    const fileCopies = new Map();
+
+    for (const storedName of new Set(storedFileNames)) {
+      const sourcePath = path.join(uploadsDir, storedName);
+      if (!fs.existsSync(sourcePath)) {
+        throw new Error(`Datei ${storedName} fehlt.`);
+      }
+      const copiedName = `${Date.now()}-${crypto.randomUUID()}${path.extname(storedName)}`;
+      fs.copyFileSync(sourcePath, path.join(uploadsDir, copiedName));
+      createdFiles.push(copiedName);
+      fileCopies.set(storedName, copiedName);
+    }
+
+    const newAnimalId = db.transaction(() => duplicateAnimalRecord(animal, fileCopies))();
+    createAuditLog(req, "animal.duplicate", {
+      animal_id: newAnimalId,
+      source_animal_id: animal.id,
+      name: `${animal.name} (Kopie)`,
+    }, { entityType: "animal", entityId: newAnimalId });
+    setFlash(req, "success", "Tier und alle zugehörigen Daten wurden kopiert.");
+    return res.redirect(`/animals?animal_id=${newAnimalId}`);
+  } catch (error) {
+    createdFiles.forEach((storedName) => {
+      const filePath = path.join(uploadsDir, storedName);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    });
+    console.error("[HeartPet] Tier konnte nicht kopiert werden:", error.message);
+    setFlash(req, "error", "Tier konnte nicht vollständig kopiert werden.");
+    return res.redirect(`/animals?animal_id=${animal.id}`);
+  }
+});
+
 app.post("/animals/:id/delete", requireAnimalEditor, (req, res) => {
   const animal = findAnimal(req.params.id);
   if (!animal) {
@@ -5285,6 +5333,67 @@ function parseAuditDetails(rawValue) {
   }
 }
 
+function duplicateAnimalRecord(animal, fileCopies) {
+  const copiedAnimal = {
+    ...animal,
+    name: `${animal.name} (Kopie)`,
+    profile_image_stored_name: animal.profile_image_stored_name
+      ? fileCopies.get(animal.profile_image_stored_name)
+      : null,
+  };
+  const animalColumns = db.prepare("PRAGMA table_info(animals)").all()
+    .map((column) => column.name)
+    .filter((column) => !["id", "created_at", "updated_at"].includes(column));
+  const animalInsert = db.prepare(`
+    INSERT INTO animals (${animalColumns.join(", ")}, created_at, updated_at)
+    VALUES (${animalColumns.map((column) => `@${column}`).join(", ")}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+  `).run(copiedAnimal);
+  const newAnimalId = Number(animalInsert.lastInsertRowid);
+
+  const idMaps = new Map();
+  const copyRows = (tableName, transform = (row) => row) => {
+    const rows = db.prepare(`SELECT * FROM ${tableName} WHERE animal_id = ? ORDER BY id`).all(animal.id);
+    const columns = db.prepare(`PRAGMA table_info(${tableName})`).all()
+      .map((column) => column.name)
+      .filter((column) => column !== "id");
+    const insert = db.prepare(`
+      INSERT INTO ${tableName} (${columns.join(", ")})
+      VALUES (${columns.map((column) => `@${column}`).join(", ")})
+    `);
+    const rowMap = new Map();
+    rows.forEach((row) => {
+      const payload = { ...row, ...transform(row), animal_id: newAnimalId };
+      const result = insert.run(payload);
+      rowMap.set(Number(row.id), Number(result.lastInsertRowid));
+    });
+    idMaps.set(tableName, rowMap);
+  };
+
+  copyRows("animal_conditions");
+  copyRows("animal_medications");
+  copyRows("animal_vaccinations");
+  copyRows("animal_appointments");
+  copyRows("animal_feedings");
+  copyRows("animal_notes");
+  copyRows("documents", (row) => ({ stored_name: fileCopies.get(row.stored_name) }));
+  copyRows("animal_images", (row) => ({ stored_name: fileCopies.get(row.stored_name) }));
+  copyRows("reminders", (row) => {
+    const sourceTable = {
+      medication: "animal_medications",
+      vaccination: "animal_vaccinations",
+      appointment: "animal_appointments",
+    }[row.source_kind];
+    return {
+      source_id: sourceTable && row.source_id ? idMaps.get(sourceTable)?.get(Number(row.source_id)) || null : null,
+      last_notified_at: null,
+      last_delivery_status: null,
+      last_delivery_error: null,
+    };
+  });
+
+  return newAnimalId;
+}
+
 function formatAuditLogEntry(entry) {
   const details = parseAuditDetails(entry.details);
   const actorLabel = entry.actor_email || "-";
@@ -5310,6 +5419,8 @@ function formatAuditLogEntry(entry) {
       return make("Tier angelegt", details.name || `Tier #${details.animal_id || entityId}`, details.transition_summary || `Status: ${details.status || "Aktiv"}`);
     case "animal.update":
       return make("Tier bearbeitet", details.name || `Tier #${details.animal_id || entityId}`, details.transition_details_updated ? "Abschlussdaten angepasst" : "Tierdaten aktualisiert");
+    case "animal.duplicate":
+      return make("Tier kopiert", details.name || `Tier #${details.animal_id || entityId}`, `Vollständige Kopie von Tier #${details.source_animal_id || "-"}`);
     case "animal.status_change":
       return make("Tierstatus geändert", details.name || `Tier #${details.animal_id || entityId}`, `${details.previous_status || "-"} -> ${details.next_status || "-"}${details.transition_summary ? ` · ${details.transition_summary}` : ""}`);
     case "animal.delete":

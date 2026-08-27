@@ -1180,6 +1180,59 @@ test("Tierfilter bleibt auch mit aktivem Filter zunächst geschlossen", async ()
   assert.doesNotMatch(response.text, /class="collapse show[^\"]*"[^>]*id="animalFilterCollapse"/);
 });
 
+test("Tier kann mit allen Akteneinträgen und Dateien kopiert werden", async () => {
+  const uploadsDir = path.join(__dirname, "..", "data", "uploads");
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  const sourceStoredName = `duplicate-source-${Date.now()}.txt`;
+  fs.writeFileSync(path.join(uploadsDir, sourceStoredName), "HeartPet Kopiertest");
+
+  const animalResult = db.prepare(`
+    INSERT INTO animals (
+      name, species_id, sex, birth_date, intake_date, source, microchip_number, status,
+      color, breed, weight_kg, notes, profile_image_stored_name,
+      profile_image_original_name, profile_image_mime_type
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, 'Aktiv', ?, ?, ?, ?, ?, ?, ?)
+  `).run("Kopierquelle", db.prepare("SELECT id FROM species ORDER BY id LIMIT 1").get().id, "Weiblich", "2022-01-02", "2022-02-03", "Test", "CHIP-123", "Braun", "Mischling", 4.5, "Notiz", sourceStoredName, "quelle.txt", "text/plain");
+  const sourceAnimalId = Number(animalResult.lastInsertRowid);
+  db.prepare("INSERT INTO animal_conditions (animal_id, title, details) VALUES (?, ?, ?)").run(sourceAnimalId, "Allergie", "Testdetails");
+  const medicationId = Number(db.prepare("INSERT INTO animal_medications (animal_id, name, dosage, reminder_enabled) VALUES (?, ?, ?, 1)").run(sourceAnimalId, "Mittel", "1x").lastInsertRowid);
+  db.prepare("INSERT INTO animal_vaccinations (animal_id, name, vaccination_date) VALUES (?, ?, ?)").run(sourceAnimalId, "Impfung", "2026-01-01");
+  db.prepare("INSERT INTO animal_appointments (animal_id, title, appointment_at) VALUES (?, ?, ?)").run(sourceAnimalId, "Kontrolle", "2026-08-01T10:00");
+  db.prepare("INSERT INTO animal_feedings (animal_id, label, food) VALUES (?, ?, ?)").run(sourceAnimalId, "Morgens", "Futter");
+  db.prepare("INSERT INTO animal_notes (animal_id, title, content) VALUES (?, ?, ?)").run(sourceAnimalId, "Beobachtung", "Alles gut");
+  db.prepare("INSERT INTO documents (animal_id, title, original_name, stored_name) VALUES (?, ?, ?, ?)").run(sourceAnimalId, "Dokument", "quelle.txt", sourceStoredName);
+  db.prepare("INSERT INTO animal_images (animal_id, title, original_name, stored_name) VALUES (?, ?, ?, ?)").run(sourceAnimalId, "Foto", "quelle.txt", sourceStoredName);
+  db.prepare(`
+    INSERT INTO reminders (
+      animal_id, title, due_at, source_kind, source_id, last_notified_at, last_delivery_status
+    ) VALUES (?, ?, ?, 'medication', ?, CURRENT_TIMESTAMP, 'sent')
+  `).run(sourceAnimalId, "Medikament", "2026-09-01T09:00", medicationId);
+
+  const response = await agent.post(`/animals/${sourceAnimalId}/duplicate`).type("form").send({});
+  assert.equal(response.status, 302);
+  assert.match(response.headers.location || "", /^\/animals\?animal_id=\d+$/);
+  const copiedAnimalId = Number(new URL(`http://localhost${response.headers.location}`).searchParams.get("animal_id"));
+  const copiedAnimal = db.prepare("SELECT * FROM animals WHERE id = ?").get(copiedAnimalId);
+  assert.equal(copiedAnimal.name, "Kopierquelle (Kopie)");
+  assert.equal(copiedAnimal.microchip_number, "CHIP-123");
+  assert.notEqual(copiedAnimal.profile_image_stored_name, sourceStoredName);
+  assert.equal(fs.readFileSync(path.join(uploadsDir, copiedAnimal.profile_image_stored_name), "utf8"), "HeartPet Kopiertest");
+
+  for (const tableName of ["animal_conditions", "animal_medications", "animal_vaccinations", "animal_appointments", "animal_feedings", "animal_notes", "documents", "animal_images", "reminders"]) {
+    assert.equal(db.prepare(`SELECT COUNT(*) AS count FROM ${tableName} WHERE animal_id = ?`).get(copiedAnimalId).count, 1, tableName);
+  }
+  const copiedMedication = db.prepare("SELECT id FROM animal_medications WHERE animal_id = ?").get(copiedAnimalId);
+  const copiedReminder = db.prepare("SELECT * FROM reminders WHERE animal_id = ?").get(copiedAnimalId);
+  assert.equal(copiedReminder.source_id, copiedMedication.id);
+  assert.equal(copiedReminder.last_notified_at, null);
+  assert.equal(copiedReminder.last_delivery_status, null);
+
+  db.prepare("DELETE FROM reminders WHERE animal_id IN (?, ?)").run(sourceAnimalId, copiedAnimalId);
+  db.prepare("DELETE FROM animals WHERE id IN (?, ?)").run(sourceAnimalId, copiedAnimalId);
+  fs.rmSync(path.join(uploadsDir, sourceStoredName), { force: true });
+  fs.rmSync(path.join(uploadsDir, copiedAnimal.profile_image_stored_name), { force: true });
+});
+
 test("Tiere-Arbeitsansicht öffnet ohne animal_id keine Akte automatisch", async () => {
   await ensureSetupComplete();
   const response = await agent.get("/animals");

@@ -1833,8 +1833,20 @@ small {
 
 .bootstrap-app.animals-page .animals-choice-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.45rem;
+}
+
+@media (min-width: 768px) {
+  .bootstrap-app.animals-page .animals-choice-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .bootstrap-app.animals-page .animals-choice-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .bootstrap-app.animals-page .animal-record-accordion .accordion-button {

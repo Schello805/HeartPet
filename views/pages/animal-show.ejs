@@ -127,6 +127,10 @@
             <span aria-hidden="true">✎</span>
             <span class="visually-hidden">Tier bearbeiten</span>
           </a>
+          <button type="submit" class="btn btn-outline-secondary btn-sm icon-button" form="animal-duplicate-<%= animal.id %>" aria-label="Tier mit allen Daten kopieren" title="Tier mit allen Daten kopieren">
+            <span aria-hidden="true">⧉</span>
+            <span class="visually-hidden">Tier mit allen Daten kopieren</span>
+          </button>
         <% } %>
         <a href="/animals/<%= animal.id %>/export/pdf" class="btn btn-outline-secondary btn-sm icon-button hero-pdf-button" aria-label="Als PDF exportieren" title="Als PDF exportieren">
           <span aria-hidden="true">📄</span>
@@ -230,6 +234,7 @@
 <% } %>
 
 <% if (permissions.canEditAnimals) { %>
+  <form method="post" action="/animals/<%= animal.id %>/duplicate" id="animal-duplicate-<%= animal.id %>" class="hidden-form" data-confirm="Tier wirklich mit allen Stammdaten, Einträgen, Erinnerungen, Dokumenten und Bildern kopieren?"></form>
   <form method="post" action="/animals/<%= animal.id %>/delete" id="animal-delete-<%= animal.id %>" class="hidden-form" data-confirm="Tier wirklich endgültig löschen? Alle Einträge, Dokumente, Bilder und Erinnerungen werden gelöscht.">
     <input type="hidden" name="return_to" value="/animals" />
   </form>

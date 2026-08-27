@@ -117,8 +117,11 @@ async function ensureAuthenticated(page) {
 
 test("Tiere-Arbeitsansicht zeigt die Akte im Browser-Kontext", async ({ page }) => {
   await ensureAuthenticated(page);
+  await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/animals");
   await expect(page.locator("h1", { hasText: "Meine Tiere" })).toBeVisible();
+  const gridColumns = await page.locator(".animals-choice-list").evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length);
+  expect(gridColumns).toBeGreaterThanOrEqual(3);
   const animalWorkspaceLink = page.locator("[data-animal-workspace-link]").first();
   await expect(animalWorkspaceLink).toBeVisible();
   const workspaceHref = await animalWorkspaceLink.getAttribute("href");
@@ -129,6 +132,7 @@ test("Tiere-Arbeitsansicht zeigt die Akte im Browser-Kontext", async ({ page }) 
   await expect(workspaceTarget).toContainText("Minka");
   await expect(workspaceTarget).toContainText("Was möchtest du tun?");
   await expect(workspaceTarget).toContainText("Weitere Details");
+  await expect(workspaceTarget.getByRole("button", { name: "Tier mit allen Daten kopieren" })).toBeVisible();
 });
 
 test("Dashboard zeigt mobil nur einen Einstieg für ein neues Tier", async ({ page }) => {
