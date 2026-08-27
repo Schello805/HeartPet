@@ -671,7 +671,6 @@ app.get("/", (req, res) => {
       animal.overdueReminderCount > 0 ||
       animal.openReminderCount > 0 ||
       !animal.veterinarian_name ||
-      animal.isStale ||
       animal.isProfileIncomplete
     )
     .sort((left, right) => {
@@ -689,8 +688,6 @@ app.get("/", (req, res) => {
       dashboardAttentionReasons: buildDashboardAttentionReasons(animal),
     }));
 
-  const dashboardHealth = buildDashboardHealthSummary();
-
   res.render("pages/dashboard", {
     pageTitle: "Dashboard",
     search: { q, searchable },
@@ -700,7 +697,6 @@ app.get("/", (req, res) => {
     upcomingReminders,
     urgentReminders,
     attentionAnimals,
-    dashboardHealth,
   });
 });
 
@@ -3736,7 +3732,6 @@ function buildAnimalDetailViewData(animalId, req) {
     workflowSummary: {
       missingRequiredCategories,
       isProfileIncomplete: isAnimalProfileIncomplete(animal),
-      isStale: isAnimalStale(animal),
       hasVeterinarian: Boolean(animal.veterinarian_name || animal.species_veterinarian_name),
     },
     timeline: buildAnimalTimeline(related),
@@ -4068,13 +4063,6 @@ function isAnimalProfileIncomplete(animal) {
   return !animal.birth_date || !animal.intake_date;
 }
 
-function isAnimalStale(animal, days = 7) {
-  if (!animal?.updated_at) {
-    return true;
-  }
-  return dayjs(animal.updated_at).isBefore(dayjs().subtract(days, "day"));
-}
-
 function parsePositiveInteger(value) {
   const parsed = Number.parseInt(String(value || "").trim(), 10);
   if (!Number.isFinite(parsed) || parsed < 0) {
@@ -4192,7 +4180,6 @@ function attachAnimalWorkspaceMeta(animals) {
       overdueReminderCount: Number(reminderRow?.overdue_count || 0),
       missingRequiredCategories: documentHealth.missingRequiredCategories,
       missingRequiredDocumentCount: documentHealth.missingRequiredDocumentCount,
-      isStale: isAnimalStale(animal),
       isProfileIncomplete: isAnimalProfileIncomplete(animal),
       statusSummary: buildAnimalTransitionSummary(animal.status, {
         status_context_name: animal.status_context_name || "",
@@ -4201,27 +4188,6 @@ function attachAnimalWorkspaceMeta(animals) {
       }),
     };
   });
-}
-
-function buildDashboardHealthSummary() {
-  const activeAnimals = attachAnimalWorkspaceMeta(attachNextTermData(db.prepare(`
-    SELECT
-      animals.*,
-      species.name AS species_name,
-      COALESCE(veterinarians.name, species_vet.name) AS veterinarian_name
-    FROM animals
-    LEFT JOIN species ON species.id = animals.species_id
-    LEFT JOIN veterinarians ON veterinarians.id = animals.veterinarian_id
-    LEFT JOIN veterinarians AS species_vet ON species_vet.id = species.default_veterinarian_id
-    WHERE animals.status = 'Aktiv'
-    ORDER BY animals.name COLLATE NOCASE ASC
-  `).all()));
-
-  return {
-    staleAnimals: activeAnimals.filter((animal) => animal.isStale),
-    animalsWithoutVeterinarian: activeAnimals.filter((animal) => !animal.veterinarian_name),
-    animalsWithIncompleteProfile: activeAnimals.filter((animal) => animal.isProfileIncomplete),
-  };
 }
 
 function buildDashboardAttentionReasons(animal) {
@@ -4241,9 +4207,6 @@ function buildDashboardAttentionReasons(animal) {
   }
   if (!animal.intake_date) {
     reasons.push("Aufnahmedatum fehlt");
-  }
-  if (animal.isStale) {
-    reasons.push("Seit 7 Tagen keine Änderung");
   }
   return reasons;
 }
