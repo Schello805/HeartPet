@@ -1233,6 +1233,40 @@ test("Tier kann mit allen Akteneinträgen und Dateien kopiert werden", async () 
   fs.rmSync(path.join(uploadsDir, copiedAnimal.profile_image_stored_name), { force: true });
 });
 
+test("Gruppenimpfung wird mehreren aktiven Tieren gleichzeitig zugeordnet", async () => {
+  const speciesId = db.prepare("SELECT id FROM species ORDER BY id LIMIT 1").get().id;
+  const firstAnimalId = Number(db.prepare("INSERT INTO animals (name, species_id, status) VALUES (?, ?, 'Aktiv')").run("Impfgruppe A", speciesId).lastInsertRowid);
+  const secondAnimalId = Number(db.prepare("INSERT INTO animals (name, species_id, status) VALUES (?, ?, 'Aktiv')").run("Impfgruppe B", speciesId).lastInsertRowid);
+
+  const drawer = await agent.get("/animals/vaccinations/bulk/new").set("X-Requested-With", "heartpet-drawer").query({ species_id: speciesId });
+  assert.equal(drawer.status, 200);
+  assert.match(drawer.text, /Gruppenimpfung/);
+  assert.match(drawer.text, /Impfgruppe A/);
+  assert.match(drawer.text, /Impfgruppe B/);
+
+  const response = await agent.post("/animals/vaccinations/bulk").type("form").send({
+    name: "Schluckimpfung",
+    vaccination_date: "2026-08-27",
+    next_due_date: "2027-08-27",
+    notes: "Über Trinkwasser",
+    animal_ids: [firstAnimalId, secondAnimalId],
+    return_to: "/animals",
+  });
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.location, "/animals");
+  const vaccinations = db.prepare(`
+    SELECT animal_id, name, notes FROM animal_vaccinations
+    WHERE animal_id IN (?, ?) ORDER BY animal_id
+  `).all(firstAnimalId, secondAnimalId);
+  assert.equal(vaccinations.length, 2);
+  assert.ok(vaccinations.every((item) => item.name === "Schluckimpfung" && item.notes === "Über Trinkwasser"));
+  const auditEntry = db.prepare("SELECT action FROM audit_logs WHERE action = 'vaccination.bulk_create' ORDER BY id DESC LIMIT 1").get();
+  assert.equal(auditEntry?.action, "vaccination.bulk_create");
+
+  db.prepare("DELETE FROM reminders WHERE animal_id IN (?, ?)").run(firstAnimalId, secondAnimalId);
+  db.prepare("DELETE FROM animals WHERE id IN (?, ?)").run(firstAnimalId, secondAnimalId);
+});
+
 test("Tiere-Arbeitsansicht öffnet ohne animal_id keine Akte automatisch", async () => {
   await ensureSetupComplete();
   const response = await agent.get("/animals");

@@ -875,6 +875,77 @@ app.post("/animals", requireAnimalEditor, (req, res) => {
   res.redirect(returnTo || `/animals/${result.lastInsertRowid}`);
 });
 
+app.get("/animals/vaccinations/bulk/new", requireAnimalPermission("canManageHealth"), (req, res) => {
+  const speciesId = String(req.query.species_id || "").trim();
+  let sql = `
+    SELECT animals.id, animals.name, species.name AS species_name
+    FROM animals
+    LEFT JOIN species ON species.id = animals.species_id
+    WHERE animals.status = 'Aktiv'
+  `;
+  const params = [];
+  if (speciesId) {
+    sql += " AND animals.species_id = ?";
+    params.push(speciesId);
+  }
+  sql += " ORDER BY species.name ASC, animals.name ASC";
+
+  res.render("pages/bulk-vaccination-drawer", {
+    pageTitle: "Gruppenimpfung",
+    animals: db.prepare(sql).all(...params),
+    returnTo: getAnimalReturnTo(req, speciesId ? `/animals?species_id=${encodeURIComponent(speciesId)}` : "/animals"),
+    today: dayjs().format("YYYY-MM-DD"),
+  });
+});
+
+app.post("/animals/vaccinations/bulk", requireAnimalPermission("canManageHealth"), (req, res) => {
+  const animalIds = [...new Set([].concat(req.body.animal_ids || []).map((id) => Number(id)).filter(Number.isInteger))];
+  const name = String(req.body.name || "").trim();
+  const vaccinationDate = String(req.body.vaccination_date || "").trim();
+  const nextDueDate = String(req.body.next_due_date || "").trim() || null;
+  const notes = String(req.body.notes || "").trim();
+  const reminderEnabled = req.body.reminder_enabled ? 1 : 0;
+  const returnTo = safeLocalReturnPath(req.body.return_to, "/animals");
+
+  if (!name || !vaccinationDate || animalIds.length === 0) {
+    setFlash(req, "error", "Bitte Impfstoff, Impfdatum und mindestens ein Tier auswählen.");
+    return res.redirect(returnTo);
+  }
+  if (reminderEnabled && !nextDueDate) {
+    setFlash(req, "error", "Für eine Erinnerung ist die nächste Fälligkeit erforderlich.");
+    return res.redirect(returnTo);
+  }
+
+  const placeholders = animalIds.map(() => "?").join(", ");
+  const eligibleAnimals = db.prepare(`
+    SELECT id, name FROM animals
+    WHERE status = 'Aktiv' AND id IN (${placeholders})
+  `).all(...animalIds);
+  if (eligibleAnimals.length !== animalIds.length) {
+    setFlash(req, "error", "Mindestens ein ausgewähltes Tier ist nicht mehr aktiv.");
+    return res.redirect(returnTo);
+  }
+
+  const createdVaccinations = db.transaction(() => eligibleAnimals.map((animal) => {
+    const result = db.prepare(`
+      INSERT INTO animal_vaccinations (
+        animal_id, name, vaccination_date, next_due_date, reminder_enabled, notes
+      ) VALUES (?, ?, ?, ?, ?, ?)
+    `).run(animal.id, name, vaccinationDate, nextDueDate, reminderEnabled, notes);
+    return { animalId: animal.id, vaccinationId: Number(result.lastInsertRowid) };
+  }))();
+  createdVaccinations.forEach((item) => syncVaccinationReminders(item.animalId, item.vaccinationId));
+
+  createAuditLog(req, "vaccination.bulk_create", {
+    name,
+    animal_ids: eligibleAnimals.map((animal) => animal.id),
+    animal_names: eligibleAnimals.map((animal) => animal.name),
+    vaccination_date: vaccinationDate,
+  }, { entityType: "vaccination", entityId: createdVaccinations[0]?.vaccinationId || null });
+  setFlash(req, "success", `Impfung wurde für ${eligibleAnimals.length} Tiere eingetragen.`);
+  return res.redirect(returnTo);
+});
+
 app.get("/animals/:id", (req, res) => {
   const animalView = buildAnimalDetailViewData(req.params.id, req);
   if (!animalView) {
@@ -5425,6 +5496,8 @@ function formatAuditLogEntry(entry) {
       return make("Tierstatus geändert", details.name || `Tier #${details.animal_id || entityId}`, `${details.previous_status || "-"} -> ${details.next_status || "-"}${details.transition_summary ? ` · ${details.transition_summary}` : ""}`);
     case "animal.delete":
       return make("Tier gelöscht", details.name || `Tier #${details.animal_id || entityId}`, "Akte und zugehörige Inhalte entfernt");
+    case "vaccination.bulk_create":
+      return make("Gruppenimpfung eingetragen", details.name || `Impfung #${entityId}`, `${(details.animal_names || []).join(", ")} · ${details.vaccination_date || "-"}`);
     case "veterinarian.create":
       return make("Tierarzt angelegt", details.name || `Tierarzt #${details.veterinarian_id || entityId}`, [details.city, details.email].filter(Boolean).join(" · ") || "Neuer Tierarzt hinterlegt");
     case "veterinarian.update":

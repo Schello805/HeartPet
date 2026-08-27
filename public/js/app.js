@@ -331,6 +331,7 @@ function initDrawerForms(scope = document) {
           initRequiredMarks();
           initAnimalStatusWorkflow(drawerBody);
           initEventFormBehavior(drawerBody);
+          initBulkSelection(drawerBody);
           return;
         }
 
@@ -343,6 +344,29 @@ function initDrawerForms(scope = document) {
         HTMLFormElement.prototype.submit.call(form);
       }
     });
+  });
+}
+
+function initBulkSelection(scope = document) {
+  scope.querySelectorAll("[data-bulk-selection]").forEach((container) => {
+    const selectAll = container.querySelector("[data-bulk-select-all]");
+    const animalInputs = [...container.querySelectorAll("[data-bulk-animal]")];
+    if (!selectAll || selectAll.dataset.bound === "1") return;
+
+    selectAll.dataset.bound = "1";
+    const updateSelectAll = () => {
+      const selectedCount = animalInputs.filter((input) => input.checked).length;
+      selectAll.checked = animalInputs.length > 0 && selectedCount === animalInputs.length;
+      selectAll.indeterminate = selectedCount > 0 && selectedCount < animalInputs.length;
+    };
+    selectAll.addEventListener("change", () => {
+      animalInputs.forEach((input) => {
+        input.checked = selectAll.checked;
+      });
+      updateSelectAll();
+    });
+    animalInputs.forEach((input) => input.addEventListener("change", updateSelectAll));
+    updateSelectAll();
   });
 }
 
@@ -396,6 +420,7 @@ async function openDrawer(urlLike) {
     initRequiredMarks();
     initAnimalStatusWorkflow(drawerBody);
     initEventFormBehavior(drawerBody);
+    initBulkSelection(drawerBody);
   } catch (error) {
     console.error("Drawer konnte nicht geladen werden", error);
     window.location.href = urlLike;
@@ -1155,6 +1180,7 @@ function initPage() {
   initAnimalStatusWorkflow();
   initProfileUploadAutoSubmit();
   initEventFormBehavior();
+  initBulkSelection();
   initGlobalSearchAutocomplete();
   initAnimalWorkspace();
   loadPendingReminders();

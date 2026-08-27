@@ -78,7 +78,14 @@
       <div class="card-body p-2">
         <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
           <h2 class="h6 mb-0">Tier auswählen</h2>
-          <span class="badge text-bg-secondary-subtle border"><%= animals.length %></span>
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge text-bg-secondary-subtle border"><%= animals.length %></span>
+            <% if (sectionState.key === 'active' && permissions.canManageHealth && animals.length > 1) { %>
+              <% const bulkVaccinationParams = new URLSearchParams(); %>
+              <% if (filters.speciesId) bulkVaccinationParams.set('species_id', filters.speciesId); %>
+              <a href="/animals/vaccinations/bulk/new?<%= bulkVaccinationParams.toString() %>" class="btn btn-outline-primary btn-sm" data-drawer="animal-entry">Gruppenimpfung</a>
+            <% } %>
+          </div>
         </div>
 
         <% if (animals.length === 0) { %>

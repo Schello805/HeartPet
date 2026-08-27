@@ -1261,14 +1261,19 @@ small {
 }
 
 .bootstrap-app.animals-page .hero-actions {
-  grid-auto-columns: 34px;
+  grid-auto-columns: 44px;
   gap: 0.32rem;
 }
 
 .bootstrap-app.animals-page .hero-actions .btn {
-  min-width: 34px;
-  width: 34px;
-  height: 34px;
+  min-width: 44px;
+  width: 44px;
+  height: 44px;
+}
+
+.bootstrap-app.animals-page .hero-actions svg {
+  width: 22px;
+  height: 22px;
 }
 
 .bootstrap-app.animals-page .card-body > .row.g-3 {
