@@ -692,10 +692,16 @@ app.get("/", async (req, res) => {
 
   const coopSettings = getSettingsObject(db);
   const coopCameras = parseCoopCameras(coopSettings.coop_camera_streams);
-  const [temperature, humidity] = await Promise.all([
-    readHomematicValue(coopSettings.homematic_temperature_url, ["temperature", "temperatur", "temp"]),
-    readHomematicValue(coopSettings.homematic_humidity_url, ["humidity", "luftfeuchte", "feuchte", "hum"]),
-  ]);
+  const climateUrl = String(coopSettings.homematic_climate_url || "").trim();
+  const climate = climateUrl
+    ? await readHomematicClimate(climateUrl)
+    : null;
+  const [temperature, humidity] = climate
+    ? [climate.temperature, climate.humidity]
+    : await Promise.all([
+      readHomematicValue(coopSettings.homematic_temperature_url, ["temperature", "temperatur", "temp"]),
+      readHomematicValue(coopSettings.homematic_humidity_url, ["humidity", "luftfeuchte", "feuchte", "hum"]),
+    ]);
 
   res.render("pages/dashboard", {
     pageTitle: "Dashboard",
@@ -710,8 +716,8 @@ app.get("/", async (req, res) => {
       cameras: coopCameras,
       temperature,
       humidity,
-      temperatureConfigured: isHttpUrl(coopSettings.homematic_temperature_url),
-      humidityConfigured: isHttpUrl(coopSettings.homematic_humidity_url),
+      temperatureConfigured: isHttpUrl(climateUrl) || isHttpUrl(coopSettings.homematic_temperature_url),
+      humidityConfigured: isHttpUrl(climateUrl) || isHttpUrl(coopSettings.homematic_humidity_url),
       doorConfigured: isHttpUrl(coopSettings.homematic_door_open_url),
       doorCloseConfigured: isHttpUrl(coopSettings.homematic_door_close_url),
     },
@@ -2591,6 +2597,7 @@ app.post("/admin/settings", requireAdmin, upload.single("app_logo"), (req, res) 
   const urlSettingKeys = new Set([
     "homematic_door_open_url",
     "homematic_door_close_url",
+    "homematic_climate_url",
     "homematic_temperature_url",
     "homematic_humidity_url",
   ]);
@@ -5327,6 +5334,8 @@ function findHomematicValue(value, preferredKeys) {
 
 function parseHomematicTextValue(text, preferredKeys) {
   const normalized = String(text || "").replace(/,/g, ".");
+  const datapointValue = findHomematicXmlDatapoint(normalized, preferredKeys);
+  if (datapointValue !== null) return datapointValue;
   const escapedKeys = preferredKeys.map((key) => key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
   const namedPattern = new RegExp(`(?:${escapedKeys.join("|")})[^-\\d]{0,40}(-?\\d+(?:\\.\\d+)?)`, "i");
   const namedMatch = normalized.match(namedPattern);
@@ -5337,6 +5346,40 @@ function parseHomematicTextValue(text, preferredKeys) {
 
   const plainNumber = normalized.trim().match(/^-?\d+(?:\.\d+)?$/);
   return plainNumber ? Number(plainNumber[0]) : null;
+}
+
+function findHomematicXmlDatapoint(xml, preferredKeys) {
+  const tags = String(xml || "").match(/<datapoint\b[^>]*>/gi) || [];
+  for (const tag of tags) {
+    const attributes = {};
+    tag.replace(/([\w:-]+)\s*=\s*["']([^"']*)["']/g, (match, key, value) => {
+      attributes[key.toLowerCase()] = value;
+      return match;
+    });
+    const descriptor = [attributes.name, attributes.type, attributes.paramset_key]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    if (!preferredKeys.some((key) => descriptor.includes(key))) continue;
+    const parsed = Number(String(attributes.value || "").replace(",", "."));
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+}
+
+async function readHomematicClimate(url) {
+  if (!isHttpUrl(url)) return { temperature: null, humidity: null };
+  try {
+    const response = await fetchWithTimeout(url);
+    if (!response.ok) return { temperature: null, humidity: null };
+    const text = await response.text();
+    return {
+      temperature: parseHomematicTextValue(text, ["actual_temperature", "temperature", "temperatur", "temp"]),
+      humidity: parseHomematicTextValue(text, ["humidity", "luftfeuchte", "feuchte", "hum"]),
+    };
+  } catch {
+    return { temperature: null, humidity: null };
+  }
 }
 
 async function readHomematicValue(url, preferredKeys) {
@@ -6153,6 +6196,7 @@ app.__test = {
   buildDigestAuthorization,
   findHomematicValue,
   parseHomematicTextValue,
+  findHomematicXmlDatapoint,
 };
 
 module.exports = app;

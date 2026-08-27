@@ -118,7 +118,7 @@
   <section class="card border-0 bg-body-tertiary admin-section-card" id="huehnerstall">
     <div class="card-body">
       <form method="post" action="/admin/settings" class="vstack gap-3 compact-workflow-form">
-        <input type="hidden" name="_fields" value="coop_camera_streams,homematic_door_open_url,homematic_door_close_url,homematic_temperature_url,homematic_humidity_url" />
+        <input type="hidden" name="_fields" value="coop_camera_streams,homematic_door_open_url,homematic_door_close_url,homematic_climate_url,homematic_temperature_url,homematic_humidity_url" />
         <div>
           <p class="eyebrow mb-1">Hühnerstall</p>
           <h2 class="h4 mb-1">Kameras und Steuerung</h2>
@@ -140,16 +140,24 @@
                 <label class="form-label" for="homematic_door_close_url">Befehl „Stalltür schließen“</label>
                 <input class="form-control" id="homematic_door_close_url" type="url" name="homematic_door_close_url" value="<%= settings.homematic_door_close_url || '' %>" placeholder="http://homematic.local/..." />
               </div>
-              <div class="row g-3">
-                <div class="col-md-6">
-                  <label class="form-label" for="homematic_temperature_url">Temperatur-URL</label>
-                  <input class="form-control" id="homematic_temperature_url" type="url" name="homematic_temperature_url" value="<%= settings.homematic_temperature_url || '' %>" placeholder="http://homematic.local/..." />
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label" for="homematic_humidity_url">Luftfeuchte-URL</label>
-                  <input class="form-control" id="homematic_humidity_url" type="url" name="homematic_humidity_url" value="<%= settings.homematic_humidity_url || '' %>" placeholder="http://homematic.local/..." />
-                </div>
+              <div>
+                <label class="form-label" for="homematic_climate_url">Klima-URL für Gerät oder Kanal</label>
+                <input class="form-control" id="homematic_climate_url" type="url" name="homematic_climate_url" value="<%= settings.homematic_climate_url || '' %>" placeholder="http://192.168.1.22/config/xmlapi/state.cgi?channel_id=2361" />
+                <div class="form-text">Empfohlen: Eine XML-API-URL mit allen Datenpunkten des Geräts oder Kanals.</div>
               </div>
+              <details>
+                <summary class="small fw-semibold">Alternative Einzel-URLs</summary>
+                <div class="row g-3 mt-1">
+                  <div class="col-md-6">
+                    <label class="form-label" for="homematic_temperature_url">Temperatur-URL</label>
+                    <input class="form-control" id="homematic_temperature_url" type="url" name="homematic_temperature_url" value="<%= settings.homematic_temperature_url || '' %>" placeholder="http://homematic.local/..." />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label" for="homematic_humidity_url">Luftfeuchte-URL</label>
+                    <input class="form-control" id="homematic_humidity_url" type="url" name="homematic_humidity_url" value="<%= settings.homematic_humidity_url || '' %>" placeholder="http://homematic.local/..." />
+                  </div>
+                </div>
+              </details>
               <div class="alert alert-info mb-0 small">Die Homematic-URLs werden vom HeartPet-Server aufgerufen. Antworten dürfen eine Zahl, Text oder JSON enthalten.</div>
             </div>
           </div>

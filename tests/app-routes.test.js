@@ -43,6 +43,9 @@ test("Kameraproxy kann Digest-Authentifizierung für IP-Kameras aufbauen", () =>
 
 test("Homematic-Klimawerte ignorieren IDs und lesen JSON- oder XML-Werte", () => {
   assert.equal(app.__test.parseHomematicTextValue('<state><datapoint ise_id="1234" value="21.7"/></state>', ["temperature", "temperatur", "temp"]), 21.7);
+  const deviceXml = '<state><device ise_id="2341"><channel ise_id="2361"><datapoint ise_id="2362" name="HmIP-SWO:1.ACTUAL_TEMPERATURE" value="18.6"/><datapoint ise_id="2363" name="HmIP-SWO:1.HUMIDITY" value="67"/></channel></device></state>';
+  assert.equal(app.__test.findHomematicXmlDatapoint(deviceXml, ["actual_temperature", "temperature"]), 18.6);
+  assert.equal(app.__test.findHomematicXmlDatapoint(deviceXml, ["humidity", "luftfeuchte"]), 67);
   assert.equal(app.__test.findHomematicValue({ ise_id: 1234, HmIP_TEMPERATURE: 19.4 }, ["temperature", "temperatur", "temp"]), 19.4);
   assert.equal(app.__test.findHomematicValue({ id: 99, value: 63 }, ["humidity", "luftfeuchte", "feuchte", "hum"]), 63);
 });
