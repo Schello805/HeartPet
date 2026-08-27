@@ -122,6 +122,7 @@ test("Tiere-Arbeitsansicht zeigt die Akte im Browser-Kontext", async ({ page }) 
   const animalWorkspaceLink = page.locator("[data-animal-workspace-link]").first();
   await expect(animalWorkspaceLink).toBeVisible();
   const workspaceHref = await animalWorkspaceLink.getAttribute("href");
+  expect(workspaceHref).not.toContain("#selected-animal");
   await page.goto(workspaceHref || "/animals");
 
   const workspaceTarget = page.locator("[data-animal-workspace-target]");

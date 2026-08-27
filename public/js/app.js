@@ -881,7 +881,10 @@ async function loadAnimalWorkspacePanel(link, { push = true } = {}) {
     }
 
     initPage();
-    target.scrollIntoView({ block: "start", behavior: "smooth" });
+    const stickyHeader = document.querySelector(".app-mobile-topbar");
+    const headerOffset = stickyHeader instanceof HTMLElement ? stickyHeader.offsetHeight + 8 : 8;
+    const targetTop = target.getBoundingClientRect().top + window.scrollY - headerOffset;
+    window.scrollTo({ top: Math.max(targetTop, 0), behavior: "smooth" });
     return true;
   } catch (error) {
     console.error("Tierakte konnte nicht nachgeladen werden", error);

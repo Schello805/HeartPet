@@ -110,7 +110,7 @@
                 <% if (pagination.currentPage > 1) rowParams.set('page', String(pagination.currentPage)); %>
                 <% rowParams.set('animal_id', String(animal.id)); %>
                 <a
-                  href="<%= sectionBasePath %>?<%= rowParams.toString() %>#selected-animal"
+                  href="<%= sectionBasePath %>?<%= rowParams.toString() %>"
                   class="card border text-decoration-none animal-list-item <%= selectedAnimalState && String(selectedAnimalState.id) === String(animal.id) ? 'active' : '' %>"
                   data-animal-workspace-link="true"
                   data-no-soft-nav="true"
