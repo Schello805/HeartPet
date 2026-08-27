@@ -123,35 +123,24 @@
               </datalist>
               <div class="form-text">Vorhandene Tierarten werden vorgeschlagen. Neue werden beim Speichern angelegt.</div>
             </div>
-            <div class="col-md-6">
-              <label class="form-label" for="animal-status">Status</label>
-              <select class="form-select" id="animal-status" name="status" data-animal-status-select>
-                <% ['Aktiv', 'Vermittelt', 'Verkauft', 'Verstorben'].forEach((status) => { %>
-                  <option value="<%= status %>" <%= currentStatus === status ? 'selected' : '' %>><%= status %></option>
-                <% }) %>
-              </select>
-              <div class="form-text">Aktive Tiere bleiben im Bestand. Historie und Ruhestätte werden automatisch getrennt.</div>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label" for="animal-sex">Geschlecht</label>
-              <select class="form-select" id="animal-sex" name="sex">
-                <option value="">Unbekannt</option>
-                <option value="Weiblich" <%= animal?.sex === 'Weiblich' ? 'selected' : '' %>>Weiblich</option>
-                <option value="Männlich" <%= animal?.sex === 'Männlich' ? 'selected' : '' %>>Männlich</option>
-              </select>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label" for="animal-birth-date">Geburtsdatum</label>
-              <input class="form-control" id="animal-birth-date" type="date" name="birth_date" value="<%= animal?.birth_date || '' %>" />
-            </div>
-            <div class="col-md-6">
-              <label class="form-label" for="animal-intake-date">Aufnahmedatum</label>
-              <input class="form-control" id="animal-intake-date" type="date" name="intake_date" value="<%= animal?.intake_date || '' %>" />
-            </div>
+            <% if (animal) { %>
+              <div class="col-md-6">
+                <label class="form-label" for="animal-status">Status</label>
+                <select class="form-select" id="animal-status" name="status" data-animal-status-select>
+                  <% ['Aktiv', 'Vermittelt', 'Verkauft', 'Verstorben'].forEach((status) => { %>
+                    <option value="<%= status %>" <%= currentStatus === status ? 'selected' : '' %>><%= status %></option>
+                  <% }) %>
+                </select>
+                <div class="form-text">Ein Statuswechsel verschiebt die Akte automatisch in Historie oder Ruhestätte.</div>
+              </div>
+            <% } else { %>
+              <input type="hidden" name="status" value="Aktiv" />
+            <% } %>
           </div>
         </div>
       </section>
 
+      <% if (animal) { %>
       <section class="card border bg-body form-section-card" data-status-workflow data-original-status="<%= currentStatus %>">
         <div class="card-body vstack gap-3">
           <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
@@ -256,6 +245,7 @@
           </section>
         </div>
       </section>
+      <% } %>
 
       <section class="accordion animal-form-optional" id="animalFormOptionalAccordion">
         <div class="accordion-item">
@@ -267,6 +257,22 @@
           <div id="animalFormOptionalBody" class="accordion-collapse collapse" aria-labelledby="animalFormOptionalHeading" data-bs-parent="#animalFormOptionalAccordion">
             <div class="accordion-body">
               <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label" for="animal-sex">Geschlecht</label>
+                  <select class="form-select" id="animal-sex" name="sex">
+                    <option value="">Unbekannt</option>
+                    <option value="Weiblich" <%= animal?.sex === 'Weiblich' ? 'selected' : '' %>>Weiblich</option>
+                    <option value="Männlich" <%= animal?.sex === 'Männlich' ? 'selected' : '' %>>Männlich</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label" for="animal-birth-date">Geburtsdatum</label>
+                  <input class="form-control" id="animal-birth-date" type="date" name="birth_date" value="<%= animal?.birth_date || '' %>" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label" for="animal-intake-date">Aufnahmedatum</label>
+                  <input class="form-control" id="animal-intake-date" type="date" name="intake_date" value="<%= animal?.intake_date || '' %>" />
+                </div>
                 <div class="col-md-6">
                   <label class="form-label" for="animal-source">Herkunft</label>
                   <input class="form-control" id="animal-source" type="text" name="source" value="<%= animal?.source || '' %>" placeholder="Züchter, Fundtier, Vorbesitzer" />

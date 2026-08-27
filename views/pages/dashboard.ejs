@@ -5,7 +5,7 @@
 <% const urgentList = typeof urgentReminders !== 'undefined' ? urgentReminders : []; %>
 <% const attentionList = typeof attentionAnimals !== 'undefined' ? attentionAnimals : []; %>
 <% const speciesOverview = typeof speciesCounts !== 'undefined' ? speciesCounts : []; %>
-<% const issueCount = healthState.staleAnimals.length + healthState.animalsWithoutVeterinarian.length + healthState.animalsWithIncompleteProfile.length + urgentList.length + upcomingReminders.length; %>
+<% const issueCount = attentionList.length; %>
 
 <section class="card border-0 dashboard-hero-card mb-2">
   <div class="card-body p-2">
@@ -31,45 +31,6 @@
         <% } %>
       </div>
     </div>
-  </div>
-</section>
-
-<section class="row g-2 dashboard-action-grid mb-2" aria-label="Schnelleinstieg">
-  <div class="col-6 col-xl-3">
-    <a class="card border-0 text-decoration-none h-100 dashboard-action-tile semantic-card semantic-card--info" href="/animals">
-      <div class="card-body">
-        <span class="dashboard-action-index">01</span>
-        <strong>Meine Tiere</strong>
-        <small><%= stats.animalCount %> aktive Tiere ansehen</small>
-      </div>
-    </a>
-  </div>
-  <div class="col-6 col-xl-3">
-    <a class="card border-0 text-decoration-none h-100 dashboard-action-tile <%= stats.openReminderCount > 0 || stats.dueReminderCount > 0 ? 'semantic-card semantic-card--danger' : 'semantic-card semantic-card--ok' %>" href="/#dringende-erinnerungen">
-      <div class="card-body">
-        <span class="dashboard-action-index">02</span>
-        <strong>Erinnerungen</strong>
-        <small><%= stats.openReminderCount %> offen, <%= stats.dueReminderCount %> jetzt fällig</small>
-      </div>
-    </a>
-  </div>
-  <div class="col-6 col-xl-3">
-    <a class="card border-0 text-decoration-none h-100 dashboard-action-tile semantic-card semantic-card--warning" href="/animals">
-      <div class="card-body">
-        <span class="dashboard-action-index">03</span>
-        <strong>Pflege prüfen</strong>
-        <small><%= attentionList.length %> konkrete Hinweise</small>
-      </div>
-    </a>
-  </div>
-  <div class="col-6 col-xl-3">
-    <a class="card border-0 text-decoration-none h-100 dashboard-action-tile" href="/animals/new" data-drawer="animal-form">
-      <div class="card-body">
-        <span class="dashboard-action-index">04</span>
-        <strong>Neues Tier</strong>
-        <small>Akte direkt anlegen</small>
-      </div>
-    </a>
   </div>
 </section>
 
@@ -157,15 +118,15 @@
           <a href="/#dringende-erinnerungen" class="small text-decoration-none">Details</a>
         </div>
         <div class="row g-2">
-          <div class="col-6 col-lg-3">
-            <a class="card h-100 border-0 text-decoration-none dashboard-stat-card dashboard-kpi-link semantic-card <%= stats.openReminderCount > 0 ? 'semantic-card--danger' : 'semantic-card--ok' %>" href="/animals#animal-medizin">
+          <div class="col-6 col-lg-4">
+            <a class="card h-100 border-0 text-decoration-none dashboard-stat-card dashboard-kpi-link semantic-card <%= stats.openReminderCount > 0 ? 'semantic-card--danger' : 'semantic-card--ok' %>" href="/#dringende-erinnerungen">
               <div class="card-body p-2">
                 <span class="small text-body-secondary d-block mb-1">Offen</span>
                 <strong class="fw-semibold d-block"><%= stats.openReminderCount %></strong>
               </div>
             </a>
           </div>
-          <div class="col-6 col-lg-3">
+          <div class="col-6 col-lg-4">
             <a class="card h-100 border-0 text-decoration-none dashboard-stat-card dashboard-kpi-link semantic-card <%= stats.dueReminderCount > 0 ? 'semantic-card--danger' : 'semantic-card--ok' %>" href="/#dringende-erinnerungen">
               <div class="card-body p-2">
                 <span class="small text-body-secondary d-block mb-1">Jetzt fällig</span>
@@ -173,15 +134,7 @@
               </div>
             </a>
           </div>
-          <div class="col-6 col-lg-3">
-            <a class="card h-100 border-0 text-decoration-none dashboard-stat-card dashboard-kpi-link semantic-card <%= healthState.staleAnimals.length > 0 ? 'semantic-card--warning' : 'semantic-card--ok' %>" href="/animals">
-              <div class="card-body p-2">
-                <span class="small text-body-secondary d-block mb-1">7 Tage ruhig</span>
-                <strong class="fw-semibold d-block"><%= healthState.staleAnimals.length %></strong>
-              </div>
-            </a>
-          </div>
-          <div class="col-6 col-lg-3">
+          <div class="col-12 col-lg-4">
             <a class="card h-100 border-0 text-decoration-none dashboard-stat-card dashboard-kpi-link semantic-card <%= upcomingReminders.length > 0 ? 'semantic-card--info' : 'semantic-card--ok' %>" href="/#naechste-erinnerungen">
               <div class="card-body p-2">
                 <span class="small text-body-secondary d-block mb-1">Demnächst</span>
@@ -211,7 +164,7 @@
         <% } else { %>
           <div class="list-group list-group-flush dashboard-compact-list">
             <% urgentList.slice(0, 4).forEach((reminder) => { %>
-              <% const reminderHref = reminder.animal_id ? `/animals/${reminder.animal_id}${reminder.source_kind ? '#animal-medizin' : '#animal-neu'}` : null; %>
+              <% const reminderHref = reminder.animal_id ? `/animals?animal_id=${reminder.animal_id}#animal-medizin` : null; %>
               <<%= reminderHref ? 'a' : 'div' %> class="list-group-item <%= reminderHref ? 'list-group-item-action' : '' %> bg-transparent rounded-3 border px-3 py-2" <% if (reminderHref) { %>href="<%= reminderHref %>"<% } %>>
                 <div class="d-flex justify-content-between align-items-start gap-3">
                   <div>
@@ -246,7 +199,8 @@
         <% } else { %>
           <div class="list-group list-group-flush dashboard-compact-list">
             <% upcomingReminders.slice(0, 4).forEach((reminder) => { %>
-              <div class="list-group-item bg-transparent rounded-3 border px-3 py-2">
+              <% const upcomingHref = reminder.animal_id ? `/animals?animal_id=${reminder.animal_id}#animal-medizin` : null; %>
+              <<%= upcomingHref ? 'a' : 'div' %> class="list-group-item <%= upcomingHref ? 'list-group-item-action' : '' %> bg-transparent rounded-3 border px-3 py-2" <% if (upcomingHref) { %>href="<%= upcomingHref %>"<% } %>>
                 <div class="d-flex flex-column justify-content-between gap-2">
                   <div>
                     <div class="fw-semibold"><%= reminder.title %></div>
@@ -259,7 +213,7 @@
                     </form>
                   <% } %>
                 </div>
-              </div>
+              </<%= upcomingHref ? 'a' : 'div' %>>
             <% }) %>
           </div>
         <% } %>
@@ -284,7 +238,7 @@
           <div class="row g-2">
             <% attentionList.slice(0, 6).forEach((animal) => { %>
               <div class="col-md-6 col-xl-4">
-                <a class="card h-100 border text-decoration-none dashboard-kpi-link" href="/animals/<%= animal.id %>">
+                <a class="card h-100 border text-decoration-none dashboard-kpi-link" href="/animals?animal_id=<%= animal.id %>">
                   <div class="card-body p-2">
                     <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
                       <div>

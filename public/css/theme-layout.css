@@ -1345,6 +1345,18 @@ small {
   font-size: 0.68rem;
 }
 
+.bootstrap-app .animal-primary-actions {
+  grid-template-columns: 1fr;
+}
+
+.bootstrap-app .animal-primary-actions .animal-quick-action-tile {
+  min-height: 4.35rem;
+}
+
+.bootstrap-app .animal-details-entry .card-body {
+  padding: 0.72rem 0.8rem !important;
+}
+
 .bootstrap-app .semantic-card {
   position: relative;
   overflow: hidden;
@@ -1481,6 +1493,10 @@ small {
 @media (min-width: 992px) {
   .bootstrap-app .animal-quick-actions {
     grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .bootstrap-app .animal-primary-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .bootstrap-app .card.flex-lg-row > .inline-actions {
@@ -1643,45 +1659,6 @@ small {
 
 .bootstrap-app.dashboard-page .dashboard-hero-card .card-body {
   padding: 0.58rem 0.72rem !important;
-}
-
-.bootstrap-app.dashboard-page .dashboard-action-grid .card-body {
-  display: grid;
-  min-height: 5.7rem;
-  align-content: center;
-  gap: 0.18rem;
-  padding: 0.72rem !important;
-}
-
-.bootstrap-app.dashboard-page .dashboard-action-tile {
-  color: inherit;
-  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
-}
-
-.bootstrap-app.dashboard-page .dashboard-action-tile:hover,
-.bootstrap-app.dashboard-page .dashboard-action-tile:focus-visible {
-  border-color: rgba(var(--bs-primary-rgb), 0.28) !important;
-  box-shadow: 0 12px 26px rgba(14, 116, 144, 0.1);
-  transform: translateY(-1px);
-}
-
-.bootstrap-app.dashboard-page .dashboard-action-tile strong {
-  display: block;
-  font-size: 0.98rem;
-  line-height: 1.12;
-}
-
-.bootstrap-app.dashboard-page .dashboard-action-tile small,
-.bootstrap-app.dashboard-page .dashboard-action-index {
-  color: var(--text-dim);
-  font-size: 0.72rem;
-  line-height: 1.25;
-}
-
-.bootstrap-app.dashboard-page .dashboard-action-index {
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .bootstrap-app.dashboard-page .dashboard-hero-card h2 {

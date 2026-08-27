@@ -1453,7 +1453,7 @@ test("Dashboard zeigt Tierarten und konkrete Aufmerksamkeitspunkte", async () =>
   assert.doesNotMatch(response.text, /Schnell weiter/);
 });
 
-test("Tierseite zeigt Tierarzt-Kontakt per Klick und erklärt die Schnellerfassung", async () => {
+test("Tierseite zeigt Tierarzt-Kontakt und einen einfachen Haupteinstieg", async () => {
   const master = await agent.get("/admin/stammdaten");
   const vetId = master.text.match(/\/admin\/veterinarians\/(\d+)\/edit/)?.[1];
   assert.ok(vetId);
@@ -1480,8 +1480,9 @@ test("Tierseite zeigt Tierarzt-Kontakt per Klick und erklärt die Schnellerfassu
   const response = await agent.get("/animals/1");
   assert.equal(response.status, 200);
   assert.match(response.text, /Kontaktdaten anzeigen/i);
-  assert.match(response.text, /Schneller neuer Eintrag/i);
-  assert.match(response.text, /Medikament/i);
+  assert.match(response.text, /Was möchtest du tun/i);
+  assert.match(response.text, /Eintrag anlegen/i);
+  assert.match(response.text, /Weitere Details/i);
   assert.match(response.text, /Vorerkrankung/i);
   assert.doesNotMatch(response.text, /animal-hero-address/i);
   assert.match(response.text, /Musterweg 12/i);
@@ -1904,7 +1905,7 @@ test("Dringende Dashboard-Erinnerungen sind zur Tierakte klickbar", async () => 
 
   const response = await agent.get("/");
   assert.equal(response.status, 200);
-  assert.match(response.text, /href="\/animals\/1#animal-medizin"/);
+  assert.match(response.text, /href="\/animals\?animal_id=1#animal-medizin"/);
   assert.match(response.text, /Klickbare Wurmkur/);
 });
 

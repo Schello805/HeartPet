@@ -9,8 +9,7 @@
       <a class="nav-link rounded-2 px-3 py-2 <%= currentPath === '/' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/">Dashboard</a>
       <div class="nav-group nav-group-animals d-grid gap-1">
         <a class="nav-link nav-link-parent rounded-2 px-3 py-2 <%= (currentPath || '').startsWith('/animals') && currentPath !== '/animals/historie' && currentPath !== '/animals/ruhestaette' ? 'active fw-semibold' : 'text-body-secondary' %>" href="/animals">
-          <span>Tiere</span>
-          <span class="nav-chevron" aria-hidden="true">⌄</span>
+          <span>Meine Tiere</span>
         </a>
         <% if (currentPath === '/animals' && animalMenu.length > 0) { %>
           <div class="nav-submenu nav-species-list d-grid gap-1">

@@ -95,7 +95,7 @@
             <strong class="fs-6 lh-sm text-truncate w-100"><%= appSettings.app_name || "HeartPet" %></strong>
             <span class="small text-body-secondary text-truncate w-100"><%= pageTitle %></span>
           </div>
-          <% if (permissions.canEditAnimals) { %>
+          <% if (permissions.canEditAnimals && (currentPath === '/' || (currentPath || '').startsWith('/animals'))) { %>
             <a href="/animals/new" class="btn btn-primary btn-sm" data-drawer="animal-form">Neu</a>
           <% } %>
         </header>
@@ -108,7 +108,7 @@
                   <h1 class="mb-0"><%= pageTitle %></h1>
                 </div>
                 <div class="d-flex align-items-center justify-content-end flex-shrink-0 ms-auto">
-                  <% if (permissions.canEditAnimals) { %>
+                  <% if (permissions.canEditAnimals && (currentPath === '/' || (currentPath || '').startsWith('/animals'))) { %>
                     <a href="/animals/new" class="btn btn-primary btn-sm px-3" data-drawer="animal-form">Neues Tier</a>
                   <% } %>
                 </div>

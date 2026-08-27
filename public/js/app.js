@@ -129,8 +129,19 @@ function openHashTargetDetails() {
     (target.classList?.contains("accordion-collapse") ? target : null) ||
     target.closest?.(".accordion-collapse") ||
     target.closest?.(".accordion-item")?.querySelector(".accordion-collapse");
-  if (collapse && window.bootstrap?.Collapse) {
-    window.bootstrap.Collapse.getOrCreateInstance(collapse, { toggle: false }).show();
+  if (window.bootstrap?.Collapse) {
+    const parentCollapses = [];
+    let parent = target.parentElement?.closest?.(".collapse");
+    while (parent) {
+      parentCollapses.unshift(parent);
+      parent = parent.parentElement?.closest?.(".collapse");
+    }
+    parentCollapses.forEach((item) => {
+      window.bootstrap.Collapse.getOrCreateInstance(item, { toggle: false }).show();
+    });
+    if (collapse) {
+      window.bootstrap.Collapse.getOrCreateInstance(collapse, { toggle: false }).show();
+    }
   }
 
   const detail = target instanceof HTMLDetailsElement ? target : target.closest("details");
@@ -794,7 +805,7 @@ function initGlobalSearchAutocomplete() {
 }
 
 function isAnimalsWorkspaceDesktop() {
-  return window.matchMedia("(min-width: 961px)").matches;
+  return window.matchMedia("(min-width: 992px)").matches;
 }
 
 function syncAnimalsWorkspaceSummary(panel) {
@@ -825,18 +836,6 @@ function setAnimalsWorkspaceActiveLink(activeLink) {
   document.querySelectorAll("[data-animal-workspace-link]").forEach((link) => {
     link.classList.toggle("active", link === activeLink);
   });
-}
-
-function syncAnimalsListToggle() {
-  const listCollapseTarget = document.getElementById("animals-list-collapse");
-  const listToggle = document.querySelector("[data-animals-list-toggle]");
-  if (!listCollapseTarget || !listToggle) {
-    return;
-  }
-
-  const isOpen = listCollapseTarget.classList.contains("show");
-  listToggle.textContent = isOpen ? "Tierliste ausblenden" : "Tierliste anzeigen";
-  listToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
 }
 
 async function loadAnimalWorkspacePanel(link, { push = true } = {}) {
@@ -876,14 +875,6 @@ async function loadAnimalWorkspacePanel(link, { push = true } = {}) {
     const panel = target.querySelector("[data-animal-workspace-panel]");
     syncAnimalsWorkspaceSummary(panel);
 
-    const listCollapseTarget = document.getElementById("animals-list-collapse");
-    if (listCollapseTarget && window.bootstrap?.Collapse) {
-      const collapse = window.bootstrap.Collapse.getOrCreateInstance(listCollapseTarget, { toggle: false });
-      if (listCollapseTarget.classList.contains("show")) {
-        collapse.hide();
-      }
-    }
-
     if (push) {
       const url = new URL(link.href, window.location.href);
       navigateTo(url, { push: true, scrollTop: false });
@@ -902,14 +893,6 @@ async function loadAnimalWorkspacePanel(link, { push = true } = {}) {
 }
 
 function initAnimalWorkspace() {
-  const listCollapseTarget = document.getElementById("animals-list-collapse");
-  if (listCollapseTarget && listCollapseTarget.dataset.boundListToggle !== "1") {
-    listCollapseTarget.dataset.boundListToggle = "1";
-    listCollapseTarget.addEventListener("shown.bs.collapse", syncAnimalsListToggle);
-    listCollapseTarget.addEventListener("hidden.bs.collapse", syncAnimalsListToggle);
-    syncAnimalsListToggle();
-  }
-
   document.querySelectorAll("[data-animal-workspace-link]").forEach((link) => {
     if (link.dataset.boundWorkspace === "1") {
       return;

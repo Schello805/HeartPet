@@ -188,7 +188,7 @@
                 <% if (pagination.currentPage > 1) rowParams.set('page', String(pagination.currentPage)); %>
                 <% rowParams.set('animal_id', String(animal.id)); %>
                 <a
-                  href="<%= sectionBasePath %>?<%= rowParams.toString() %>"
+                  href="<%= sectionBasePath %>?<%= rowParams.toString() %>#selected-animal"
                   class="list-group-item list-group-item-action bg-transparent px-3 py-2 animal-list-item <%= selectedAnimalState && String(selectedAnimalState.id) === String(animal.id) ? 'active' : '' %>"
                   data-animal-workspace-link="true"
                   data-no-soft-nav="true"
@@ -248,7 +248,7 @@
   </div>
 
   <div class="col-12">
-    <section data-animal-workspace-target>
+    <section id="selected-animal" data-animal-workspace-target tabindex="-1">
       <%- include('./animal-workspace-detail', { selectedAnimal: selectedAnimalState, selectedAnimalView: selectedAnimalViewState, animalSection: sectionState }) %>
     </section>
   </div>
