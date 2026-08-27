@@ -115,6 +115,48 @@
     </div>
   </section>
 
+  <section class="card border-0 bg-body-tertiary admin-section-card" id="huehnerstall">
+    <div class="card-body">
+      <form method="post" action="/admin/settings" class="vstack gap-3 compact-workflow-form">
+        <input type="hidden" name="_fields" value="coop_camera_streams,homematic_door_open_url,homematic_temperature_url,homematic_humidity_url" />
+        <div>
+          <p class="eyebrow mb-1">Hühnerstall</p>
+          <h2 class="h4 mb-1">Kameras und Steuerung</h2>
+          <p class="text-body-secondary mb-0">Streams, Stalltür und Klimawerte für das Dashboard konfigurieren.</p>
+        </div>
+        <div class="row g-3">
+          <div class="col-lg-6">
+            <label class="form-label" for="coop_camera_streams">Kameras</label>
+            <textarea class="form-control font-monospace" id="coop_camera_streams" name="coop_camera_streams" rows="6" placeholder="Stall innen|http://192.168.1.20/stream&#10;Auslauf|http://192.168.1.21/snapshot.jpg"><%= settings.coop_camera_streams || '' %></textarea>
+            <div class="form-text">Eine Kamera pro Zeile: <code>Name|URL</code>. Verwende eine direkte MJPEG- oder Bild-URL.</div>
+          </div>
+          <div class="col-lg-6">
+            <div class="vstack gap-3">
+              <div>
+                <label class="form-label" for="homematic_door_open_url">Befehl „Stalltür öffnen“</label>
+                <input class="form-control" id="homematic_door_open_url" type="url" name="homematic_door_open_url" value="<%= settings.homematic_door_open_url || '' %>" placeholder="http://homematic.local/..." />
+              </div>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label" for="homematic_temperature_url">Temperatur-URL</label>
+                  <input class="form-control" id="homematic_temperature_url" type="url" name="homematic_temperature_url" value="<%= settings.homematic_temperature_url || '' %>" placeholder="http://homematic.local/..." />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label" for="homematic_humidity_url">Luftfeuchte-URL</label>
+                  <input class="form-control" id="homematic_humidity_url" type="url" name="homematic_humidity_url" value="<%= settings.homematic_humidity_url || '' %>" placeholder="http://homematic.local/..." />
+                </div>
+              </div>
+              <div class="alert alert-info mb-0 small">Die Homematic-URLs werden vom HeartPet-Server aufgerufen. Antworten dürfen eine Zahl, Text oder JSON enthalten.</div>
+            </div>
+          </div>
+        </div>
+        <div class="d-flex justify-content-end">
+          <button type="submit" class="btn btn-primary">Hühnerstall speichern</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
   <div class="row g-3">
     <div class="col-xl-6">
       <section class="card border-0 bg-body-tertiary h-100 admin-section-card">

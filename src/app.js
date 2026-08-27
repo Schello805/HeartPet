@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { Readable } = require("stream");
 const express = require("express");
 const cron = require("node-cron");
 const bcrypt = require("bcryptjs");
@@ -577,7 +578,7 @@ app.get("/reminders/:id/email-snooze", (req, res) => {
 
 app.use(requireAuth);
 
-app.get("/", (req, res) => {
+app.get("/", async (req, res) => {
   const q = String(req.query.q || "").trim();
   const searchable = q.length >= 2;
   const searchResults = searchable ? buildGlobalSearchResults(q) : [];
@@ -689,6 +690,13 @@ app.get("/", (req, res) => {
       dashboardAttentionReasons: buildDashboardAttentionReasons(animal),
     }));
 
+  const coopSettings = getSettingsObject(db);
+  const coopCameras = parseCoopCameras(coopSettings.coop_camera_streams);
+  const [temperature, humidity] = await Promise.all([
+    readHomematicValue(coopSettings.homematic_temperature_url, ["temperature", "temperatur", "temp"]),
+    readHomematicValue(coopSettings.homematic_humidity_url, ["humidity", "luftfeuchte", "feuchte", "hum"]),
+  ]);
+
   res.render("pages/dashboard", {
     pageTitle: "Dashboard",
     search: { q, searchable },
@@ -698,7 +706,51 @@ app.get("/", (req, res) => {
     upcomingReminders,
     urgentReminders,
     attentionAnimals,
+    coop: {
+      cameras: coopCameras,
+      temperature,
+      humidity,
+      doorConfigured: isHttpUrl(coopSettings.homematic_door_open_url),
+    },
   });
+});
+
+app.post("/coop/door/open", async (req, res) => {
+  const settings = getSettingsObject(db);
+  const commandUrl = String(settings.homematic_door_open_url || "").trim();
+  if (!isHttpUrl(commandUrl)) {
+    setFlash(req, "error", "Für die Stalltür ist noch kein gültiger Homematic-Befehl hinterlegt.");
+    return res.redirect("/#coop-control");
+  }
+
+  try {
+    const response = await fetchWithTimeout(commandUrl, 5000);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    createAuditLog(req, "coop.door_open", {}, { entityType: "coop" });
+    setFlash(req, "success", "Der Befehl zum Öffnen der Stalltür wurde gesendet.");
+  } catch (error) {
+    createAuditLog(req, "coop.door_open_failed", { error: error.message }, { entityType: "coop" });
+    setFlash(req, "error", "Die Stalltür konnte nicht angesteuert werden. Bitte Homematic-Verbindung prüfen.");
+  }
+  return res.redirect("/#coop-control");
+});
+
+app.get("/coop/cameras/:index/stream", async (req, res) => {
+  const cameras = parseCoopCameras(getSettingsObject(db).coop_camera_streams);
+  const camera = cameras[Number.parseInt(req.params.index, 10)];
+  if (!camera) return res.sendStatus(404);
+
+  try {
+    const response = await fetch(camera.url, { redirect: "follow" });
+    if (!response.ok || !response.body) return res.sendStatus(502);
+    res.set("Content-Type", response.headers.get("content-type") || "image/jpeg");
+    res.set("Cache-Control", "no-store");
+    return Readable.fromWeb(response.body).pipe(res);
+  } catch {
+    return res.sendStatus(502);
+  }
 });
 
 app.get("/animals/historie", (req, res) => {
@@ -2506,6 +2558,26 @@ app.post("/admin/settings", requireAdmin, upload.single("app_logo"), (req, res) 
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+
+  const urlSettingKeys = new Set([
+    "homematic_door_open_url",
+    "homematic_temperature_url",
+    "homematic_humidity_url",
+  ]);
+  const invalidUrlField = fields.find((key) => {
+    if (!urlSettingKeys.has(key)) return false;
+    const value = String(req.body[key] || "").trim();
+    return value && !isHttpUrl(value);
+  });
+  const invalidCamera = fields.includes("coop_camera_streams")
+    ? parseCoopCameraLines(req.body.coop_camera_streams).find((camera) => !camera.valid)
+    : null;
+  if (invalidUrlField || invalidCamera) {
+    setFlash(req, "error", invalidCamera
+      ? `Ungültige Kamera-URL in der Zeile „${invalidCamera.source}“.`
+      : "Bitte für Homematic eine vollständige HTTP- oder HTTPS-URL eingeben.");
+    return res.redirect(backTo(req, "/admin/allgemein"));
+  }
 
   fields.forEach((key) => {
     if (booleanKeys.has(key)) {
@@ -5086,6 +5158,82 @@ function parseBooleanSettingValue(value) {
   return value === true || value === "true" || value === "1" || value === "on";
 }
 
+function isHttpUrl(value) {
+  try {
+    const url = new URL(String(value || "").trim());
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function parseCoopCameraLines(value) {
+  return String(value || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((source, index) => {
+      const separator = source.indexOf("|");
+      const name = separator >= 0 ? source.slice(0, separator).trim() : `Kamera ${index + 1}`;
+      const url = separator >= 0 ? source.slice(separator + 1).trim() : source;
+      return { source, name: name || `Kamera ${index + 1}`, url, valid: isHttpUrl(url) };
+    });
+}
+
+function parseCoopCameras(value) {
+  return parseCoopCameraLines(value)
+    .filter((camera) => camera.valid)
+    .map(({ name, url }) => ({ name, url }));
+}
+
+async function fetchWithTimeout(url, timeoutMs = 3000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: controller.signal, redirect: "follow" });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function findHomematicValue(value, preferredKeys) {
+  if (typeof value === "number" || typeof value === "string") {
+    const match = String(value).replace(",", ".").match(/-?\d+(?:\.\d+)?/);
+    return match ? Number(match[0]) : null;
+  }
+  if (!value || typeof value !== "object") return null;
+
+  const entries = Object.entries(value);
+  for (const preferredKey of preferredKeys) {
+    const match = entries.find(([key]) => key.toLowerCase() === preferredKey);
+    if (match) {
+      const result = findHomematicValue(match[1], preferredKeys);
+      if (result !== null) return result;
+    }
+  }
+  for (const [, nestedValue] of entries) {
+    const result = findHomematicValue(nestedValue, preferredKeys);
+    if (result !== null) return result;
+  }
+  return null;
+}
+
+async function readHomematicValue(url, preferredKeys) {
+  if (!isHttpUrl(url)) return null;
+  try {
+    const response = await fetchWithTimeout(url);
+    if (!response.ok) return null;
+    const text = await response.text();
+    try {
+      return findHomematicValue(JSON.parse(text), preferredKeys);
+    } catch {
+      return findHomematicValue(text, preferredKeys);
+    }
+  } catch {
+    return null;
+  }
+}
+
 function getAppLogoUrl(settings) {
   const storedName = String(settings?.app_logo_stored_name || "").trim();
   return storedName ? `/media/${storedName}` : "/static/images/logo-heartpet.png";
@@ -5486,6 +5634,10 @@ function formatAuditLogEntry(entry) {
   });
 
   switch (entry.action) {
+    case "coop.door_open":
+      return make("Stalltür geöffnet", "Hühnerstall", "Homematic-Befehl erfolgreich gesendet");
+    case "coop.door_open_failed":
+      return make("Stalltür-Befehl fehlgeschlagen", "Hühnerstall", details.error || "Homematic nicht erreichbar");
     case "animal.create":
       return make("Tier angelegt", details.name || `Tier #${details.animal_id || entityId}`, details.transition_summary || `Status: ${details.status || "Aktiv"}`);
     case "animal.update":
