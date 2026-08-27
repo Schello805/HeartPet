@@ -1405,6 +1405,12 @@ small {
   font-size: 0.68rem;
 }
 
+.bootstrap-app .animal-quick-action-tile.btn-primary small {
+  color: #fff;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(6, 35, 48, 0.55);
+}
+
 .bootstrap-app .animal-primary-actions {
   grid-template-columns: 1fr;
 }
