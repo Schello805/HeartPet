@@ -560,7 +560,9 @@ function initEventFormBehavior(scope = document) {
     }
     form.dataset.bound = "1";
 
-    const kindSelect = form.querySelector("[data-event-kind-select]");
+    const kindInputs = [...form.querySelectorAll("[data-event-kind-select]")];
+    const dateWrap = form.querySelector("[data-event-date-wrap]");
+    const dateInput = form.querySelector("[data-event-date]");
     const timeWrap = form.querySelector("[data-event-time-wrap]");
     const timeInput = form.querySelector("[data-event-time]");
     const handledByVet = form.querySelector("[data-handled-by-vet]");
@@ -568,12 +570,25 @@ function initEventFormBehavior(scope = document) {
     const veterinarianSelect = form.querySelector('select[name="veterinarian_id"]');
     const createReminder = form.querySelector("[data-create-reminder]");
     const reminderInlineWrap = form.querySelector("[data-reminder-inline-wrap]");
+    const vetInlineWrap = form.querySelector("[data-vet-inline-wrap]");
 
     function updateEventForm() {
-      const kind = kindSelect?.value || "medication";
-      const needsTime = kind === "appointment" || kind === "reminder";
-      const showVeterinarian = Boolean(handledByVet?.checked);
-      const canHaveReminder = kind !== "reminder";
+      const kind = kindInputs.find((input) => input.checked)?.value || "medication";
+      const needsDate = kind !== "note" && kind !== "feeding";
+      const needsTime = kind === "appointment" || kind === "reminder" || kind === "feeding";
+      const canUseVeterinarian = ["medication", "vaccination", "appointment"].includes(kind);
+      const showVeterinarian = canUseVeterinarian && Boolean(handledByVet?.checked);
+      const canHaveReminder = ["medication", "vaccination", "appointment"].includes(kind);
+
+      if (dateWrap) {
+        dateWrap.hidden = !needsDate;
+      }
+      if (dateInput) {
+        dateInput.required = needsDate;
+        if (!needsDate) {
+          dateInput.value = "";
+        }
+      }
 
       if (timeWrap) {
         timeWrap.hidden = !needsTime;
@@ -587,6 +602,12 @@ function initEventFormBehavior(scope = document) {
 
       if (veterinarianFields) {
         veterinarianFields.hidden = !showVeterinarian;
+      }
+      if (vetInlineWrap) {
+        vetInlineWrap.hidden = !canUseVeterinarian;
+      }
+      if (handledByVet && !canUseVeterinarian) {
+        handledByVet.checked = false;
       }
       if (veterinarianSelect) {
         veterinarianSelect.disabled = !showVeterinarian;
@@ -608,7 +629,7 @@ function initEventFormBehavior(scope = document) {
       }
     }
 
-    kindSelect?.addEventListener("change", updateEventForm);
+    kindInputs.forEach((input) => input.addEventListener("change", updateEventForm));
     handledByVet?.addEventListener("change", updateEventForm);
     updateEventForm();
   });

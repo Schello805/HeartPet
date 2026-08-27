@@ -8,6 +8,67 @@
   line-height: 1.45;
 }
 
+.bootstrap-app .mobile-event-kind-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.bootstrap-app .mobile-event-kind-grid .btn {
+  min-height: 2.75rem;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+
+.bootstrap-app .dashboard-animal-thumb {
+  width: 2.8rem;
+  height: 2.8rem;
+  flex: 0 0 2.8rem;
+  border-radius: 0.65rem;
+  object-fit: cover;
+}
+
+.bootstrap-app .dashboard-animal-thumb--fallback {
+  display: grid;
+  place-items: center;
+  background: var(--bs-primary-bg-subtle);
+  color: var(--bs-primary-text-emphasis);
+  font-weight: 800;
+}
+
+@media (min-width: 992px) {
+  .bootstrap-app .mobile-event-kind-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 575.98px) {
+  .bootstrap-app.animals-page--selected .animals-filter-card {
+    display: none;
+  }
+
+  .bootstrap-app.animals-page--selected .animals-list-card > .card-body > .d-flex:first-child {
+    margin-bottom: 0.4rem !important;
+  }
+
+  .bootstrap-app.animals-page--selected .animals-list-card h2 {
+    font-size: 0.78rem;
+  }
+
+  .bootstrap-app .mobile-form-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 3;
+    padding: 0.7rem 0;
+    background: var(--bs-body-bg);
+  }
+
+  .bootstrap-app .mobile-form-actions .btn-success {
+    flex: 1 1 auto;
+  }
+}
+
 .section-divider {
   height: 1px;
   margin: 6px 4px;
@@ -1490,7 +1551,7 @@ small {
   }
 
   .bootstrap-app .animal-primary-actions {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .bootstrap-app .card.flex-lg-row > .inline-actions {

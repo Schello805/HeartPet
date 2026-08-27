@@ -5,7 +5,6 @@
 <% const attentionList = typeof attentionAnimals !== 'undefined' ? attentionAnimals : []; %>
 <% const speciesOverview = typeof speciesCounts !== 'undefined' ? speciesCounts : []; %>
 <% const issueCount = attentionList.length; %>
-<% const attentionReasonCounts = attentionList.reduce((counts, animal) => { (animal.dashboardAttentionReasons || []).forEach((reason) => { counts[reason] = (counts[reason] || 0) + 1; }); return counts; }, {}); %>
 <% const hasReminderOverview = stats.openReminderCount > 0 || stats.dueReminderCount > 0 || upcomingReminders.length > 0; %>
 <% const hasPriorityContent = urgentList.length > 0 || upcomingReminders.length > 0 || attentionList.length > 0; %>
 
@@ -133,18 +132,23 @@
           <div class="list-group list-group-flush dashboard-compact-list">
             <% urgentList.slice(0, 4).forEach((reminder) => { %>
               <% const reminderHref = reminder.animal_id ? `/animals/${reminder.animal_id}#animal-medizin` : null; %>
-              <<%= reminderHref ? 'a' : 'div' %> class="list-group-item <%= reminderHref ? 'list-group-item-action' : '' %> bg-transparent rounded-3 border px-3 py-2" <% if (reminderHref) { %>href="<%= reminderHref %>"<% } %>>
+              <div class="list-group-item bg-transparent rounded-3 border px-3 py-2">
                 <div class="d-flex justify-content-between align-items-start gap-3">
-                  <div>
+                  <<%= reminderHref ? 'a' : 'div' %> class="text-decoration-none text-reset flex-grow-1" <% if (reminderHref) { %>href="<%= reminderHref %>"<% } %>>
                     <div class="fw-semibold"><%= reminder.title %></div>
                     <div class="small text-body-secondary"><%= reminder.animal_name || "Ohne Tierzuordnung" %> | <%= reminder.reminder_type %></div>
                     <div class="small text-body-secondary mt-1">Fällig: <%= formatDateTime(reminder.due_at) %></div>
-                  </div>
+                  </<%= reminderHref ? 'a' : 'div' %>>
                   <span class="badge <%= reminder.urgency === 'overdue' ? 'text-bg-danger' : reminder.urgency === 'today' ? 'text-bg-warning' : 'text-bg-secondary' %>">
                     <%= reminder.urgency === 'overdue' ? 'Überfällig' : reminder.urgency === 'today' ? 'Heute' : 'Bald' %>
                   </span>
                 </div>
-              </<%= reminderHref ? 'a' : 'div' %>>
+                <% if (!reminder.completed_at && permissions.canManageReminders) { %>
+                  <form method="post" action="/reminders/<%= reminder.id %>/complete" class="mt-2">
+                    <button type="submit" class="btn btn-success btn-sm w-100" aria-label="Als erledigt markieren: <%= reminder.title %>">Erledigt</button>
+                  </form>
+                <% } %>
+              </div>
             <% }) %>
           </div>
       </div>
@@ -166,20 +170,20 @@
           <div class="list-group list-group-flush dashboard-compact-list">
             <% upcomingReminders.slice(0, 4).forEach((reminder) => { %>
               <% const upcomingHref = reminder.animal_id ? `/animals/${reminder.animal_id}#animal-medizin` : null; %>
-              <<%= upcomingHref ? 'a' : 'div' %> class="list-group-item <%= upcomingHref ? 'list-group-item-action' : '' %> bg-transparent rounded-3 border px-3 py-2" <% if (upcomingHref) { %>href="<%= upcomingHref %>"<% } %>>
+              <div class="list-group-item bg-transparent rounded-3 border px-3 py-2">
                 <div class="d-flex flex-column justify-content-between gap-2">
-                  <div>
+                  <<%= upcomingHref ? 'a' : 'div' %> class="text-decoration-none text-reset" <% if (upcomingHref) { %>href="<%= upcomingHref %>"<% } %>>
                     <div class="fw-semibold"><%= reminder.title %></div>
                     <div class="small text-body-secondary"><%= reminder.animal_name || "Ohne Tierzuordnung" %> | <%= reminder.reminder_type %></div>
                     <div class="small text-body-secondary mt-1">Fällig: <%= formatDateTime(reminder.due_at) %></div>
-                  </div>
+                  </<%= upcomingHref ? 'a' : 'div' %>>
                   <% if (!reminder.completed_at && permissions.canManageReminders) { %>
                     <form method="post" action="/reminders/<%= reminder.id %>/complete">
-                      <button type="submit" class="btn btn-outline-secondary btn-sm">Als erledigt markieren</button>
+                      <button type="submit" class="btn btn-success btn-sm w-100" aria-label="Als erledigt markieren: <%= reminder.title %>">Erledigt</button>
                     </form>
                   <% } %>
                 </div>
-              </<%= upcomingHref ? 'a' : 'div' %>>
+              </div>
             <% }) %>
           </div>
       </div>
@@ -199,16 +203,29 @@
           <a href="/animals" class="small text-decoration-none">Tiere prüfen</a>
         </div>
 
-          <a class="card border text-decoration-none dashboard-kpi-link" href="/animals">
-            <div class="card-body p-2 d-flex flex-wrap justify-content-between align-items-center gap-2">
-              <div><strong><%= issueCount %> <%= issueCount === 1 ? 'Tier braucht' : 'Tiere brauchen' %> Aufmerksamkeit</strong></div>
-              <div class="d-flex flex-wrap gap-1">
-                <% Object.entries(attentionReasonCounts).slice(0, 4).forEach(([reason, count]) => { %>
-                  <span class="badge text-bg-warning"><%= count %>× <%= reason %></span>
-                <% }) %>
+          <div class="row g-2">
+            <% attentionList.slice(0, 4).forEach((animal) => { %>
+              <div class="col-12 col-md-6">
+                <a class="card border text-decoration-none dashboard-kpi-link h-100" href="/animals?animal_id=<%= animal.id %>">
+                  <div class="card-body p-2 d-flex align-items-center gap-2">
+                    <% if (animal.profile_image_stored_name) { %>
+                      <img class="dashboard-animal-thumb" src="/media/<%= animal.profile_image_stored_name %>" alt="" />
+                    <% } else { %>
+                      <span class="dashboard-animal-thumb dashboard-animal-thumb--fallback"><%= getAnimalInitial(animal.name) %></span>
+                    <% } %>
+                    <div class="min-w-0">
+                      <strong class="d-block text-truncate"><%= animal.name %></strong>
+                      <div class="d-flex flex-wrap gap-1 mt-1">
+                        <% (animal.dashboardAttentionReasons || []).forEach((reason) => { %>
+                          <span class="badge text-bg-warning"><%= reason %></span>
+                        <% }) %>
+                      </div>
+                    </div>
+                  </div>
+                </a>
               </div>
-            </div>
-          </a>
+            <% }) %>
+          </div>
       </div>
     </article>
   </div>

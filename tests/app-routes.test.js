@@ -1497,16 +1497,39 @@ test("Dashboard zeigt Tierarten und konkrete Aufmerksamkeitspunkte", async () =>
   const response = await agent.get("/");
   assert.equal(response.status, 200);
   assert.match(response.text, /Hinweise/);
-  assert.doesNotMatch(response.text, />Radar</);
-  assert.match(response.text, /Tiere brauchen Aufmerksamkeit|Tier braucht Aufmerksamkeit/);
+  assert.match(response.text, />Radar</);
   assert.doesNotMatch(response.text, /Profilbild von Radar/);
-  assert.doesNotMatch(response.text, new RegExp(`href="/animals/${animalId}"`));
-  assert.doesNotMatch(response.text, new RegExp(`href="/animals\\?animal_id=${animalId}"`));
+  assert.match(response.text, new RegExp(`href="/animals\\?animal_id=${animalId}"`));
   assert.match(response.text, /Tierarzt fehlt/);
   assert.match(response.text, /Geburtsdatum fehlt/);
   assert.doesNotMatch(response.text, /Pflichtdokumente offen/);
   assert.doesNotMatch(response.text, /Zuletzt geändert/);
   assert.doesNotMatch(response.text, /Schnell weiter/);
+});
+
+test("Gemeinsamer Eintragsweg speichert Fütterung und Notiz", async () => {
+  const animalId = db.prepare("SELECT id FROM animals WHERE status = 'Aktiv' ORDER BY id ASC LIMIT 1").get()?.id;
+  assert.ok(animalId);
+
+  const feedingResponse = await agent.post(`/animals/${animalId}/events`).type("form").send({
+    event_kind: "feeding",
+    title: "Abendfutter",
+    event_time: "18:30",
+    notes: "Kleine Portion",
+    return_to: `/animals/${animalId}`,
+  });
+  assert.equal(feedingResponse.status, 302);
+  assert.ok(db.prepare("SELECT id FROM animal_feedings WHERE animal_id = ? AND label = ?").get(animalId, "Abendfutter"));
+
+  const noteResponse = await agent.post(`/animals/${animalId}/events`).type("form").send({
+    event_kind: "note",
+    title: "Beobachtung",
+    notes: "Heute besonders aktiv",
+    return_to: `/animals/${animalId}`,
+  });
+  assert.equal(noteResponse.status, 302);
+  const note = db.prepare("SELECT content FROM animal_notes WHERE animal_id = ? AND title = ?").get(animalId, "Beobachtung");
+  assert.equal(note?.content, "Heute besonders aktiv");
 });
 
 test("Tierseite zeigt Tierarzt-Kontakt und einen einfachen Haupteinstieg", async () => {

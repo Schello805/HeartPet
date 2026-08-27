@@ -1,8 +1,8 @@
 <% const sectionState = typeof animalSection !== 'undefined' ? animalSection : { key: 'active', workspaceTitle: 'Tierbestand', workspaceIntro: '', totalLabel: 'Einträge', allowStatusFilter: true }; %>
 <% const sectionBasePath = sectionState.basePath || '/animals'; %>
-<%- include('../partials/top', { pageTitle, pageClass: `animals-page animals-page--${sectionState.key}` }) %>
 <% const selectedAnimalState = typeof selectedAnimal !== 'undefined' ? selectedAnimal : null; %>
 <% const selectedAnimalViewState = typeof selectedAnimalView !== 'undefined' ? selectedAnimalView : null; %>
+<%- include('../partials/top', { pageTitle, pageClass: `animals-page animals-page--${sectionState.key}${selectedAnimalState ? ' animals-page--selected' : ''}` }) %>
 <% const hasAnimalFilters = Boolean(filters.search || filters.speciesId || (sectionState.allowStatusFilter && filters.status)); %>
 
 <div class="row g-3">

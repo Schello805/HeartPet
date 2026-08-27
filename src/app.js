@@ -939,7 +939,7 @@ function renderAnimalEntryDrawer(req, res, { entryType, mode = "create", item = 
 
 app.get("/animals/:id/events/new", (req, res) => {
   const permissions = buildPermissions(getCurrentUserRecord(req));
-  if (!permissions.canManageHealth && !permissions.canManageReminders) {
+  if (!permissions.canManageHealth && !permissions.canManageReminders && !permissions.canManageFeedings && !permissions.canManageNotes) {
     setFlash(req, "error", "Für neue Ereignisse fehlen die erforderlichen Rechte.");
     return res.redirect(safeLocalReturnPath(req.query.return_to, `/animals/${req.params.id}`));
   }
@@ -1185,7 +1185,7 @@ app.post("/animals/:id/events", (req, res) => {
   const notes = appendVeterinarianNote(req.body.notes, req.body.handled_by_veterinarian, req.body.veterinarian_id);
   const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.id}`);
 
-  if (!["medication", "vaccination", "appointment", "reminder"].includes(eventKind)) {
+  if (!["medication", "vaccination", "appointment", "reminder", "feeding", "note"].includes(eventKind)) {
     setFlash(req, "error", "Bitte wähle einen gültigen Ereignistyp aus.");
     return res.redirect(`/animals/${req.params.id}/events/new?return_to=${encodeURIComponent(returnTo)}`);
   }
@@ -1205,12 +1205,36 @@ app.post("/animals/:id/events", (req, res) => {
     return res.redirect(`/animals/${req.params.id}`);
   }
 
-  if (eventKind !== "reminder" && !permissions.canManageHealth) {
+  if (eventKind === "feeding" && !permissions.canManageFeedings) {
+    setFlash(req, "error", "Für Fütterungseinträge fehlen die erforderlichen Rechte.");
+    return res.redirect(`/animals/${req.params.id}`);
+  }
+
+  if (eventKind === "note" && !permissions.canManageNotes) {
+    setFlash(req, "error", "Für Notizen fehlen die erforderlichen Rechte.");
+    return res.redirect(`/animals/${req.params.id}`);
+  }
+
+  if (["medication", "vaccination", "appointment"].includes(eventKind) && !permissions.canManageHealth) {
     setFlash(req, "error", "Für medizinische Ereignisse fehlen die erforderlichen Rechte.");
     return res.redirect(`/animals/${req.params.id}`);
   }
 
   try {
+    if (eventKind === "feeding") {
+      db.prepare("INSERT INTO animal_feedings (animal_id, label, time_of_day, food, amount, notes) VALUES (?, ?, ?, ?, ?, ?)")
+        .run(req.params.id, title, String(req.body.event_time || "").trim(), "", "", notes);
+      setFlash(req, "success", "Fütterung gespeichert.");
+      return res.redirect(returnTo);
+    }
+
+    if (eventKind === "note") {
+      db.prepare("INSERT INTO animal_notes (animal_id, title, content) VALUES (?, ?, ?)")
+        .run(req.params.id, title, notes || title);
+      setFlash(req, "success", "Notiz gespeichert.");
+      return res.redirect(returnTo);
+    }
+
     if (eventKind === "medication") {
       const startDate = String(req.body.event_date || "").trim();
       if (!startDate) {

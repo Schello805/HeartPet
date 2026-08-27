@@ -79,9 +79,8 @@
   const canManageDocumentsNow = permissions.canManageDocuments && animalIsActive;
   const canManageGalleryNow = permissions.canManageGallery && animalIsActive;
   const primaryActions = [
-    (canManageHealthNow || canManageRemindersNow) ? { label: 'Eintrag anlegen', hint: 'Medikament, Impfung, Termin oder Notiz', href: `/animals/${animal.id}/events/new`, drawer: 'animal-entry', tone: 'primary' } : null,
+    (canManageHealthNow || canManageRemindersNow || canManageFeedingsNow || canManageNotesNow) ? { label: 'Eintrag anlegen', hint: 'Medikament, Impfung, Termin, Fütterung oder Notiz', href: `/animals/${animal.id}/events/new`, drawer: 'animal-entry', tone: 'primary' } : null,
     canManageRemindersNow ? { label: 'Erinnerung anlegen', hint: 'Fälligkeit festlegen und nichts vergessen', href: `/animals/${animal.id}/events/new?kind=reminder`, drawer: 'animal-entry', tone: 'outline-primary' } : null,
-    permissions.canEditAnimals ? { label: 'Tier bearbeiten', hint: 'Stammdaten, Status und Zuordnung ändern', href: `/animals/${animal.id}/edit`, drawer: 'animal-form', tone: 'outline-secondary' } : null,
   ].filter(Boolean);
 %>
 
@@ -124,12 +123,10 @@
       </div>
       <div class="hero-actions">
         <% if (permissions.canEditAnimals) { %>
-          <% if (animalIsActive) { %>
-            <button type="submit" class="btn btn-outline-danger btn-sm icon-button" form="animal-delete-<%= animal.id %>" aria-label="Tier löschen" title="Tier löschen">
-              <span aria-hidden="true">🗑</span>
-              <span class="visually-hidden">Löschen</span>
-            </button>
-          <% } %>
+          <a href="/animals/<%= animal.id %>/edit" class="btn btn-primary btn-sm icon-button" data-drawer="animal-form" aria-label="Tier bearbeiten" title="Tier bearbeiten">
+            <span aria-hidden="true">✎</span>
+            <span class="visually-hidden">Tier bearbeiten</span>
+          </a>
         <% } %>
         <a href="/animals/<%= animal.id %>/export/pdf" class="btn btn-outline-secondary btn-sm icon-button hero-pdf-button" aria-label="Als PDF exportieren" title="Als PDF exportieren">
           <span aria-hidden="true">📄</span>
@@ -1163,7 +1160,10 @@
       </section>
       </div>
 
-      <div class="detail-card-footer d-flex justify-content-end mt-2">
+      <div class="detail-card-footer d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2">
+        <% if (permissions.canEditAnimals && animalIsActive) { %>
+          <button type="submit" class="btn btn-link text-danger btn-sm p-0" form="animal-delete-<%= animal.id %>">Tier endgültig löschen</button>
+        <% } else { %><span></span><% } %>
         <a href="/animals/<%= animal.id %>/export/json" class="link-secondary small">JSON Export</a>
       </div>
       </div>

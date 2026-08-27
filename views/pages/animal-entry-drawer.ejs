@@ -11,9 +11,15 @@
   const isDocument = entryType === 'document';
   const isImage = entryType === 'image';
   const defaultReturnTo = returnTo || `/animals/${animal.id}`;
-  const normalizedInitialEventKind = ['medication', 'vaccination', 'appointment', 'reminder'].includes(initialEventKind)
+  const availableEventKinds = [
+    ...(permissions.canManageHealth ? ['medication', 'vaccination', 'appointment'] : []),
+    ...(permissions.canManageReminders ? ['reminder'] : []),
+    ...(permissions.canManageFeedings ? ['feeding'] : []),
+    ...(permissions.canManageNotes ? ['note'] : []),
+  ];
+  const normalizedInitialEventKind = availableEventKinds.includes(initialEventKind)
     ? initialEventKind
-    : 'medication';
+    : availableEventKinds[0];
 %>
 
 <section class="drawer-fragment card border-0 bg-body-tertiary" data-drawer-fragment="animal-entry" data-drawer-title="<%= pageTitle %>">
@@ -54,24 +60,36 @@
         <section class="card border bg-body form-section-card">
           <div class="card-body">
             <div class="row g-3">
-              <div class="col-md-4">
-                <label class="form-label" for="event-kind">Typ</label>
-                <select class="form-select" id="event-kind" name="event_kind" required data-event-kind-select title="Wähle hier, was du erfassen möchtest. Das Formular passt sich danach an.">
+              <div class="col-12">
+                <span class="form-label d-block">Was möchtest du eintragen?</span>
+                <div class="mobile-event-kind-grid" data-event-kind-options>
                   <% if (permissions.canManageHealth) { %>
-                    <option value="medication" <%= normalizedInitialEventKind === 'medication' ? 'selected' : '' %>>Medikament</option>
-                    <option value="vaccination" <%= normalizedInitialEventKind === 'vaccination' ? 'selected' : '' %>>Impfung</option>
-                    <option value="appointment" <%= normalizedInitialEventKind === 'appointment' ? 'selected' : '' %>>Arzttermin</option>
+                    <input class="btn-check" id="event-kind-medication" type="radio" name="event_kind" value="medication" <%= normalizedInitialEventKind === 'medication' ? 'checked' : '' %> data-event-kind-select />
+                    <label class="btn btn-outline-primary" for="event-kind-medication">Medikament</label>
+                    <input class="btn-check" id="event-kind-vaccination" type="radio" name="event_kind" value="vaccination" <%= normalizedInitialEventKind === 'vaccination' ? 'checked' : '' %> data-event-kind-select />
+                    <label class="btn btn-outline-primary" for="event-kind-vaccination">Impfung</label>
+                    <input class="btn-check" id="event-kind-appointment" type="radio" name="event_kind" value="appointment" <%= normalizedInitialEventKind === 'appointment' ? 'checked' : '' %> data-event-kind-select />
+                    <label class="btn btn-outline-primary" for="event-kind-appointment">Termin</label>
                   <% } %>
                   <% if (permissions.canManageReminders) { %>
-                    <option value="reminder" <%= normalizedInitialEventKind === 'reminder' ? 'selected' : '' %>>Freie Erinnerung</option>
+                    <input class="btn-check" id="event-kind-reminder" type="radio" name="event_kind" value="reminder" <%= normalizedInitialEventKind === 'reminder' ? 'checked' : '' %> data-event-kind-select />
+                    <label class="btn btn-outline-primary" for="event-kind-reminder">Erinnerung</label>
                   <% } %>
-                </select>
+                  <% if (permissions.canManageFeedings) { %>
+                    <input class="btn-check" id="event-kind-feeding" type="radio" name="event_kind" value="feeding" <%= normalizedInitialEventKind === 'feeding' ? 'checked' : '' %> data-event-kind-select />
+                    <label class="btn btn-outline-primary" for="event-kind-feeding">Fütterung</label>
+                  <% } %>
+                  <% if (permissions.canManageNotes) { %>
+                    <input class="btn-check" id="event-kind-note" type="radio" name="event_kind" value="note" <%= normalizedInitialEventKind === 'note' ? 'checked' : '' %> data-event-kind-select />
+                    <label class="btn btn-outline-primary" for="event-kind-note">Notiz</label>
+                  <% } %>
+                </div>
               </div>
-              <div class="col-md-8">
+              <div class="col-12">
                 <label class="form-label" for="event-title">Bezeichnung</label>
                 <input class="form-control" id="event-title" type="text" name="title" required placeholder="z. B. Wurmkur, Tollwut, Nachkontrolle" />
               </div>
-              <div class="col-md-6">
+              <div class="col-md-6" data-event-date-wrap>
                 <label class="form-label" for="event-date">Datum</label>
                 <input class="form-control" id="event-date" type="date" name="event_date" required data-event-date />
               </div>
@@ -90,7 +108,7 @@
               </div>
               <div class="col-12">
                 <div class="row g-3">
-                  <div class="col-sm-auto">
+                  <div class="col-sm-auto" data-vet-inline-wrap>
                     <div class="form-check">
                       <input class="form-check-input" id="event-by-vet" type="checkbox" name="handled_by_veterinarian" value="1" data-handled-by-vet />
                       <label class="form-check-label" for="event-by-vet">Durch Tierarzt</label>
@@ -111,8 +129,8 @@
             </div>
           </div>
         </section>
-        <div class="d-flex flex-wrap gap-2 pt-2 border-top">
-          <button type="submit" class="btn btn-success">Ereignis speichern</button>
+        <div class="d-flex flex-wrap gap-2 pt-2 border-top mobile-form-actions">
+          <button type="submit" class="btn btn-success">Eintrag speichern</button>
           <button type="button" class="btn btn-outline-secondary" data-drawer-close>Abbrechen</button>
         </div>
       </form>
