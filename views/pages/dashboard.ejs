@@ -132,7 +132,7 @@
         </div>
           <div class="list-group list-group-flush dashboard-compact-list">
             <% urgentList.slice(0, 4).forEach((reminder) => { %>
-              <% const reminderHref = reminder.animal_id ? `/animals?animal_id=${reminder.animal_id}#animal-medizin` : null; %>
+              <% const reminderHref = reminder.animal_id ? `/animals/${reminder.animal_id}#animal-medizin` : null; %>
               <<%= reminderHref ? 'a' : 'div' %> class="list-group-item <%= reminderHref ? 'list-group-item-action' : '' %> bg-transparent rounded-3 border px-3 py-2" <% if (reminderHref) { %>href="<%= reminderHref %>"<% } %>>
                 <div class="d-flex justify-content-between align-items-start gap-3">
                   <div>
@@ -165,7 +165,7 @@
         </div>
           <div class="list-group list-group-flush dashboard-compact-list">
             <% upcomingReminders.slice(0, 4).forEach((reminder) => { %>
-              <% const upcomingHref = reminder.animal_id ? `/animals?animal_id=${reminder.animal_id}#animal-medizin` : null; %>
+              <% const upcomingHref = reminder.animal_id ? `/animals/${reminder.animal_id}#animal-medizin` : null; %>
               <<%= upcomingHref ? 'a' : 'div' %> class="list-group-item <%= upcomingHref ? 'list-group-item-action' : '' %> bg-transparent rounded-3 border px-3 py-2" <% if (upcomingHref) { %>href="<%= upcomingHref %>"<% } %>>
                 <div class="d-flex flex-column justify-content-between gap-2">
                   <div>
@@ -202,7 +202,7 @@
           <div class="row g-2">
             <% attentionList.slice(0, 6).forEach((animal) => { %>
               <div class="col-md-6 col-xl-4">
-                <a class="card h-100 border text-decoration-none dashboard-kpi-link" href="/animals?animal_id=<%= animal.id %>">
+                <a class="card h-100 border text-decoration-none dashboard-kpi-link" href="/animals/<%= animal.id %>">
                   <div class="card-body p-2">
                     <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
                       <div class="d-flex align-items-center gap-2 min-w-0">

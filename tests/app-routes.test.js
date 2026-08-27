@@ -1449,6 +1449,8 @@ test("Dashboard zeigt Tierarten und konkrete Aufmerksamkeitspunkte", async () =>
   assert.equal(response.status, 200);
   assert.match(response.text, /Hinweise/);
   assert.match(response.text, /Radar/);
+  assert.match(response.text, new RegExp(`href="/animals/${animalId}"`));
+  assert.doesNotMatch(response.text, new RegExp(`href="/animals\\?animal_id=${animalId}"`));
   assert.match(response.text, /Tierarzt fehlt/);
   assert.match(response.text, /Geburtsdatum fehlt/);
   assert.doesNotMatch(response.text, /Pflichtdokumente offen/);
@@ -1908,7 +1910,7 @@ test("Dringende Dashboard-Erinnerungen sind zur Tierakte klickbar", async () => 
 
   const response = await agent.get("/");
   assert.equal(response.status, 200);
-  assert.match(response.text, /href="\/animals\?animal_id=1#animal-medizin"/);
+  assert.match(response.text, /href="\/animals\/1#animal-medizin"/);
   assert.match(response.text, /Klickbare Wurmkur/);
 });
 
