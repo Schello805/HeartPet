@@ -102,8 +102,8 @@
               </div>
               <div>
                 <label class="form-label" for="homematic_climate_url">Klima-URL für Gerät oder Kanal</label>
-                <input class="form-control" id="homematic_climate_url" type="url" name="homematic_climate_url" value="<%= settings.homematic_climate_url || '' %>" placeholder="http://192.168.1.22/config/xmlapi/state.cgi?channel_id=2361" />
-                <div class="form-text">Empfohlen: Eine XML-API-URL mit allen Datenpunkten des Geräts oder Kanals.</div>
+                <input class="form-control" id="homematic_climate_url" type="url" name="homematic_climate_url" value="<%= settings.homematic_climate_url || '' %>" placeholder="http://192.168.1.22/addons/xmlapi/state.cgi?sid=TOKEN&amp;channel_id=2361" />
+                <div class="form-text">XML-API 2.x benötigt ein Token: <code>/addons/xmlapi/state.cgi?sid=TOKEN&amp;channel_id=2361</code>. Nur die reine URL einfügen, keinen formatierten Link.</div>
               </div>
               <details>
                 <summary class="small fw-semibold">Alternative Einzel-URLs</summary>
@@ -118,7 +118,7 @@
                   </div>
                 </div>
               </details>
-              <div class="alert alert-info mb-0 small">Die Homematic-URLs werden vom HeartPet-Server aufgerufen. Antworten dürfen eine Zahl, Text oder JSON enthalten.</div>
+              <div class="alert alert-info mb-0 small">Die URLs werden vom HeartPet-Server aufgerufen. CCU und Kameras müssen daher aus dessen Netzwerk erreichbar sein. Klima unterstützt XML-API, JSON oder einzelne Zahlenwerte.</div>
             </div>
           </div>
         </div>

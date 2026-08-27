@@ -57,6 +57,26 @@ function restoreCurrentViewState() {
   } catch (error) {}
 }
 
+function initCameraDiagnostics() {
+  document.querySelectorAll("[data-camera-card]").forEach((card) => {
+    const image = card.querySelector("[data-camera-image]");
+    const errorBox = card.querySelector("[data-camera-error]");
+    if (!image || !errorBox) return;
+    image.addEventListener("error", async () => {
+      image.classList.add("d-none");
+      errorBox.classList.remove("d-none");
+      errorBox.textContent = "Kameraverbindung wird geprüft …";
+      try {
+        const response = await fetch(card.dataset.cameraStatusUrl, { headers: { Accept: "application/json" } });
+        const payload = await response.json();
+        errorBox.textContent = payload.error || "Kamerabild konnte nicht geladen werden.";
+      } catch (error) {
+        errorBox.textContent = "Kameradiagnose konnte nicht geladen werden.";
+      }
+    }, { once: true });
+  });
+}
+
 async function loadPendingReminders() {
   const bannerTarget = document.querySelector(".page-header");
   if (!bannerTarget) {
@@ -1183,6 +1203,7 @@ function initPage() {
   initBulkSelection();
   initGlobalSearchAutocomplete();
   initAnimalWorkspace();
+  initCameraDiagnostics();
   loadPendingReminders();
   openHashTargetDetails();
   restoreCurrentViewState();

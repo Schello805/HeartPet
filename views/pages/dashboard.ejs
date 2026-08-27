@@ -7,7 +7,7 @@
 <% const issueCount = attentionList.length; %>
 <% const hasReminderOverview = stats.openReminderCount > 0 || stats.dueReminderCount > 0 || upcomingReminders.length > 0; %>
 <% const hasPriorityContent = urgentList.length > 0 || upcomingReminders.length > 0 || attentionList.length > 0; %>
-<% const coopState = typeof coop !== 'undefined' ? coop : { cameras: [], temperature: null, humidity: null, temperatureConfigured: false, humidityConfigured: false, doorConfigured: false, doorCloseConfigured: false }; %>
+<% const coopState = typeof coop !== 'undefined' ? coop : { cameras: [], temperature: null, humidity: null, climateError: '', temperatureConfigured: false, humidityConfigured: false, doorConfigured: false, doorCloseConfigured: false }; %>
 <% const hasCoopControl = coopState.doorConfigured || coopState.doorCloseConfigured || coopState.temperatureConfigured || coopState.humidityConfigured; %>
 
 <% if (searchState.searchable) { %>
@@ -248,8 +248,9 @@
           <div class="row g-2">
             <% coopState.cameras.forEach((camera, cameraIndex) => { %>
               <div class="<%= coopState.cameras.length > 1 ? 'col-md-6' : 'col-12' %>">
-                <figure class="card border h-100 mb-0 overflow-hidden">
-                  <img src="/coop/cameras/<%= cameraIndex %>/stream" class="card-img-top ratio ratio-16x9 object-fit-cover" alt="Livebild <%= camera.name %>" loading="lazy" />
+                <figure class="card border h-100 mb-0 overflow-hidden" data-camera-card data-camera-status-url="/coop/cameras/<%= cameraIndex %>/status">
+                  <img src="/coop/cameras/<%= cameraIndex %>/stream" class="card-img-top ratio ratio-16x9 object-fit-cover" alt="Livebild <%= camera.name %>" loading="lazy" data-camera-image />
+                  <div class="alert alert-warning rounded-0 mb-0 d-none small" data-camera-error></div>
                   <figcaption class="card-body p-2 fw-semibold"><%= camera.name %></figcaption>
                 </figure>
               </div>
@@ -266,6 +267,9 @@
         <div class="card-body p-2 d-flex flex-column">
           <h2 class="h5 mb-2">Steuerung</h2>
           <div class="row g-2 mb-2">
+            <% if (coopState.climateError) { %>
+              <div class="col-12"><div class="alert alert-warning py-2 mb-0 small"><%= coopState.climateError %></div></div>
+            <% } %>
             <% if (coopState.temperatureConfigured) { %>
               <div class="col-6">
                 <div class="card border h-100"><div class="card-body p-2">

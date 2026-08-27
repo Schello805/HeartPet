@@ -50,6 +50,14 @@ test("Homematic-Klimawerte ignorieren IDs und lesen JSON- oder XML-Werte", () =>
   assert.equal(app.__test.findHomematicValue({ id: 99, value: 63 }, ["humidity", "luftfeuchte", "feuchte", "hum"]), 63);
 });
 
+test("Als Markdown eingefügte Homematic-URLs werden auf die reine URL reduziert", () => {
+  const pasted = "[http://192.168.1.22/addons/xmlapi/state.cgi?sid=abc\\&channel\\_id=2361](http://example.invalid)";
+  assert.equal(
+    app.__test.normalizeConfiguredUrl(pasted),
+    "http://192.168.1.22/addons/xmlapi/state.cgi?sid=abc&channel_id=2361"
+  );
+});
+
 async function ensureSetupComplete() {
   const setupPage = await agent.get("/setup");
   if (setupPage.status !== 200) {

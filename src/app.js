@@ -692,7 +692,7 @@ app.get("/", async (req, res) => {
 
   const coopSettings = getSettingsObject(db);
   const coopCameras = parseCoopCameras(coopSettings.coop_camera_streams);
-  const climateUrl = String(coopSettings.homematic_climate_url || "").trim();
+  const climateUrl = normalizeConfiguredUrl(coopSettings.homematic_climate_url);
   const climate = climateUrl
     ? await readHomematicClimate(climateUrl)
     : null;
@@ -716,6 +716,7 @@ app.get("/", async (req, res) => {
       cameras: coopCameras,
       temperature,
       humidity,
+      climateError: climate?.error || "",
       temperatureConfigured: isHttpUrl(climateUrl) || isHttpUrl(coopSettings.homematic_temperature_url),
       humidityConfigured: isHttpUrl(climateUrl) || isHttpUrl(coopSettings.homematic_humidity_url),
       doorConfigured: isHttpUrl(coopSettings.homematic_door_open_url),
@@ -785,6 +786,27 @@ app.get("/coop/cameras/:index/stream", async (req, res) => {
   } catch (error) {
     console.error(`[HeartPet] Kamera „${camera.name}“ nicht erreichbar:`, error.message);
     return res.sendStatus(502);
+  }
+});
+
+app.get("/coop/cameras/:index/status", async (req, res) => {
+  const cameras = parseCoopCameras(getSettingsObject(db).coop_camera_streams);
+  const camera = cameras[Number.parseInt(req.params.index, 10)];
+  if (!camera) return res.status(404).json({ ok: false, error: "Kamera nicht konfiguriert." });
+
+  try {
+    const response = await fetchCameraStream(camera.url, 7000);
+    const contentType = response.headers.get("content-type") || "";
+    await response.body?.cancel();
+    if (!response.ok) {
+      return res.status(502).json({ ok: false, error: `Kamera antwortet mit HTTP ${response.status}.` });
+    }
+    if (!/^image\/(?:jpeg|jpg|png|webp)|multipart\/x-mixed-replace/i.test(contentType)) {
+      return res.status(502).json({ ok: false, error: `Kein Bildstream empfangen (${contentType || "Content-Type fehlt"}).` });
+    }
+    return res.json({ ok: true, contentType });
+  } catch (error) {
+    return res.status(502).json({ ok: false, error: describeFetchError(error) });
   }
 });
 
@@ -5128,6 +5150,13 @@ function isHttpUrl(value) {
   }
 }
 
+function normalizeConfiguredUrl(value) {
+  const input = String(value || "").trim().replace(/\\([_?&=])/g, "$1");
+  if (isHttpUrl(input)) return input;
+  const match = input.match(/https?:\/\/[^\s\])]+/i);
+  return match && isHttpUrl(match[0]) ? match[0] : input;
+}
+
 function parseCoopCameraLines(value) {
   return String(value || "")
     .split(/\r?\n/)
@@ -5136,7 +5165,7 @@ function parseCoopCameraLines(value) {
     .map((source, index) => {
       const separator = source.indexOf("|");
       const name = separator >= 0 ? source.slice(0, separator).trim() : `Kamera ${index + 1}`;
-      const url = separator >= 0 ? source.slice(separator + 1).trim() : source;
+      const url = normalizeConfiguredUrl(separator >= 0 ? source.slice(separator + 1) : source);
       return { source, name: name || `Kamera ${index + 1}`, url, valid: isHttpUrl(url) };
     });
 }
@@ -5147,11 +5176,11 @@ function parseCoopCameras(value) {
     .map(({ name, url }) => ({ name, url }));
 }
 
-async function fetchWithTimeout(url, timeoutMs = 3000) {
+async function fetchWithTimeout(url, timeoutMs = 5000) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const target = createAuthenticatedFetchTarget(url);
+    const target = createAuthenticatedFetchTarget(normalizeConfiguredUrl(url));
     return await fetch(target.url, { headers: target.headers, signal: controller.signal, redirect: "follow" });
   } finally {
     clearTimeout(timeout);
@@ -5212,9 +5241,17 @@ function buildDigestAuthorization({ username, password, method, requestUrl, chal
   return `Digest ${parts.join(", ")}`;
 }
 
-async function fetchCameraStream(value) {
-  const target = createAuthenticatedFetchTarget(value);
-  let response = await fetch(target.url, { headers: target.headers, redirect: "follow" });
+async function fetchCameraStream(value, timeoutMs = 10000) {
+  const target = createAuthenticatedFetchTarget(normalizeConfiguredUrl(value));
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  let response;
+  try {
+    response = await fetch(target.url, { headers: target.headers, redirect: "follow", signal: controller.signal });
+  } catch (error) {
+    clearTimeout(timeout);
+    throw error;
+  }
   const challengeHeader = response.headers.get("www-authenticate") || "";
   if (response.status === 401 && /^digest\s/i.test(challengeHeader) && target.username) {
     await response.body?.cancel();
@@ -5225,9 +5262,18 @@ async function fetchCameraStream(value) {
       requestUrl: target.url,
       challengeHeader,
     });
-    response = await fetch(target.url, { headers: { Authorization: authorization }, redirect: "follow" });
+    response = await fetch(target.url, { headers: { Authorization: authorization }, redirect: "follow", signal: controller.signal });
   }
+  clearTimeout(timeout);
   return response;
+}
+
+function describeFetchError(error) {
+  if (error?.name === "AbortError") return "Zeitüberschreitung beim Verbindungsaufbau.";
+  const causeCode = error?.cause?.code || error?.code;
+  if (causeCode === "ECONNREFUSED") return "Verbindung wurde vom Zielgerät abgelehnt.";
+  if (causeCode === "EHOSTUNREACH" || causeCode === "ENETUNREACH") return "Zielgerät ist aus dem Servernetz nicht erreichbar.";
+  return String(error?.message || "Verbindung fehlgeschlagen.");
 }
 
 function findHomematicValue(value, preferredKeys) {
@@ -5292,17 +5338,29 @@ function findHomematicXmlDatapoint(xml, preferredKeys) {
 }
 
 async function readHomematicClimate(url) {
-  if (!isHttpUrl(url)) return { temperature: null, humidity: null };
+  const normalizedUrl = normalizeConfiguredUrl(url);
+  if (!isHttpUrl(normalizedUrl)) return { temperature: null, humidity: null, error: "Ungültige XML-API-URL." };
   try {
-    const response = await fetchWithTimeout(url);
-    if (!response.ok) return { temperature: null, humidity: null };
+    const response = await fetchWithTimeout(normalizedUrl);
+    if (!response.ok) return { temperature: null, humidity: null, error: `XML-API antwortet mit HTTP ${response.status}.` };
     const text = await response.text();
+    if (/<not_authenticated\b/i.test(text)) {
+      return { temperature: null, humidity: null, error: "XML-API verlangt ein gültiges sid-Token." };
+    }
+    if (/\berror=["']true["']/i.test(text)) {
+      return { temperature: null, humidity: null, error: "Geräte- oder Kanal-ID wurde von der XML-API nicht gefunden." };
+    }
+    const temperature = parseHomematicTextValue(text, ["actual_temperature", "temperature", "temperatur", "temp"]);
+    const humidity = parseHomematicTextValue(text, ["humidity", "luftfeuchte", "feuchte", "hum"]);
     return {
-      temperature: parseHomematicTextValue(text, ["actual_temperature", "temperature", "temperatur", "temp"]),
-      humidity: parseHomematicTextValue(text, ["humidity", "luftfeuchte", "feuchte", "hum"]),
+      temperature,
+      humidity,
+      error: temperature === null && humidity === null
+        ? "XML empfangen, aber keine Datenpunkte für Temperatur oder Luftfeuchte gefunden."
+        : "",
     };
-  } catch {
-    return { temperature: null, humidity: null };
+  } catch (error) {
+    return { temperature: null, humidity: null, error: describeFetchError(error) };
   }
 }
 
@@ -6103,6 +6161,7 @@ app.__test = {
   maybeSendDailyDigest,
   createAuthenticatedFetchTarget,
   buildDigestAuthorization,
+  normalizeConfiguredUrl,
   findHomematicValue,
   parseHomematicTextValue,
   findHomematicXmlDatapoint,
