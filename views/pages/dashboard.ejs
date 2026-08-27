@@ -7,8 +7,8 @@
 <% const issueCount = attentionList.length; %>
 <% const hasReminderOverview = stats.openReminderCount > 0 || stats.dueReminderCount > 0 || upcomingReminders.length > 0; %>
 <% const hasPriorityContent = urgentList.length > 0 || upcomingReminders.length > 0 || attentionList.length > 0; %>
-<% const coopState = typeof coop !== 'undefined' ? coop : { cameras: [], temperature: null, humidity: null, doorConfigured: false }; %>
-<% const hasCoopControl = coopState.doorConfigured || coopState.temperature !== null || coopState.humidity !== null; %>
+<% const coopState = typeof coop !== 'undefined' ? coop : { cameras: [], temperature: null, humidity: null, doorConfigured: false, doorCloseConfigured: false }; %>
+<% const hasCoopControl = coopState.doorConfigured || coopState.doorCloseConfigured || coopState.temperature !== null || coopState.humidity !== null; %>
 
 <% if (searchState.searchable) { %>
   <section class="card border-0 dashboard-feed-card mb-2">
@@ -283,11 +283,22 @@
               </div>
             <% } %>
           </div>
-          <% if (coopState.doorConfigured) { %>
-            <form method="post" action="/coop/door/open" class="mt-auto" data-confirm="Stalltür jetzt öffnen?">
-              <button type="submit" class="btn btn-primary w-100 py-2">Stalltür öffnen</button>
-            </form>
-          <% } %>
+          <div class="row g-2 mt-auto">
+            <% if (coopState.doorConfigured) { %>
+              <div class="<%= coopState.doorCloseConfigured ? 'col-6' : 'col-12' %>">
+                <form method="post" action="/coop/door/open" data-confirm="Stalltür jetzt öffnen?">
+                  <button type="submit" class="btn btn-primary w-100 py-2">Öffnen</button>
+                </form>
+              </div>
+            <% } %>
+            <% if (coopState.doorCloseConfigured) { %>
+              <div class="<%= coopState.doorConfigured ? 'col-6' : 'col-12' %>">
+                <form method="post" action="/coop/door/close" data-confirm="Stalltür jetzt schließen?">
+                  <button type="submit" class="btn btn-outline-primary w-100 py-2">Schließen</button>
+                </form>
+              </div>
+            <% } %>
+          </div>
         </div>
       </section>
     </div>

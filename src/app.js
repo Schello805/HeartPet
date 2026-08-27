@@ -711,6 +711,7 @@ app.get("/", async (req, res) => {
       temperature,
       humidity,
       doorConfigured: isHttpUrl(coopSettings.homematic_door_open_url),
+      doorCloseConfigured: isHttpUrl(coopSettings.homematic_door_close_url),
     },
   });
 });
@@ -737,18 +738,45 @@ app.post("/coop/door/open", async (req, res) => {
   return res.redirect("/#coop-control");
 });
 
+app.post("/coop/door/close", async (req, res) => {
+  const settings = getSettingsObject(db);
+  const commandUrl = String(settings.homematic_door_close_url || "").trim();
+  if (!isHttpUrl(commandUrl)) {
+    setFlash(req, "error", "Für das Schließen der Stalltür ist noch kein gültiger Homematic-Befehl hinterlegt.");
+    return res.redirect("/#coop-control");
+  }
+
+  try {
+    const response = await fetchWithTimeout(commandUrl, 5000);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    createAuditLog(req, "coop.door_close", {}, { entityType: "coop" });
+    setFlash(req, "success", "Der Befehl zum Schließen der Stalltür wurde gesendet.");
+  } catch (error) {
+    createAuditLog(req, "coop.door_close_failed", { error: error.message }, { entityType: "coop" });
+    setFlash(req, "error", "Die Stalltür konnte nicht angesteuert werden. Bitte Homematic-Verbindung prüfen.");
+  }
+  return res.redirect("/#coop-control");
+});
+
 app.get("/coop/cameras/:index/stream", async (req, res) => {
   const cameras = parseCoopCameras(getSettingsObject(db).coop_camera_streams);
   const camera = cameras[Number.parseInt(req.params.index, 10)];
   if (!camera) return res.sendStatus(404);
 
   try {
-    const response = await fetch(camera.url, { redirect: "follow" });
-    if (!response.ok || !response.body) return res.sendStatus(502);
+    const { url, headers } = createAuthenticatedFetchTarget(camera.url);
+    const response = await fetch(url, { headers, redirect: "follow" });
+    if (!response.ok || !response.body) {
+      console.error(`[HeartPet] Kamera „${camera.name}“ antwortet mit HTTP ${response.status}.`);
+      return res.sendStatus(502);
+    }
     res.set("Content-Type", response.headers.get("content-type") || "image/jpeg");
     res.set("Cache-Control", "no-store");
     return Readable.fromWeb(response.body).pipe(res);
-  } catch {
+  } catch (error) {
+    console.error(`[HeartPet] Kamera „${camera.name}“ nicht erreichbar:`, error.message);
     return res.sendStatus(502);
   }
 });
@@ -2561,6 +2589,7 @@ app.post("/admin/settings", requireAdmin, upload.single("app_logo"), (req, res) 
 
   const urlSettingKeys = new Set([
     "homematic_door_open_url",
+    "homematic_door_close_url",
     "homematic_temperature_url",
     "homematic_humidity_url",
   ]);
@@ -5190,14 +5219,29 @@ async function fetchWithTimeout(url, timeoutMs = 3000) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { signal: controller.signal, redirect: "follow" });
+    const target = createAuthenticatedFetchTarget(url);
+    return await fetch(target.url, { headers: target.headers, signal: controller.signal, redirect: "follow" });
   } finally {
     clearTimeout(timeout);
   }
 }
 
+function createAuthenticatedFetchTarget(value) {
+  const url = new URL(String(value || "").trim());
+  const headers = {};
+  if (url.username || url.password) {
+    const username = decodeURIComponent(url.username);
+    const password = decodeURIComponent(url.password);
+    headers.Authorization = `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;
+    url.username = "";
+    url.password = "";
+  }
+  return { url: url.toString(), headers };
+}
+
 function findHomematicValue(value, preferredKeys) {
-  if (typeof value === "number" || typeof value === "string") {
+  if (typeof value === "number") return value;
+  if (typeof value === "string") {
     const match = String(value).replace(",", ".").match(/-?\d+(?:\.\d+)?/);
     return match ? Number(match[0]) : null;
   }
@@ -5205,17 +5249,34 @@ function findHomematicValue(value, preferredKeys) {
 
   const entries = Object.entries(value);
   for (const preferredKey of preferredKeys) {
-    const match = entries.find(([key]) => key.toLowerCase() === preferredKey);
+    const match = entries.find(([key]) => key.toLowerCase().includes(preferredKey));
     if (match) {
       const result = findHomematicValue(match[1], preferredKeys);
       if (result !== null) return result;
     }
   }
-  for (const [, nestedValue] of entries) {
+  const genericValue = entries.find(([key]) => ["value", "val", "wert"].includes(key.toLowerCase()));
+  if (genericValue) return findHomematicValue(genericValue[1], preferredKeys);
+
+  for (const [, nestedValue] of entries.filter(([, item]) => item && typeof item === "object")) {
     const result = findHomematicValue(nestedValue, preferredKeys);
     if (result !== null) return result;
   }
   return null;
+}
+
+function parseHomematicTextValue(text, preferredKeys) {
+  const normalized = String(text || "").replace(/,/g, ".");
+  const escapedKeys = preferredKeys.map((key) => key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const namedPattern = new RegExp(`(?:${escapedKeys.join("|")})[^-\\d]{0,40}(-?\\d+(?:\\.\\d+)?)`, "i");
+  const namedMatch = normalized.match(namedPattern);
+  if (namedMatch) return Number(namedMatch[1]);
+
+  const valueAttribute = normalized.match(/\b(?:value|val|wert)\s*=\s*["'](-?\d+(?:\.\d+)?)["']/i);
+  if (valueAttribute) return Number(valueAttribute[1]);
+
+  const plainNumber = normalized.trim().match(/^-?\d+(?:\.\d+)?$/);
+  return plainNumber ? Number(plainNumber[0]) : null;
 }
 
 async function readHomematicValue(url, preferredKeys) {
@@ -5227,7 +5288,7 @@ async function readHomematicValue(url, preferredKeys) {
     try {
       return findHomematicValue(JSON.parse(text), preferredKeys);
     } catch {
-      return findHomematicValue(text, preferredKeys);
+      return parseHomematicTextValue(text, preferredKeys);
     }
   } catch {
     return null;
@@ -5638,6 +5699,10 @@ function formatAuditLogEntry(entry) {
       return make("Stalltür geöffnet", "Hühnerstall", "Homematic-Befehl erfolgreich gesendet");
     case "coop.door_open_failed":
       return make("Stalltür-Befehl fehlgeschlagen", "Hühnerstall", details.error || "Homematic nicht erreichbar");
+    case "coop.door_close":
+      return make("Stalltür geschlossen", "Hühnerstall", "Homematic-Befehl erfolgreich gesendet");
+    case "coop.door_close_failed":
+      return make("Stalltür-Befehl fehlgeschlagen", "Hühnerstall", details.error || "Homematic nicht erreichbar");
     case "animal.create":
       return make("Tier angelegt", details.name || `Tier #${details.animal_id || entityId}`, details.transition_summary || `Status: ${details.status || "Aktiv"}`);
     case "animal.update":
@@ -6024,6 +6089,9 @@ function resolveAppBaseUrl(settings) {
 
 app.__test = {
   maybeSendDailyDigest,
+  createAuthenticatedFetchTarget,
+  findHomematicValue,
+  parseHomematicTextValue,
 };
 
 module.exports = app;

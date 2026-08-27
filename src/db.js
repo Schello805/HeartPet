@@ -57,6 +57,7 @@ function seedDefaults(db) {
     last_daily_digest_date: "",
     coop_camera_streams: "",
     homematic_door_open_url: "",
+    homematic_door_close_url: "",
     homematic_temperature_url: "",
     homematic_humidity_url: "",
     help_contact: "Support-Kontakt: [Name / Organisation], [E-Mail], [Telefon optional]",

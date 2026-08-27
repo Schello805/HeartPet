@@ -118,7 +118,7 @@
   <section class="card border-0 bg-body-tertiary admin-section-card" id="huehnerstall">
     <div class="card-body">
       <form method="post" action="/admin/settings" class="vstack gap-3 compact-workflow-form">
-        <input type="hidden" name="_fields" value="coop_camera_streams,homematic_door_open_url,homematic_temperature_url,homematic_humidity_url" />
+        <input type="hidden" name="_fields" value="coop_camera_streams,homematic_door_open_url,homematic_door_close_url,homematic_temperature_url,homematic_humidity_url" />
         <div>
           <p class="eyebrow mb-1">Hühnerstall</p>
           <h2 class="h4 mb-1">Kameras und Steuerung</h2>
@@ -135,6 +135,10 @@
               <div>
                 <label class="form-label" for="homematic_door_open_url">Befehl „Stalltür öffnen“</label>
                 <input class="form-control" id="homematic_door_open_url" type="url" name="homematic_door_open_url" value="<%= settings.homematic_door_open_url || '' %>" placeholder="http://homematic.local/..." />
+              </div>
+              <div>
+                <label class="form-label" for="homematic_door_close_url">Befehl „Stalltür schließen“</label>
+                <input class="form-control" id="homematic_door_close_url" type="url" name="homematic_door_close_url" value="<%= settings.homematic_door_close_url || '' %>" placeholder="http://homematic.local/..." />
               </div>
               <div class="row g-3">
                 <div class="col-md-6">

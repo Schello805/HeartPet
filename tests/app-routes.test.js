@@ -21,6 +21,18 @@ const app = require("../src/app");
 const agent = request.agent(app);
 const db = initDatabase();
 
+test("Kamera-Zugangsdaten werden als Basic-Auth-Header statt in der Fetch-URL verwendet", () => {
+  const target = app.__test.createAuthenticatedFetchTarget("http://admin:p%40ss%21@192.168.1.80/video/mjpg.cgi");
+  assert.equal(target.url, "http://192.168.1.80/video/mjpg.cgi");
+  assert.equal(target.headers.Authorization, `Basic ${Buffer.from("admin:p@ss!").toString("base64")}`);
+});
+
+test("Homematic-Klimawerte ignorieren IDs und lesen JSON- oder XML-Werte", () => {
+  assert.equal(app.__test.parseHomematicTextValue('<state><datapoint ise_id="1234" value="21.7"/></state>', ["temperature", "temperatur", "temp"]), 21.7);
+  assert.equal(app.__test.findHomematicValue({ ise_id: 1234, HmIP_TEMPERATURE: 19.4 }, ["temperature", "temperatur", "temp"]), 19.4);
+  assert.equal(app.__test.findHomematicValue({ id: 99, value: 63 }, ["humidity", "luftfeuchte", "feuchte", "hum"]), 63);
+});
+
 async function ensureSetupComplete() {
   const setupPage = await agent.get("/setup");
   if (setupPage.status !== 200) {
