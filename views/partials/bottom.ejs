@@ -20,6 +20,7 @@
           <a href="/datenschutz">Datenschutzerklärung</a>
           <a href="/kontakt">Kontakt</a>
           <a href="/hilfe">Hilfe</a>
+          <% if (permissions.canManageAdmin) { %><a href="/admin/allgemein">Verwaltung</a><% } %>
           <a href="/cookies">Cookie-Hinweise</a>
           <span class="text-body-secondary">Rev. <%= typeof appRevision !== 'undefined' ? appRevision : 'dev' %></span>
         </div>

@@ -88,12 +88,12 @@
         </div>
 
         <header class="navbar app-mobile-topbar d-lg-none sticky-top px-3 py-2">
-          <button class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileNavOffcanvas" aria-controls="mobileNavOffcanvas">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"/></svg> Menü
-          </button>
-          <div class="d-flex flex-column align-items-center text-center flex-grow-1 mx-3 overflow-hidden">
-            <strong class="fs-6 lh-sm text-truncate w-100"><%= appSettings.app_name || "HeartPet" %></strong>
-            <span class="small text-body-secondary text-truncate w-100"><%= pageTitle %></span>
+          <a class="app-mobile-brand" href="/" aria-label="Zum Dashboard">
+            <img src="<%= resolvedAppLogoUrl %>" alt="" width="38" height="38" />
+          </a>
+          <div class="d-flex flex-column align-items-start flex-grow-1 mx-2 overflow-hidden">
+            <strong class="fs-6 lh-sm text-truncate w-100"><%= pageTitle %></strong>
+            <span class="small text-body-secondary text-truncate w-100"><%= appSettings.app_name || "HeartPet" %></span>
           </div>
           <% if (permissions.canEditAnimals && currentPath === '/') { %>
             <a href="/animals/new" class="btn btn-primary btn-sm" data-drawer="animal-form">Neu</a>
@@ -116,31 +116,28 @@
             </header>
 
             <div class="main-content-inner">
-              <div class="offcanvas offcanvas-start app-mobile-offcanvas d-lg-none" tabindex="-1" id="mobileNavOffcanvas" aria-labelledby="mobileNavOffcanvasLabel">
+              <div class="offcanvas offcanvas-bottom app-mobile-offcanvas d-lg-none" tabindex="-1" id="mobileNavOffcanvas" aria-labelledby="mobileNavOffcanvasLabel">
                 <div class="offcanvas-header border-bottom">
                   <div>
-                    <h5 class="offcanvas-title mb-1" id="mobileNavOffcanvasLabel"><%= appSettings.app_name || "HeartPet" %></h5>
-                    <p class="mb-0 small text-body-secondary">Navigation</p>
+                    <h5 class="offcanvas-title mb-1" id="mobileNavOffcanvasLabel">Mehr</h5>
+                    <p class="mb-0 small text-body-secondary">Konto, Hilfe und Verwaltung</p>
                   </div>
                   <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Schließen"></button>
                 </div>
                 <div class="offcanvas-body d-flex flex-column gap-4">
-                  <div class="app-sidebar-brand app-sidebar-brand-mobile">
-                    <img class="brand-logo" src="<%= resolvedAppLogoUrl %>" alt="HeartPet Logo" />
-                    <div class="brand-text">
-                      <strong><%= appSettings.app_name || "HeartPet" %></strong>
-                      <span><%= appSettings.organization_name || "Tierverwaltung auf einen Blick" %></span>
-                    </div>
-                  </div>
-
-                  <%- include('./sidebar-nav', { navScope: 'mobile' }) %>
-
-                  <div class="nav flex-column gap-2">
-                    <a class="btn btn-outline-secondary text-start" href="/impressum">Impressum</a>
-                    <a class="btn btn-outline-secondary text-start" href="/datenschutz">Datenschutz</a>
-                    <a class="btn btn-outline-secondary text-start" href="/kontakt">Kontakt</a>
-                    <a class="btn btn-outline-secondary text-start" href="/hilfe">Hilfe</a>
-                    <a class="btn btn-outline-secondary text-start" href="/cookies">Cookies</a>
+                  <div class="row g-2">
+                    <% if (permissions.canManageAdmin) { %>
+                      <div class="col-12">
+                        <a class="btn btn-primary w-100 text-start p-3" href="/admin/allgemein">
+                          <strong class="d-block">Verwaltung</strong>
+                          <span class="small opacity-75">Einstellungen und System</span>
+                        </a>
+                      </div>
+                    <% } %>
+                    <div class="col-6"><a class="btn btn-outline-secondary w-100 text-start p-3" href="/hilfe"><strong class="d-block">Hilfe</strong><span class="small">Anleitungen</span></a></div>
+                    <div class="col-6"><a class="btn btn-outline-secondary w-100 text-start p-3" href="/kontakt"><strong class="d-block">Kontakt</strong><span class="small">Rückfragen</span></a></div>
+                    <div class="col-6"><a class="btn btn-outline-secondary w-100 text-start p-3" href="/impressum">Impressum</a></div>
+                    <div class="col-6"><a class="btn btn-outline-secondary w-100 text-start p-3" href="/datenschutz">Datenschutz</a></div>
                   </div>
 
                   <div class="app-mobile-account mt-auto">
@@ -153,3 +150,26 @@
                   </div>
                 </div>
               </div>
+
+              <nav class="app-mobile-bottom-nav d-lg-none" aria-label="Mobile Hauptnavigation">
+                <a class="app-mobile-nav-item <%= currentPath === '/' ? 'active' : '' %>" href="/">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5v8a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+                  <span>Start</span>
+                </a>
+                <a class="app-mobile-nav-item <%= currentPath === '/animals' || /^\/animals\/\d+/.test(currentPath || '') ? 'active' : '' %>" href="/animals">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.4 11.3c1.2 0 2.1-1.2 2.1-2.7S9.6 6 8.4 6 6.3 7.2 6.3 8.6s.9 2.7 2.1 2.7Zm7.2 0c1.2 0 2.1-1.2 2.1-2.7S16.8 6 15.6 6s-2.1 1.2-2.1 2.6.9 2.7 2.1 2.7ZM5.5 15c1 0 1.8-1 1.8-2.2s-.8-2.2-1.8-2.2-1.8 1-1.8 2.2S4.5 15 5.5 15Zm13 0c1 0 1.8-1 1.8-2.2s-.8-2.2-1.8-2.2-1.8 1-1.8 2.2.8 2.2 1.8 2.2ZM12 12.2c-2.7 0-5.2 2.5-5.2 4.8 0 1.8 1.5 3 3.3 3 .7 0 1.3-.3 1.9-.3s1.2.3 1.9.3c1.8 0 3.3-1.2 3.3-3 0-2.3-2.5-4.8-5.2-4.8Z"/></svg>
+                  <span>Tiere</span>
+                </a>
+                <a class="app-mobile-nav-item <%= currentPath === '/animals/historie' ? 'active' : '' %>" href="/animals/historie">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5a7 7 0 1 1-6.5 4.4M3 5v5h5M12 8v4l3 2"/></svg>
+                  <span>Historie</span>
+                </a>
+                <a class="app-mobile-nav-item <%= currentPath === '/animals/ruhestaette' ? 'active' : '' %>" href="/animals/ruhestaette">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.7A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"/></svg>
+                  <span>Ruhestätte</span>
+                </a>
+                <button class="app-mobile-nav-item <%= (currentPath || '').startsWith('/admin') ? 'active' : '' %>" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileNavOffcanvas" aria-controls="mobileNavOffcanvas">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
+                  <span>Mehr</span>
+                </button>
+              </nav>

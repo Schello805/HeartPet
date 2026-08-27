@@ -137,12 +137,23 @@ test("Dashboard zeigt mobil nur einen Einstieg für ein neues Tier", async ({ pa
 
   await expect(page.locator(".app-mobile-topbar")).toBeVisible();
   await expect(page.locator(".page-header")).toBeHidden();
+  await expect(page.locator(".app-mobile-topbar").getByRole("button", { name: /Menü/ })).toHaveCount(0);
+  await expect(page.locator(".app-mobile-bottom-nav")).toBeVisible();
+  await expect(page.locator(".app-mobile-bottom-nav").getByText("Start", { exact: true })).toBeVisible();
+  await expect(page.locator(".app-mobile-bottom-nav").getByText("Tiere", { exact: true })).toBeVisible();
+  await expect(page.locator(".app-mobile-bottom-nav").getByText("Historie", { exact: true })).toBeVisible();
+  await expect(page.locator(".app-mobile-bottom-nav").getByText("Ruhestätte", { exact: true })).toBeVisible();
+  await expect(page.locator(".app-mobile-bottom-nav").getByText("Mehr", { exact: true })).toBeVisible();
   await expect(page.locator('a[data-drawer="animal-form"]:visible')).toHaveCount(1);
   await expect(page.locator("main").getByText("Was ist heute wichtig?", { exact: true })).toHaveCount(0);
 
   await page.goto("/animals");
   await expect(page.locator('a[data-drawer="animal-form"]:visible')).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Aktualisieren" })).toHaveCount(0);
+
+  await page.locator(".app-mobile-bottom-nav").getByRole("button", { name: "Mehr" }).click();
+  await expect(page.locator("#mobileNavOffcanvas")).toBeVisible();
+  await expect(page.locator("#mobileNavOffcanvas").getByRole("link", { name: /Verwaltung/ })).toHaveCount(1);
 });
 
 test("Dokumentkategorie lässt sich im Bearbeiten-Dialog speichern", async ({ page }) => {
