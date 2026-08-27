@@ -446,6 +446,57 @@ test("Einladungs-Mail für neue Benutzer wird versendet und im Audit- sowie Bena
   }
 });
 
+test("Administratoren werden bei jedem neu angelegten Benutzer per HTML-Mail informiert", async () => {
+  db.prepare("UPDATE settings SET value = ? WHERE key = ?").run("smtp.test.local", "smtp_host");
+  db.prepare("UPDATE settings SET value = ? WHERE key = ?").run("noreply@test.local", "smtp_from");
+
+  const originalCreateTransport = nodemailer.createTransport;
+  const sentMails = [];
+  nodemailer.createTransport = () => ({
+    sendMail: async (payload) => {
+      sentMails.push(payload);
+      return { messageId: "admin-user-created" };
+    },
+  });
+
+  try {
+    const response = await agent.post("/admin/users").type("form").send({
+      name: "Benachrichtigter Nutzer",
+      email: "admin-info-target@test.local",
+      role: "viewer",
+    });
+
+    assert.ok([302, 303].includes(response.status));
+    assert.equal(sentMails.length, 1);
+    assert.deepEqual(sentMails[0].to, ["admin@test.local"]);
+    assert.match(sentMails[0].subject, /Neuer Benutzer angelegt/);
+    assert.match(sentMails[0].html, /Benachrichtigter Nutzer/);
+    assert.match(sentMails[0].html, /Benutzer verwalten/);
+    assert.match(sentMails[0].text, /admin-info-target@test\.local/);
+
+    const user = db.prepare("SELECT id FROM users WHERE email = ?").get("admin-info-target@test.local");
+    const notification = db.prepare(`
+      SELECT notification_type, recipient, status
+      FROM notification_logs
+      WHERE notification_type = 'admin_user_created' AND recipient = ?
+      ORDER BY id DESC LIMIT 1
+    `).get("admin@test.local");
+    assert.deepEqual(notification, {
+      notification_type: "admin_user_created",
+      recipient: "admin@test.local",
+      status: "sent",
+    });
+    const audit = db.prepare(`
+      SELECT action FROM audit_logs
+      WHERE entity_type = 'user' AND entity_id = ? AND action = 'user.admin_notification_sent'
+      ORDER BY id DESC LIMIT 1
+    `).get(String(user.id));
+    assert.equal(audit?.action, "user.admin_notification_sent");
+  } finally {
+    nodemailer.createTransport = originalCreateTransport;
+  }
+});
+
 test("Fehlgeschlagene Einladungs-Mail für neue Benutzer erscheint im Audit- und Benachrichtigungslog", async () => {
   db.prepare("UPDATE settings SET value = ? WHERE key = ?").run("smtp.test.local", "smtp_host");
   db.prepare("UPDATE settings SET value = ? WHERE key = ?").run("noreply@test.local", "smtp_from");
@@ -611,6 +662,7 @@ test("Fehlgeschlagenes erneutes Senden einer Einladungs-Mail wird protokolliert"
     assert.ok(auditLogs.some((entry) => entry.action === "user.invite_email_resend_failed"));
   } finally {
     nodemailer.createTransport = originalCreateTransport;
+    db.prepare("UPDATE settings SET value = '' WHERE key IN ('smtp_host', 'smtp_from')").run();
   }
 });
 

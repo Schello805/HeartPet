@@ -29,6 +29,7 @@ const {
   sendTestEmail,
   sendTestTelegram,
   sendUserInviteEmail,
+  sendUserCreatedAdminEmail,
   sendEmailChangeConfirmation,
   verifySmtpConnection,
   isEmailEnabled,
@@ -2791,6 +2792,13 @@ app.post("/admin/users", requireAdmin, async (req, res) => {
   );
   createAuditLog(req, "user.create", { target_user_id: userResult.lastInsertRowid, role, email }, { entityType: "user", entityId: userResult.lastInsertRowid });
 
+  await notifyAdminsAboutCreatedUser(req, {
+    id: userResult.lastInsertRowid,
+    name,
+    email,
+    role,
+  });
+
   if (req.body.send_invite_email) {
     try {
       await sendInviteEmailForUser(req, {
@@ -4781,6 +4789,65 @@ async function sendInviteEmailForUser(req, user, options = {}) {
   }
 }
 
+async function notifyAdminsAboutCreatedUser(req, user) {
+  const recipients = db.prepare(`
+    SELECT email
+    FROM users
+    WHERE role = 'admin' AND id != ? AND TRIM(COALESCE(email, '')) != ''
+    ORDER BY id ASC
+  `).all(user.id).map((entry) => String(entry.email || "").trim().toLowerCase()).filter(Boolean);
+
+  if (!recipients.length) {
+    return;
+  }
+
+  const recipientLabel = recipients.join(", ");
+  try {
+    const settings = getSettingsObject(db);
+    const appBaseUrl = resolveAppBaseUrl(settings);
+    await sendUserCreatedAdminEmail(settings, {
+      recipients,
+      name: user.name,
+      email: user.email,
+      roleLabel: getRoleLabel(user.role),
+      createdBy: req.session.user?.name || req.session.user?.email || "Administrator",
+      usersUrl: `${appBaseUrl}/admin/benutzer`,
+    });
+    createNotificationLog({
+      userId: req.session.user?.id,
+      channel: "email",
+      type: "admin_user_created",
+      recipient: recipientLabel,
+      subject: "Neuer Benutzer angelegt",
+      status: "sent",
+      details: { target_user_id: user.id },
+    });
+    createAuditLog(req, "user.admin_notification_sent", {
+      target_user_id: user.id,
+      email: user.email,
+      recipients,
+    }, { entityType: "user", entityId: user.id });
+  } catch (error) {
+    console.error("[HeartPet] Admin-Benachrichtigung fehlgeschlagen:", error.message);
+    createNotificationLog({
+      userId: req.session.user?.id,
+      channel: "email",
+      type: "admin_user_created",
+      recipient: recipientLabel,
+      subject: "Neuer Benutzer angelegt",
+      status: "error",
+      error: error.message,
+      details: { target_user_id: user.id },
+    });
+    createAuditLog(req, "user.admin_notification_failed", {
+      target_user_id: user.id,
+      email: user.email,
+      recipients,
+      error: error.message,
+    }, { entityType: "user", entityId: user.id });
+  }
+}
+
 function renderNotFound(req, res, message) {
   res.status(404).render("pages/not-found", {
     pageTitle: "Nicht gefunden",
@@ -5254,6 +5321,10 @@ function formatAuditLogEntry(entry) {
     case "user.invite_email_failed":
     case "user.invite_email_resend_failed":
       return make("Einladungs-Mail fehlgeschlagen", details.email || `Benutzer #${details.user_id || entityId}`, details.error || "Versandfehler");
+    case "user.admin_notification_sent":
+      return make("Admin informiert", details.email || `Benutzer #${details.target_user_id || entityId}`, "Neuer Benutzer wurde den Administratoren gemeldet");
+    case "user.admin_notification_failed":
+      return make("Admin-Benachrichtigung fehlgeschlagen", details.email || `Benutzer #${details.target_user_id || entityId}`, details.error || "Versandfehler");
     default:
       return fallback;
   }

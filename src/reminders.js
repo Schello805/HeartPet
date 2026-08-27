@@ -198,6 +198,53 @@ async function sendUserInviteEmail(settings, payload) {
   });
 }
 
+async function sendUserCreatedAdminEmail(settings, payload) {
+  const recipients = Array.isArray(payload?.recipients)
+    ? payload.recipients.map((email) => String(email || "").trim()).filter(Boolean)
+    : [];
+  if (!recipients.length) {
+    throw new Error("Keine Administrator-Adresse für die Benachrichtigung angegeben.");
+  }
+  if (!settings.smtp_host || !settings.smtp_from) {
+    throw new Error("SMTP ist nicht vollständig konfiguriert.");
+  }
+
+  const transporter = createSmtpTransport(settings);
+  const appName = settings.app_name || "HeartPet";
+  const appBaseUrl = getAppBaseUrl(settings);
+  const logoFilePath = getAppLogoFilePath(settings);
+  const logoCid = "heartpet-admin-user-logo";
+  const { attachments, logoUrl } = resolveEmailLogo({ logoFilePath, logoCid, appBaseUrl });
+  const html = buildUserCreatedAdminEmailHtml({
+    appName,
+    logoUrl,
+    name: payload.name || "-",
+    email: payload.email || "-",
+    role: payload.roleLabel || "Benutzer",
+    createdBy: payload.createdBy || "Administrator",
+    usersUrl: payload.usersUrl || `${appBaseUrl}/admin/benutzer`,
+  });
+  const text = [
+    `${appName} - Neuer Benutzer angelegt`,
+    "",
+    `Name: ${payload.name || "-"}`,
+    `E-Mail: ${payload.email || "-"}`,
+    `Rolle: ${payload.roleLabel || "Benutzer"}`,
+    `Angelegt von: ${payload.createdBy || "Administrator"}`,
+    "",
+    `Benutzer verwalten: ${payload.usersUrl || `${appBaseUrl}/admin/benutzer`}`,
+  ].join("\n");
+
+  await transporter.sendMail({
+    from: settings.smtp_from,
+    to: recipients,
+    subject: `[${appName}] Neuer Benutzer angelegt: ${payload.name || payload.email || "Benutzer"}`,
+    text,
+    html,
+    attachments,
+  });
+}
+
 async function sendTestEmail(settings) {
   await sendEmailReminder(settings, {
     animal_name: "Testtier",
@@ -578,6 +625,49 @@ function buildUserInviteEmailHtml(payload) {
   `.trim();
 }
 
+function buildUserCreatedAdminEmailHtml(payload) {
+  const { appName, logoUrl, name, email, role, createdBy, usersUrl } = payload;
+  const safe = (value) =>
+    String(value || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;");
+  const row = (label, value) => `
+    <tr>
+      <td style="padding:7px 0;color:#5f7b6f;font-size:13px;">${safe(label)}</td>
+      <td style="padding:7px 0;color:#1d3128;font-size:14px;font-weight:600;text-align:right;">${safe(value)}</td>
+    </tr>
+  `;
+
+  return `
+<!doctype html>
+<html lang="de">
+  <body style="margin:0;padding:0;background:#f2faf6;font-family:Manrope,Segoe UI,Arial,sans-serif;color:#1d3128;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f2faf6;padding:24px 12px;">
+      <tr><td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#fcfffd;border:1px solid #cfe5d8;border-radius:10px;overflow:hidden;">
+          <tr><td style="padding:18px 20px;background:linear-gradient(180deg,#f2fbf6 0%,#eaf7f0 100%);border-bottom:1px solid #cfe5d8;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>
+              <td><div style="font-size:12px;color:#5f7b6f;letter-spacing:.08em;text-transform:uppercase;">${safe(appName)}</div><div style="font-size:22px;font-weight:800;margin-top:4px;">Neuer Benutzer angelegt</div></td>
+              <td align="right">${logoUrl ? `<img src="${safe(logoUrl)}" alt="${safe(appName)} Logo" style="width:64px;height:64px;object-fit:contain;" />` : ""}</td>
+            </tr></table>
+          </td></tr>
+          <tr><td style="padding:18px 20px;">
+            <p style="margin:0 0 12px;font-size:15px;line-height:1.5;color:#31483f;">In <strong>${safe(appName)}</strong> wurde ein neuer Zugang eingerichtet.</p>
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+              ${row("Name", name)}${row("E-Mail", email)}${row("Rolle", role)}${row("Angelegt von", createdBy)}
+            </table>
+            <div style="margin-top:18px;"><a href="${safe(usersUrl)}" style="display:inline-block;padding:10px 14px;border-radius:7px;background:linear-gradient(180deg,#42b084 0%,#2e9a6f 100%);color:#fff;text-decoration:none;font-weight:700;font-size:13px;">Benutzer verwalten</a></div>
+          </td></tr>
+          <tr><td style="padding:14px 20px;border-top:1px solid #e1f0e8;background:#f8fdfb;font-size:12px;color:#6f897d;line-height:1.5;">Diese Sicherheitsinformation wurde automatisch von ${safe(appName)} versendet.</td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>`.trim();
+}
+
 function buildEmailChangeConfirmationHtml(payload) {
   const { appName, logoUrl, name, newEmail, confirmUrl } = payload;
   const safe = (value) =>
@@ -832,6 +922,7 @@ module.exports = {
   sendDailyDigestEmail,
   sendDailyDigestTelegram,
   sendUserInviteEmail,
+  sendUserCreatedAdminEmail,
   sendEmailChangeConfirmation,
   sendTestEmail,
   sendTestTelegram,
