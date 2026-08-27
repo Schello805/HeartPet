@@ -16,9 +16,9 @@ test("Tierstatus wird normalisiert und Lifecycle-Bereiche bleiben eindeutig", ()
     status: "Verstorben",
     isActive: false,
     isArchived: true,
-    inHistory: false,
+    inHistory: true,
     inRestingPlace: true,
-    label: "Diese Akte ist in der Ruhestätte und wird nur noch dokumentiert.",
+    label: "Diese Akte liegt als verstorbenes Tier in der Historie und wird nur noch dokumentiert.",
     hint: "Neue Erinnerungen oder Alltags-Einträge sollten hier nicht mehr entstehen. Bestehende Informationen bleiben zur Erinnerung erhalten.",
   });
   assert.equal(getAnimalLifecycle("Verkauft").inHistory, true);

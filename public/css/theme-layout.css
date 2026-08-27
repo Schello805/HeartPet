@@ -679,10 +679,6 @@ small {
     padding: 0 18px;
   }
 
-  .resting-place-intro h2 {
-    font-size: 1.45rem;
-  }
-
   .animal-hero-meta-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -798,8 +794,7 @@ small {
 
 @media (max-width: 640px) {
   .animals-summary-grid,
-  .animal-hero-meta-grid,
-  .resting-place-facts {
+  .animal-hero-meta-grid {
     grid-template-columns: 1fr;
   }
 

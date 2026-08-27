@@ -1172,7 +1172,7 @@ test("Dashboard verlinkt die Tier-Karte auf die Tierübersicht und zeigt die ein
   assert.match(response.text, /Aktive Tiere nach Tierart/);
 });
 
-test("Tiere, Historie und Ruhestätte trennen die Bestände sauber", async () => {
+test("Aktiver Bestand und Historie trennen die Bestände sauber", async () => {
   const speciesId = db.prepare("SELECT species_id FROM animals WHERE id = 1").get()?.species_id;
   assert.ok(speciesId);
   const vermittelteId = db.prepare("INSERT INTO animals (name, species_id, status) VALUES (?, ?, ?)").run("Luna", speciesId, "Vermittelt").lastInsertRowid;
@@ -1190,31 +1190,30 @@ test("Tiere, Historie und Ruhestätte trennen die Bestände sauber", async () =>
   assert.equal(historyPage.status, 200);
   assert.match(historyPage.text, /Historie/);
   assert.match(historyPage.text, /Luna/);
-  assert.doesNotMatch(historyPage.text, /Max/);
+  assert.match(historyPage.text, /Max/);
 
   const restingPage = await agent.get("/animals/ruhestaette");
-  assert.equal(restingPage.status, 200);
-  assert.match(restingPage.text, /Ruhestätte/);
-  assert.match(restingPage.text, /Max/);
-  assert.doesNotMatch(restingPage.text, /Luna/);
+  assert.equal(restingPage.status, 302);
+  assert.equal(restingPage.headers.location, "/animals/historie?status=Verstorben");
 
   assert.equal(db.prepare("SELECT status FROM animals WHERE id = ?").get(vermittelteId)?.status, "Vermittelt");
   assert.equal(db.prepare("SELECT status FROM animals WHERE id = ?").get(verstorbenId)?.status, "Verstorben");
 });
 
-test("Ruhestätte bleibt auf verstorbene Tiere begrenzt und verlinkt nicht in den aktiven Bestand", async () => {
+test("Historie kann gezielt nach verstorbenen Tieren filtern", async () => {
   const speciesId = db.prepare("SELECT species_id FROM animals WHERE id = 1").get()?.species_id;
   assert.ok(speciesId);
   db.prepare("INSERT INTO animals (name, species_id, status) VALUES (?, ?, ?)").run("Archivkater", speciesId, "Verstorben");
   db.prepare("INSERT INTO animals (name, species_id, status) VALUES (?, ?, ?)").run("Aktivkater", speciesId, "Aktiv");
 
-  const filteredPage = await agent.get(`/animals/ruhestaette?species_id=${speciesId}&sort=name_asc`);
+  const filteredPage = await agent.get(`/animals/historie?status=Verstorben&species_id=${speciesId}&sort=name_asc`);
   assert.equal(filteredPage.status, 200);
-  assert.match(filteredPage.text, /Ruhestätte/);
+  assert.match(filteredPage.text, /Historie/);
   assert.match(filteredPage.text, /Archivkater/);
   assert.doesNotMatch(filteredPage.text, /Aktivkater/);
   assert.doesNotMatch(filteredPage.text, /href="\/animals\?species_id=/);
-  assert.match(filteredPage.text, /href="\/animals\/\d+"/);
+  assert.match(filteredPage.text, /data-animal-workspace-link="true"/);
+  assert.match(filteredPage.text, /status=Verstorben/);
 });
 
 test("Historie behält Filter- und Listenaktionen im Historie-Bereich", async () => {
@@ -1235,18 +1234,15 @@ test("Tierarten-Untermenü erscheint nur im aktiven Bestand", async () => {
   assert.equal(activePage.status, 200);
   assert.match(activePage.text, /href="\/animals\?species_id=/);
   assert.match(activePage.text, /nav-link-archive[\s\S]*href="\/animals\/historie"/);
-  assert.match(activePage.text, /nav-link-archive[\s\S]*href="\/animals\/ruhestaette"/);
+  assert.doesNotMatch(activePage.text, /href="\/animals\/ruhestaette"/);
 
   const historyPage = await agent.get("/animals/historie");
   assert.equal(historyPage.status, 200);
   assert.doesNotMatch(historyPage.text, /href="\/animals\?species_id=/);
 
-  const restingPage = await agent.get("/animals/ruhestaette");
-  assert.equal(restingPage.status, 200);
-  assert.doesNotMatch(restingPage.text, /href="\/animals\?species_id=/);
 });
 
-test("Beim Verschieben in die Ruhestätte werden offene Erinnerungen immer abgeschlossen", async () => {
+test("Beim Verschieben eines verstorbenen Tieres in die Historie werden offene Erinnerungen immer abgeschlossen", async () => {
   db.prepare(`
     INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, notes)
     VALUES (?, ?, ?, ?, 1, 0, ?)
@@ -1275,11 +1271,11 @@ test("Beim Verschieben in die Ruhestätte werden offene Erinnerungen immer abges
     notes: "",
     status_context_date: "2026-07-24",
     status_transition_confirmed: "true",
-    return_to: "/animals/ruhestaette",
+    return_to: "/animals/historie?status=Verstorben",
   });
 
   assert.equal(response.status, 302);
-  assert.equal(response.headers.location, "/animals/ruhestaette");
+  assert.equal(response.headers.location, "/animals/historie?status=Verstorben");
 
   const reminderStates = db.prepare(`
     SELECT completed_at, last_delivery_status
@@ -1372,7 +1368,7 @@ test("Wechsel aus dem aktiven Bestand braucht eine ausdrückliche Bestätigung",
   assert.equal(animal?.status, "Aktiv");
 });
 
-test("Statuswechsel speichert Abschlussdaten und zeigt sie in Historie und Ruhestätte konsistent", async () => {
+test("Statuswechsel speichert Abschlussdaten und zeigt alle Statuswerte in der Historie konsistent", async () => {
   const speciesId = db.prepare("SELECT id FROM species ORDER BY id ASC LIMIT 1").get()?.id;
   const speciesName = db.prepare("SELECT name FROM species WHERE id = ?").get(speciesId)?.name || "Katze";
   const historyAnimalId = db.prepare("INSERT INTO animals (name, species_id, status) VALUES (?, ?, ?)").run("Milo", speciesId, "Aktiv").lastInsertRowid;
@@ -1398,7 +1394,7 @@ test("Statuswechsel speichert Abschlussdaten und zeigt sie in Historie und Ruhes
     status_context_date: "2026-07-21",
     memorial_note: "Sehr geliebte Begleiterin.",
     status_transition_confirmed: "true",
-    return_to: "/animals/ruhestaette",
+    return_to: "/animals/historie?status=Verstorben",
   });
   assert.equal(restingMove.status, 302);
 
@@ -1428,7 +1424,7 @@ test("Statuswechsel speichert Abschlussdaten und zeigt sie in Historie und Ruhes
   assert.match(historyPage.text, /Familie Sommer/);
   assert.match(historyPage.text, /20\.07\.2026/);
 
-  const restingPage = await agent.get("/animals/ruhestaette");
+  const restingPage = await agent.get("/animals/historie?status=Verstorben");
   assert.equal(restingPage.status, 200);
   assert.match(restingPage.text, /Zuhause im Körbchen/);
   assert.match(restingPage.text, /Sehr geliebte Begleiterin\./);

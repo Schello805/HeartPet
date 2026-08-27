@@ -17,19 +17,13 @@
     <section class="card border-0">
       <div class="card-body p-4">
         <h2 class="h4 mb-2">
-          <%= sectionState.key === 'history'
-            ? 'Historie'
-            : sectionState.key === 'resting'
-              ? 'Ruhestätte'
-              : 'Tier auswählen' %>
+          <%= sectionState.key === 'history' ? 'Historie' : 'Tier auswählen' %>
         </h2>
         <p class="fw-semibold mb-1"><%= sectionState.key === 'active' ? 'Noch kein Tier ausgewählt' : 'Noch keine Auswahl' %></p>
         <p class="text-body-secondary mb-0">
           <%= sectionState.key === 'history'
-            ? 'Sobald vermittelte oder verkaufte Tiere vorhanden sind, kannst du sie oben aus der Liste wählen und ihre Akten weiter einsehen.'
-            : sectionState.key === 'resting'
-              ? 'Sobald verstorbene Tiere vorhanden sind, erscheinen sie hier in der Ruhestätte und können weiter würdevoll eingesehen werden.'
-              : 'Wähle oben ein Tier aus der Liste, um die Akte direkt darunter zu öffnen.' %>
+            ? 'Sobald vermittelte, verkaufte oder verstorbene Tiere vorhanden sind, kannst du sie oben auswählen und ihre Akten weiter einsehen.'
+            : 'Wähle oben ein Tier aus der Liste, um die Akte direkt darunter zu öffnen.' %>
         </p>
       </div>
     </section>

@@ -634,7 +634,7 @@ function initAnimalStatusWorkflow(scope = document) {
     const confirmLabels = {
       Vermittelt: "Ich bestätige, dass dieses Tier als vermittelt in die Historie wechseln soll.",
       Verkauft: "Ich bestätige, dass dieses Tier als verkauft in die Historie wechseln soll.",
-      Verstorben: "Ich bestätige, dass dieses Tier als verstorben in die Ruhestätte wechseln soll.",
+      Verstorben: "Ich bestätige, dass dieses Tier als verstorben in die Historie wechseln soll.",
     };
     const chipTones = {
       Aktiv: "status-success",

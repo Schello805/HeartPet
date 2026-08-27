@@ -33,14 +33,14 @@
       confirmLabel: 'Ich bestätige, dass dieses Tier als verkauft in die Historie wechseln soll.',
     },
     Verstorben: {
-      title: 'Wechsel in die Ruhestätte',
+      title: 'Wechsel in die Historie',
       tone: 'secondary',
-      intro: 'Das Tier wird aus dem aktiven Bestand genommen und würdevoll in die Ruhestätte verschoben.',
+      intro: 'Das Tier wird aus dem aktiven Bestand genommen und als verstorben in der Historie bewahrt.',
       bullets: [
         'Offene Erinnerungen werden geschlossen.',
-        'Das Tier erscheint danach nur noch unter „Ruhestätte“.',
+        'Das Tier erscheint danach unter „Historie“ und kann dort nach „Verstorben“ gefiltert werden.',
       ],
-      confirmLabel: 'Ich bestätige, dass dieses Tier als verstorben in die Ruhestätte wechseln soll.',
+      confirmLabel: 'Ich bestätige, dass dieses Tier als verstorben in die Historie wechseln soll.',
     },
   };
   const currentTransitionConfig = {
@@ -131,7 +131,7 @@
                     <option value="<%= status %>" <%= currentStatus === status ? 'selected' : '' %>><%= status %></option>
                   <% }) %>
                 </select>
-                <div class="form-text">Ein Statuswechsel verschiebt die Akte automatisch in Historie oder Ruhestätte.</div>
+                <div class="form-text">Ein Statuswechsel verschiebt die Akte automatisch in die Historie.</div>
               </div>
             <% } else { %>
               <input type="hidden" name="status" value="Aktiv" />

@@ -713,11 +713,11 @@ app.get("/animals/history", (req, res) => {
 });
 
 app.get("/animals/ruhestaette", (req, res) => {
-  renderAnimalsWorkspace(req, res, "resting");
+  res.redirect("/animals/historie?status=Verstorben");
 });
 
 app.get("/animals/ruhestatte", (req, res) => {
-  res.redirect("/animals/ruhestaette");
+  res.redirect("/animals/historie?status=Verstorben");
 });
 
 app.get("/suche", (req, res) => {
@@ -1116,9 +1116,7 @@ app.post("/animals/:id/update", requireAnimalEditor, (req, res) => {
 
   const lifecycle = getAnimalLifecycle(payload.status);
   const successMessage = requiresAnimalStatusTransitionConfirmation(animal.status, payload.status)
-    ? lifecycle.inRestingPlace
-      ? "Tier wurde in die Ruhestätte verschoben."
-      : "Tier wurde in die Historie verschoben."
+    ? "Tier wurde in die Historie verschoben."
     : "Tierdaten wurden aktualisiert.";
 
   if (statusChanged) {
@@ -4124,22 +4122,11 @@ function getAnimalSectionConfig(section) {
       basePath: "/animals/historie",
       pageTitle: "Historie",
       workspaceTitle: "Historie",
-      workspaceIntro: "Hier findest du vermittelte oder verkaufte Tiere als Bestandsverlauf.",
+      workspaceIntro: "Hier findest du vermittelte, verkaufte und verstorbene Tiere als Bestandsverlauf.",
       totalLabel: "historische Tiere",
-      allowedStatuses: ["Vermittelt", "Verkauft"],
+      allowedStatuses: ["Vermittelt", "Verkauft", "Verstorben"],
       defaultStatus: "",
       allowStatusFilter: true,
-    },
-    resting: {
-      key: "resting",
-      basePath: "/animals/ruhestaette",
-      pageTitle: "Ruhestätte",
-      workspaceTitle: "Ruhestätte",
-      workspaceIntro: "Hier bleiben verstorbene Tiere würdevoll dokumentiert und getrennt vom aktiven Bestand.",
-      totalLabel: "Tiere in der Ruhestätte",
-      allowedStatuses: ["Verstorben"],
-      defaultStatus: "Verstorben",
-      allowStatusFilter: false,
     },
   };
 

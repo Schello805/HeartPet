@@ -55,7 +55,7 @@ function normalizeAnimalStatus(status) {
 function getAnimalLifecycle(status) {
   const normalizedStatus = normalizeAnimalStatus(status);
   const isActive = normalizedStatus === "Aktiv";
-  const inHistory = normalizedStatus === "Vermittelt" || normalizedStatus === "Verkauft";
+  const inHistory = !isActive;
   const inRestingPlace = normalizedStatus === "Verstorben";
 
   return {
@@ -65,7 +65,7 @@ function getAnimalLifecycle(status) {
     inHistory,
     inRestingPlace,
     label: inRestingPlace
-      ? "Diese Akte ist in der Ruhestätte und wird nur noch dokumentiert."
+      ? "Diese Akte liegt als verstorbenes Tier in der Historie und wird nur noch dokumentiert."
       : inHistory
         ? "Diese Akte liegt in der Historie und ist nicht mehr Teil des aktiven Bestands."
         : "Diese Akte ist aktiv.",

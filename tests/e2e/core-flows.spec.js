@@ -142,7 +142,7 @@ test("Dashboard zeigt mobil nur einen Einstieg für ein neues Tier", async ({ pa
   await expect(page.locator(".app-mobile-bottom-nav").getByText("Start", { exact: true })).toBeVisible();
   await expect(page.locator(".app-mobile-bottom-nav").getByText("Tiere", { exact: true })).toBeVisible();
   await expect(page.locator(".app-mobile-bottom-nav").getByText("Historie", { exact: true })).toBeVisible();
-  await expect(page.locator(".app-mobile-bottom-nav").getByText("Ruhestätte", { exact: true })).toBeVisible();
+  await expect(page.locator(".app-mobile-bottom-nav").getByText("Ruhestätte", { exact: true })).toHaveCount(0);
   await expect(page.locator(".app-mobile-bottom-nav").getByText("Mehr", { exact: true })).toBeVisible();
   await expect(page.locator('a[data-drawer="animal-form"]:visible')).toHaveCount(1);
   await expect(page.locator("main").getByText("Was ist heute wichtig?", { exact: true })).toHaveCount(0);

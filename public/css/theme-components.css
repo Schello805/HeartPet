@@ -18,7 +18,6 @@
   }
 
   .bootstrap-app .panel,
-  .bootstrap-app .resting-place-panel,
   .bootstrap-app .animal-hero-card {
     padding: 0.9rem;
     border-radius: 1.1rem;
@@ -126,7 +125,7 @@ body.bootstrap-app {
   bottom: calc(0.55rem + env(safe-area-inset-bottom));
   left: 0.65rem;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.2rem;
   padding: 0.45rem;
   border: 1px solid rgba(142, 190, 199, 0.5);
