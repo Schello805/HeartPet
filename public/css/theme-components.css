@@ -1161,7 +1161,7 @@ body.bootstrap-app {
 
 @media (max-width: 991.98px) {
   .bootstrap-app .app-main-container {
-    padding: 0 1rem 1rem;
+    padding: 0 1rem calc(7.5rem + env(safe-area-inset-bottom));
   }
 
   .bootstrap-app .page-header-body {

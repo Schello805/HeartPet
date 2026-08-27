@@ -352,3 +352,20 @@ test("Kernseiten bleiben kompakt und kontrastreich", async ({ page }) => {
     }
   }
 });
+
+test("Mobiler Seiteninhalt endet vollständig oberhalb der Navigation", async ({ page }) => {
+  await ensureAuthenticated(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+
+  const spacing = await page.evaluate(() => {
+    const container = document.querySelector(".app-main-container");
+    const navigation = document.querySelector(".app-mobile-bottom-nav");
+    return {
+      paddingBottom: Number.parseFloat(getComputedStyle(container).paddingBottom),
+      navigationHeight: navigation.getBoundingClientRect().height,
+    };
+  });
+
+  expect(spacing.paddingBottom).toBeGreaterThan(spacing.navigationHeight);
+});
