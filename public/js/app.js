@@ -103,6 +103,109 @@ function initCameraDiagnostics() {
   });
 }
 
+function initCameraSettings() {
+  document.querySelectorAll("[data-camera-settings]").forEach((root) => {
+    if (root.dataset.bound === "1") return;
+    root.dataset.bound = "1";
+    const config = root.querySelector("[data-camera-config]");
+    const list = root.querySelector("[data-camera-settings-list]");
+    const template = root.querySelector("[data-camera-settings-template]");
+    const empty = root.querySelector("[data-camera-empty]");
+    if (!config || !list || !template) return;
+
+    const serialize = () => {
+      config.value = Array.from(list.querySelectorAll("[data-camera-settings-card], .camera-settings-card"))
+        .map((card) => {
+          const name = card.querySelector("[data-camera-name]")?.value.trim() || "";
+          const snapshotUrl = card.querySelector("[data-camera-snapshot-url]")?.value.trim() || "";
+          const streamUrl = card.querySelector("[data-camera-stream-url]")?.value.trim() || snapshotUrl;
+          return name || snapshotUrl || streamUrl ? `${name}|${snapshotUrl}|${streamUrl}` : "";
+        })
+        .filter(Boolean)
+        .join("\n");
+      empty?.classList.toggle("d-none", list.children.length > 0);
+    };
+
+    const loadPreview = async (card) => {
+      const input = card.querySelector("[data-camera-snapshot-url]");
+      const image = card.querySelector("[data-camera-preview]");
+      const wrap = card.querySelector("[data-camera-preview-wrap]");
+      const errorBox = card.querySelector("[data-camera-preview-error]");
+      const url = input?.value.trim();
+      if (!url || !image || !wrap || !errorBox) {
+        wrap?.classList.add("d-none");
+        errorBox?.classList.add("d-none");
+        return;
+      }
+      const requestId = String(Date.now());
+      card.dataset.previewRequest = requestId;
+      errorBox.textContent = "Vorschau wird geladen …";
+      errorBox.classList.remove("d-none", "alert-warning");
+      errorBox.classList.add("alert-info");
+      try {
+        const response = await fetch("/admin/coop/camera-preview", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ url }),
+        });
+        if (!response.ok) throw new Error((await response.text()) || "Vorschau konnte nicht geladen werden.");
+        const blobUrl = URL.createObjectURL(await response.blob());
+        if (card.dataset.previewRequest !== requestId) {
+          URL.revokeObjectURL(blobUrl);
+          return;
+        }
+        if (image.dataset.objectUrl) URL.revokeObjectURL(image.dataset.objectUrl);
+        image.dataset.objectUrl = blobUrl;
+        image.src = blobUrl;
+        wrap.classList.remove("d-none");
+        errorBox.classList.add("d-none");
+      } catch (error) {
+        if (card.dataset.previewRequest !== requestId) return;
+        wrap.classList.add("d-none");
+        errorBox.textContent = error.message;
+        errorBox.classList.remove("d-none", "alert-info");
+        errorBox.classList.add("alert-warning");
+      }
+    };
+
+    const addCamera = ({ name = "", snapshotUrl = "", streamUrl = "" } = {}) => {
+      const fragment = template.content.cloneNode(true);
+      const card = fragment.querySelector(".camera-settings-card");
+      card.querySelector("[data-camera-name]").value = name;
+      card.querySelector("[data-camera-snapshot-url]").value = snapshotUrl;
+      card.querySelector("[data-camera-stream-url]").value = streamUrl;
+      card.querySelector("[data-camera-heading]").textContent = name || "Neue Kamera";
+      let previewTimer;
+      card.addEventListener("input", (event) => {
+        card.querySelector("[data-camera-heading]").textContent = card.querySelector("[data-camera-name]").value.trim() || "Neue Kamera";
+        serialize();
+        if (event.target.matches("[data-camera-snapshot-url]")) {
+          window.clearTimeout(previewTimer);
+          previewTimer = window.setTimeout(() => loadPreview(card), 600);
+        }
+      });
+      card.querySelector("[data-camera-remove]").addEventListener("click", () => {
+        const image = card.querySelector("[data-camera-preview]");
+        if (image?.dataset.objectUrl) URL.revokeObjectURL(image.dataset.objectUrl);
+        card.remove();
+        serialize();
+      });
+      list.appendChild(fragment);
+      serialize();
+      if (snapshotUrl) loadPreview(card);
+    };
+
+    String(config.value || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean).forEach((line) => {
+      const parts = line.split("|").map((part) => part.trim());
+      if (parts.length === 1) addCamera({ snapshotUrl: parts[0], streamUrl: parts[0] });
+      else addCamera({ name: parts[0], snapshotUrl: parts[1], streamUrl: parts[2] || parts[1] });
+    });
+    root.querySelector("[data-camera-add]")?.addEventListener("click", () => addCamera());
+    serialize();
+  });
+}
+
 async function initClimateStatus() {
   const status = document.querySelector("[data-climate-status]");
   if (!status) return;
@@ -1270,6 +1373,7 @@ function initPage() {
   initGlobalSearchAutocomplete();
   initAnimalWorkspace();
   initCameraDiagnostics();
+  initCameraSettings();
   initClimateStatus();
   loadPendingReminders();
   openHashTargetDetails();

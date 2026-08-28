@@ -2393,6 +2393,27 @@ app.get("/admin/stall", requireAdmin, (req, res) => {
   res.render("pages/admin-general", getAdminViewData("Stall", "/admin/stall"));
 });
 
+app.post("/admin/coop/camera-preview", requireAdmin, async (req, res) => {
+  const url = normalizeConfiguredUrl(req.body.url);
+  if (!isCameraUrl(url)) {
+    return res.status(400).send("Bitte eine vollständige HTTP-, HTTPS- oder RTSP-URL eingeben.");
+  }
+
+  try {
+    const buffer = await captureCameraFrame({
+      name: "Vorschau",
+      url,
+      protocol: isRtspUrl(url) ? "rtsp" : "http",
+    });
+    res.set("Content-Type", "image/jpeg");
+    res.set("Cache-Control", "no-store");
+    return res.send(buffer);
+  } catch (error) {
+    console.error(`[HeartPet] Kamera-Vorschau fehlgeschlagen: ${error.message}`);
+    return res.status(502).send(error.message);
+  }
+});
+
 ["/admin/general", "/admin/settings"].forEach((aliasPath) => {
   app.get(aliasPath, requireAdmin, (req, res) => {
     const suffix = req.originalUrl.includes("?") ? req.originalUrl.slice(req.originalUrl.indexOf("?")) : "";
