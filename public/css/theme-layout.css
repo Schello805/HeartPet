@@ -1013,6 +1013,30 @@ small {
   max-width: 100%;
 }
 
+/* Einheitlicher Kompaktheits-Rhythmus für Karten ohne eigene Layoutvariante. */
+.bootstrap-app .card-body {
+  padding: 0.74rem 0.8rem;
+}
+
+.bootstrap-app .form-label {
+  margin-bottom: 0.24rem;
+}
+
+.bootstrap-app .form-text,
+.bootstrap-app small,
+.bootstrap-app .small {
+  line-height: 1.38;
+}
+
+.bootstrap-app .alert {
+  padding: 0.62rem 0.72rem;
+  margin-bottom: 0.62rem;
+}
+
+.bootstrap-app .table > :not(caption) > * > * {
+  padding: 0.46rem 0.52rem;
+}
+
 .bootstrap-app .app-main-container .row {
   margin-left: 0;
   margin-right: 0;
@@ -1060,7 +1084,7 @@ small {
 .bootstrap-app .eyebrow {
   text-transform: uppercase;
   letter-spacing: 0.18em;
-  font-size: 0.64rem;
+  font-size: 0.7rem;
   color: var(--muted);
   font-weight: 700;
 }
@@ -1306,7 +1330,7 @@ small {
 
 .bootstrap-app .badge {
   padding: 0.3rem 0.46rem;
-  font-size: 0.67rem;
+  font-size: 0.7rem;
 }
 
 .bootstrap-app .table-sub,
@@ -1583,7 +1607,7 @@ small {
 }
 
 .bootstrap-app .form-section-card .form-text {
-  font-size: 0.69rem;
+  font-size: 0.72rem;
   line-height: 1.35;
 }
 
@@ -1657,7 +1681,7 @@ small {
 }
 
 .bootstrap-app.admin-page textarea.form-control {
-  min-height: 140px;
+  min-height: 104px;
 }
 
 .bootstrap-app .btn-outline-primary {

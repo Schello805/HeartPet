@@ -251,7 +251,35 @@ body.bootstrap-app {
   }
 }
 
+/* Login, Einrichtung, Einladungen und Bestätigungen bleiben kompakt. */
+.bootstrap-app > main.min-vh-100 {
+  padding-top: 1rem !important;
+  padding-bottom: 1rem !important;
+}
+
+.bootstrap-app > main.min-vh-100 .card-body {
+  padding: 1rem !important;
+}
+
+.bootstrap-app > main.min-vh-100 .mb-4 {
+  margin-bottom: 0.8rem !important;
+}
+
+.bootstrap-app > main.min-vh-100 .gap-4 {
+  gap: 0.8rem !important;
+}
+
+.bootstrap-app .drawer-body > .h4,
+.bootstrap-app .drawer-body > h2 {
+  margin-bottom: 0.75rem !important;
+  font-size: 1.05rem;
+}
+
 @media (max-width: 575.98px) {
+  .bootstrap-app .card-body {
+    padding: 0.66rem 0.7rem;
+  }
+
   .bootstrap-app.animals-page .animals-choice-list {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
