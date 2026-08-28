@@ -124,18 +124,18 @@
                 <div class="card-body">
                   <h3 class="h6 mb-2">CCU-Zugang</h3>
                   <div class="row g-2">
-                    <div class="col-12"><label class="form-label" for="homematic_ccu_url">CCU-Adresse</label><input class="form-control" id="homematic_ccu_url" type="url" name="homematic_ccu_url" value="<%= settings.homematic_ccu_url || '' %>" placeholder="http://192.168.1.22" /></div>
+                    <div class="col-12"><label class="form-label" for="homematic_ccu_url">XML-API-Adresse</label><input class="form-control" id="homematic_ccu_url" type="url" name="homematic_ccu_url" value="<%= settings.homematic_ccu_url || '' %>" placeholder="http://192.168.1.22/addons/xmlapi/" /></div>
                     <div class="col-12"><label class="form-label" for="homematic_xmlapi_token">XML-API-Token (sid)</label><input class="form-control font-monospace" id="homematic_xmlapi_token" name="homematic_xmlapi_token" value="<%= settings.homematic_xmlapi_token || '' %>" autocomplete="off" placeholder="Token aus den XML-API-Einstellungen" /></div>
                     <div class="col-md-6"><label class="form-label" for="homematic_ccu_username">Benutzername</label><input class="form-control" id="homematic_ccu_username" name="homematic_ccu_username" value="<%= settings.homematic_ccu_username || '' %>" autocomplete="username" placeholder="Admin" /></div>
                     <div class="col-md-6"><label class="form-label" for="homematic_ccu_password">Passwort</label><input class="form-control" id="homematic_ccu_password" type="password" name="homematic_ccu_password" value="" autocomplete="new-password" placeholder="<%= settings.homematic_ccu_password ? 'Gespeichert, leer lassen zum Beibehalten' : 'CCU-Passwort' %>" /></div>
                   </div>
-                  <div class="form-text">Empfohlen: In der CCU unter <strong>Einstellungen → Systemsteuerung → Zusatzsoftware → XML-API</strong> einen Token erzeugen und hier eintragen. Klima und Tür verwenden dann die zustandslose XML-API ohne CCU-Sitzungen.</div>
+                  <div class="form-text">Die im Browser funktionierende Adresse bis <code>/addons/xmlapi/</code> eintragen. Den Wert hinter <code>?sid=</code> separat als Token eintragen. Klima und Tür verwenden dann dieselbe zustandslose XML-API ohne CCU-Sitzungen.</div>
                 </div>
               </section>
               <div>
                 <label class="form-label" for="homematic_door_open_url">Befehl „Stalltür öffnen“</label>
                 <input class="form-control" id="homematic_door_open_url" type="url" name="homematic_door_open_url" value="<%= settings.homematic_door_open_url || '' %>" placeholder="http://192.168.1.22/addons/xmlapi/statechange.cgi?ise_id=12990&amp;new_value=1" />
-                <div class="form-text">Mit CCU-Zugangsdaten setzt HeartPet <code>ise_id</code> und <code>new_value</code> sicher über JSON-RPC. Beispiel: <code>http://192.168.1.22/config/xmlapi/statechange.cgi?ise_id=12990&amp;new_value=1.0</code></div>
+                <div class="form-text">HeartPet übernimmt nur <code>ise_id</code> und <code>new_value</code> und baut den Aufruf über die oben eingetragene XML-API-Adresse samt Token neu auf.</div>
               </div>
               <div>
                 <label class="form-label" for="homematic_door_close_url">Befehl „Stalltür schließen“</label>

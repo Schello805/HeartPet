@@ -5337,6 +5337,26 @@ function getHomematicClimateDatapointIds(settings) {
   return { temperatureId, humidityId };
 }
 
+function getHomematicXmlApiConfig(settings) {
+  const configured = normalizeConfiguredUrl(settings?.homematic_ccu_url);
+  if (!isHttpUrl(configured)) return null;
+  const url = new URL(configured);
+  const configuredPath = url.pathname.match(/\/(?:addons|config)\/xmlapi\/?/i)?.[0];
+  const basePath = (configuredPath || "/addons/xmlapi/").replace(/\/?$/, "/");
+  const token = String(settings?.homematic_xmlapi_token || url.searchParams.get("sid") || "").trim();
+  return { url, basePath, token };
+}
+
+function buildHomematicXmlApiUrl(settings, endpoint, params = {}) {
+  const config = getHomematicXmlApiConfig(settings);
+  if (!config || !config.token) return "";
+  const url = new URL(config.url.origin);
+  url.pathname = `${config.basePath}${endpoint}`;
+  url.searchParams.set("sid", config.token);
+  Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, String(value)));
+  return url.toString();
+}
+
 function getHomematicApiUrl(settings) {
   const configured = normalizeConfiguredUrl(settings?.homematic_ccu_url);
   if (isHttpUrl(configured)) {
@@ -5449,9 +5469,12 @@ async function callHomematicJsonRpc(apiUrl, method, params) {
 
 async function executeHomematicCommand(settings, configuredUrl) {
   const stateChange = parseHomematicStateChange(configuredUrl);
-  const xmlApiToken = String(settings?.homematic_xmlapi_token || "").trim();
-  if (stateChange && xmlApiToken) {
-    const commandUrl = buildHomematicCommandUrl(configuredUrl, xmlApiToken);
+  const commandUrlFromXmlApi = stateChange ? buildHomematicXmlApiUrl(settings, "statechange.cgi", {
+    ise_id: stateChange.iseId,
+    new_value: stateChange.newValue,
+  }) : "";
+  if (commandUrlFromXmlApi) {
+    const commandUrl = commandUrlFromXmlApi;
     const response = await fetchWithTimeout(commandUrl, 5000);
     if (!response.ok) throw new Error(`XML-API antwortet mit HTTP ${response.status}.`);
     const responseError = getHomematicCommandResponseError(await response.text());
@@ -5484,8 +5507,8 @@ async function executeHomematicCommand(settings, configuredUrl) {
 async function readHomematicClimateFromCcu(settings) {
   const datapointIds = getHomematicClimateDatapointIds(settings);
   if (!datapointIds) return { temperature: null, humidity: null, loginOk: false, stage: "configuration", error: "Temperatur- und Luftfeuchte-Datenpunkt müssen hinterlegt sein." };
-  const xmlApiToken = String(settings?.homematic_xmlapi_token || "").trim();
-  if (xmlApiToken) return readHomematicClimateFromXmlApi(settings, datapointIds, xmlApiToken);
+  const xmlApiConfig = getHomematicXmlApiConfig(settings);
+  if (xmlApiConfig?.token) return readHomematicClimateFromXmlApi(settings, datapointIds);
   const login = await loginHomematicCcu(settings);
   if (!login.ok) return { temperature: null, humidity: null, loginOk: false, stage: "login", error: login.error };
   try {
@@ -5507,16 +5530,13 @@ async function readHomematicClimateFromCcu(settings) {
   }
 }
 
-async function readHomematicClimateFromXmlApi(settings, datapointIds, token) {
-  const ccuUrl = normalizeConfiguredUrl(settings?.homematic_ccu_url);
-  if (!isHttpUrl(ccuUrl)) return { temperature: null, humidity: null, loginOk: false, stage: "configuration", error: "CCU-Adresse fehlt." };
-  const url = new URL(ccuUrl);
-  url.pathname = "/config/xmlapi/state.cgi";
-  url.search = "";
-  url.searchParams.set("sid", token);
-  url.searchParams.set("datapoint_id", `${datapointIds.temperatureId},${datapointIds.humidityId}`);
+async function readHomematicClimateFromXmlApi(settings, datapointIds) {
+  const climateUrl = buildHomematicXmlApiUrl(settings, "state.cgi", {
+    datapoint_id: `${datapointIds.temperatureId},${datapointIds.humidityId}`,
+  });
+  if (!climateUrl) return { temperature: null, humidity: null, loginOk: false, stage: "configuration", error: "XML-API-Adresse oder Token fehlt." };
   try {
-    const response = await fetchWithTimeout(url.toString(), 7000);
+    const response = await fetchWithTimeout(climateUrl, 7000);
     if (!response.ok) throw new Error(`XML-API antwortet mit HTTP ${response.status}.`);
     const text = await response.text();
     if (/<not_authenticated\b/i.test(text)) throw new Error("XML-API-Token ist ungültig oder fehlt.");
@@ -6695,6 +6715,7 @@ app.__test = {
   normalizeConfiguredUrl,
   buildHomematicClimateUrl,
   buildHomematicCommandUrl,
+  buildHomematicXmlApiUrl,
   parseHomematicStateChange,
   getHomematicCommandResponseError,
   findHomematicValue,
