@@ -48,7 +48,7 @@
           <span class="small text-body-secondary d-block mb-1">Letzte Benachrichtigung</span>
           <strong class="h6 d-block mb-1"><%= overview.lastNotificationAt ? formatDateTime(overview.lastNotificationAt) : 'Noch kein Versand' %></strong>
           <small class="text-body-secondary">
-            E-Mail <%= overview.emailReady && overview.emailEnabled ? 'aktiv' : 'inaktiv' %> · Telegram <%= overview.telegramReady && overview.telegramEnabled ? 'aktiv' : 'inaktiv' %>
+            E-Mail <%= overview.emailReady && overview.emailEnabled ? 'aktiv' : 'inaktiv' %> · Telegram <%= overview.telegramReady && overview.telegramEnabled ? 'aktiv' : 'inaktiv' %> · ntfy <%= overview.ntfyReady && overview.ntfyEnabled ? 'aktiv' : 'inaktiv' %>
           </small>
         </div>
       </section>
@@ -71,6 +71,7 @@
             <option value="all" <%= filters.level === 'all' ? 'selected' : '' %>>Alle</option>
             <option value="email" <%= filters.level === 'email' ? 'selected' : '' %>>E-Mail</option>
             <option value="telegram" <%= filters.level === 'telegram' ? 'selected' : '' %>>Telegram</option>
+            <option value="ntfy" <%= filters.level === 'ntfy' ? 'selected' : '' %>>ntfy</option>
           </select>
         </div>
         <div class="col-md-auto d-flex flex-wrap gap-2">

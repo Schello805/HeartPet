@@ -11,13 +11,18 @@
   <input type="hidden" name="reminder_telegram_enabled" value="<%= settings.reminder_telegram_enabled === 'true' ? 'false' : 'true' %>" />
 </form>
 
+<form id="toggle-ntfy-enabled-form" method="post" action="/admin/settings" class="hidden-form">
+  <input type="hidden" name="_fields" value="reminder_ntfy_enabled" />
+  <input type="hidden" name="reminder_ntfy_enabled" value="<%= settings.reminder_ntfy_enabled === 'true' ? 'false' : 'true' %>" />
+</form>
+
 <div class="vstack gap-3">
   <section class="card border-0 bg-body-tertiary">
     <div class="card-body d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
       <div>
         <p class="eyebrow mb-1">Benachrichtigungen</p>
         <h2 class="h4 mb-2">Erinnerungen, Versand und Tests</h2>
-        <p class="text-body-secondary mb-0">Alles Wichtige für Browser, E-Mail und Telegram liegt hier in einer festen Reihenfolge ohne versteckte Untermenüs.</p>
+        <p class="text-body-secondary mb-0">Alles Wichtige für Browser, E-Mail, Telegram und ntfy liegt hier in einer festen Reihenfolge.</p>
       </div>
       <div class="d-flex flex-wrap gap-2">
         <span class="status-chip <%= communicationStatus.emailReady ? 'status-ok' : 'status-muted' %>">
@@ -25,6 +30,9 @@
         </span>
         <span class="status-chip <%= communicationStatus.telegramReady ? 'status-ok' : 'status-muted' %>">
           Telegram <%= communicationStatus.telegramReady ? 'bereit' : 'offen' %>
+        </span>
+        <span class="status-chip <%= communicationStatus.ntfyReady ? 'status-ok' : 'status-muted' %>">
+          ntfy <%= communicationStatus.ntfyReady ? 'bereit' : 'offen' %>
         </span>
       </div>
     </div>
@@ -311,5 +319,45 @@
     </div>
   </section>
 </div>
+
+<section class="card border-0 bg-body-tertiary">
+  <div class="card-body vstack gap-4">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
+      <div>
+        <h3 class="h5 mb-1">5. ntfy</h3>
+        <p class="text-body-secondary mb-0">Push-Nachrichten über ntfy.sh oder deinen eigenen ntfy-Server.</p>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <span class="status-chip <%= communicationStatus.ntfyReady ? 'status-ok' : 'status-muted' %>"><%= communicationStatus.ntfyReady ? 'Konfiguriert' : 'Nicht konfiguriert' %></span>
+        <button type="submit" form="toggle-ntfy-enabled-form" class="status-chip <%= settings.reminder_ntfy_enabled === 'true' ? 'status-active' : 'status-muted' %>"><%= settings.reminder_ntfy_enabled === 'true' ? 'Aktiviert' : 'Deaktiviert' %></button>
+      </div>
+    </div>
+    <form method="post" action="/admin/settings" class="vstack gap-3">
+      <input type="hidden" name="_fields" value="ntfy_server_url,ntfy_topic,ntfy_access_token" />
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label" for="ntfy_server_url">ntfy-Server</label>
+          <input class="form-control" id="ntfy_server_url" name="ntfy_server_url" type="url" value="<%= settings.ntfy_server_url || 'https://ntfy.sh' %>" placeholder="https://ntfy.sh" />
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="ntfy_topic">Topic</label>
+          <input class="form-control" id="ntfy_topic" name="ntfy_topic" value="<%= settings.ntfy_topic || '' %>" placeholder="heartpet-mein-geheimes-topic" />
+        </div>
+        <div class="col-12">
+          <label class="form-label" for="ntfy_access_token">Access-Token (optional)</label>
+          <input class="form-control" id="ntfy_access_token" name="ntfy_access_token" type="password" value="<%= settings.ntfy_access_token || '' %>" autocomplete="new-password" />
+          <div class="form-text">Für ntfy.sh genügt ein schwer zu erratendes Topic. Bei einem geschützten Topic oder eigenen Server zusätzlich den Access-Token eintragen.</div>
+        </div>
+      </div>
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <span class="text-body-secondary small">Letzter erfolgreicher Test: <strong><%= communicationStatus.ntfyLastSuccessfulCheckAt ? formatDateTime(communicationStatus.ntfyLastSuccessfulCheckAt) : 'Noch kein erfolgreicher Test' %></strong></span>
+        <button type="submit" class="btn btn-success">ntfy speichern</button>
+      </div>
+    </form>
+    <form method="post" action="/admin/test-ntfy">
+      <button type="submit" class="btn btn-outline-secondary">ntfy-Test senden</button>
+    </form>
+  </div>
+</section>
 
 <%- include('../partials/bottom') %>

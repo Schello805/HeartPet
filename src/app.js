@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const { Readable } = require("stream");
+const { spawn } = require("child_process");
 const express = require("express");
 const cron = require("node-cron");
 const bcrypt = require("bcryptjs");
@@ -27,16 +28,20 @@ const {
   processDueReminders,
   sendDailyDigestEmail,
   sendDailyDigestTelegram,
+  sendDailyDigestNtfy,
   sendTestEmail,
   sendTestTelegram,
+  sendTestNtfy,
   sendUserInviteEmail,
   sendUserCreatedAdminEmail,
   sendEmailChangeConfirmation,
   verifySmtpConnection,
   isEmailEnabled,
   isTelegramEnabled,
+  isNtfyEnabled,
   isEmailConfigured,
   isTelegramConfigured,
+  isNtfyConfigured,
   verifyReminderActionToken,
 } = require("./reminders");
 const { buildAnimalExportPayload, createAnimalPdf } = require("./exporters");
@@ -578,6 +583,20 @@ app.get("/reminders/:id/email-snooze", (req, res) => {
 
 app.use(requireAuth);
 
+app.use((req, res, next) => {
+  if (!["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) return next();
+  res.on("finish", () => {
+    if (res.statusCode >= 400 || !req.session?.user) return;
+    createAuditLog(req, "request.change", {
+      method: req.method,
+      path: req.path,
+      status: res.statusCode,
+      fields: Object.keys(req.body || {}).filter((key) => !isSensitiveAuditField(key)),
+    }, { entityType: "request" });
+  });
+  return next();
+});
+
 app.get("/", async (req, res) => {
   const q = String(req.query.q || "").trim();
   const searchable = q.length >= 2;
@@ -777,6 +796,10 @@ app.get("/coop/cameras/:index/stream", async (req, res) => {
   const camera = cameras[Number.parseInt(req.params.index, 10)];
   if (!camera) return res.sendStatus(404);
 
+  if (camera.protocol === "rtsp") {
+    return streamRtspCamera(camera, req, res);
+  }
+
   try {
     const response = await fetchCameraStream(camera.url);
     if (!response.ok || !response.body) {
@@ -796,6 +819,10 @@ app.get("/coop/cameras/:index/status", async (req, res) => {
   const cameras = parseCoopCameras(getSettingsObject(db).coop_camera_streams);
   const camera = cameras[Number.parseInt(req.params.index, 10)];
   if (!camera) return res.status(404).json({ ok: false, error: "Kamera nicht konfiguriert." });
+
+  if (camera.protocol === "rtsp") {
+    return checkRtspCamera(camera, res);
+  }
 
   try {
     const response = await fetchCameraStream(camera.url, 7000);
@@ -2600,8 +2627,10 @@ app.get("/admin/systemlog", requireAdmin, (req, res) => {
     lastNotificationAt: db.prepare("SELECT created_at FROM notification_logs ORDER BY created_at DESC LIMIT 1").get()?.created_at || "",
     emailReady: isEmailConfigured(settings),
     telegramReady: isTelegramConfigured(settings),
+    ntfyReady: isNtfyConfigured(settings),
     emailEnabled: settings.reminder_email_enabled === "true",
     telegramEnabled: settings.reminder_telegram_enabled === "true",
+    ntfyEnabled: settings.reminder_ntfy_enabled === "true",
   };
 
   res.render("pages/admin-systemlog", {
@@ -2631,6 +2660,7 @@ app.post("/admin/settings", requireAdmin, upload.single("app_logo"), (req, res) 
     "smtp_secure",
     "reminder_email_enabled",
     "reminder_telegram_enabled",
+    "reminder_ntfy_enabled",
     "browser_notifications_enabled",
     "daily_digest_enabled",
     "daily_digest_only_when_open",
@@ -2689,6 +2719,7 @@ app.post("/admin/settings", requireAdmin, upload.single("app_logo"), (req, res) 
     key.endsWith("_reminder_repeat_count") ||
     key === "reminder_email_enabled" ||
     key === "reminder_telegram_enabled"
+    || key === "reminder_ntfy_enabled"
   )) {
     resyncAllGeneratedReminders();
   }
@@ -2701,6 +2732,10 @@ app.post("/admin/settings", requireAdmin, upload.single("app_logo"), (req, res) 
     setFlash(req, "success", parseBooleanSettingValue(req.body.reminder_telegram_enabled)
       ? "Telegram-Benachrichtigungen wurden aktiviert."
       : "Telegram-Benachrichtigungen wurden deaktiviert.");
+  } else if (fields.length === 1 && fields[0] === "reminder_ntfy_enabled") {
+    setFlash(req, "success", parseBooleanSettingValue(req.body.reminder_ntfy_enabled)
+      ? "ntfy-Benachrichtigungen wurden aktiviert."
+      : "ntfy-Benachrichtigungen wurden deaktiviert.");
   } else {
     setFlash(req, "success", "Einstellungen gespeichert.");
   }
@@ -2821,6 +2856,36 @@ app.post("/admin/test-telegram", requireAdmin, async (req, res) => {
     setFlash(req, "error", `Telegram-Test fehlgeschlagen: ${error.message}`);
   }
 
+  res.redirect("/admin/benachrichtigungen");
+});
+
+app.post("/admin/test-ntfy", requireAdmin, async (req, res) => {
+  const settings = getSettingsObject(db);
+  try {
+    await sendTestNtfy(settings);
+    createNotificationLog({
+      userId: req.session.user?.id,
+      channel: "ntfy",
+      type: "test",
+      recipient: settings.ntfy_topic || "",
+      subject: "ntfy-Testnachricht",
+      status: "sent",
+      details: { source: "admin.test-ntfy" },
+    });
+    setFlash(req, "success", "ntfy-Testnachricht wurde versendet.");
+  } catch (error) {
+    createNotificationLog({
+      userId: req.session.user?.id,
+      channel: "ntfy",
+      type: "test",
+      recipient: settings.ntfy_topic || "",
+      subject: "ntfy-Testnachricht",
+      status: "error",
+      error: error.message,
+      details: { source: "admin.test-ntfy" },
+    });
+    setFlash(req, "error", `ntfy-Test fehlgeschlagen: ${error.message}`);
+  }
   res.redirect("/admin/benachrichtigungen");
 });
 
@@ -3819,6 +3884,14 @@ async function maybeSendDailyDigest() {
         channel: "telegram",
         status: "sent",
         recipient: settings.telegram_chat_id || "",
+      });
+    }
+    if (isNtfyEnabled(settings)) {
+      await sendDailyDigestNtfy(settings, payload);
+      deliveries.push({
+        channel: "ntfy",
+        status: "sent",
+        recipient: settings.ntfy_topic || "",
       });
     }
 
@@ -5174,6 +5247,18 @@ function isHttpUrl(value) {
   }
 }
 
+function isRtspUrl(value) {
+  try {
+    return new URL(String(value || "").trim()).protocol === "rtsp:";
+  } catch {
+    return false;
+  }
+}
+
+function isCameraUrl(value) {
+  return isHttpUrl(value) || isRtspUrl(value);
+}
+
 function normalizeConfiguredUrl(value) {
   const input = String(value || "").trim().replace(/\\([_?&=])/g, "$1");
   if (isHttpUrl(input)) return input;
@@ -5201,14 +5286,71 @@ function parseCoopCameraLines(value) {
       const separator = source.indexOf("|");
       const name = separator >= 0 ? source.slice(0, separator).trim() : `Kamera ${index + 1}`;
       const url = normalizeConfiguredUrl(separator >= 0 ? source.slice(separator + 1) : source);
-      return { source, name: name || `Kamera ${index + 1}`, url, valid: isHttpUrl(url) };
+      return {
+        source,
+        name: name || `Kamera ${index + 1}`,
+        url,
+        protocol: isRtspUrl(url) ? "rtsp" : "http",
+        valid: isCameraUrl(url),
+      };
     });
 }
 
 function parseCoopCameras(value) {
   return parseCoopCameraLines(value)
     .filter((camera) => camera.valid)
-    .map(({ name, url }) => ({ name, url }));
+    .map(({ name, url, protocol }) => ({ name, url, protocol }));
+}
+
+function streamRtspCamera(camera, req, res) {
+  const ffmpeg = spawn("ffmpeg", [
+    "-hide_banner", "-loglevel", "error", "-rtsp_transport", "tcp",
+    "-i", camera.url, "-an", "-vf", "fps=5,scale=960:-2",
+    "-q:v", "6", "-f", "mpjpeg", "pipe:1",
+  ], { stdio: ["ignore", "pipe", "pipe"] });
+  let started = false;
+  let stderr = "";
+
+  ffmpeg.stderr.on("data", (chunk) => { stderr = `${stderr}${chunk}`.slice(-2000); });
+  ffmpeg.stdout.once("data", (chunk) => {
+    started = true;
+    res.status(200);
+    res.set("Content-Type", "multipart/x-mixed-replace; boundary=ffmpeg");
+    res.set("Cache-Control", "no-store");
+    res.write(chunk);
+    ffmpeg.stdout.pipe(res);
+  });
+  ffmpeg.on("error", (error) => {
+    if (!res.headersSent) res.status(503).send(error.code === "ENOENT" ? "ffmpeg ist auf dem HeartPet-Server nicht installiert." : error.message);
+  });
+  ffmpeg.on("close", () => {
+    if (!started && !res.headersSent) res.status(502).send(stderr.trim() || "RTSP-Stream konnte nicht geöffnet werden.");
+    else if (!res.writableEnded) res.end();
+  });
+  const stop = () => { if (!ffmpeg.killed) ffmpeg.kill("SIGTERM"); };
+  res.on("close", stop);
+}
+
+function checkRtspCamera(camera, res) {
+  const ffmpeg = spawn("ffmpeg", [
+    "-hide_banner", "-loglevel", "error", "-rtsp_transport", "tcp",
+    "-i", camera.url, "-frames:v", "1", "-f", "image2pipe", "-vcodec", "mjpeg", "pipe:1",
+  ], { stdio: ["ignore", "pipe", "pipe"] });
+  let received = false;
+  let stderr = "";
+  const timeout = setTimeout(() => ffmpeg.kill("SIGTERM"), 10000);
+  ffmpeg.stdout.on("data", () => { received = true; });
+  ffmpeg.stderr.on("data", (chunk) => { stderr = `${stderr}${chunk}`.slice(-2000); });
+  ffmpeg.on("error", (error) => {
+    clearTimeout(timeout);
+    if (!res.headersSent) res.status(503).json({ ok: false, error: error.code === "ENOENT" ? "ffmpeg fehlt auf dem HeartPet-Server." : error.message });
+  });
+  ffmpeg.on("close", () => {
+    clearTimeout(timeout);
+    if (res.headersSent) return;
+    if (received) return res.json({ ok: true, contentType: "video/rtsp via ffmpeg" });
+    return res.status(502).json({ ok: false, error: stderr.trim() || "Kein Bild vom RTSP-Stream empfangen." });
+  });
 }
 
 async function fetchWithTimeout(url, timeoutMs = 5000) {
@@ -5574,6 +5716,10 @@ function createAuditLog(req, action, details = {}, options = {}) {
     options.entityId != null ? String(options.entityId) : "",
     JSON.stringify(details || {})
   );
+}
+
+function isSensitiveAuditField(key) {
+  return /password|token|secret|authorization|cookie|smtp|url/i.test(String(key || ""));
 }
 
 function createNotificationLog({ userId = null, channel, type, recipient = "", subject = "", status, error = "", details = {} }) {
@@ -5994,6 +6140,7 @@ function getAdminViewData(pageTitle, adminPath) {
   const settings = getSettingsObject(db);
   const lastSuccessfulEmailCheck = getLastSuccessfulNotificationCheck("email", ["test", "smtp_connection_check"]);
   const lastSuccessfulTelegramCheck = getLastSuccessfulNotificationCheck("telegram", ["test"]);
+  const lastSuccessfulNtfyCheck = getLastSuccessfulNotificationCheck("ntfy", ["test"]);
   return {
     pageTitle: `Admin · ${pageTitle}`,
     adminPageTitle: pageTitle,
@@ -6003,8 +6150,10 @@ function getAdminViewData(pageTitle, adminPath) {
     communicationStatus: {
       emailReady: isEmailConfigured(settings),
       telegramReady: isTelegramConfigured(settings),
+      ntfyReady: isNtfyConfigured(settings),
       emailLastSuccessfulCheckAt: lastSuccessfulEmailCheck?.created_at || "",
       telegramLastSuccessfulCheckAt: lastSuccessfulTelegramCheck?.created_at || "",
+      ntfyLastSuccessfulCheckAt: lastSuccessfulNtfyCheck?.created_at || "",
     },
     defaultVeterinarianId: String(settings.default_veterinarian_id || ""),
     categories: db.prepare("SELECT * FROM document_categories ORDER BY name ASC").all(),
@@ -6201,6 +6350,7 @@ app.__test = {
   findHomematicValue,
   parseHomematicTextValue,
   findHomematicXmlDatapoint,
+  parseCoopCameras,
 };
 
 module.exports = app;

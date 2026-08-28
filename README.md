@@ -12,7 +12,8 @@ HeartPet ist inzwischen ein brauchbares MVP für den Alltag:
 - Dokument-Uploads mit lokalem Dateispeicher
 - Dokumentkategorien mit optionalen Pflichtkategorien
 - Vorerkrankungen, Medikamente, Impfungen, Fütterungspläne und Protokolle
-- Erinnerungen mit E-Mail, Telegram, Browser-Hinweisen und Wiederholungen
+- Erinnerungen mit E-Mail, Telegram, ntfy, Browser-Hinweisen und Wiederholungen
+- Stallkameras per HTTP/MJPEG oder RTSP; RTSP wird serverseitig mit `ffmpeg` umgewandelt
 - JSON- und PDF-Export pro Tier
 - Import eines HeartPet-JSON-Exports
 - Adminbereich für Kommunikation, Benutzer, Tierarten, Tierärzte, Kategorien und Rechtstexte
@@ -25,6 +26,7 @@ HeartPet ist inzwischen ein brauchbares MVP für den Alltag:
 - EJS Templates
 - SQLite
 - Lokaler Dateispeicher unter `data/uploads`
+- `ffmpeg` (optional, aber für RTSP-Kameras erforderlich)
 
 Kein Docker. Kein externer Objekt-Storage. HeartPet ist für einen einfachen Betrieb auf einem LXC oder Linux-Server gedacht.
 

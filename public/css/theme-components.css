@@ -80,6 +80,24 @@ body.bootstrap-app {
   color: var(--text-soft);
 }
 
+.bootstrap-app.dashboard-page .main-content-inner {
+  display: flex;
+  flex-direction: column;
+}
+
+.bootstrap-app.dashboard-page .dashboard-coop-section {
+  order: 1;
+  margin-bottom: 0.5rem;
+}
+
+.bootstrap-app.dashboard-page .dashboard-inventory-section {
+  order: 2;
+}
+
+.bootstrap-app.dashboard-page .dashboard-priority-section {
+  order: 3;
+}
+
 .bootstrap-app .app-main-container {
   padding-bottom: 6rem;
 }

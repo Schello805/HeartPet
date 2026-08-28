@@ -16,7 +16,7 @@ process.env.HEARTPET_SESSION_STORE = "memory";
 
 const { initDatabase, upsertSetting } = require("../src/db");
 const { createAnimalPdf } = require("../src/exporters");
-const { buildReminderActionToken, buildReminderEmailHtml, sendTelegramReminder, processDueReminders } = require("../src/reminders");
+const { buildReminderActionToken, buildReminderEmailHtml, sendTelegramReminder, sendTestNtfy, processDueReminders } = require("../src/reminders");
 const app = require("../src/app");
 const agent = request.agent(app);
 const db = initDatabase();
@@ -39,6 +39,38 @@ test("Kameraproxy kann Digest-Authentifizierung für IP-Kameras aufbauen", () =>
   assert.match(authorization, /username="admin"/);
   assert.match(authorization, /uri="\/video\/mjpg\.cgi\?chn=0"/);
   assert.match(authorization, /response="[a-f0-9]{32}"/);
+});
+
+test("RTSP-Kameras werden als ffmpeg-Quelle erkannt", () => {
+  const cameras = app.__test.parseCoopCameras("Wansview W2|rtsp://admin:secret@192.168.1.172:554/live/ch0");
+  assert.deepEqual(cameras, [{
+    name: "Wansview W2",
+    url: "rtsp://admin:secret@192.168.1.172:554/live/ch0",
+    protocol: "rtsp",
+  }]);
+});
+
+test("ntfy sendet Topic, Token und verständliche Testnachricht", async () => {
+  const previousFetch = global.fetch;
+  let requestData = null;
+  global.fetch = async (url, options) => {
+    requestData = { url, options };
+    return { ok: true, status: 200 };
+  };
+  try {
+    await sendTestNtfy({
+      app_name: "HeartPet",
+      app_domain: "heartpet.de",
+      ntfy_server_url: "https://ntfy.example",
+      ntfy_topic: "stall",
+      ntfy_access_token: "secret",
+    });
+  } finally {
+    global.fetch = previousFetch;
+  }
+  assert.equal(requestData.url, "https://ntfy.example/stall");
+  assert.equal(requestData.options.headers.Authorization, "Bearer secret");
+  assert.match(requestData.options.body, /funktioniert/);
 });
 
 test("Homematic-Klimawerte ignorieren IDs und lesen JSON- oder XML-Werte", () => {
@@ -1657,6 +1689,38 @@ test("Dashboard zeigt Tierarten und konkrete Aufmerksamkeitspunkte", async () =>
   assert.doesNotMatch(response.text, /Pflichtdokumente offen/);
   assert.doesNotMatch(response.text, /Zuletzt geändert/);
   assert.doesNotMatch(response.text, /Schnell weiter/);
+});
+
+test("Dashboard ordnet Stallbereich vor Tierbestand und Erinnerungen ein", async () => {
+  upsertSetting(db, "coop_camera_streams", "Testkamera|http://127.0.0.1/test.jpg");
+  try {
+    const response = await agent.get("/");
+    assert.equal(response.status, 200);
+    assert.match(response.text, /dashboard-coop-section/);
+    assert.match(response.text, /dashboard-inventory-section/);
+  } finally {
+    upsertSetting(db, "coop_camera_streams", "");
+  }
+});
+
+test("Kamera-Einstellungen erklären RTSP und Wansview verständlich", async () => {
+  const response = await agent.get("/admin/allgemein");
+  assert.equal(response.status, 200);
+  assert.match(response.text, /rtsp:\/\/BENUTZER:PASSWORT@IP:554\/live\/ch0/);
+  assert.match(response.text, /ffmpeg -version/);
+});
+
+test("Erfolgreiche Änderungen werden zusätzlich zentral im Audit-Log erfasst", async () => {
+  db.prepare("DELETE FROM audit_logs WHERE action = 'request.change'").run();
+  const response = await agent
+    .post("/admin/settings")
+    .type("form")
+    .send({ _fields: "ntfy_topic", ntfy_topic: "audit-test" });
+  assert.equal(response.status, 302);
+  await new Promise((resolve) => setImmediate(resolve));
+  const entry = db.prepare("SELECT details FROM audit_logs WHERE action = 'request.change' ORDER BY id DESC LIMIT 1").get();
+  assert.ok(entry);
+  assert.match(entry.details, /ntfy_topic/);
 });
 
 test("Gemeinsamer Eintragsweg speichert Fütterung und Notiz", async () => {

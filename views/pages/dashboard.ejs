@@ -38,7 +38,7 @@
   </section>
 <% } %>
 
-<div class="row g-2 mb-2">
+<div class="row g-2 mb-2 dashboard-inventory-section">
   <div class="<%= hasReminderOverview ? 'col-xl-5' : 'col-12' %>">
     <section class="card border-0 h-100 dashboard-surface-card">
       <div class="card-body p-2">
@@ -119,7 +119,7 @@
 </div>
 
 <% if (hasPriorityContent) { %>
-<div class="row g-2 dashboard-priority-grid">
+<div class="row g-2 dashboard-priority-grid dashboard-priority-section">
   <% if (urgentList.length > 0) { %>
   <div class="<%= upcomingReminders.length > 0 ? 'col-lg-6' : 'col-12' %>">
     <article class="card border-0 h-100 dashboard-feed-card dashboard-surface-card semantic-card <%= urgentList.length > 0 ? 'semantic-card--danger' : 'semantic-card--ok' %>" id="dringende-erinnerungen">
@@ -236,7 +236,7 @@
 <% } %>
 
 <% if (coopState.cameras.length || hasCoopControl) { %>
-<div class="row g-2 mt-0" id="coop-control">
+<div class="row g-2 mt-0 dashboard-coop-section" id="coop-control">
   <% if (coopState.cameras.length) { %>
     <div class="<%= hasCoopControl ? 'col-xl-8' : 'col-12' %>">
       <section class="card border-0 h-100 dashboard-surface-card">

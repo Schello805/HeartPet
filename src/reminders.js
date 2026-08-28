@@ -27,6 +27,7 @@ async function processDueReminders(db, settings, hooks = {}) {
     try {
       const emailEnabled = isEmailEnabled(settings);
       const telegramEnabled = isTelegramEnabled(settings);
+      const ntfyEnabled = isNtfyEnabled(settings);
 
       if (reminder.channel_email && emailEnabled) {
         await sendEmailReminder(settings, reminder);
@@ -60,15 +61,29 @@ async function processDueReminders(db, settings, hooks = {}) {
         deliveryState.notified = true;
       }
 
+      if (ntfyEnabled) {
+        await sendNtfyReminder(settings, reminder);
+        hooks.onNotification?.({
+          channel: "ntfy",
+          type: "reminder",
+          recipient: settings.ntfy_topic || "",
+          subject: `Erinnerung: ${reminder.title}`,
+          status: "sent",
+          error: "",
+          reminder,
+        });
+        deliveryState.notified = true;
+      }
+
       deliveryState.status = deliveryState.notified ? "sent" : "skipped";
     } catch (error) {
       deliveryState.status = "error";
       deliveryState.error = error.message;
       if (typeof hooks.onNotification === "function") {
         hooks.onNotification({
-          channel: reminder.channel_email ? "email" : reminder.channel_telegram ? "telegram" : "none",
+          channel: reminder.channel_email ? "email" : reminder.channel_telegram ? "telegram" : ntfyEnabled ? "ntfy" : "none",
           type: "reminder",
-          recipient: settings.notification_email_to || settings.smtp_user || settings.telegram_chat_id || "",
+          recipient: settings.notification_email_to || settings.smtp_user || settings.telegram_chat_id || settings.ntfy_topic || "",
           subject: `Erinnerung: ${reminder.title}`,
           status: "error",
           error: error.message,
@@ -389,6 +404,10 @@ function isTelegramEnabled(settings) {
   );
 }
 
+function isNtfyEnabled(settings) {
+  return Boolean(settings.reminder_ntfy_enabled === "true" && isNtfyConfigured(settings));
+}
+
 function isEmailConfigured(settings) {
   return Boolean(
     settings.smtp_host &&
@@ -402,6 +421,53 @@ function isTelegramConfigured(settings) {
     settings.telegram_bot_token &&
       settings.telegram_chat_id
   );
+}
+
+function isNtfyConfigured(settings) {
+  try {
+    const server = new URL(settings.ntfy_server_url || "https://ntfy.sh");
+    return Boolean(/^https?:$/.test(server.protocol) && String(settings.ntfy_topic || "").trim());
+  } catch {
+    return false;
+  }
+}
+
+async function sendNtfy(settings, { title, message, clickUrl = "", priority = "default" }) {
+  if (!isNtfyConfigured(settings)) throw new Error("ntfy ist noch nicht vollständig konfiguriert.");
+  const server = String(settings.ntfy_server_url || "https://ntfy.sh").replace(/\/$/, "");
+  const headers = {
+    "Content-Type": "text/plain; charset=utf-8",
+    Title: title,
+    Priority: priority,
+    Tags: "paw_prints",
+  };
+  if (clickUrl) headers.Click = clickUrl;
+  if (settings.ntfy_access_token) headers.Authorization = `Bearer ${settings.ntfy_access_token}`;
+  const response = await fetch(`${server}/${encodeURIComponent(String(settings.ntfy_topic).trim())}`, {
+    method: "POST",
+    headers,
+    body: message,
+  });
+  if (!response.ok) throw new Error(`ntfy-Versand fehlgeschlagen: HTTP ${response.status}`);
+}
+
+async function sendNtfyReminder(settings, reminder) {
+  const appBaseUrl = getAppBaseUrl(settings);
+  const animalUrl = appBaseUrl && reminder.animal_id ? `${appBaseUrl}/animals/${reminder.animal_id}` : appBaseUrl;
+  return sendNtfy(settings, {
+    title: `${settings.app_name || "HeartPet"}: ${reminder.title}`,
+    message: `${reminder.animal_name || "Tier"} · fällig ${formatReminderDate(reminder.due_at)}${reminder.notes ? `\n${reminder.notes}` : ""}`,
+    clickUrl: animalUrl,
+    priority: "high",
+  });
+}
+
+async function sendTestNtfy(settings) {
+  return sendNtfy(settings, {
+    title: `${settings.app_name || "HeartPet"}: ntfy-Test`,
+    message: "Die ntfy-Verbindung funktioniert.",
+    clickUrl: getAppBaseUrl(settings),
+  });
 }
 
 function createSmtpTransport(settings) {
@@ -794,6 +860,21 @@ async function sendDailyDigestTelegram(settings, payload) {
   }
 }
 
+async function sendDailyDigestNtfy(settings, payload) {
+  const lines = [
+    `Überfällig: ${payload.counts.overdue}`,
+    `Heute: ${payload.counts.today}`,
+    `Nächste 3 Tage: ${payload.counts.nextDays}`,
+    ...payload.rows.slice(0, 8).map((item) => `${item.dueLabel} · ${item.animal_name || "Tier"} · ${item.title}`),
+  ];
+  return sendNtfy(settings, {
+    title: `${settings.app_name || "HeartPet"}: Tageszusammenfassung`,
+    message: lines.join("\n"),
+    clickUrl: getAppBaseUrl(settings),
+    priority: payload.counts.overdue ? "high" : "default",
+  });
+}
+
 function buildDailyDigestEmailHtml(payload) {
   const { appName, logoUrl, dashboardUrl, generatedAt, counts, rows } = payload;
   const safe = (value) =>
@@ -921,16 +1002,20 @@ module.exports = {
   sendTelegramReminder,
   sendDailyDigestEmail,
   sendDailyDigestTelegram,
+  sendDailyDigestNtfy,
   sendUserInviteEmail,
   sendUserCreatedAdminEmail,
   sendEmailChangeConfirmation,
   sendTestEmail,
   sendTestTelegram,
+  sendTestNtfy,
   verifySmtpConnection,
   isEmailEnabled,
   isTelegramEnabled,
+  isNtfyEnabled,
   isEmailConfigured,
   isTelegramConfigured,
+  isNtfyConfigured,
   buildReminderActionToken,
   verifyReminderActionToken,
   buildReminderEmailHtml,
