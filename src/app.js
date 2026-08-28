@@ -57,6 +57,7 @@ const upload = createUploadMiddleware(projectRoot);
 const importUpload = createImportUploadMiddleware();
 const weatherCache = new Map();
 const homematicSessionCache = new Map();
+const homematicLoginPromises = new Map();
 
 app.set("view engine", "ejs");
 app.set("views", path.join(projectRoot, "views"));
@@ -2612,6 +2613,7 @@ app.get("/admin/systemlog", requireAdmin, (req, res) => {
     ORDER BY created_at DESC
     LIMIT 200
   `).all().map(formatAuditLogEntry);
+  const latestCcuLog = auditLogs.find((item) => String(item.action || "").startsWith("coop.")) || null;
 
   const settings = getSettingsObject(db);
   const overview = {
@@ -2644,6 +2646,7 @@ app.get("/admin/systemlog", requireAdmin, (req, res) => {
     filters: { level },
     notificationLogs,
     auditLogs,
+    latestCcuLog,
     overview,
   });
 });
@@ -2721,6 +2724,7 @@ app.post("/admin/settings", requireAdmin, upload.single("app_logo"), (req, res) 
 
   if (ccuConnectionChanged) {
     homematicSessionCache.clear();
+    homematicLoginPromises.clear();
     upsertSetting(db, "homematic_ccu_session_id", "");
   }
 
@@ -5349,6 +5353,22 @@ function getHomematicApiUrl(settings) {
 }
 
 async function loginHomematicCcu(settings) {
+  const username = String(settings?.homematic_ccu_username || "").trim();
+  const apiUrl = getHomematicApiUrl(settings);
+  const cacheKey = `${apiUrl}|${username}`;
+  const pendingLogin = homematicLoginPromises.get(cacheKey);
+  if (pendingLogin) return pendingLogin;
+
+  const loginPromise = loginHomematicCcuOnce(settings);
+  homematicLoginPromises.set(cacheKey, loginPromise);
+  try {
+    return await loginPromise;
+  } finally {
+    if (homematicLoginPromises.get(cacheKey) === loginPromise) homematicLoginPromises.delete(cacheKey);
+  }
+}
+
+async function loginHomematicCcuOnce(settings) {
   const username = String(settings?.homematic_ccu_username || "").trim();
   const password = String(settings?.homematic_ccu_password || "");
   const apiUrl = getHomematicApiUrl(settings);

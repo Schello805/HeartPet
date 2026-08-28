@@ -14,6 +14,29 @@
     </div>
   </section>
 
+  <section class="card border-0 <%= latestCcuLog && latestCcuLog.action.endsWith('_failed') ? 'bg-danger-subtle' : 'bg-body-tertiary' %>">
+    <div class="card-body">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2">
+        <div>
+          <p class="eyebrow mb-1">CCU-Diagnose</p>
+          <% if (latestCcuLog) { %>
+            <h3 class="h5 mb-1"><%= latestCcuLog.actionLabel %></h3>
+            <p class="mb-1"><%= latestCcuLog.detailsLabel %></p>
+            <small class="text-body-secondary"><%= formatDateTime(latestCcuLog.created_at) %></small>
+          <% } else { %>
+            <h3 class="h5 mb-1">Noch kein CCU-Test protokolliert</h3>
+            <p class="text-body-secondary mb-0">Öffne die Hühnerstall-Einstellungen und führe dort den Verbindungstest aus.</p>
+          <% } %>
+        </div>
+        <% if (latestCcuLog) { %>
+          <span class="status-chip <%= latestCcuLog.action.endsWith('_failed') ? 'status-error' : 'status-ok' %>">
+            <%= latestCcuLog.action.endsWith('_failed') ? 'Fehler' : 'Erfolgreich' %>
+          </span>
+        <% } %>
+      </div>
+    </div>
+  </section>
+
   <div class="row g-3">
     <div class="col-sm-6 col-xl-3">
       <section class="card border-0 bg-body-tertiary h-100">
