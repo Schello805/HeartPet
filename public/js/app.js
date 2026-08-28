@@ -62,8 +62,15 @@ function initCameraDiagnostics() {
     const image = card.querySelector("[data-camera-image]");
     const errorBox = card.querySelector("[data-camera-error]");
     if (!image || !errorBox) return;
+    const frameUrl = image.dataset.cameraFrameUrl;
+    let loading = false;
+    image.addEventListener("load", () => {
+      loading = false;
+      image.classList.remove("d-none");
+      errorBox.classList.add("d-none");
+    });
     image.addEventListener("error", async () => {
-      image.classList.add("d-none");
+      loading = false;
       errorBox.classList.remove("d-none");
       errorBox.textContent = "Kameraverbindung wird geprüft …";
       try {
@@ -73,7 +80,18 @@ function initCameraDiagnostics() {
       } catch (error) {
         errorBox.textContent = "Kameradiagnose konnte nicht geladen werden.";
       }
-    }, { once: true });
+    });
+    if (!frameUrl) return;
+    const refresh = () => {
+      if (!card.isConnected) {
+        window.clearInterval(refreshTimer);
+        return;
+      }
+      if (document.hidden || loading) return;
+      loading = true;
+      image.src = `${frameUrl}?t=${Date.now()}`;
+    };
+    const refreshTimer = window.setInterval(refresh, 1000);
   });
 }
 

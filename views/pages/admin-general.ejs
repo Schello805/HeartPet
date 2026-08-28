@@ -112,7 +112,7 @@
             <label class="form-label" for="coop_camera_streams">Kameras</label>
             <textarea class="form-control font-monospace" id="coop_camera_streams" name="coop_camera_streams" rows="6" placeholder="Stall innen|http://benutzer:passwort@192.168.1.80/video/mjpg.cgi&#10;Wansview W2|rtsp://benutzer:passwort@192.168.1.172:554/live/ch0"><%= settings.coop_camera_streams || '' %></textarea>
             <div class="form-text">
-              Eine Kamera pro Zeile im Format <strong>Name|URL</strong>. HTTP-Snapshots und MJPEG funktionieren direkt. RTSP wird serverseitig über <strong>ffmpeg</strong> in ein Browserbild umgewandelt.
+              Eine Kamera pro Zeile im Format <strong>Name|URL</strong>. HeartPet zeigt netzwerkschonend höchstens ein Einzelbild pro Sekunde. HTTP, MJPEG und RTSP werden serverseitig über <strong>ffmpeg</strong> in ein Browserbild umgewandelt.
             </div>
             <div class="alert alert-secondary mt-2 mb-0 small" role="alert">
               <strong>Wansview W2:</strong> Hauptstream meist <code>rtsp://BENUTZER:PASSWORT@IP:554/live/ch0</code>, kleiner Stream <code>/live/ch1</code>. Auf dem HeartPet-Server muss <code>ffmpeg -version</code> funktionieren. Zugangsdaten mit Sonderzeichen müssen URL-kodiert sein, beispielsweise <code>!</code> als <code>%21</code>.

@@ -58,6 +58,7 @@ const importUpload = createImportUploadMiddleware();
 const weatherCache = new Map();
 const homematicSessionCache = new Map();
 const homematicLoginPromises = new Map();
+const cameraFrameCache = new Map();
 
 app.set("view engine", "ejs");
 app.set("views", path.join(projectRoot, "views"));
@@ -807,6 +808,31 @@ app.get("/coop/cameras/:index/stream", async (req, res) => {
   } catch (error) {
     console.error(`[HeartPet] Kamera „${camera.name}“ nicht erreichbar:`, error.message);
     return res.sendStatus(502);
+  }
+});
+
+app.get("/coop/cameras/:index/frame", async (req, res) => {
+  const cameraIndex = Number.parseInt(req.params.index, 10);
+  const cameras = parseCoopCameras(getSettingsObject(db).coop_camera_streams);
+  const camera = cameras[cameraIndex];
+  if (!camera) return res.sendStatus(404);
+
+  const cached = cameraFrameCache.get(cameraIndex);
+  if (cached?.cameraUrl === camera.url && Date.now() - cached.createdAt < 900) {
+    res.set("Content-Type", "image/jpeg");
+    res.set("Cache-Control", "no-store");
+    return res.send(cached.buffer);
+  }
+
+  try {
+    const buffer = await captureCameraFrame(camera);
+    cameraFrameCache.set(cameraIndex, { cameraUrl: camera.url, createdAt: Date.now(), buffer });
+    res.set("Content-Type", "image/jpeg");
+    res.set("Cache-Control", "no-store");
+    return res.send(buffer);
+  } catch (error) {
+    console.error(`[HeartPet] Einzelbild von Kamera „${camera.name}“ fehlgeschlagen: ${error.message}`);
+    return res.status(502).send(error.message);
   }
 });
 
@@ -5656,6 +5682,42 @@ function streamRtspCamera(camera, req, res) {
   });
   const stop = () => { if (!ffmpeg.killed) ffmpeg.kill("SIGTERM"); };
   res.on("close", stop);
+}
+
+function captureCameraFrame(camera) {
+  return new Promise((resolve, reject) => {
+    const protocolArgs = camera.protocol === "rtsp" ? ["-rtsp_transport", "tcp"] : [];
+    const ffmpeg = spawn("ffmpeg", [
+      "-hide_banner", "-loglevel", "error", ...protocolArgs,
+      "-i", camera.url, "-an", "-frames:v", "1", "-vf", "scale=960:-2",
+      "-q:v", "6", "-f", "image2pipe", "-vcodec", "mjpeg", "pipe:1",
+    ], { stdio: ["ignore", "pipe", "pipe"] });
+    const chunks = [];
+    let size = 0;
+    let stderr = "";
+    let settled = false;
+    const finish = (callback) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      callback();
+    };
+    const timeout = setTimeout(() => {
+      if (!ffmpeg.killed) ffmpeg.kill("SIGTERM");
+      finish(() => reject(new Error("Kamera hat innerhalb von 10 Sekunden kein Einzelbild geliefert.")));
+    }, 10000);
+    ffmpeg.stdout.on("data", (chunk) => {
+      size += chunk.length;
+      if (size <= 10 * 1024 * 1024) chunks.push(chunk);
+      else if (!ffmpeg.killed) ffmpeg.kill("SIGTERM");
+    });
+    ffmpeg.stderr.on("data", (chunk) => { stderr = `${stderr}${chunk}`.slice(-2000); });
+    ffmpeg.on("error", (error) => finish(() => reject(new Error(error.code === "ENOENT" ? "ffmpeg fehlt auf dem HeartPet-Server." : error.message))));
+    ffmpeg.on("close", (code) => finish(() => {
+      if (code === 0 && chunks.length) return resolve(Buffer.concat(chunks));
+      reject(new Error(size > 10 * 1024 * 1024 ? "Kamera-Einzelbild ist zu groß." : stderr.trim() || "Kamera-Einzelbild konnte nicht gelesen werden."));
+    }));
+  });
 }
 
 function checkRtspCamera(camera, res) {
