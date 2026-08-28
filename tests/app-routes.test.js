@@ -105,6 +105,7 @@ test("XML-API-Aufrufe übernehmen den konfigurierten addons-Pfad und Token", () 
   assert.equal(url.pathname, "/addons/xmlapi/state.cgi");
   assert.equal(url.searchParams.get("sid"), "token-aus-url");
   assert.equal(url.searchParams.get("datapoint_id"), "2363,2362");
+  assert.match(url.href, /datapoint_id=2363,2362/);
 });
 
 test("XML-API-Token kann auch als vollständige URL eingefügt werden", () => {

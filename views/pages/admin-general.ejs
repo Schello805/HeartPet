@@ -140,8 +140,8 @@
                     </div>
                     <div class="col-12">
                       <label class="form-label" for="homematic_xmlapi_token">2. XML-API-Token (sid)</label>
-                      <input class="form-control font-monospace" id="homematic_xmlapi_token" name="homematic_xmlapi_token" value="<%= settings.homematic_xmlapi_token || '' %>" autocomplete="off" placeholder="zum Beispiel @AbCd1234@" />
-                      <div class="form-text">Nur den Wert hinter <code>sid=</code> eintragen. Beginnt und endet der erzeugte Token mit <code>@</code>, gehören beide Zeichen dazu und müssen erhalten bleiben. Keine zusätzlichen Anführungszeichen verwenden.</div>
+                      <input class="form-control font-monospace" id="homematic_xmlapi_token" name="homematic_xmlapi_token" value="<%= settings.homematic_xmlapi_token || '' %>" autocomplete="off" placeholder="zum Beispiel RdNQqjPaQbLSsslS" />
+                      <div class="form-text">Einen langen Wert aus <code>tokenlist.cgi</code> zwischen <code>&lt;token&gt;</code> und <code>&lt;/token&gt;</code> eintragen. Die kurze <code>@…@</code>-SID aus der Browser-URL ist nur eine vorübergehende WebUI-Sitzung und hier falsch.</div>
                     </div>
                     <div class="col-md-6"><label class="form-label" for="homematic_ccu_username">CCU-Benutzername (nur Ausweichweg)</label><input class="form-control" id="homematic_ccu_username" name="homematic_ccu_username" value="<%= settings.homematic_ccu_username || '' %>" autocomplete="username" placeholder="bei XML-API-Token nicht nötig" /></div>
                     <div class="col-md-6"><label class="form-label" for="homematic_ccu_password">CCU-Passwort (nur Ausweichweg)</label><input class="form-control" id="homematic_ccu_password" type="password" name="homematic_ccu_password" value="" autocomplete="new-password" placeholder="<%= settings.homematic_ccu_password ? 'Gespeichert, leer lassen zum Beibehalten' : 'bei XML-API-Token nicht nötig' %>" /></div>
@@ -149,10 +149,9 @@
                   <details class="mt-3">
                     <summary class="fw-semibold">Ausführliche Beispiele und Browser-Test</summary>
                     <div class="small mt-2 vstack gap-2">
-                      <p class="mb-0"><strong>Token erzeugen:</strong> CCU-WebUI → Einstellungen → Systemsteuerung → Zusatzsoftware → XML-API → Einstellen. Dort einen neuen Zugriffstoken registrieren.</p>
-                      <p class="mb-0"><strong>Variante A, getrennt:</strong><br />Adresse: <code>http://192.168.1.22/addons/xmlapi/</code><br />Token: <code>@AbCd1234@</code></p>
-                      <p class="mb-0"><strong>Variante B, vollständige Adresse:</strong><br /><code>http://192.168.1.22/addons/xmlapi/?sid=@AbCd1234@</code><br />Das separate Tokenfeld darf dabei leer sein. Enthält die Adresse eine <code>sid</code>, verwendet HeartPet immer diese.</p>
-                      <p class="mb-0"><strong>Browser-Test:</strong><br /><code>http://192.168.1.22/addons/xmlapi/state.cgi?sid=@AbCd1234@&amp;datapoint_id=2363,2362</code><br />Es muss XML mit den beiden Datenpunkten und deren <code>value</code> erscheinen. Bei <code>not_authenticated</code> ist der Token falsch oder nicht mehr gültig.</p>
+                      <p class="mb-0"><strong>Token finden:</strong> <code>tokenlist.cgi</code> zeigt registrierte Tokens als <code>&lt;token&gt;RdNQqjPaQbLSsslS&lt;/token&gt;</code>. Nur <code>RdNQqjPaQbLSsslS</code> wird in HeartPet eingetragen. Die zum Öffnen von <code>tokenlist.cgi</code> verwendete <code>@…@</code>-SID wird nicht übernommen.</p>
+                      <p class="mb-0"><strong>Empfohlene Eingabe:</strong><br />Adresse: <code>http://192.168.1.22/addons/xmlapi/</code><br />Token: <code>RdNQqjPaQbLSsslS</code></p>
+                      <p class="mb-0"><strong>Browser-Test:</strong><br /><code>http://192.168.1.22/addons/xmlapi/state.cgi?sid=RdNQqjPaQbLSsslS&amp;datapoint_id=2363,2362</code><br />Es muss XML mit den beiden Datenpunkten und deren <code>value</code> erscheinen. Bei <code>not_authenticated</code> ist der Token falsch oder nicht mehr gültig.</p>
                     </div>
                   </details>
                 </div>

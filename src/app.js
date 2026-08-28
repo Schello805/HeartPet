@@ -5301,7 +5301,8 @@ function buildHomematicClimateUrl(value, token) {
   if (normalizedToken && !url.searchParams.has("sid")) {
     url.searchParams.set("sid", normalizedToken);
   }
-  return url.toString();
+  // XML-API's Tcl CGI splits list parameters before URL decoding them.
+  return url.toString().replace(/%2C/gi, ",");
 }
 
 function buildHomematicCommandUrl(value, token) {
@@ -5362,7 +5363,8 @@ function buildHomematicXmlApiUrl(settings, endpoint, params = {}) {
   url.pathname = `${config.basePath}${endpoint}`;
   url.searchParams.set("sid", config.token);
   Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, String(value)));
-  return url.toString();
+  // XML-API's Tcl CGI splits list parameters before URL decoding them.
+  return url.toString().replace(/%2C/gi, ",");
 }
 
 function getHomematicApiUrl(settings) {
