@@ -100,10 +100,18 @@ test("Als Markdown eingefügte Homematic-URLs werden auf die reine URL reduziert
 test("XML-API-Aufrufe übernehmen den konfigurierten addons-Pfad und Token", () => {
   const url = new URL(app.__test.buildHomematicXmlApiUrl({
     homematic_ccu_url: "http://192.168.1.22/addons/xmlapi/?sid=token-aus-url",
+    homematic_xmlapi_token: "alter-separater-token",
   }, "state.cgi", { datapoint_id: "2363,2362" }));
   assert.equal(url.pathname, "/addons/xmlapi/state.cgi");
   assert.equal(url.searchParams.get("sid"), "token-aus-url");
   assert.equal(url.searchParams.get("datapoint_id"), "2363,2362");
+});
+
+test("XML-API-Token kann auch als vollständige URL eingefügt werden", () => {
+  assert.equal(
+    app.__test.normalizeHomematicXmlApiToken("http://192.168.1.22/addons/xmlapi/?sid=@token@"),
+    "@token@"
+  );
 });
 
 test("XML-API-Token wird sicher als sid-Parameter an die Klima-URL angehängt", () => {

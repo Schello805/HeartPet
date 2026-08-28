@@ -5337,13 +5337,21 @@ function getHomematicClimateDatapointIds(settings) {
   return { temperatureId, humidityId };
 }
 
+function normalizeHomematicXmlApiToken(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  const normalizedUrl = normalizeConfiguredUrl(raw);
+  if (isHttpUrl(normalizedUrl)) return String(new URL(normalizedUrl).searchParams.get("sid") || "").trim();
+  return raw.replace(/^[?&]?sid=/i, "").trim();
+}
+
 function getHomematicXmlApiConfig(settings) {
   const configured = normalizeConfiguredUrl(settings?.homematic_ccu_url);
   if (!isHttpUrl(configured)) return null;
   const url = new URL(configured);
   const configuredPath = url.pathname.match(/\/(?:addons|config)\/xmlapi\/?/i)?.[0];
   const basePath = (configuredPath || "/addons/xmlapi/").replace(/\/?$/, "/");
-  const token = String(settings?.homematic_xmlapi_token || url.searchParams.get("sid") || "").trim();
+  const token = normalizeHomematicXmlApiToken(url.searchParams.get("sid") || settings?.homematic_xmlapi_token);
   return { url, basePath, token };
 }
 
@@ -6716,6 +6724,7 @@ app.__test = {
   buildHomematicClimateUrl,
   buildHomematicCommandUrl,
   buildHomematicXmlApiUrl,
+  normalizeHomematicXmlApiToken,
   parseHomematicStateChange,
   getHomematicCommandResponseError,
   findHomematicValue,
