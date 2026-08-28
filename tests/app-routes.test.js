@@ -1755,7 +1755,7 @@ test("Kamera-Einstellungen erklären RTSP und Wansview verständlich", async () 
   assert.match(response.text, /ffmpeg -version/);
   assert.match(response.text, /weather_latitude/);
   assert.match(response.text, /Open-Meteo/);
-  assert.match(response.text, /CCU-Zugang/);
+  assert.match(response.text, /Homematic XML-API/);
   assert.match(response.text, /homematic_temperature_datapoint_id/);
   assert.match(response.text, /homematic_humidity_datapoint_id/);
   assert.doesNotMatch(response.text, /name="homematic_climate_url"/);
