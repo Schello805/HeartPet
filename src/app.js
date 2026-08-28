@@ -5579,7 +5579,10 @@ async function resolveHomematicSid(settings) {
 function getHomematicCommandResponseError(text) {
   const responseText = String(text || "");
   if (/<not_authenticated\b/i.test(responseText)) return "XML-API-Token ist ungültig oder fehlt.";
+  if (/<not_found\s*\/>/i.test(responseText)) return "Der Tür-Datenpunkt wurde auf der CCU nicht gefunden. Bitte die ise_id prüfen.";
+  if (/<changed\b[^>]*\bsuccess=["']false["']/i.test(responseText)) return "Die CCU hat den Tür-Datenpunkt gefunden, den Schaltwert aber abgelehnt.";
   if (/\berror=["']true["']/i.test(responseText)) return "Datenpunkt wurde von der XML-API nicht gefunden.";
+  if (/<result>\s*<\/result>/i.test(responseText)) return "Die CCU hat keine Bestätigung für den Türbefehl geliefert.";
   return "";
 }
 

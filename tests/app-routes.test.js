@@ -152,6 +152,12 @@ test("Homematic-Türbefehle ergänzen den Token und normalisieren value zu new_v
   assert.equal(app.__test.getHomematicCommandResponseError('<result><changed ise_id="12990"/></result>'), "");
 });
 
+test("Homematic-Türbefehle erkennen abgelehnte und unbekannte Datenpunkte", () => {
+  assert.match(app.__test.getHomematicCommandResponseError("<result><not_found /></result>"), /nicht gefunden/);
+  assert.match(app.__test.getHomematicCommandResponseError('<result><changed id="12990" new_value="1.0" success="false" /></result>'), /abgelehnt/);
+  assert.equal(app.__test.getHomematicCommandResponseError('<result><changed id="12990" new_value="1.0" success="true" /></result>'), "");
+});
+
 async function ensureSetupComplete() {
   const setupPage = await agent.get("/setup");
   if (setupPage.status !== 200) {
