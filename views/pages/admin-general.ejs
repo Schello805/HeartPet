@@ -119,11 +119,13 @@
             <div class="vstack gap-3">
               <div>
                 <label class="form-label" for="homematic_door_open_url">Befehl „Stalltür öffnen“</label>
-                <input class="form-control" id="homematic_door_open_url" type="url" name="homematic_door_open_url" value="<%= settings.homematic_door_open_url || '' %>" placeholder="http://homematic.local/..." />
+                <input class="form-control" id="homematic_door_open_url" type="url" name="homematic_door_open_url" value="<%= settings.homematic_door_open_url || '' %>" placeholder="http://192.168.1.22/addons/xmlapi/statechange.cgi?ise_id=12990&amp;new_value=1" />
+                <div class="form-text">Ohne <code>sid</code> eintragen. HeartPet ergänzt den unten gespeicherten Token automatisch.</div>
               </div>
               <div>
                 <label class="form-label" for="homematic_door_close_url">Befehl „Stalltür schließen“</label>
-                <input class="form-control" id="homematic_door_close_url" type="url" name="homematic_door_close_url" value="<%= settings.homematic_door_close_url || '' %>" placeholder="http://homematic.local/..." />
+                <input class="form-control" id="homematic_door_close_url" type="url" name="homematic_door_close_url" value="<%= settings.homematic_door_close_url || '' %>" placeholder="http://192.168.1.22/addons/xmlapi/statechange.cgi?ise_id=12990&amp;new_value=0" />
+                <div class="form-text">Die XML-API erwartet <code>new_value</code>. Alte URLs mit <code>value</code> werden automatisch korrigiert.</div>
               </div>
               <div>
                 <label class="form-label" for="homematic_climate_url">Klima-URL für Gerät oder Kanal</label>

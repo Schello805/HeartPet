@@ -754,7 +754,10 @@ app.get("/", async (req, res) => {
 
 app.post("/coop/door/open", async (req, res) => {
   const settings = getSettingsObject(db);
-  const commandUrl = String(settings.homematic_door_open_url || "").trim();
+  const commandUrl = buildHomematicCommandUrl(
+    settings.homematic_door_open_url,
+    settings.homematic_xmlapi_token
+  );
   if (!isHttpUrl(commandUrl)) {
     setFlash(req, "error", "Für die Stalltür ist noch kein gültiger Homematic-Befehl hinterlegt.");
     return res.redirect("/#coop-control");
@@ -765,6 +768,8 @@ app.post("/coop/door/open", async (req, res) => {
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
+    const responseError = getHomematicCommandResponseError(await response.text());
+    if (responseError) throw new Error(responseError);
     createAuditLog(req, "coop.door_open", {}, { entityType: "coop" });
     setFlash(req, "success", "Der Befehl zum Öffnen der Stalltür wurde gesendet.");
   } catch (error) {
@@ -776,7 +781,10 @@ app.post("/coop/door/open", async (req, res) => {
 
 app.post("/coop/door/close", async (req, res) => {
   const settings = getSettingsObject(db);
-  const commandUrl = String(settings.homematic_door_close_url || "").trim();
+  const commandUrl = buildHomematicCommandUrl(
+    settings.homematic_door_close_url,
+    settings.homematic_xmlapi_token
+  );
   if (!isHttpUrl(commandUrl)) {
     setFlash(req, "error", "Für das Schließen der Stalltür ist noch kein gültiger Homematic-Befehl hinterlegt.");
     return res.redirect("/#coop-control");
@@ -787,6 +795,8 @@ app.post("/coop/door/close", async (req, res) => {
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
+    const responseError = getHomematicCommandResponseError(await response.text());
+    if (responseError) throw new Error(responseError);
     createAuditLog(req, "coop.door_close", {}, { entityType: "coop" });
     setFlash(req, "success", "Der Befehl zum Schließen der Stalltür wurde gesendet.");
   } catch (error) {
@@ -5282,6 +5292,29 @@ function buildHomematicClimateUrl(value, token) {
   return url.toString();
 }
 
+function buildHomematicCommandUrl(value, token) {
+  const normalizedUrl = normalizeConfiguredUrl(value);
+  if (!isHttpUrl(normalizedUrl)) return normalizedUrl;
+  const url = new URL(normalizedUrl);
+  const normalizedToken = String(token || "").trim();
+  const currentSid = String(url.searchParams.get("sid") || "").trim();
+  const sidIsPlaceholder = !currentSid || /^(?:@.*@|\[.*\]|.*DEINE.*)$/i.test(currentSid);
+  if (normalizedToken && sidIsPlaceholder) url.searchParams.set("sid", normalizedToken);
+
+  if (/\/statechange\.cgi$/i.test(url.pathname) && !url.searchParams.has("new_value") && url.searchParams.has("value")) {
+    url.searchParams.set("new_value", url.searchParams.get("value"));
+    url.searchParams.delete("value");
+  }
+  return url.toString();
+}
+
+function getHomematicCommandResponseError(text) {
+  const responseText = String(text || "");
+  if (/<not_authenticated\b/i.test(responseText)) return "XML-API-Token ist ungültig oder fehlt.";
+  if (/\berror=["']true["']/i.test(responseText)) return "Datenpunkt wurde von der XML-API nicht gefunden.";
+  return "";
+}
+
 function parseCoopCameraLines(value) {
   return String(value || "")
     .split(/\r?\n/)
@@ -6419,6 +6452,8 @@ app.__test = {
   buildDigestAuthorization,
   normalizeConfiguredUrl,
   buildHomematicClimateUrl,
+  buildHomematicCommandUrl,
+  getHomematicCommandResponseError,
   findHomematicValue,
   parseHomematicTextValue,
   findHomematicXmlDatapoint,
