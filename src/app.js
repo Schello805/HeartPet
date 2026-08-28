@@ -756,56 +756,36 @@ app.get("/", async (req, res) => {
 
 app.post("/coop/door/open", async (req, res) => {
   const settings = getSettingsObject(db);
-  const homematicSid = await resolveHomematicSid(settings);
-  const commandUrl = buildHomematicCommandUrl(
-    settings.homematic_door_open_url,
-    homematicSid
-  );
-  if (!isHttpUrl(commandUrl)) {
+  if (!isHttpUrl(normalizeConfiguredUrl(settings.homematic_door_open_url))) {
     setFlash(req, "error", "Für die Stalltür ist noch kein gültiger Homematic-Befehl hinterlegt.");
     return res.redirect("/#coop-control");
   }
 
   try {
-    const response = await fetchWithTimeout(commandUrl, 5000);
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    const responseError = getHomematicCommandResponseError(await response.text());
-    if (responseError) throw new Error(responseError);
+    await executeHomematicCommand(settings, settings.homematic_door_open_url);
     createAuditLog(req, "coop.door_open", {}, { entityType: "coop" });
     setFlash(req, "success", "Der Befehl zum Öffnen der Stalltür wurde gesendet.");
   } catch (error) {
     createAuditLog(req, "coop.door_open_failed", { error: error.message }, { entityType: "coop" });
-    setFlash(req, "error", "Die Stalltür konnte nicht angesteuert werden. Bitte Homematic-Verbindung prüfen.");
+    setFlash(req, "error", `Die Stalltür konnte nicht geöffnet werden: ${error.message}`);
   }
   return res.redirect("/#coop-control");
 });
 
 app.post("/coop/door/close", async (req, res) => {
   const settings = getSettingsObject(db);
-  const homematicSid = await resolveHomematicSid(settings);
-  const commandUrl = buildHomematicCommandUrl(
-    settings.homematic_door_close_url,
-    homematicSid
-  );
-  if (!isHttpUrl(commandUrl)) {
+  if (!isHttpUrl(normalizeConfiguredUrl(settings.homematic_door_close_url))) {
     setFlash(req, "error", "Für das Schließen der Stalltür ist noch kein gültiger Homematic-Befehl hinterlegt.");
     return res.redirect("/#coop-control");
   }
 
   try {
-    const response = await fetchWithTimeout(commandUrl, 5000);
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    const responseError = getHomematicCommandResponseError(await response.text());
-    if (responseError) throw new Error(responseError);
+    await executeHomematicCommand(settings, settings.homematic_door_close_url);
     createAuditLog(req, "coop.door_close", {}, { entityType: "coop" });
     setFlash(req, "success", "Der Befehl zum Schließen der Stalltür wurde gesendet.");
   } catch (error) {
     createAuditLog(req, "coop.door_close_failed", { error: error.message }, { entityType: "coop" });
-    setFlash(req, "error", "Die Stalltür konnte nicht angesteuert werden. Bitte Homematic-Verbindung prüfen.");
+    setFlash(req, "error", `Die Stalltür konnte nicht geschlossen werden: ${error.message}`);
   }
   return res.redirect("/#coop-control");
 });
@@ -5319,6 +5299,16 @@ function buildHomematicCommandUrl(value, token) {
   return url.toString();
 }
 
+function parseHomematicStateChange(value) {
+  const normalizedUrl = normalizeConfiguredUrl(value);
+  if (!isHttpUrl(normalizedUrl)) return null;
+  const url = new URL(normalizedUrl);
+  const iseId = String(url.searchParams.get("ise_id") || "").trim();
+  const newValue = String(url.searchParams.get("new_value") || url.searchParams.get("value") || "").trim();
+  if (!/^\d+$/.test(iseId) || !/^-?\d+(?:\.\d+)?$/.test(newValue)) return null;
+  return { iseId, newValue };
+}
+
 function getHomematicApiUrl(settings) {
   const configured = normalizeConfiguredUrl(settings?.homematic_ccu_url);
   if (isHttpUrl(configured)) {
@@ -5367,6 +5357,45 @@ async function loginHomematicCcu(settings) {
   } catch (error) {
     return { ok: false, sid: "", error: describeFetchError(error) };
   }
+}
+
+async function callHomematicJsonRpc(apiUrl, method, params) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 7000);
+  try {
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "1.1", id: 1, method, params }),
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error(`CCU antwortet mit HTTP ${response.status}.`);
+    const payload = await response.json();
+    if (payload?.error) throw new Error(payload.error.message || `CCU-Fehler ${payload.error.code || "unbekannt"}.`);
+    return payload?.result;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function executeHomematicCommand(settings, configuredUrl) {
+  const stateChange = parseHomematicStateChange(configuredUrl);
+  const apiUrl = getHomematicApiUrl(settings);
+  const hasCredentials = Boolean(String(settings?.homematic_ccu_username || "").trim());
+  if (stateChange && apiUrl && hasCredentials) {
+    const login = await loginHomematicCcu(settings);
+    if (!login.ok) throw new Error(login.error);
+    const script = `dom.GetObject(${stateChange.iseId}).State(${stateChange.newValue});`;
+    await callHomematicJsonRpc(apiUrl, "ReGa.runScript", { _session_id_: login.sid, script });
+    return;
+  }
+
+  const commandUrl = buildHomematicCommandUrl(configuredUrl, await resolveHomematicSid(settings));
+  if (!isHttpUrl(commandUrl)) throw new Error("Ungültige Homematic-Befehls-URL.");
+  const response = await fetchWithTimeout(commandUrl, 5000);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const responseError = getHomematicCommandResponseError(await response.text());
+  if (responseError) throw new Error(responseError);
 }
 
 async function resolveHomematicSid(settings) {
@@ -6520,6 +6549,7 @@ app.__test = {
   normalizeConfiguredUrl,
   buildHomematicClimateUrl,
   buildHomematicCommandUrl,
+  parseHomematicStateChange,
   getHomematicCommandResponseError,
   findHomematicValue,
   parseHomematicTextValue,

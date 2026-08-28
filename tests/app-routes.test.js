@@ -115,6 +115,10 @@ test("XML-API-Token wird sicher als sid-Parameter an die Klima-URL angehängt", 
 });
 
 test("Homematic-Türbefehle ergänzen den Token und normalisieren value zu new_value", () => {
+  assert.deepEqual(
+    app.__test.parseHomematicStateChange("http://192.168.1.22/config/xmlapi/statechange.cgi?ise_id=12990&new_value=1.0"),
+    { iseId: "12990", newValue: "1.0" }
+  );
   assert.equal(
     app.__test.buildHomematicCommandUrl(
       "http://192.168.1.22/config/xmlapi/statechange.cgi?sid=@DEINE_SESSION_ID@&ise_id=12990&value=0.0",
