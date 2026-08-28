@@ -2357,6 +2357,10 @@ app.get("/admin/allgemein", requireAdmin, (req, res) => {
   res.render("pages/admin-general", getAdminViewData("Allgemein", "/admin/allgemein"));
 });
 
+app.get("/admin/stall", requireAdmin, (req, res) => {
+  res.render("pages/admin-general", getAdminViewData("Stall", "/admin/stall"));
+});
+
 ["/admin/general", "/admin/settings"].forEach((aliasPath) => {
   app.get(aliasPath, requireAdmin, (req, res) => {
     const suffix = req.originalUrl.includes("?") ? req.originalUrl.slice(req.originalUrl.indexOf("?")) : "";

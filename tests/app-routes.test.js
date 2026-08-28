@@ -1732,12 +1732,17 @@ test("Dashboard enthält getrennte Bereiche für Tierbestand, Wetter und Stall",
 });
 
 test("Kamera-Einstellungen erklären RTSP und Wansview verständlich", async () => {
-  const response = await agent.get("/admin/allgemein");
+  const response = await agent.get("/admin/stall");
   assert.equal(response.status, 200);
   assert.match(response.text, /rtsp:\/\/BENUTZER:PASSWORT@IP:554\/live\/ch0/);
   assert.match(response.text, /ffmpeg -version/);
   assert.match(response.text, /weather_latitude/);
   assert.match(response.text, /Open-Meteo/);
+  assert.match(response.text, /CCU-Zugang/);
+
+  const generalResponse = await agent.get("/admin/allgemein");
+  assert.equal(generalResponse.status, 200);
+  assert.doesNotMatch(generalResponse.text, /CCU-Zugang/);
 });
 
 test("Erfolgreiche Änderungen werden zusätzlich zentral im Audit-Log erfasst", async () => {
