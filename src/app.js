@@ -755,7 +755,10 @@ app.post("/coop/door/open", async (req, res) => {
     createAuditLog(req, "coop.door_open", {}, { entityType: "coop" });
     setFlash(req, "success", "Der Befehl zum Öffnen der Stalltür wurde gesendet.");
   } catch (error) {
-    createAuditLog(req, "coop.door_open_failed", { error: error.message }, { entityType: "coop" });
+    createAuditLog(req, "coop.door_open_failed", {
+      error: error.message,
+      state_change: parseHomematicStateChange(settings.homematic_door_open_url),
+    }, { entityType: "coop" });
     setFlash(req, "error", `Die Stalltür konnte nicht geöffnet werden: ${error.message}`);
   }
   return res.redirect("/#coop-control");
@@ -773,7 +776,10 @@ app.post("/coop/door/close", async (req, res) => {
     createAuditLog(req, "coop.door_close", {}, { entityType: "coop" });
     setFlash(req, "success", "Der Befehl zum Schließen der Stalltür wurde gesendet.");
   } catch (error) {
-    createAuditLog(req, "coop.door_close_failed", { error: error.message }, { entityType: "coop" });
+    createAuditLog(req, "coop.door_close_failed", {
+      error: error.message,
+      state_change: parseHomematicStateChange(settings.homematic_door_close_url),
+    }, { entityType: "coop" });
     setFlash(req, "error", `Die Stalltür konnte nicht geschlossen werden: ${error.message}`);
   }
   return res.redirect("/#coop-control");
@@ -832,8 +838,23 @@ app.get("/admin/coop/climate-status", requireAdmin, async (req, res) => {
   const settings = getSettingsObject(db);
   const climate = await readHomematicClimateFromCcu(settings);
   if (climate.error) {
-    return res.status(502).json({ ok: false, loginOk: climate.loginOk, error: climate.error });
+    createAuditLog(req, "coop.climate_check_failed", {
+      stage: climate.stage,
+      error: climate.error,
+      datapoints: getHomematicClimateDatapointIds(settings),
+    }, { entityType: "coop" });
+    return res.status(502).json({
+      ok: false,
+      loginOk: climate.loginOk,
+      stage: climate.stage,
+      error: climate.error,
+      logUrl: "/admin/systemlog",
+    });
   }
+  createAuditLog(req, "coop.climate_check", {
+    temperature: climate.temperature,
+    humidity: climate.humidity,
+  }, { entityType: "coop" });
   return res.json({
     ok: true,
     loginOk: true,
@@ -5344,7 +5365,8 @@ async function loginHomematicCcu(settings) {
         homematicSessionCache.set(cacheKey, { sid: renewedSid, createdAt: Date.now() });
         if (renewedSid !== storedSid) upsertSetting(db, "homematic_ccu_session_id", renewedSid);
         return { ok: true, sid: renewedSid, error: "" };
-      } catch {
+      } catch (error) {
+        console.warn(`[HeartPet][CCU][session-renew] Gespeicherte Sitzung konnte nicht erneuert werden: ${error.message}`);
         upsertSetting(db, "homematic_ccu_session_id", "");
       }
     }
@@ -5361,7 +5383,11 @@ async function loginHomematicCcu(settings) {
     } finally {
       clearTimeout(timeout);
     }
-    if (!response.ok) return { ok: false, sid: "", error: `CCU-Anmeldung antwortet mit HTTP ${response.status}.` };
+    if (!response.ok) {
+      const error = `CCU-Anmeldung antwortet mit HTTP ${response.status}.`;
+      console.error(`[HeartPet][CCU][login] ${error}`);
+      return { ok: false, sid: "", error };
+    }
     const payload = await response.json();
     const sid = String(payload?.result?._session_id_ || payload?.result || "").trim();
     if (!sid || payload?.error) {
@@ -5369,13 +5395,16 @@ async function loginHomematicCcu(settings) {
       const error = /too many sessions/i.test(message)
         ? "Die CCU hat zu viele offene Sitzungen. Bitte etwa 30 Minuten warten oder die CCU neu starten. HeartPet verwendet danach dauerhaft nur noch eine Sitzung."
         : message;
+      console.error(`[HeartPet][CCU][login] Anmeldung abgelehnt: ${error}`);
       return { ok: false, sid: "", error };
     }
     homematicSessionCache.set(cacheKey, { sid, createdAt: Date.now() });
     upsertSetting(db, "homematic_ccu_session_id", sid);
     return { ok: true, sid, error: "" };
   } catch (error) {
-    return { ok: false, sid: "", error: describeFetchError(error) };
+    const message = describeFetchError(error);
+    console.error(`[HeartPet][CCU][login] CCU nicht erreichbar: ${message}`);
+    return { ok: false, sid: "", error: message };
   }
 }
 
@@ -5404,9 +5433,14 @@ async function executeHomematicCommand(settings, configuredUrl) {
   const hasCredentials = Boolean(String(settings?.homematic_ccu_username || "").trim());
   if (stateChange && apiUrl && hasCredentials) {
     const login = await loginHomematicCcu(settings);
-    if (!login.ok) throw new Error(login.error);
+    if (!login.ok) throw new Error(`CCU-Anmeldung fehlgeschlagen: ${login.error}`);
     const script = `dom.GetObject(${stateChange.iseId}).State(${stateChange.newValue});`;
-    await callHomematicJsonRpc(apiUrl, "ReGa.runScript", { _session_id_: login.sid, script });
+    try {
+      await callHomematicJsonRpc(apiUrl, "ReGa.runScript", { _session_id_: login.sid, script });
+    } catch (error) {
+      console.error(`[HeartPet][CCU][door-command] Datenpunkt ${stateChange.iseId}, Wert ${stateChange.newValue}: ${error.message}`);
+      throw new Error(`CCU-Schaltbefehl fehlgeschlagen: ${error.message}`);
+    }
     return;
   }
 
@@ -5420,9 +5454,9 @@ async function executeHomematicCommand(settings, configuredUrl) {
 
 async function readHomematicClimateFromCcu(settings) {
   const datapointIds = getHomematicClimateDatapointIds(settings);
-  if (!datapointIds) return { temperature: null, humidity: null, loginOk: false, error: "Temperatur- und Luftfeuchte-Datenpunkt müssen hinterlegt sein." };
+  if (!datapointIds) return { temperature: null, humidity: null, loginOk: false, stage: "configuration", error: "Temperatur- und Luftfeuchte-Datenpunkt müssen hinterlegt sein." };
   const login = await loginHomematicCcu(settings);
-  if (!login.ok) return { temperature: null, humidity: null, loginOk: false, error: login.error };
+  if (!login.ok) return { temperature: null, humidity: null, loginOk: false, stage: "login", error: login.error };
   try {
     const script = `WriteLine("temperature=" # dom.GetObject(${datapointIds.temperatureId}).Value()); WriteLine("humidity=" # dom.GetObject(${datapointIds.humidityId}).Value());`;
     const result = await callHomematicJsonRpc(getHomematicApiUrl(settings), "ReGa.runScript", { _session_id_: login.sid, script });
@@ -5433,10 +5467,12 @@ async function readHomematicClimateFromCcu(settings) {
       temperature,
       humidity,
       loginOk: true,
+      stage: temperature === null && humidity === null ? "parse" : "success",
       error: temperature === null && humidity === null ? "CCU erreichbar, aber im Kanal wurden keine Klima-Werte gefunden." : "",
     };
   } catch (error) {
-    return { temperature: null, humidity: null, loginOk: true, error: error.message };
+    console.error(`[HeartPet][CCU][climate-read] Datenpunkte ${datapointIds.temperatureId}/${datapointIds.humidityId}: ${error.message}`);
+    return { temperature: null, humidity: null, loginOk: true, stage: "climate-read", error: error.message };
   }
 }
 
@@ -6197,6 +6233,10 @@ function formatAuditLogEntry(entry) {
       return make("Stalltür geschlossen", "Hühnerstall", "Homematic-Befehl erfolgreich gesendet");
     case "coop.door_close_failed":
       return make("Stalltür-Befehl fehlgeschlagen", "Hühnerstall", details.error || "Homematic nicht erreichbar");
+    case "coop.climate_check":
+      return make("CCU-Klima geprüft", "Hühnerstall", `${details.temperature ?? "-"} °C · ${details.humidity ?? "-"} % Luftfeuchte`);
+    case "coop.climate_check_failed":
+      return make("CCU-Klimaprüfung fehlgeschlagen", "Hühnerstall", `${details.stage || "unbekannte Phase"} · ${details.error || "Homematic nicht erreichbar"}`);
     case "animal.create":
       return make("Tier angelegt", details.name || `Tier #${details.animal_id || entityId}`, details.transition_summary || `Status: ${details.status || "Aktiv"}`);
     case "animal.update":

@@ -88,7 +88,21 @@ async function initClimateStatus() {
       const title = payload.loginOk ? "CCU-Login erfolgreich, Klimaabruf fehlgeschlagen" : "Verbindung fehlgeschlagen";
       status.innerHTML = `<strong class="d-block"></strong><span class="small"></span>`;
       status.querySelector("strong").textContent = title;
-      status.querySelector("span").textContent = [payload.loginError, payload.error].filter(Boolean).join(" · ") || "CCU-Klimadaten konnten nicht abgefragt werden.";
+      const stageLabels = {
+        configuration: "Konfiguration",
+        login: "CCU-Anmeldung",
+        "climate-read": "Datenabruf",
+        parse: "Auswertung",
+      };
+      const stage = stageLabels[payload.stage] ? `Phase: ${stageLabels[payload.stage]}` : "";
+      status.querySelector("span").textContent = [stage, payload.loginError, payload.error].filter(Boolean).join(" · ") || "CCU-Klimadaten konnten nicht abgefragt werden.";
+      if (payload.logUrl) {
+        const link = document.createElement("a");
+        link.href = payload.logUrl;
+        link.className = "d-block mt-2 fw-semibold";
+        link.textContent = "Details im Systemlog öffnen";
+        status.append(link);
+      }
       return;
     }
     const values = [];
