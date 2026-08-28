@@ -78,12 +78,32 @@
   <section class="card border-0 bg-body-tertiary admin-section-card" id="huehnerstall">
     <div class="card-body">
       <form method="post" action="/admin/settings" class="vstack gap-3 compact-workflow-form">
-        <input type="hidden" name="_fields" value="coop_camera_streams,homematic_door_open_url,homematic_door_close_url,homematic_climate_url,homematic_xmlapi_token,homematic_temperature_url,homematic_humidity_url" />
+        <input type="hidden" name="_fields" value="weather_location_name,weather_latitude,weather_longitude,coop_camera_streams,homematic_door_open_url,homematic_door_close_url,homematic_climate_url,homematic_xmlapi_token,homematic_temperature_url,homematic_humidity_url" />
         <div>
           <p class="eyebrow mb-1">Hühnerstall</p>
-          <h2 class="h4 mb-1">Kameras und Steuerung</h2>
-          <p class="text-body-secondary mb-0">Streams, Stalltür und Klimawerte für das Dashboard konfigurieren.</p>
+          <h2 class="h4 mb-1">Wetter, Kameras und Steuerung</h2>
+          <p class="text-body-secondary mb-0">Außenwetter, Streams, Stalltür und Klimawerte für das Dashboard konfigurieren.</p>
         </div>
+        <section class="card border bg-body">
+          <div class="card-body">
+            <h3 class="h6 mb-2">Wetterstandort</h3>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label" for="weather_location_name">Ort</label>
+                <input class="form-control" id="weather_location_name" name="weather_location_name" value="<%= settings.weather_location_name || '' %>" placeholder="Herrieden" />
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="form-label" for="weather_latitude">Breitengrad</label>
+                <input class="form-control" id="weather_latitude" name="weather_latitude" type="number" min="-90" max="90" step="0.0001" value="<%= settings.weather_latitude || '' %>" placeholder="49.2378" />
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="form-label" for="weather_longitude">Längengrad</label>
+                <input class="form-control" id="weather_longitude" name="weather_longitude" type="number" min="-180" max="180" step="0.0001" value="<%= settings.weather_longitude || '' %>" placeholder="10.5035" />
+              </div>
+            </div>
+            <div class="form-text">HeartPet lädt aktuelles Wetter, Sonnenaufgang und Sonnenuntergang ohne API-Schlüssel von Open-Meteo. Koordinaten bestimmen den genauen Standort.</div>
+          </div>
+        </section>
         <div class="row g-3">
           <div class="col-lg-6">
             <label class="form-label" for="coop_camera_streams">Kameras</label>
@@ -94,7 +114,6 @@
             <div class="alert alert-secondary mt-2 mb-0 small" role="alert">
               <strong>Wansview W2:</strong> Hauptstream meist <code>rtsp://BENUTZER:PASSWORT@IP:554/live/ch0</code>, kleiner Stream <code>/live/ch1</code>. Auf dem HeartPet-Server muss <code>ffmpeg -version</code> funktionieren. Zugangsdaten mit Sonderzeichen müssen URL-kodiert sein, beispielsweise <code>!</code> als <code>%21</code>.
             </div>
-            <div class="form-text">Eine Kamera pro Zeile: <code>Name|URL</code>. Verwende eine direkte MJPEG- oder Bild-URL.</div>
           </div>
           <div class="col-lg-6">
             <div class="vstack gap-3">

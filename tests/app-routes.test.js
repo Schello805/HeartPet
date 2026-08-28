@@ -13,6 +13,7 @@ const tempDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "heartpet-test-"));
 process.env.HEARTPET_DATA_DIR = tempDataDir;
 process.env.HEARTPET_SESSION_SECRET = "test-secret";
 process.env.HEARTPET_SESSION_STORE = "memory";
+process.env.HEARTPET_DISABLE_EXTERNAL_WEATHER = "true";
 
 const { initDatabase, upsertSetting } = require("../src/db");
 const { createAnimalPdf } = require("../src/exporters");
@@ -48,6 +49,12 @@ test("RTSP-Kameras werden als ffmpeg-Quelle erkannt", () => {
     url: "rtsp://admin:secret@192.168.1.172:554/live/ch0",
     protocol: "rtsp",
   }]);
+});
+
+test("Wettercodes liefern verständliche und visuelle Zustände", () => {
+  assert.deepEqual(app.__test.getWeatherCodeMeta(0, 1), { label: "Klar", icon: "☀️" });
+  assert.deepEqual(app.__test.getWeatherCodeMeta(63, 1), { label: "Regen", icon: "🌧️" });
+  assert.deepEqual(app.__test.getWeatherCodeMeta(95, 1), { label: "Gewitter", icon: "⛈️" });
 });
 
 test("ntfy sendet Topic, Token und verständliche Testnachricht", async () => {
@@ -1691,13 +1698,14 @@ test("Dashboard zeigt Tierarten und konkrete Aufmerksamkeitspunkte", async () =>
   assert.doesNotMatch(response.text, /Schnell weiter/);
 });
 
-test("Dashboard ordnet Stallbereich vor Tierbestand und Erinnerungen ein", async () => {
+test("Dashboard enthält getrennte Bereiche für Tierbestand, Wetter und Stall", async () => {
   upsertSetting(db, "coop_camera_streams", "Testkamera|http://127.0.0.1/test.jpg");
   try {
     const response = await agent.get("/");
     assert.equal(response.status, 200);
     assert.match(response.text, /dashboard-coop-section/);
     assert.match(response.text, /dashboard-inventory-section/);
+    assert.match(response.text, /dashboard-weather-section/);
   } finally {
     upsertSetting(db, "coop_camera_streams", "");
   }
@@ -1708,6 +1716,8 @@ test("Kamera-Einstellungen erklären RTSP und Wansview verständlich", async () 
   assert.equal(response.status, 200);
   assert.match(response.text, /rtsp:\/\/BENUTZER:PASSWORT@IP:554\/live\/ch0/);
   assert.match(response.text, /ffmpeg -version/);
+  assert.match(response.text, /weather_latitude/);
+  assert.match(response.text, /Open-Meteo/);
 });
 
 test("Erfolgreiche Änderungen werden zusätzlich zentral im Audit-Log erfasst", async () => {

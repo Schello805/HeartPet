@@ -86,16 +86,43 @@ body.bootstrap-app {
 }
 
 .bootstrap-app.dashboard-page .dashboard-coop-section {
-  order: 1;
+  order: 4;
   margin-bottom: 0.5rem;
 }
 
 .bootstrap-app.dashboard-page .dashboard-inventory-section {
-  order: 2;
+  order: 1;
 }
 
 .bootstrap-app.dashboard-page .dashboard-priority-section {
+  order: 5;
+}
+
+.bootstrap-app.dashboard-page .dashboard-weather-section {
+  order: 2;
+}
+
+.bootstrap-app.dashboard-page .dashboard-climate-section {
   order: 3;
+}
+
+.dashboard-visual-icon {
+  display: inline-grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--bs-info) 12%, var(--bs-body-bg));
+  font-size: 1.45rem;
+}
+
+.dashboard-species-icon {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.dashboard-weather-card {
+  background: linear-gradient(135deg, rgba(49, 150, 246, 0.1), rgba(45, 191, 154, 0.08));
 }
 
 .bootstrap-app .app-main-container {

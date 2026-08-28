@@ -5,10 +5,11 @@
 <% const attentionList = typeof attentionAnimals !== 'undefined' ? attentionAnimals : []; %>
 <% const speciesOverview = typeof speciesCounts !== 'undefined' ? speciesCounts : []; %>
 <% const issueCount = attentionList.length; %>
-<% const hasReminderOverview = stats.openReminderCount > 0 || stats.dueReminderCount > 0 || upcomingReminders.length > 0; %>
 <% const hasPriorityContent = urgentList.length > 0 || upcomingReminders.length > 0 || attentionList.length > 0; %>
 <% const coopState = typeof coop !== 'undefined' ? coop : { cameras: [], temperature: null, humidity: null, climateError: '', temperatureConfigured: false, humidityConfigured: false, doorConfigured: false, doorCloseConfigured: false }; %>
+<% const weatherState = typeof weather !== 'undefined' ? weather : { configured: false, location: '', error: '' }; %>
 <% const hasCoopControl = coopState.doorConfigured || coopState.doorCloseConfigured || coopState.temperatureConfigured || coopState.humidityConfigured; %>
+<% const speciesIcons = { katze: '🐈', hund: '🐕', huhn: '🐔', hühner: '🐔', pferd: '🐴', kaninchen: '🐇', vogel: '🐦', schaf: '🐑', ziege: '🐐' }; %>
 
 <% if (searchState.searchable) { %>
   <section class="card border-0 dashboard-feed-card mb-2">
@@ -39,7 +40,7 @@
 <% } %>
 
 <div class="row g-2 mb-2 dashboard-inventory-section">
-  <div class="<%= hasReminderOverview ? 'col-xl-5' : 'col-12' %>">
+  <div class="col-12">
     <section class="card border-0 h-100 dashboard-surface-card">
       <div class="card-body p-2">
         <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
@@ -63,7 +64,10 @@
               <div class="col-6 col-lg-4 col-xl-3">
                 <a class="card h-100 border-0 text-decoration-none dashboard-stat-card dashboard-kpi-link" href="/animals<%= species.species_id ? `?species_id=${species.species_id}` : '' %>">
                   <div class="card-body p-2">
-                    <span class="small text-body-secondary d-block mb-1"><%= species.name %></span>
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                      <span class="dashboard-species-icon" aria-hidden="true"><%= speciesIcons[String(species.name || '').toLowerCase()] || '🐾' %></span>
+                      <span class="small text-body-secondary"><%= species.name %></span>
+                    </div>
                     <strong class="fw-semibold text-primary d-block"><%= species.count %></strong>
                   </div>
                 </a>
@@ -75,47 +79,6 @@
     </section>
   </div>
 
-  <% if (hasReminderOverview) { %>
-  <div class="col-xl-7">
-    <section class="card border-0 h-100 dashboard-surface-card">
-      <div class="card-body p-2">
-        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-          <div>
-            <h2 class="h5 mb-1">Erinnerungen</h2>
-            <p class="text-body-secondary mb-0 small">Was aktuell offen ist oder bald ansteht.</p>
-          </div>
-          <a href="/#dringende-erinnerungen" class="small text-decoration-none">Details</a>
-        </div>
-        <div class="row g-2">
-          <div class="col-6 col-lg-4">
-            <a class="card h-100 border-0 text-decoration-none dashboard-stat-card dashboard-kpi-link semantic-card <%= stats.openReminderCount > 0 ? 'semantic-card--danger' : 'semantic-card--ok' %>" href="/#dringende-erinnerungen">
-              <div class="card-body p-2">
-                <span class="small text-body-secondary d-block mb-1">Offen</span>
-                <strong class="fw-semibold d-block"><%= stats.openReminderCount %></strong>
-              </div>
-            </a>
-          </div>
-          <div class="col-6 col-lg-4">
-            <a class="card h-100 border-0 text-decoration-none dashboard-stat-card dashboard-kpi-link semantic-card <%= stats.dueReminderCount > 0 ? 'semantic-card--danger' : 'semantic-card--ok' %>" href="/#dringende-erinnerungen">
-              <div class="card-body p-2">
-                <span class="small text-body-secondary d-block mb-1">Jetzt fällig</span>
-                <strong class="fw-semibold d-block"><%= stats.dueReminderCount %></strong>
-              </div>
-            </a>
-          </div>
-          <div class="col-12 col-lg-4">
-            <a class="card h-100 border-0 text-decoration-none dashboard-stat-card dashboard-kpi-link semantic-card <%= upcomingReminders.length > 0 ? 'semantic-card--info' : 'semantic-card--ok' %>" href="/#naechste-erinnerungen">
-              <div class="card-body p-2">
-                <span class="small text-body-secondary d-block mb-1">Demnächst</span>
-                <strong class="fw-semibold d-block"><%= upcomingReminders.length %></strong>
-              </div>
-            </a>
-          </div>
-        </div>
-      </div>
-    </section>
-  </div>
-  <% } %>
 </div>
 
 <% if (hasPriorityContent) { %>
@@ -235,89 +198,62 @@
 </div>
 <% } %>
 
-<% if (coopState.cameras.length || hasCoopControl) { %>
-<div class="row g-2 mt-0 dashboard-coop-section" id="coop-control">
-  <% if (coopState.cameras.length) { %>
-    <div class="<%= hasCoopControl ? 'col-xl-8' : 'col-12' %>">
-      <section class="card border-0 h-100 dashboard-surface-card">
-        <div class="card-body p-2">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <h2 class="h5 mb-0">Kameras</h2>
-            <span class="badge text-bg-secondary-subtle border"><%= coopState.cameras.length %></span>
-          </div>
-          <div class="row g-2">
-            <% coopState.cameras.forEach((camera, cameraIndex) => { %>
-              <div class="<%= coopState.cameras.length > 1 ? 'col-md-6' : 'col-12' %>">
-                <figure class="card border h-100 mb-0 overflow-hidden" data-camera-card data-camera-status-url="/coop/cameras/<%= cameraIndex %>/status">
-                  <img src="/coop/cameras/<%= cameraIndex %>/stream" class="card-img-top ratio ratio-16x9 object-fit-cover" alt="Livebild <%= camera.name %>" loading="lazy" data-camera-image />
-                  <div class="alert alert-warning rounded-0 mb-0 d-none small" data-camera-error></div>
-                  <figcaption class="card-body p-2 fw-semibold"><%= camera.name %></figcaption>
-                </figure>
-              </div>
-            <% }) %>
-          </div>
-        </div>
-      </section>
+<section class="card border-0 dashboard-surface-card dashboard-weather-card dashboard-weather-section mb-2">
+  <div class="card-body p-2">
+    <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+      <div>
+        <h2 class="h5 mb-1">Wetter in <%= weatherState.location || 'deinem Ort' %></h2>
+        <p class="text-body-secondary small mb-0">Außenklima und Tageslicht für den Stall.</p>
+      </div>
+      <span class="dashboard-visual-icon" aria-hidden="true"><%= weatherState.icon || '🌤️' %></span>
     </div>
-  <% } %>
+    <% if (weatherState.error) { %>
+      <div class="alert alert-warning py-2 mb-0 small"><%= weatherState.error %></div>
+    <% } else if (weatherState.configured) { %>
+      <div class="row g-2">
+        <div class="col-6 col-lg"><div class="card border h-100"><div class="card-body p-2"><span class="small text-body-secondary d-block"><%= weatherState.label || 'Aktuell' %></span><strong class="fs-5"><%= Number.isFinite(weatherState.temperature) ? `${weatherState.temperature.toLocaleString('de-DE', { maximumFractionDigits: 1 })} °C` : '–' %></strong></div></div></div>
+        <div class="col-6 col-lg"><div class="card border h-100"><div class="card-body p-2"><span class="small text-body-secondary d-block">Luftfeuchte außen</span><strong><%= Number.isFinite(weatherState.humidity) ? `${weatherState.humidity.toLocaleString('de-DE', { maximumFractionDigits: 0 })} %` : '–' %></strong></div></div></div>
+        <div class="col-6 col-lg"><div class="card border h-100"><div class="card-body p-2"><span class="small text-body-secondary d-block">Wind</span><strong><%= Number.isFinite(weatherState.windSpeed) ? `${weatherState.windSpeed.toLocaleString('de-DE', { maximumFractionDigits: 0 })} km/h` : '–' %></strong></div></div></div>
+        <div class="col-6 col-lg"><div class="card border h-100"><div class="card-body p-2"><span class="small text-body-secondary d-block">Regen</span><strong><%= Number.isFinite(weatherState.precipitation) ? `${weatherState.precipitation.toLocaleString('de-DE', { maximumFractionDigits: 1 })} mm` : '–' %></strong></div></div></div>
+        <div class="col-6 col-lg"><div class="card border h-100"><div class="card-body p-2 d-flex gap-2"><span class="dashboard-visual-icon" aria-hidden="true">🌅</span><div><span class="small text-body-secondary d-block">Sonnenaufgang</span><strong><%= weatherState.sunrise ? formatDateTime(weatherState.sunrise).slice(11) : '–' %></strong><small class="d-block text-success-emphasis">Stalltür öffnet</small></div></div></div></div>
+        <div class="col-6 col-lg"><div class="card border h-100"><div class="card-body p-2 d-flex gap-2"><span class="dashboard-visual-icon" aria-hidden="true">🌇</span><div><span class="small text-body-secondary d-block">Sonnenuntergang</span><strong><%= weatherState.sunset ? formatDateTime(weatherState.sunset).slice(11) : '–' %></strong><small class="d-block text-primary-emphasis">Stalltür schließt</small></div></div></div></div>
+      </div>
+    <% } %>
+  </div>
+</section>
 
-  <% if (hasCoopControl) { %>
-    <div class="<%= coopState.cameras.length ? 'col-xl-4' : 'col-12' %>">
-      <section class="card border-0 h-100 dashboard-surface-card">
-        <div class="card-body p-2 d-flex flex-column">
-          <h2 class="h5 mb-2">Steuerung</h2>
-          <div class="row g-2 mb-2">
-            <% if (coopState.climateError) { %>
-              <div class="col-12"><div class="alert alert-warning py-2 mb-0 small"><%= coopState.climateError %></div></div>
-            <% } %>
-            <% if (coopState.temperatureConfigured) { %>
-              <div class="col-6">
-                <div class="card border h-100"><div class="card-body p-2">
-                  <span class="small text-body-secondary d-block">Temperatur</span>
-                  <% if (coopState.temperature !== null) { %>
-                    <strong class="fs-4"><%= coopState.temperature.toLocaleString('de-DE', { maximumFractionDigits: 1 }) %> °C</strong>
-                  <% } else { %>
-                    <strong class="d-block text-warning-emphasis">Nicht verfügbar</strong>
-                    <span class="small text-body-secondary">Sensor nicht erreichbar</span>
-                  <% } %>
-                </div></div>
-              </div>
-            <% } %>
-            <% if (coopState.humidityConfigured) { %>
-              <div class="col-6">
-                <div class="card border h-100"><div class="card-body p-2">
-                  <span class="small text-body-secondary d-block">Luftfeuchte</span>
-                  <% if (coopState.humidity !== null) { %>
-                    <strong class="fs-4"><%= coopState.humidity.toLocaleString('de-DE', { maximumFractionDigits: 1 }) %> %</strong>
-                  <% } else { %>
-                    <strong class="d-block text-warning-emphasis">Nicht verfügbar</strong>
-                    <span class="small text-body-secondary">Sensor nicht erreichbar</span>
-                  <% } %>
-                </div></div>
-              </div>
-            <% } %>
-          </div>
-          <div class="row g-2 mt-auto">
-            <% if (coopState.doorConfigured) { %>
-              <div class="<%= coopState.doorCloseConfigured ? 'col-6' : 'col-12' %>">
-                <form method="post" action="/coop/door/open" data-confirm="Stalltür jetzt öffnen?">
-                  <button type="submit" class="btn btn-primary w-100 py-2">Öffnen</button>
-                </form>
-              </div>
-            <% } %>
-            <% if (coopState.doorCloseConfigured) { %>
-              <div class="<%= coopState.doorConfigured ? 'col-6' : 'col-12' %>">
-                <form method="post" action="/coop/door/close" data-confirm="Stalltür jetzt schließen?">
-                  <button type="submit" class="btn btn-outline-primary w-100 py-2">Schließen</button>
-                </form>
-              </div>
-            <% } %>
-          </div>
-        </div>
-      </section>
+<% if (hasCoopControl) { %>
+<section class="card border-0 dashboard-surface-card dashboard-climate-section mb-2" id="coop-control">
+  <div class="card-body p-2">
+    <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Klima im Stall</h2><span class="dashboard-visual-icon" aria-hidden="true">🌡️</span></div>
+    <div class="row g-2">
+      <% if (coopState.climateError) { %><div class="col-12"><div class="alert alert-warning py-2 mb-0 small"><%= coopState.climateError %></div></div><% } %>
+      <% if (coopState.temperatureConfigured) { %><div class="col-6 col-lg-3"><div class="card border h-100"><div class="card-body p-2"><span class="small text-body-secondary d-block">Temperatur</span><strong class="fs-4"><%= coopState.temperature !== null ? `${coopState.temperature.toLocaleString('de-DE', { maximumFractionDigits: 1 })} °C` : 'Nicht verfügbar' %></strong></div></div></div><% } %>
+      <% if (coopState.humidityConfigured) { %><div class="col-6 col-lg-3"><div class="card border h-100"><div class="card-body p-2"><span class="small text-body-secondary d-block">Luftfeuchte</span><strong class="fs-4"><%= coopState.humidity !== null ? `${coopState.humidity.toLocaleString('de-DE', { maximumFractionDigits: 1 })} %` : 'Nicht verfügbar' %></strong></div></div></div><% } %>
+      <% if (coopState.doorConfigured) { %><div class="col-6 col-lg-3 d-grid"><form method="post" action="/coop/door/open" class="d-grid h-100" data-confirm="Stalltür jetzt öffnen?"><button type="submit" class="btn btn-primary">↗ Stalltür öffnen</button></form></div><% } %>
+      <% if (coopState.doorCloseConfigured) { %><div class="col-6 col-lg-3 d-grid"><form method="post" action="/coop/door/close" class="d-grid h-100" data-confirm="Stalltür jetzt schließen?"><button type="submit" class="btn btn-outline-primary">↘ Stalltür schließen</button></form></div><% } %>
     </div>
-  <% } %>
-</div>
+  </div>
+</section>
+<% } %>
+
+<% if (coopState.cameras.length) { %>
+<section class="card border-0 dashboard-surface-card dashboard-coop-section mb-2">
+  <div class="card-body p-2">
+    <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Kameras</h2><span class="badge text-bg-secondary-subtle border"><%= coopState.cameras.length %></span></div>
+    <div class="row g-2">
+      <% coopState.cameras.forEach((camera, cameraIndex) => { %>
+        <div class="<%= coopState.cameras.length > 1 ? 'col-md-6 col-xl-4' : 'col-12' %>">
+          <figure class="card border h-100 mb-0 overflow-hidden" data-camera-card data-camera-status-url="/coop/cameras/<%= cameraIndex %>/status">
+            <img src="/coop/cameras/<%= cameraIndex %>/stream" class="card-img-top ratio ratio-16x9 object-fit-cover" alt="Livebild <%= camera.name %>" loading="lazy" data-camera-image />
+            <div class="alert alert-warning rounded-0 mb-0 d-none small" data-camera-error></div>
+            <figcaption class="card-body p-2 fw-semibold">📷 <%= camera.name %></figcaption>
+          </figure>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+</section>
 <% } %>
 
 <%- include('../partials/bottom') %>
