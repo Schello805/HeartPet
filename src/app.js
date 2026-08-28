@@ -716,20 +716,9 @@ app.get("/", async (req, res) => {
   const coopSettings = getSettingsObject(db);
   const weather = await readOutdoorWeather(coopSettings);
   const coopCameras = parseCoopCameras(coopSettings.coop_camera_streams);
-  const homematicSid = await resolveHomematicSid(coopSettings);
-  const climateUrl = buildHomematicClimateUrl(
-    coopSettings.homematic_climate_url,
-    homematicSid
-  );
-  const climate = climateUrl
-    ? await readHomematicClimate(climateUrl)
-    : null;
-  const [temperature, humidity] = climate
-    ? [climate.temperature, climate.humidity]
-    : await Promise.all([
-      readHomematicValue(coopSettings.homematic_temperature_url, ["temperature", "temperatur", "temp"]),
-      readHomematicValue(coopSettings.homematic_humidity_url, ["humidity", "luftfeuchte", "feuchte", "hum"]),
-    ]);
+  const climate = await readHomematicClimateFromCcu(coopSettings);
+  const { temperature, humidity } = climate;
+  const climateConfigured = Boolean(getHomematicClimateChannelId(coopSettings));
 
   res.render("pages/dashboard", {
     pageTitle: "Dashboard",
@@ -746,8 +735,8 @@ app.get("/", async (req, res) => {
       temperature,
       humidity,
       climateError: climate?.error || "",
-      temperatureConfigured: isHttpUrl(climateUrl) || isHttpUrl(coopSettings.homematic_temperature_url),
-      humidityConfigured: isHttpUrl(climateUrl) || isHttpUrl(coopSettings.homematic_humidity_url),
+      temperatureConfigured: climateConfigured,
+      humidityConfigured: climateConfigured,
       doorConfigured: isHttpUrl(coopSettings.homematic_door_open_url),
       doorCloseConfigured: isHttpUrl(coopSettings.homematic_door_close_url),
     },
@@ -841,23 +830,13 @@ app.get("/coop/cameras/:index/status", async (req, res) => {
 
 app.get("/admin/coop/climate-status", requireAdmin, async (req, res) => {
   const settings = getSettingsObject(db);
-  const login = await loginHomematicCcu(settings);
-  const homematicSid = String(settings.homematic_xmlapi_token || "").trim() || login.sid;
-  const climateUrl = buildHomematicClimateUrl(
-    settings.homematic_climate_url,
-    homematicSid
-  );
-  if (!isHttpUrl(climateUrl)) {
-    return res.status(400).json({ ok: false, loginOk: login.ok, error: "Noch keine gültige Klima-URL hinterlegt." });
-  }
-
-  const climate = await readHomematicClimate(climateUrl);
+  const climate = await readHomematicClimateFromCcu(settings);
   if (climate.error) {
-    return res.status(502).json({ ok: false, loginOk: login.ok, error: climate.error, loginError: login.error });
+    return res.status(502).json({ ok: false, loginOk: climate.loginOk, error: climate.error });
   }
   return res.json({
     ok: true,
-    loginOk: login.ok,
+    loginOk: true,
     temperature: climate.temperature,
     humidity: climate.humidity,
   });
@@ -5313,6 +5292,15 @@ function parseHomematicStateChange(value) {
   return { iseId, newValue };
 }
 
+function getHomematicClimateChannelId(settings) {
+  const configured = String(settings?.homematic_climate_channel_id || "").trim();
+  if (/^\d+$/.test(configured)) return configured;
+  const legacyUrl = normalizeConfiguredUrl(settings?.homematic_climate_url);
+  if (!isHttpUrl(legacyUrl)) return "";
+  const legacyId = String(new URL(legacyUrl).searchParams.get("channel_id") || "").trim();
+  return /^\d+$/.test(legacyId) ? legacyId : "";
+}
+
 function getHomematicApiUrl(settings) {
   const configured = normalizeConfiguredUrl(settings?.homematic_ccu_url);
   if (isHttpUrl(configured)) {
@@ -5400,6 +5388,28 @@ async function executeHomematicCommand(settings, configuredUrl) {
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const responseError = getHomematicCommandResponseError(await response.text());
   if (responseError) throw new Error(responseError);
+}
+
+async function readHomematicClimateFromCcu(settings) {
+  const channelId = getHomematicClimateChannelId(settings);
+  if (!channelId) return { temperature: null, humidity: null, loginOk: false, error: "Noch keine Klima-Kanal-ID hinterlegt." };
+  const login = await loginHomematicCcu(settings);
+  if (!login.ok) return { temperature: null, humidity: null, loginOk: false, error: login.error };
+  try {
+    const script = `string id; foreach(id, dom.GetObject(${channelId}).DPs().EnumIDs()) { object dp = dom.GetObject(id); WriteLine(dp.Name() # "=" # dp.Value()); }`;
+    const result = await callHomematicJsonRpc(getHomematicApiUrl(settings), "ReGa.runScript", { _session_id_: login.sid, script });
+    const text = typeof result === "string" ? result : JSON.stringify(result || "");
+    const temperature = parseHomematicTextValue(text, ["actual_temperature", "temperature", "temperatur", "temp"]);
+    const humidity = parseHomematicTextValue(text, ["humidity", "luftfeuchte", "feuchte", "hum"]);
+    return {
+      temperature,
+      humidity,
+      loginOk: true,
+      error: temperature === null && humidity === null ? "CCU erreichbar, aber im Kanal wurden keine Klima-Werte gefunden." : "",
+    };
+  } catch (error) {
+    return { temperature: null, humidity: null, loginOk: true, error: error.message };
+  }
 }
 
 async function resolveHomematicSid(settings) {

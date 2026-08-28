@@ -70,6 +70,7 @@ function seedDefaults(db) {
     homematic_ccu_url: "",
     homematic_ccu_username: "",
     homematic_ccu_password: "",
+    homematic_climate_channel_id: "",
     homematic_temperature_url: "",
     homematic_humidity_url: "",
     help_contact: "Support-Kontakt: [Name / Organisation], [E-Mail], [Telefon optional]",
