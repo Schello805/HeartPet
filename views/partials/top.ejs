@@ -125,15 +125,21 @@
                   <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Schließen"></button>
                 </div>
                 <div class="offcanvas-body d-flex flex-column gap-4">
+                  <% if (permissions.canManageAdmin) { %>
+                    <section aria-labelledby="mobile-admin-nav-title">
+                      <h6 class="mb-2" id="mobile-admin-nav-title">Verwaltung</h6>
+                      <nav class="mobile-admin-nav" aria-label="Mobile Verwaltung">
+                        <a class="mobile-admin-nav-item <%= currentPath === '/admin/allgemein' ? 'active' : '' %>" href="/admin/allgemein"><span aria-hidden="true">⚙</span><span>Allgemein</span></a>
+                        <a class="mobile-admin-nav-item <%= currentPath === '/admin/stall' ? 'active' : '' %>" href="/admin/stall"><span aria-hidden="true">🏠</span><span>Stall</span></a>
+                        <a class="mobile-admin-nav-item <%= currentPath === '/admin/benachrichtigungen' ? 'active' : '' %>" href="/admin/benachrichtigungen"><span aria-hidden="true">🔔</span><span>Benachrichtigungen</span></a>
+                        <a class="mobile-admin-nav-item <%= currentPath === '/admin/stammdaten' ? 'active' : '' %>" href="/admin/stammdaten"><span aria-hidden="true">▦</span><span>Stammdaten</span></a>
+                        <a class="mobile-admin-nav-item <%= currentPath === '/admin/benutzer' ? 'active' : '' %>" href="/admin/benutzer"><span aria-hidden="true">👤</span><span>Benutzer</span></a>
+                        <a class="mobile-admin-nav-item <%= currentPath === '/admin/import' ? 'active' : '' %>" href="/admin/import"><span aria-hidden="true">⇩</span><span>Import</span></a>
+                        <a class="mobile-admin-nav-item <%= currentPath === '/admin/systemlog' ? 'active' : '' %>" href="/admin/systemlog"><span aria-hidden="true">≡</span><span>Systemlog</span></a>
+                      </nav>
+                    </section>
+                  <% } %>
                   <div class="row g-2">
-                    <% if (permissions.canManageAdmin) { %>
-                      <div class="col-12">
-                        <a class="btn btn-primary w-100 text-start p-3" href="/admin/allgemein">
-                          <strong class="d-block">Verwaltung</strong>
-                          <span class="small opacity-75">Einstellungen und System</span>
-                        </a>
-                      </div>
-                    <% } %>
                     <div class="col-6"><a class="btn btn-outline-secondary w-100 text-start p-3" href="/hilfe"><strong class="d-block">Hilfe</strong><span class="small">Anleitungen</span></a></div>
                     <div class="col-6"><a class="btn btn-outline-secondary w-100 text-start p-3" href="/kontakt"><strong class="d-block">Kontakt</strong><span class="small">Rückfragen</span></a></div>
                   </div>

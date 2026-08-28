@@ -1748,6 +1748,15 @@ test("Kamera-Einstellungen erklären RTSP und Wansview verständlich", async () 
   assert.doesNotMatch(generalResponse.text, /CCU-Zugang/);
 });
 
+test("Mobile Mehr-Navigation verlinkt alle Adminbereiche direkt", async () => {
+  const response = await agent.get("/admin/allgemein");
+  assert.equal(response.status, 200);
+  ["allgemein", "stall", "benachrichtigungen", "stammdaten", "benutzer", "import", "systemlog"].forEach((pathName) => {
+    assert.match(response.text, new RegExp(`href=\\"/admin/${pathName}\\"`));
+  });
+  assert.match(response.text, /mobile-admin-nav/);
+});
+
 test("Erfolgreiche Änderungen werden zusätzlich zentral im Audit-Log erfasst", async () => {
   db.prepare("DELETE FROM audit_logs WHERE action = 'request.change'").run();
   const response = await agent

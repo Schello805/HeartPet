@@ -159,7 +159,9 @@ test("Dashboard zeigt mobil nur einen Einstieg für ein neues Tier", async ({ pa
 
   await page.locator(".app-mobile-bottom-nav").getByRole("button", { name: "Mehr" }).click();
   await expect(page.locator("#mobileNavOffcanvas")).toBeVisible();
-  await expect(page.locator("#mobileNavOffcanvas").getByRole("link", { name: /Verwaltung/ })).toHaveCount(1);
+  const adminNav = page.locator("#mobileNavOffcanvas .mobile-admin-nav");
+  await expect(adminNav.getByRole("link")).toHaveCount(7);
+  await expect(adminNav.getByRole("link", { name: /Stall/ })).toBeVisible();
 });
 
 test("Dokumentkategorie lässt sich im Bearbeiten-Dialog speichern", async ({ page }) => {
