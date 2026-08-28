@@ -797,7 +797,7 @@ app.get("/coop/cameras/:index/stream", async (req, res) => {
   }
 
   try {
-    const response = await fetchCameraStream(camera.url);
+    const response = await fetchCameraStream(camera.streamUrl);
     if (!response.ok || !response.body) {
       console.error(`[HeartPet] Kamera „${camera.name}“ antwortet mit HTTP ${response.status}.`);
       return res.sendStatus(502);
@@ -818,15 +818,20 @@ app.get("/coop/cameras/:index/frame", async (req, res) => {
   if (!camera) return res.sendStatus(404);
 
   const cached = cameraFrameCache.get(cameraIndex);
-  if (cached?.cameraUrl === camera.url && Date.now() - cached.createdAt < 900) {
+  if (cached?.cameraUrl === camera.snapshotUrl && Date.now() - cached.createdAt < 900) {
     res.set("Content-Type", "image/jpeg");
     res.set("Cache-Control", "no-store");
     return res.send(cached.buffer);
   }
 
   try {
-    const buffer = await captureCameraFrame(camera);
-    cameraFrameCache.set(cameraIndex, { cameraUrl: camera.url, createdAt: Date.now(), buffer });
+    const snapshotCamera = {
+      ...camera,
+      url: camera.snapshotUrl,
+      protocol: camera.snapshotProtocol,
+    };
+    const buffer = await captureCameraFrame(snapshotCamera);
+    cameraFrameCache.set(cameraIndex, { cameraUrl: camera.snapshotUrl, createdAt: Date.now(), buffer });
     res.set("Content-Type", "image/jpeg");
     res.set("Cache-Control", "no-store");
     return res.send(buffer);
@@ -5636,15 +5641,20 @@ function parseCoopCameraLines(value) {
     .map((line) => line.trim())
     .filter(Boolean)
     .map((source, index) => {
-      const separator = source.indexOf("|");
-      const name = separator >= 0 ? source.slice(0, separator).trim() : `Kamera ${index + 1}`;
-      const url = normalizeConfiguredUrl(separator >= 0 ? source.slice(separator + 1) : source);
+      const parts = source.split("|").map((part) => part.trim());
+      const hasName = parts.length > 1;
+      const name = hasName ? parts.shift() : `Kamera ${index + 1}`;
+      const snapshotUrl = normalizeConfiguredUrl(parts[0] || source);
+      const streamUrl = normalizeConfiguredUrl(parts[1] || snapshotUrl);
       return {
         source,
         name: name || `Kamera ${index + 1}`,
-        url,
-        protocol: isRtspUrl(url) ? "rtsp" : "http",
-        valid: isCameraUrl(url),
+        url: streamUrl,
+        snapshotUrl,
+        streamUrl,
+        snapshotProtocol: isRtspUrl(snapshotUrl) ? "rtsp" : "http",
+        protocol: isRtspUrl(streamUrl) ? "rtsp" : "http",
+        valid: isCameraUrl(snapshotUrl) && isCameraUrl(streamUrl),
       };
     });
 }
@@ -5652,7 +5662,14 @@ function parseCoopCameraLines(value) {
 function parseCoopCameras(value) {
   return parseCoopCameraLines(value)
     .filter((camera) => camera.valid)
-    .map(({ name, url, protocol }) => ({ name, url, protocol }));
+    .map(({ name, url, snapshotUrl, streamUrl, snapshotProtocol, protocol }) => ({
+      name,
+      url,
+      snapshotUrl,
+      streamUrl,
+      snapshotProtocol,
+      protocol,
+    }));
 }
 
 function streamRtspCamera(camera, req, res) {

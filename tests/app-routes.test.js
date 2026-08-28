@@ -47,8 +47,19 @@ test("RTSP-Kameras werden als ffmpeg-Quelle erkannt", () => {
   assert.deepEqual(cameras, [{
     name: "Wansview W2",
     url: "rtsp://admin:secret@192.168.1.172:554/live/ch0",
+    snapshotUrl: "rtsp://admin:secret@192.168.1.172:554/live/ch0",
+    streamUrl: "rtsp://admin:secret@192.168.1.172:554/live/ch0",
+    snapshotProtocol: "rtsp",
     protocol: "rtsp",
   }]);
+});
+
+test("Kameras können getrennte Standbild- und Stream-URLs verwenden", () => {
+  const cameras = app.__test.parseCoopCameras("Stall|http://camera/snapshot.jpg|rtsp://camera/live/ch0");
+  assert.equal(cameras[0].snapshotUrl, "http://camera/snapshot.jpg");
+  assert.equal(cameras[0].streamUrl, "rtsp://camera/live/ch0");
+  assert.equal(cameras[0].snapshotProtocol, "http");
+  assert.equal(cameras[0].protocol, "rtsp");
 });
 
 test("Wettercodes liefern verständliche und visuelle Zustände", () => {

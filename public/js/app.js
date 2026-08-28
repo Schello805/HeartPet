@@ -61,37 +61,45 @@ function initCameraDiagnostics() {
   document.querySelectorAll("[data-camera-card]").forEach((card) => {
     const image = card.querySelector("[data-camera-image]");
     const errorBox = card.querySelector("[data-camera-error]");
+    const toggle = card.querySelector("[data-camera-stream-toggle]");
     if (!image || !errorBox) return;
     const frameUrl = image.dataset.cameraFrameUrl;
-    let loading = false;
+    const streamUrl = card.dataset.cameraStreamUrl;
+    let streaming = false;
+    let diagnosing = false;
+    const setStreaming = (active) => {
+      streaming = active;
+      if (!toggle) return;
+      toggle.textContent = active ? "Stream stoppen" : "Stream starten";
+      toggle.classList.toggle("btn-primary", active);
+      toggle.classList.toggle("btn-outline-primary", !active);
+    };
     image.addEventListener("load", () => {
-      loading = false;
       image.classList.remove("d-none");
       errorBox.classList.add("d-none");
     });
     image.addEventListener("error", async () => {
-      loading = false;
+      setStreaming(false);
       errorBox.classList.remove("d-none");
       errorBox.textContent = "Kameraverbindung wird geprüft …";
+      if (diagnosing) return;
+      diagnosing = true;
       try {
         const response = await fetch(card.dataset.cameraStatusUrl, { headers: { Accept: "application/json" } });
         const payload = await response.json();
         errorBox.textContent = payload.error || "Kamerabild konnte nicht geladen werden.";
       } catch (error) {
         errorBox.textContent = "Kameradiagnose konnte nicht geladen werden.";
+      } finally {
+        diagnosing = false;
       }
     });
-    if (!frameUrl) return;
-    const refresh = () => {
-      if (!card.isConnected) {
-        window.clearInterval(refreshTimer);
-        return;
-      }
-      if (document.hidden || loading) return;
-      loading = true;
-      image.src = `${frameUrl}?t=${Date.now()}`;
-    };
-    const refreshTimer = window.setInterval(refresh, 1000);
+    toggle?.addEventListener("click", () => {
+      const nextUrl = streaming ? frameUrl : streamUrl;
+      if (!nextUrl) return;
+      setStreaming(!streaming);
+      image.src = `${nextUrl}${nextUrl.includes("?") ? "&" : "?"}t=${Date.now()}`;
+    });
   });
 }
 

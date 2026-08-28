@@ -252,10 +252,13 @@
     <div class="row g-2">
       <% coopState.cameras.forEach((camera, cameraIndex) => { %>
         <div class="<%= coopState.cameras.length > 1 ? 'col-md-6 col-xl-4' : 'col-12' %>">
-          <figure class="card border h-100 mb-0 overflow-hidden" data-camera-card data-camera-status-url="/coop/cameras/<%= cameraIndex %>/status">
+          <figure class="card border h-100 mb-0 overflow-hidden" data-camera-card data-camera-status-url="/coop/cameras/<%= cameraIndex %>/status" data-camera-stream-url="/coop/cameras/<%= cameraIndex %>/stream">
             <img src="/coop/cameras/<%= cameraIndex %>/frame" data-camera-frame-url="/coop/cameras/<%= cameraIndex %>/frame" class="card-img-top ratio ratio-16x9 object-fit-cover" alt="Kamerabild <%= camera.name %>" loading="lazy" data-camera-image />
             <div class="alert alert-warning rounded-0 mb-0 d-none small" data-camera-error></div>
-            <figcaption class="card-body p-2 fw-semibold">📷 <%= camera.name %></figcaption>
+            <figcaption class="card-body p-2 d-flex align-items-center justify-content-between gap-2">
+              <strong>📷 <%= camera.name %></strong>
+              <button type="button" class="btn btn-sm btn-outline-primary" data-camera-stream-toggle>Stream starten</button>
+            </figcaption>
           </figure>
         </div>
       <% }) %>
