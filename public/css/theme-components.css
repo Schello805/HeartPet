@@ -125,6 +125,12 @@ body.bootstrap-app {
   background: linear-gradient(135deg, rgba(49, 150, 246, 0.1), rgba(45, 191, 154, 0.08));
 }
 
+.dashboard-weather-value {
+  display: block;
+  font-size: 1.35rem;
+  line-height: 1.15;
+}
+
 .bootstrap-app .app-main-container {
   padding-bottom: 6rem;
 }
@@ -166,19 +172,19 @@ body.bootstrap-app {
 .bootstrap-app .app-mobile-bottom-nav {
   position: fixed;
   z-index: 1080;
-  right: 0.65rem;
-  bottom: calc(0.55rem + env(safe-area-inset-bottom));
-  left: 0.65rem;
+  right: 0;
+  bottom: 0;
+  left: 0;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.2rem;
-  padding: 0.45rem;
-  border: 1px solid rgba(142, 190, 199, 0.5);
-  border-radius: 20px;
-  background: rgba(250, 254, 254, 0.94);
-  box-shadow: 0 18px 42px rgba(33, 97, 119, 0.2);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  min-height: calc(64px + env(safe-area-inset-bottom));
+  padding: 0.35rem 0.55rem calc(0.35rem + env(safe-area-inset-bottom));
+  border: 0;
+  border-top: 1px solid rgba(142, 190, 199, 0.55);
+  border-radius: 0;
+  background: #f8fdfd;
+  box-shadow: 0 -8px 24px rgba(33, 97, 119, 0.12);
 }
 
 .bootstrap-app .app-mobile-nav-item {
@@ -229,11 +235,11 @@ body.bootstrap-app {
 
 @media (max-width: 991.98px) {
   .bootstrap-app .app-main-container {
-    padding-bottom: calc(9rem + env(safe-area-inset-bottom));
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
   }
 
   .bootstrap-app .app-footer {
-    padding-bottom: calc(9rem + env(safe-area-inset-bottom));
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
   }
 
   .bootstrap-app .main-content-inner > * {
