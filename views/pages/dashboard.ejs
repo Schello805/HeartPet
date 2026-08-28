@@ -9,7 +9,6 @@
 <% const coopState = typeof coop !== 'undefined' ? coop : { cameras: [], temperature: null, humidity: null, climateError: '', temperatureConfigured: false, humidityConfigured: false, doorConfigured: false, doorCloseConfigured: false }; %>
 <% const weatherState = typeof weather !== 'undefined' ? weather : { configured: false, location: '', error: '' }; %>
 <% const hasCoopControl = coopState.doorConfigured || coopState.doorCloseConfigured || coopState.temperatureConfigured || coopState.humidityConfigured; %>
-<% const speciesIcons = { katze: '🐈', hund: '🐕', huhn: '🐔', hühner: '🐔', pferd: '🐴', kaninchen: '🐇', vogel: '🐦', schaf: '🐑', ziege: '🐐' }; %>
 
 <% if (searchState.searchable) { %>
   <section class="card border-0 dashboard-feed-card mb-2">
@@ -65,7 +64,7 @@
                 <a class="card h-100 border-0 text-decoration-none dashboard-stat-card dashboard-kpi-link" href="/animals<%= species.species_id ? `?species_id=${species.species_id}` : '' %>">
                   <div class="card-body p-2">
                     <div class="d-flex align-items-center gap-2 mb-1">
-                      <span class="dashboard-species-icon" aria-hidden="true"><%= speciesIcons[String(species.name || '').toLowerCase()] || '🐾' %></span>
+                      <span class="dashboard-species-icon" aria-hidden="true"><%= getAnimalSpeciesIcon(species.name) %></span>
                       <span class="small text-body-secondary"><%= species.name %></span>
                     </div>
                     <strong class="fw-semibold text-primary d-block"><%= species.count %></strong>
@@ -176,10 +175,10 @@
                     <% if (animal.profile_image_stored_name) { %>
                       <img class="dashboard-animal-thumb" src="/media/<%= animal.profile_image_stored_name %>" alt="" />
                     <% } else { %>
-                      <span class="dashboard-animal-thumb dashboard-animal-thumb--fallback"><%= getAnimalInitial(animal.name) %></span>
+                      <span class="dashboard-animal-thumb dashboard-animal-thumb--fallback" title="<%= animal.species_name || 'Tier' %>"><%= getAnimalSpeciesIcon(animal.species_name) %></span>
                     <% } %>
                     <div class="min-w-0">
-                      <strong class="d-block text-truncate"><%= animal.name %></strong>
+                      <strong class="d-block text-truncate"><span aria-hidden="true"><%= getAnimalSpeciesIcon(animal.species_name) %></span> <%= animal.name %></strong>
                       <div class="d-flex flex-wrap gap-1 mt-1">
                         <% (animal.dashboardAttentionReasons || []).forEach((reason) => { %>
                           <span class="badge text-bg-warning"><%= reason %></span>

@@ -3,6 +3,7 @@ const path = require("path");
 const dayjs = require("dayjs");
 
 const { initDatabase, getSettingsObject } = require("../src/db");
+const { getAnimalSpeciesIcon } = require("../src/view-helpers");
 
 const db = initDatabase();
 const animalId = Number(process.argv[2] || 1);
@@ -89,6 +90,7 @@ const locals = {
   getAnimalInitial(value) {
     return value ? String(value).trim().charAt(0).toUpperCase() : "?";
   },
+  getAnimalSpeciesIcon,
   getRoleLabel(value) {
     const labels = {
       admin: "Administrator",

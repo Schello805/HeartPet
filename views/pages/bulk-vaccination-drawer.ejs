@@ -59,7 +59,7 @@
                     <span class="card-body p-2 d-flex align-items-center gap-2">
                       <input class="form-check-input mt-0" type="checkbox" name="animal_ids" value="<%= animal.id %>" data-bulk-animal />
                       <span class="min-w-0">
-                        <strong class="d-block text-truncate"><%= animal.name %></strong>
+                        <strong class="d-block text-truncate"><span aria-hidden="true"><%= getAnimalSpeciesIcon(animal.species_name) %></span> <%= animal.name %></strong>
                         <small class="text-body-secondary"><%= animal.species_name || 'Tier' %></small>
                       </span>
                     </span>

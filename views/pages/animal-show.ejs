@@ -94,7 +94,7 @@
             <% if (animal.profile_image_stored_name) { %>
               <img class="animal-profile-image" src="/media/<%= animal.profile_image_stored_name %>" alt="Profilbild von <%= animal.name %>" />
             <% } else { %>
-              <div class="animal-profile-image animal-profile-fallback"><%= getAnimalInitial(animal.name) %></div>
+              <div class="animal-profile-image animal-profile-fallback" title="<%= animal.species_name || 'Tier' %>"><%= getAnimalSpeciesIcon(animal.species_name) %></div>
             <% } %>
           </label>
           <% if (animal.profile_image_stored_name) { %>
@@ -109,7 +109,7 @@
           <% if (animal.profile_image_stored_name) { %>
             <img class="animal-profile-image" src="/media/<%= animal.profile_image_stored_name %>" alt="Profilbild von <%= animal.name %>" />
           <% } else { %>
-            <div class="animal-profile-image animal-profile-fallback"><%= getAnimalInitial(animal.name) %></div>
+            <div class="animal-profile-image animal-profile-fallback" title="<%= animal.species_name || 'Tier' %>"><%= getAnimalSpeciesIcon(animal.species_name) %></div>
           <% } %>
         </div>
       <% } %>
@@ -118,7 +118,7 @@
   <div class="animal-hero-content">
     <div class="animal-hero-head">
       <div class="animal-hero-title">
-        <p class="eyebrow"><%= animal.species_name || 'Tier' %></p>
+        <p class="eyebrow"><span aria-hidden="true"><%= getAnimalSpeciesIcon(animal.species_name) %></span> <%= animal.species_name || 'Tier' %></p>
         <h2><%= animal.name %></h2>
       </div>
       <div class="hero-actions">

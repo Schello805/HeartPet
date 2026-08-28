@@ -139,7 +139,7 @@
               <div class="card border bg-body h-100">
                 <div class="card-body d-flex flex-column gap-3">
                   <div>
-                    <strong class="d-block mb-1"><%= item.name %></strong>
+                    <strong class="d-block mb-1"><span aria-hidden="true"><%= getAnimalSpeciesIcon(item.name) %></span> <%= item.name %></strong>
                     <p class="text-body-secondary mb-0">Standardtierarzt: <%= item.veterinarian_name || '-' %></p>
                   </div>
                   <div class="d-flex flex-wrap gap-2 mt-auto">

@@ -17,6 +17,7 @@ const {
   formatDateTime,
   getAnimalAge,
   getAnimalInitial,
+  getAnimalSpeciesIcon,
   getAnimalLifecycle,
   getReminderStatusMeta,
   getRoleLabel,
@@ -102,6 +103,7 @@ app.use((req, res, next) => {
   res.locals.formatDateTime = formatDateTime;
   res.locals.getAnimalAge = getAnimalAge;
   res.locals.getAnimalInitial = getAnimalInitial;
+  res.locals.getAnimalSpeciesIcon = getAnimalSpeciesIcon;
   res.locals.getRoleLabel = getRoleLabel;
   res.locals.getAnimalLifecycle = getAnimalLifecycle;
   res.locals.getReminderStatusMeta = getReminderStatusMeta;

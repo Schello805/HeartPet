@@ -46,6 +46,25 @@ function getAnimalInitial(name) {
   return String(name).trim().charAt(0).toUpperCase();
 }
 
+function getAnimalSpeciesIcon(speciesName) {
+  const normalized = String(speciesName || "")
+    .trim()
+    .toLocaleLowerCase("de-DE")
+    .replace(/ä/g, "a")
+    .replace(/ö/g, "o")
+    .replace(/ü/g, "u")
+    .replace(/ß/g, "ss");
+  const icons = {
+    katze: "🐈", katzen: "🐈", hund: "🐕", hunde: "🐕",
+    huhn: "🐔", huhner: "🐔", hahn: "🐓", pferd: "🐴", pferde: "🐴",
+    kaninchen: "🐇", hase: "🐇", hasen: "🐇", vogel: "🐦",
+    schaf: "🐑", schafe: "🐑", ziege: "🐐", ziegen: "🐐",
+    schwein: "🐖", schweine: "🐖", rind: "🐄", rinder: "🐄", kuh: "🐄",
+    ente: "🦆", enten: "🦆", gans: "🪿", ganse: "🪿",
+  };
+  return icons[normalized] || "🐾";
+}
+
 function normalizeAnimalStatus(status) {
   const allowedStatuses = ["Aktiv", "Vermittelt", "Verkauft", "Verstorben"];
   const normalized = String(status || "").trim();
@@ -186,6 +205,7 @@ module.exports = {
   formatDateTime,
   getAnimalAge,
   getAnimalInitial,
+  getAnimalSpeciesIcon,
   getAnimalLifecycle,
   getReminderStatusMeta,
   getRoleLabel,

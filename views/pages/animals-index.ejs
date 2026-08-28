@@ -122,7 +122,7 @@
                   data-panel-url="/animals/<%= animal.id %>/workspace-panel?<%= rowParams.toString() %>"
                 >
                   <div class="card-body p-2">
-                    <div class="fw-semibold text-truncate"><%= animal.name %></div>
+                    <div class="fw-semibold text-truncate"><span class="animal-species-icon" aria-hidden="true"><%= getAnimalSpeciesIcon(animal.species_name) %></span> <%= animal.name %></div>
                     <div class="small text-body-secondary text-truncate"><%= animal.species_name || '-' %></div>
                     <% if (animal.overdueReminderCount > 0) { %>
                       <span class="badge text-bg-danger mt-1"><%= animal.overdueReminderCount %> überfällig</span>

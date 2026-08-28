@@ -26,7 +26,7 @@
   <div class="card-body">
     <div class="mb-4">
       <h2 class="h4 mb-1"><%= pageTitle %></h2>
-      <p class="text-body-secondary mb-0"><%= animal.name %> · <%= animal.species_name || 'Tier' %></p>
+      <p class="text-body-secondary mb-0"><span aria-hidden="true"><%= getAnimalSpeciesIcon(animal.species_name) %></span> <%= animal.name %> · <%= animal.species_name || 'Tier' %></p>
     </div>
 
     <% const drawerHelpText = isEvent

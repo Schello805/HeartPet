@@ -1688,7 +1688,7 @@ test("Dashboard zeigt Tierarten und konkrete Aufmerksamkeitspunkte", async () =>
   const response = await agent.get("/");
   assert.equal(response.status, 200);
   assert.match(response.text, /Hinweise/);
-  assert.match(response.text, />Radar</);
+  assert.match(response.text, /Radar/);
   assert.doesNotMatch(response.text, /Profilbild von Radar/);
   assert.match(response.text, new RegExp(`href="/animals\\?animal_id=${animalId}"`));
   assert.match(response.text, /Tierarzt fehlt/);

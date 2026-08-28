@@ -14,7 +14,7 @@
         <% if (currentPath === '/animals' && animalMenu.length > 0) { %>
           <div class="nav-submenu nav-species-list d-grid gap-1">
             <% animalMenu.forEach((item) => { %>
-              <a class="nav-link rounded-2 px-3 py-2 nav-link-species <%= activeSpeciesId === String(item.id) ? 'active fw-semibold' : 'text-body-secondary' %>" href="/animals?species_id=<%= item.id %>"><%= item.name %></a>
+              <a class="nav-link rounded-2 px-3 py-2 nav-link-species <%= activeSpeciesId === String(item.id) ? 'active fw-semibold' : 'text-body-secondary' %>" href="/animals?species_id=<%= item.id %>"><span aria-hidden="true"><%= getAnimalSpeciesIcon(item.name) %></span> <%= item.name %></a>
             <% }) %>
           </div>
         <% } %>
