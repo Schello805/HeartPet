@@ -81,7 +81,7 @@
   <section class="card border-0 bg-body-tertiary admin-section-card" id="huehnerstall">
     <div class="card-body">
       <form method="post" action="/admin/settings" class="vstack gap-3 compact-workflow-form">
-        <input type="hidden" name="_fields" value="weather_location_name,weather_latitude,weather_longitude,coop_camera_streams,homematic_ccu_url,homematic_ccu_username,homematic_ccu_password,homematic_door_open_url,homematic_door_close_url,homematic_climate_channel_id" />
+        <input type="hidden" name="_fields" value="weather_location_name,weather_latitude,weather_longitude,coop_camera_streams,homematic_ccu_url,homematic_ccu_username,homematic_ccu_password,homematic_door_open_url,homematic_door_close_url,homematic_temperature_datapoint_id,homematic_humidity_datapoint_id" />
         <div>
           <p class="eyebrow mb-1">Hühnerstall</p>
           <h2 class="h4 mb-1">Wetter, Kameras und Steuerung</h2>
@@ -141,10 +141,16 @@
                 <input class="form-control" id="homematic_door_close_url" type="url" name="homematic_door_close_url" value="<%= settings.homematic_door_close_url || '' %>" placeholder="http://192.168.1.22/addons/xmlapi/statechange.cgi?ise_id=12990&amp;new_value=0" />
                 <div class="form-text">Zum Schließen denselben Datenpunkt mit dem passenden Wert eintragen, meist <code>new_value=0.0</code>.</div>
               </div>
-              <div>
-                <label class="form-label" for="homematic_climate_channel_id">Klima-Kanal-ID</label>
-                <input class="form-control" id="homematic_climate_channel_id" inputmode="numeric" pattern="[0-9]+" name="homematic_climate_channel_id" value="<%= settings.homematic_climate_channel_id || '' %>" placeholder="2361" />
-                <div class="form-text">Nur die numerische Kanal-ID des Klima-Sensors. HeartPet liest Temperatur und Luftfeuchte über die CCU-Anmeldung aus.</div>
+              <div class="row g-2">
+                <div class="col-md-6">
+                  <label class="form-label" for="homematic_temperature_datapoint_id">Datenpunkt Temperatur</label>
+                  <input class="form-control" id="homematic_temperature_datapoint_id" inputmode="numeric" pattern="[0-9]+" name="homematic_temperature_datapoint_id" value="<%= settings.homematic_temperature_datapoint_id || settings.homematic_climate_channel_id || '' %>" placeholder="2363" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label" for="homematic_humidity_datapoint_id">Datenpunkt Luftfeuchte</label>
+                  <input class="form-control" id="homematic_humidity_datapoint_id" inputmode="numeric" pattern="[0-9]+" name="homematic_humidity_datapoint_id" value="<%= settings.homematic_humidity_datapoint_id || '' %>" placeholder="2362" />
+                </div>
+                <div class="form-text">Die beiden numerischen <code>ise_id</code> eintragen. In deinem Fall: Temperatur <code>2363</code>, Luftfeuchte <code>2362</code>.</div>
               </div>
               <div class="alert alert-secondary mb-0" data-climate-status data-status-url="/admin/coop/climate-status">
                 <strong class="d-block">Verbindung wird geprüft …</strong>

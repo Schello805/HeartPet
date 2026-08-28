@@ -718,7 +718,7 @@ app.get("/", async (req, res) => {
   const coopCameras = parseCoopCameras(coopSettings.coop_camera_streams);
   const climate = await readHomematicClimateFromCcu(coopSettings);
   const { temperature, humidity } = climate;
-  const climateConfigured = Boolean(getHomematicClimateChannelId(coopSettings));
+  const climateConfigured = Boolean(getHomematicClimateDatapointIds(coopSettings));
 
   res.render("pages/dashboard", {
     pageTitle: "Dashboard",
@@ -2678,6 +2678,14 @@ app.post("/admin/settings", requireAdmin, upload.single("app_logo"), (req, res) 
     return res.redirect(backTo(req, "/admin/allgemein"));
   }
 
+  const settingsBeforeSave = getSettingsObject(db);
+  const ccuConnectionChanged = ["homematic_ccu_url", "homematic_ccu_username", "homematic_ccu_password"].some((key) => {
+    if (!fields.includes(key)) return false;
+    const submitted = String(req.body[key] || "");
+    if (key === "homematic_ccu_password" && !submitted) return false;
+    return normalizeSettingsInputValue(key, submitted) !== String(settingsBeforeSave[key] || "");
+  });
+
   fields.forEach((key) => {
     if (key === "homematic_ccu_password" && !String(req.body[key] || "")) {
       return;
@@ -2689,6 +2697,11 @@ app.post("/admin/settings", requireAdmin, upload.single("app_logo"), (req, res) 
 
     upsertSetting(db, key, normalizeSettingsInputValue(key, req.body[key]));
   });
+
+  if (ccuConnectionChanged) {
+    homematicSessionCache.clear();
+    upsertSetting(db, "homematic_ccu_session_id", "");
+  }
 
   if (req.file) {
     if (!String(req.file.mimetype || "").startsWith("image/")) {
@@ -5292,13 +5305,11 @@ function parseHomematicStateChange(value) {
   return { iseId, newValue };
 }
 
-function getHomematicClimateChannelId(settings) {
-  const configured = String(settings?.homematic_climate_channel_id || "").trim();
-  if (/^\d+$/.test(configured)) return configured;
-  const legacyUrl = normalizeConfiguredUrl(settings?.homematic_climate_url);
-  if (!isHttpUrl(legacyUrl)) return "";
-  const legacyId = String(new URL(legacyUrl).searchParams.get("channel_id") || "").trim();
-  return /^\d+$/.test(legacyId) ? legacyId : "";
+function getHomematicClimateDatapointIds(settings) {
+  const temperatureId = String(settings?.homematic_temperature_datapoint_id || settings?.homematic_climate_channel_id || "").trim();
+  const humidityId = String(settings?.homematic_humidity_datapoint_id || "").trim();
+  if (!/^\d+$/.test(temperatureId) || !/^\d+$/.test(humidityId)) return null;
+  return { temperatureId, humidityId };
 }
 
 function getHomematicApiUrl(settings) {
@@ -5325,6 +5336,18 @@ async function loginHomematicCcu(settings) {
   const cached = homematicSessionCache.get(cacheKey);
   if (cached && Date.now() - cached.createdAt < 20 * 60 * 1000) return { ok: true, sid: cached.sid, error: "" };
   try {
+    const storedSid = String(settings?.homematic_ccu_session_id || "").trim();
+    if (storedSid) {
+      try {
+        const renewed = await callHomematicJsonRpc(apiUrl, "Session.renew", { _session_id_: storedSid });
+        const renewedSid = String(renewed?._session_id_ || renewed || storedSid).trim();
+        homematicSessionCache.set(cacheKey, { sid: renewedSid, createdAt: Date.now() });
+        if (renewedSid !== storedSid) upsertSetting(db, "homematic_ccu_session_id", renewedSid);
+        return { ok: true, sid: renewedSid, error: "" };
+      } catch {
+        upsertSetting(db, "homematic_ccu_session_id", "");
+      }
+    }
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 7000);
     let response;
@@ -5342,9 +5365,14 @@ async function loginHomematicCcu(settings) {
     const payload = await response.json();
     const sid = String(payload?.result?._session_id_ || payload?.result || "").trim();
     if (!sid || payload?.error) {
-      return { ok: false, sid: "", error: payload?.error?.message || "CCU-Benutzername oder Passwort wurde abgelehnt." };
+      const message = payload?.error?.message || "CCU-Benutzername oder Passwort wurde abgelehnt.";
+      const error = /too many sessions/i.test(message)
+        ? "Die CCU hat zu viele offene Sitzungen. Bitte etwa 30 Minuten warten oder die CCU neu starten. HeartPet verwendet danach dauerhaft nur noch eine Sitzung."
+        : message;
+      return { ok: false, sid: "", error };
     }
     homematicSessionCache.set(cacheKey, { sid, createdAt: Date.now() });
+    upsertSetting(db, "homematic_ccu_session_id", sid);
     return { ok: true, sid, error: "" };
   } catch (error) {
     return { ok: false, sid: "", error: describeFetchError(error) };
@@ -5391,12 +5419,12 @@ async function executeHomematicCommand(settings, configuredUrl) {
 }
 
 async function readHomematicClimateFromCcu(settings) {
-  const channelId = getHomematicClimateChannelId(settings);
-  if (!channelId) return { temperature: null, humidity: null, loginOk: false, error: "Noch keine Klima-Kanal-ID hinterlegt." };
+  const datapointIds = getHomematicClimateDatapointIds(settings);
+  if (!datapointIds) return { temperature: null, humidity: null, loginOk: false, error: "Temperatur- und Luftfeuchte-Datenpunkt müssen hinterlegt sein." };
   const login = await loginHomematicCcu(settings);
   if (!login.ok) return { temperature: null, humidity: null, loginOk: false, error: login.error };
   try {
-    const script = `string id; foreach(id, dom.GetObject(${channelId}).DPs().EnumIDs()) { object dp = dom.GetObject(id); WriteLine(dp.Name() # "=" # dp.Value()); }`;
+    const script = `WriteLine("temperature=" # dom.GetObject(${datapointIds.temperatureId}).Value()); WriteLine("humidity=" # dom.GetObject(${datapointIds.humidityId}).Value());`;
     const result = await callHomematicJsonRpc(getHomematicApiUrl(settings), "ReGa.runScript", { _session_id_: login.sid, script });
     const text = typeof result === "string" ? result : JSON.stringify(result || "");
     const temperature = parseHomematicTextValue(text, ["actual_temperature", "temperature", "temperatur", "temp"]);
