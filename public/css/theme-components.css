@@ -86,7 +86,7 @@ body.bootstrap-app {
 }
 
 .bootstrap-app.dashboard-page .dashboard-coop-section {
-  order: 4;
+  order: 5;
   margin-bottom: 0.5rem;
 }
 
@@ -95,7 +95,7 @@ body.bootstrap-app {
 }
 
 .bootstrap-app.dashboard-page .dashboard-priority-section {
-  order: 5;
+  order: 6;
 }
 
 .bootstrap-app.dashboard-page .dashboard-weather-section {
@@ -104,6 +104,16 @@ body.bootstrap-app {
 
 .bootstrap-app.dashboard-page .dashboard-climate-section {
   order: 3;
+}
+
+.bootstrap-app.dashboard-page .dashboard-door-section {
+  order: 4;
+}
+
+.dashboard-door-button {
+  min-height: 3rem;
+  font-size: 1rem;
+  font-weight: 700;
 }
 
 .dashboard-visual-icon {

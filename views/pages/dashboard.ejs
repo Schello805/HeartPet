@@ -8,7 +8,8 @@
 <% const hasPriorityContent = urgentList.length > 0 || upcomingReminders.length > 0 || attentionList.length > 0; %>
 <% const coopState = typeof coop !== 'undefined' ? coop : { cameras: [], temperature: null, humidity: null, climateError: '', temperatureConfigured: false, humidityConfigured: false, doorConfigured: false, doorCloseConfigured: false }; %>
 <% const weatherState = typeof weather !== 'undefined' ? weather : { configured: false, location: '', error: '' }; %>
-<% const hasCoopControl = coopState.doorConfigured || coopState.doorCloseConfigured || coopState.temperatureConfigured || coopState.humidityConfigured; %>
+<% const hasCoopClimate = coopState.temperatureConfigured || coopState.humidityConfigured; %>
+<% const hasDoorControl = coopState.doorConfigured || coopState.doorCloseConfigured; %>
 
 <% if (searchState.searchable) { %>
   <section class="card border-0 dashboard-feed-card mb-2">
@@ -219,16 +220,26 @@
   </div>
 </section>
 
-<% if (hasCoopControl) { %>
-<section class="card border-0 dashboard-surface-card dashboard-climate-section mb-2" id="coop-control">
+<% if (hasCoopClimate) { %>
+<section class="card border-0 dashboard-surface-card dashboard-climate-section mb-2">
   <div class="card-body p-2">
     <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Klima im Stall</h2><span class="dashboard-visual-icon" aria-hidden="true">🌡️</span></div>
     <div class="row g-2">
       <% if (coopState.climateError) { %><div class="col-12"><div class="alert alert-warning py-2 mb-0 small"><%= coopState.climateError %></div></div><% } %>
       <% if (coopState.temperatureConfigured) { %><div class="col-6 col-lg-3"><div class="card border h-100"><div class="card-body p-2 text-center"><span class="dashboard-metric-icon" aria-hidden="true">🌡</span><span class="small text-body-secondary d-block">Temperatur</span><strong class="fs-4"><%= coopState.temperature !== null ? `${coopState.temperature.toLocaleString('de-DE', { maximumFractionDigits: 1 })} °C` : 'Nicht verfügbar' %></strong></div></div></div><% } %>
       <% if (coopState.humidityConfigured) { %><div class="col-6 col-lg-3"><div class="card border h-100"><div class="card-body p-2 text-center"><span class="dashboard-metric-icon" aria-hidden="true">💧</span><span class="small text-body-secondary d-block">Luftfeuchte</span><strong class="fs-4"><%= coopState.humidity !== null ? `${coopState.humidity.toLocaleString('de-DE', { maximumFractionDigits: 1 })} %` : 'Nicht verfügbar' %></strong></div></div></div><% } %>
-      <% if (coopState.doorConfigured) { %><div class="col-6 col-lg-3 d-grid"><form method="post" action="/coop/door/open" class="d-grid h-100" data-confirm="Stalltür jetzt öffnen?"><button type="submit" class="btn btn-primary">↗ Stalltür öffnen</button></form></div><% } %>
-      <% if (coopState.doorCloseConfigured) { %><div class="col-6 col-lg-3 d-grid"><form method="post" action="/coop/door/close" class="d-grid h-100" data-confirm="Stalltür jetzt schließen?"><button type="submit" class="btn btn-outline-primary">↘ Stalltür schließen</button></form></div><% } %>
+    </div>
+  </div>
+</section>
+<% } %>
+
+<% if (hasDoorControl) { %>
+<section class="card border-0 dashboard-surface-card dashboard-door-section mb-2" id="coop-control">
+  <div class="card-body p-2">
+    <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Stalltür</h2><span class="dashboard-visual-icon" aria-hidden="true">🚪</span></div>
+    <div class="row g-2">
+      <% if (coopState.doorConfigured) { %><div class="col-6 d-grid"><form method="post" action="/coop/door/open" class="d-grid" data-confirm="Stalltür jetzt öffnen?"><button type="submit" class="btn btn-primary dashboard-door-button">↗ Öffnen</button></form></div><% } %>
+      <% if (coopState.doorCloseConfigured) { %><div class="col-6 d-grid"><form method="post" action="/coop/door/close" class="d-grid" data-confirm="Stalltür jetzt schließen?"><button type="submit" class="btn btn-outline-primary dashboard-door-button">↘ Schließen</button></form></div><% } %>
     </div>
   </div>
 </section>
