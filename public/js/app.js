@@ -85,8 +85,10 @@ async function initClimateStatus() {
     const payload = await response.json();
     if (!response.ok || !payload.ok) {
       status.className = "alert alert-danger mb-0";
-      status.innerHTML = `<strong class="d-block">Verbindung fehlgeschlagen</strong><span class="small"></span>`;
-      status.querySelector("span").textContent = payload.error || "XML-API konnte nicht abgefragt werden.";
+      const title = payload.loginOk ? "CCU-Login erfolgreich, Klimaabruf fehlgeschlagen" : "Verbindung fehlgeschlagen";
+      status.innerHTML = `<strong class="d-block"></strong><span class="small"></span>`;
+      status.querySelector("strong").textContent = title;
+      status.querySelector("span").textContent = [payload.loginError, payload.error].filter(Boolean).join(" · ") || "XML-API konnte nicht abgefragt werden.";
       return;
     }
     const values = [];
@@ -94,7 +96,7 @@ async function initClimateStatus() {
     if (payload.humidity !== null) values.push(`${Number(payload.humidity).toLocaleString("de-DE")} % Luftfeuchte`);
     status.className = "alert alert-success mb-0";
     status.innerHTML = `<strong class="d-block">Verbindung erfolgreich</strong><span class="small"></span>`;
-    status.querySelector("span").textContent = values.join(" · ") || "XML-API antwortet erfolgreich.";
+    status.querySelector("span").textContent = `${payload.loginOk ? "CCU-Anmeldung erfolgreich · " : ""}${values.join(" · ") || "XML-API antwortet erfolgreich."}`;
   } catch (error) {
     status.className = "alert alert-danger mb-0";
     status.innerHTML = `<strong class="d-block">Verbindungstest fehlgeschlagen</strong><span class="small">Status konnte nicht geladen werden.</span>`;

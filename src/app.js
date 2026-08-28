@@ -56,6 +56,7 @@ const dataDir = configuredDataDir ? path.resolve(configuredDataDir) : path.join(
 const upload = createUploadMiddleware(projectRoot);
 const importUpload = createImportUploadMiddleware();
 const weatherCache = new Map();
+const homematicSessionCache = new Map();
 
 app.set("view engine", "ejs");
 app.set("views", path.join(projectRoot, "views"));
@@ -715,9 +716,10 @@ app.get("/", async (req, res) => {
   const coopSettings = getSettingsObject(db);
   const weather = await readOutdoorWeather(coopSettings);
   const coopCameras = parseCoopCameras(coopSettings.coop_camera_streams);
+  const homematicSid = await resolveHomematicSid(coopSettings);
   const climateUrl = buildHomematicClimateUrl(
     coopSettings.homematic_climate_url,
-    coopSettings.homematic_xmlapi_token
+    homematicSid
   );
   const climate = climateUrl
     ? await readHomematicClimate(climateUrl)
@@ -754,9 +756,10 @@ app.get("/", async (req, res) => {
 
 app.post("/coop/door/open", async (req, res) => {
   const settings = getSettingsObject(db);
+  const homematicSid = await resolveHomematicSid(settings);
   const commandUrl = buildHomematicCommandUrl(
     settings.homematic_door_open_url,
-    settings.homematic_xmlapi_token
+    homematicSid
   );
   if (!isHttpUrl(commandUrl)) {
     setFlash(req, "error", "Für die Stalltür ist noch kein gültiger Homematic-Befehl hinterlegt.");
@@ -781,9 +784,10 @@ app.post("/coop/door/open", async (req, res) => {
 
 app.post("/coop/door/close", async (req, res) => {
   const settings = getSettingsObject(db);
+  const homematicSid = await resolveHomematicSid(settings);
   const commandUrl = buildHomematicCommandUrl(
     settings.homematic_door_close_url,
-    settings.homematic_xmlapi_token
+    homematicSid
   );
   if (!isHttpUrl(commandUrl)) {
     setFlash(req, "error", "Für das Schließen der Stalltür ist noch kein gültiger Homematic-Befehl hinterlegt.");
@@ -857,20 +861,23 @@ app.get("/coop/cameras/:index/status", async (req, res) => {
 
 app.get("/admin/coop/climate-status", requireAdmin, async (req, res) => {
   const settings = getSettingsObject(db);
+  const login = await loginHomematicCcu(settings);
+  const homematicSid = String(settings.homematic_xmlapi_token || "").trim() || login.sid;
   const climateUrl = buildHomematicClimateUrl(
     settings.homematic_climate_url,
-    settings.homematic_xmlapi_token
+    homematicSid
   );
   if (!isHttpUrl(climateUrl)) {
-    return res.status(400).json({ ok: false, error: "Noch keine gültige Klima-URL hinterlegt." });
+    return res.status(400).json({ ok: false, loginOk: login.ok, error: "Noch keine gültige Klima-URL hinterlegt." });
   }
 
   const climate = await readHomematicClimate(climateUrl);
   if (climate.error) {
-    return res.status(502).json({ ok: false, error: climate.error });
+    return res.status(502).json({ ok: false, loginOk: login.ok, error: climate.error, loginError: login.error });
   }
   return res.json({
     ok: true,
+    loginOk: login.ok,
     temperature: climate.temperature,
     humidity: climate.humidity,
   });
@@ -2686,6 +2693,7 @@ app.post("/admin/settings", requireAdmin, upload.single("app_logo"), (req, res) 
     .filter(Boolean);
 
   const urlSettingKeys = new Set([
+    "homematic_ccu_url",
     "homematic_door_open_url",
     "homematic_door_close_url",
     "homematic_climate_url",
@@ -2708,6 +2716,9 @@ app.post("/admin/settings", requireAdmin, upload.single("app_logo"), (req, res) 
   }
 
   fields.forEach((key) => {
+    if (key === "homematic_ccu_password" && !String(req.body[key] || "")) {
+      return;
+    }
     if (booleanKeys.has(key)) {
       upsertSetting(db, key, parseBooleanSettingValue(req.body[key]) ? "true" : "false");
       return;
@@ -5306,6 +5317,62 @@ function buildHomematicCommandUrl(value, token) {
     url.searchParams.delete("value");
   }
   return url.toString();
+}
+
+function getHomematicApiUrl(settings) {
+  const configured = normalizeConfiguredUrl(settings?.homematic_ccu_url);
+  if (isHttpUrl(configured)) {
+    const url = new URL(configured);
+    if (!/\/api\/homematic\.cgi$/i.test(url.pathname)) url.pathname = "/api/homematic.cgi";
+    return url.toString();
+  }
+  const source = normalizeConfiguredUrl(settings?.homematic_climate_url || settings?.homematic_door_open_url);
+  if (!isHttpUrl(source)) return "";
+  const url = new URL(source);
+  url.pathname = "/api/homematic.cgi";
+  url.search = "";
+  return url.toString();
+}
+
+async function loginHomematicCcu(settings) {
+  const username = String(settings?.homematic_ccu_username || "").trim();
+  const password = String(settings?.homematic_ccu_password || "");
+  const apiUrl = getHomematicApiUrl(settings);
+  if (!apiUrl || !username) return { ok: false, sid: "", error: "Keine CCU-Zugangsdaten hinterlegt." };
+  const cacheKey = `${apiUrl}|${username}`;
+  const cached = homematicSessionCache.get(cacheKey);
+  if (cached && Date.now() - cached.createdAt < 20 * 60 * 1000) return { ok: true, sid: cached.sid, error: "" };
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 7000);
+    let response;
+    try {
+      response = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "1.1", id: 1, method: "Session.login", params: { username, password } }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+    if (!response.ok) return { ok: false, sid: "", error: `CCU-Anmeldung antwortet mit HTTP ${response.status}.` };
+    const payload = await response.json();
+    const sid = String(payload?.result?._session_id_ || payload?.result || "").trim();
+    if (!sid || payload?.error) {
+      return { ok: false, sid: "", error: payload?.error?.message || "CCU-Benutzername oder Passwort wurde abgelehnt." };
+    }
+    homematicSessionCache.set(cacheKey, { sid, createdAt: Date.now() });
+    return { ok: true, sid, error: "" };
+  } catch (error) {
+    return { ok: false, sid: "", error: describeFetchError(error) };
+  }
+}
+
+async function resolveHomematicSid(settings) {
+  const token = String(settings?.homematic_xmlapi_token || "").trim();
+  if (token) return token;
+  return (await loginHomematicCcu(settings)).sid;
 }
 
 function getHomematicCommandResponseError(text) {

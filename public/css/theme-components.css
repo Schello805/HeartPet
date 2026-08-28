@@ -131,6 +131,14 @@ body.bootstrap-app {
   line-height: 1.15;
 }
 
+.dashboard-metric-icon {
+  display: block;
+  margin-bottom: 0.15rem;
+  color: var(--bs-primary);
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
 .bootstrap-app .app-main-container {
   padding-bottom: 6rem;
 }
