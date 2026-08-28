@@ -81,7 +81,7 @@
   <section class="card border-0 bg-body-tertiary admin-section-card" id="huehnerstall">
     <div class="card-body">
       <form method="post" action="/admin/settings" class="vstack gap-3 compact-workflow-form">
-        <input type="hidden" name="_fields" value="weather_location_name,weather_latitude,weather_longitude,coop_camera_streams,homematic_ccu_url,homematic_ccu_username,homematic_ccu_password,homematic_door_open_url,homematic_door_close_url,homematic_temperature_datapoint_id,homematic_humidity_datapoint_id" />
+        <input type="hidden" name="_fields" value="weather_location_name,weather_latitude,weather_longitude,coop_camera_streams,homematic_ccu_url,homematic_xmlapi_token,homematic_ccu_username,homematic_ccu_password,homematic_door_open_url,homematic_door_close_url,homematic_temperature_datapoint_id,homematic_humidity_datapoint_id" />
         <div>
           <p class="eyebrow mb-1">Hühnerstall</p>
           <h2 class="h4 mb-1">Wetter, Kameras und Steuerung</h2>
@@ -125,10 +125,11 @@
                   <h3 class="h6 mb-2">CCU-Zugang</h3>
                   <div class="row g-2">
                     <div class="col-12"><label class="form-label" for="homematic_ccu_url">CCU-Adresse</label><input class="form-control" id="homematic_ccu_url" type="url" name="homematic_ccu_url" value="<%= settings.homematic_ccu_url || '' %>" placeholder="http://192.168.1.22" /></div>
+                    <div class="col-12"><label class="form-label" for="homematic_xmlapi_token">XML-API-Token (sid)</label><input class="form-control font-monospace" id="homematic_xmlapi_token" name="homematic_xmlapi_token" value="<%= settings.homematic_xmlapi_token || '' %>" autocomplete="off" placeholder="Token aus den XML-API-Einstellungen" /></div>
                     <div class="col-md-6"><label class="form-label" for="homematic_ccu_username">Benutzername</label><input class="form-control" id="homematic_ccu_username" name="homematic_ccu_username" value="<%= settings.homematic_ccu_username || '' %>" autocomplete="username" placeholder="Admin" /></div>
                     <div class="col-md-6"><label class="form-label" for="homematic_ccu_password">Passwort</label><input class="form-control" id="homematic_ccu_password" type="password" name="homematic_ccu_password" value="" autocomplete="new-password" placeholder="<%= settings.homematic_ccu_password ? 'Gespeichert, leer lassen zum Beibehalten' : 'CCU-Passwort' %>" /></div>
                   </div>
-                  <div class="form-text">HeartPet meldet sich serverseitig über <code>/api/homematic.cgi</code> an. Die Zugangsdaten erscheinen nie im Browser-Dashboard.</div>
+                  <div class="form-text">Empfohlen: In der CCU unter <strong>Einstellungen → Systemsteuerung → Zusatzsoftware → XML-API</strong> einen Token erzeugen und hier eintragen. Klima und Tür verwenden dann die zustandslose XML-API ohne CCU-Sitzungen.</div>
                 </div>
               </section>
               <div>

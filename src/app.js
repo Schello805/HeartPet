@@ -2703,7 +2703,7 @@ app.post("/admin/settings", requireAdmin, upload.single("app_logo"), (req, res) 
   }
 
   const settingsBeforeSave = getSettingsObject(db);
-  const ccuConnectionChanged = ["homematic_ccu_url", "homematic_ccu_username", "homematic_ccu_password"].some((key) => {
+  const ccuConnectionChanged = ["homematic_ccu_url", "homematic_xmlapi_token", "homematic_ccu_username", "homematic_ccu_password"].some((key) => {
     if (!fields.includes(key)) return false;
     const submitted = String(req.body[key] || "");
     if (key === "homematic_ccu_password" && !submitted) return false;
@@ -5449,6 +5449,15 @@ async function callHomematicJsonRpc(apiUrl, method, params) {
 
 async function executeHomematicCommand(settings, configuredUrl) {
   const stateChange = parseHomematicStateChange(configuredUrl);
+  const xmlApiToken = String(settings?.homematic_xmlapi_token || "").trim();
+  if (stateChange && xmlApiToken) {
+    const commandUrl = buildHomematicCommandUrl(configuredUrl, xmlApiToken);
+    const response = await fetchWithTimeout(commandUrl, 5000);
+    if (!response.ok) throw new Error(`XML-API antwortet mit HTTP ${response.status}.`);
+    const responseError = getHomematicCommandResponseError(await response.text());
+    if (responseError) throw new Error(responseError);
+    return;
+  }
   const apiUrl = getHomematicApiUrl(settings);
   const hasCredentials = Boolean(String(settings?.homematic_ccu_username || "").trim());
   if (stateChange && apiUrl && hasCredentials) {
@@ -5475,6 +5484,8 @@ async function executeHomematicCommand(settings, configuredUrl) {
 async function readHomematicClimateFromCcu(settings) {
   const datapointIds = getHomematicClimateDatapointIds(settings);
   if (!datapointIds) return { temperature: null, humidity: null, loginOk: false, stage: "configuration", error: "Temperatur- und Luftfeuchte-Datenpunkt müssen hinterlegt sein." };
+  const xmlApiToken = String(settings?.homematic_xmlapi_token || "").trim();
+  if (xmlApiToken) return readHomematicClimateFromXmlApi(settings, datapointIds, xmlApiToken);
   const login = await loginHomematicCcu(settings);
   if (!login.ok) return { temperature: null, humidity: null, loginOk: false, stage: "login", error: login.error };
   try {
@@ -5493,6 +5504,39 @@ async function readHomematicClimateFromCcu(settings) {
   } catch (error) {
     console.error(`[HeartPet][CCU][climate-read] Datenpunkte ${datapointIds.temperatureId}/${datapointIds.humidityId}: ${error.message}`);
     return { temperature: null, humidity: null, loginOk: true, stage: "climate-read", error: error.message };
+  }
+}
+
+async function readHomematicClimateFromXmlApi(settings, datapointIds, token) {
+  const ccuUrl = normalizeConfiguredUrl(settings?.homematic_ccu_url);
+  if (!isHttpUrl(ccuUrl)) return { temperature: null, humidity: null, loginOk: false, stage: "configuration", error: "CCU-Adresse fehlt." };
+  const url = new URL(ccuUrl);
+  url.pathname = "/config/xmlapi/state.cgi";
+  url.search = "";
+  url.searchParams.set("sid", token);
+  url.searchParams.set("datapoint_id", `${datapointIds.temperatureId},${datapointIds.humidityId}`);
+  try {
+    const response = await fetchWithTimeout(url.toString(), 7000);
+    if (!response.ok) throw new Error(`XML-API antwortet mit HTTP ${response.status}.`);
+    const text = await response.text();
+    if (/<not_authenticated\b/i.test(text)) throw new Error("XML-API-Token ist ungültig oder fehlt.");
+    const readValue = (id) => {
+      const tag = (text.match(new RegExp(`<datapoint\\b[^>]*\\bise_id=["']${id}["'][^>]*>`, "i")) || [])[0] || "";
+      const value = tag.match(/\bvalue=["'](-?\d+(?:[.,]\d+)?)["']/i)?.[1];
+      return value === undefined ? null : Number(value.replace(",", "."));
+    };
+    const temperature = readValue(datapointIds.temperatureId);
+    const humidity = readValue(datapointIds.humidityId);
+    return {
+      temperature,
+      humidity,
+      loginOk: true,
+      stage: temperature === null && humidity === null ? "parse" : "success",
+      error: temperature === null && humidity === null ? "XML-API erreichbar, aber die angegebenen Datenpunkte wurden nicht gefunden." : "",
+    };
+  } catch (error) {
+    console.error(`[HeartPet][CCU][xml-api-climate] Datenpunkte ${datapointIds.temperatureId}/${datapointIds.humidityId}: ${error.message}`);
+    return { temperature: null, humidity: null, loginOk: false, stage: "climate-read", error: error.message };
   }
 }
 

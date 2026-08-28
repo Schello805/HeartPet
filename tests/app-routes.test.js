@@ -1742,7 +1742,7 @@ test("Kamera-Einstellungen erklären RTSP und Wansview verständlich", async () 
   assert.match(response.text, /homematic_temperature_datapoint_id/);
   assert.match(response.text, /homematic_humidity_datapoint_id/);
   assert.doesNotMatch(response.text, /name="homematic_climate_url"/);
-  assert.doesNotMatch(response.text, /name="homematic_xmlapi_token"/);
+  assert.match(response.text, /name="homematic_xmlapi_token"/);
 
   const generalResponse = await agent.get("/admin/allgemein");
   assert.equal(generalResponse.status, 200);
