@@ -5489,6 +5489,12 @@ async function executeHomematicCommand(settings, configuredUrl) {
     if (!response.ok) throw new Error(`XML-API antwortet mit HTTP ${response.status}.`);
     const responseError = getHomematicCommandResponseError(await response.text());
     if (responseError) throw new Error(responseError);
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    const actualValue = await readHomematicXmlApiDatapoint(settings, stateChange.iseId);
+    if (actualValue === null) throw new Error(`Türbefehl wurde angenommen, Datenpunkt ${stateChange.iseId} konnte danach aber nicht gelesen werden.`);
+    if (Math.abs(actualValue - Number(stateChange.newValue)) > 0.01) {
+      throw new Error(`Türbefehl wurde angenommen, aber Datenpunkt ${stateChange.iseId} blieb bei ${actualValue} statt ${stateChange.newValue}.`);
+    }
     return;
   }
   const apiUrl = getHomematicApiUrl(settings);
@@ -5512,6 +5518,18 @@ async function executeHomematicCommand(settings, configuredUrl) {
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const responseError = getHomematicCommandResponseError(await response.text());
   if (responseError) throw new Error(responseError);
+}
+
+async function readHomematicXmlApiDatapoint(settings, datapointId) {
+  const statusUrl = buildHomematicXmlApiUrl(settings, "state.cgi", { datapoint_id: datapointId });
+  if (!statusUrl) return null;
+  const response = await fetchWithTimeout(statusUrl, 7000);
+  if (!response.ok) return null;
+  const text = await response.text();
+  if (/<not_authenticated\b/i.test(text)) return null;
+  const tag = (text.match(new RegExp(`<datapoint\\b[^>]*\\bise_id=["']${datapointId}["'][^>]*>`, "i")) || [])[0] || "";
+  const value = tag.match(/\bvalue=["'](-?\d+(?:[.,]\d+)?)["']/i)?.[1];
+  return value === undefined ? null : Number(value.replace(",", "."));
 }
 
 async function readHomematicClimateFromCcu(settings) {
