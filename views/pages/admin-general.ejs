@@ -196,7 +196,7 @@
               <div>
                 <label class="form-label" for="homematic_door_close_url">Befehl „Stalltür schließen“</label>
                 <input class="form-control" id="homematic_door_close_url" type="url" name="homematic_door_close_url" value="<%= settings.homematic_door_close_url || '' %>" placeholder="http://192.168.1.22/addons/xmlapi/statechange.cgi?ise_id=12990&amp;new_value=0" />
-                <div class="form-text">Beispiel: <code>http://192.168.1.22/addons/xmlapi/statechange.cgi?ise_id=12990&amp;new_value=0.0</code>. Die <code>ise_id</code> ist bei Öffnen und Schließen identisch. Ein bereits gesetzter LEVEL-Wert löst keine neue Bewegung aus; HeartPet zeigt diesen Zustand ausdrücklich an.</div>
+                <div class="form-text">Beispiel: <code>http://192.168.1.22/addons/xmlapi/statechange.cgi?ise_id=12990&amp;new_value=0.0</code>. Die <code>ise_id</code> ist bei Öffnen und Schließen identisch. Bei virtuellen HmIP-Kanälen kann LEVEL nach dem Schalten sofort zurückspringen; deshalb bestätigt HeartPet die Endlage über den separaten Türsensor.</div>
               </div>
               <div class="row g-2">
                 <div class="col-md-6">
