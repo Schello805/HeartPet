@@ -970,7 +970,7 @@ app.get("/admin/coop/homematic-datapoints", requireAdmin, async (req, res) => {
   try {
     const response = await fetchWithTimeout(url, 15000);
     if (!response.ok) throw new Error(`XML-API antwortet mit HTTP ${response.status}.`);
-    const xml = await response.text();
+    const xml = decodeHomematicXmlBuffer(await response.arrayBuffer(), response.headers.get("content-type"));
     if (/<not_authenticated\b/i.test(xml)) throw new Error("XML-API-Token ist ungültig oder fehlt.");
     const datapoints = parseWritableHomematicDatapoints(xml);
     console.info(`[HeartPet][CCU][discovery] ${datapoints.length} schreibbare Datenpunkte geladen.`);
@@ -5521,6 +5521,19 @@ function parseWritableHomematicDatapoints(xml) {
   return results.sort((left, right) => `${left.device} ${left.channel} ${left.type}`.localeCompare(`${right.device} ${right.channel} ${right.type}`, "de"));
 }
 
+function decodeHomematicXmlBuffer(buffer, contentType = "") {
+  const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+  const declaration = new TextDecoder("ascii").decode(bytes.slice(0, 180));
+  const declaredEncoding = `${contentType} ${declaration}`.match(/charset\s*=\s*["']?([^\s;"']+)|encoding\s*=\s*["']([^"']+)/i);
+  const encoding = String(declaredEncoding?.[1] || declaredEncoding?.[2] || "utf-8").toLowerCase();
+  const decoderEncoding = /^(?:iso-8859-1|latin-?1)$/i.test(encoding) ? "windows-1252" : encoding;
+  try {
+    return new TextDecoder(decoderEncoding).decode(bytes);
+  } catch {
+    return new TextDecoder("utf-8").decode(bytes);
+  }
+}
+
 function getHomematicClimateDatapointIds(settings) {
   const temperatureId = String(settings?.homematic_temperature_datapoint_id || settings?.homematic_climate_channel_id || "").trim();
   const humidityId = String(settings?.homematic_humidity_datapoint_id || "").trim();
@@ -7051,6 +7064,7 @@ app.__test = {
   parseHomematicStateChange,
   getHomematicDoorCommand,
   parseWritableHomematicDatapoints,
+  decodeHomematicXmlBuffer,
   getHomematicCommandResponseError,
   findHomematicValue,
   parseHomematicTextValue,

@@ -242,9 +242,17 @@ function initHomematicDoorDiscovery() {
   let datapoints = [];
 
   const describeDatapoint = (datapoint) => `${datapoint.device} · ${datapoint.channel} · ${datapoint.type || datapoint.name}`;
+  const normalizeSearchText = (value) => String(value || "")
+    .toLocaleLowerCase("de")
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
   const renderResults = () => {
-    const query = search.value.trim().toLocaleLowerCase("de");
-    const filtered = datapoints.filter((datapoint) => !query || `${datapoint.id} ${datapoint.device} ${datapoint.channel} ${datapoint.name} ${datapoint.type}`.toLocaleLowerCase("de").includes(query));
+    const query = normalizeSearchText(search.value.trim());
+    const filtered = datapoints.filter((datapoint) => !query || normalizeSearchText(`${datapoint.id} ${datapoint.device} ${datapoint.channel} ${datapoint.name} ${datapoint.type}`).includes(query));
     const visible = filtered.slice(0, 60);
     resultCount.textContent = `${filtered.length} Treffer${filtered.length > visible.length ? ` · die ersten ${visible.length} werden angezeigt` : ""}`;
     results.replaceChildren(...visible.map((datapoint) => {

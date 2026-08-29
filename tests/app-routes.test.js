@@ -203,6 +203,13 @@ test("CCU-Erkennung liefert ausschließlich schreibbare Datenpunkte", () => {
   assert.deepEqual(app.__test.parseWritableHomematicDatapoints(xml).map((item) => item.id), ["12990"]);
 });
 
+test("CCU-XML wird entsprechend der ISO-8859-1-Deklaration dekodiert", () => {
+  const prefix = Buffer.from(`<?xml version="1.0" encoding="ISO-8859-1"?><device name="H`, "ascii");
+  const suffix = Buffer.from(`hnerklappe"/>`, "ascii");
+  const xml = app.__test.decodeHomematicXmlBuffer(Buffer.concat([prefix, Buffer.from([0xfc]), suffix]));
+  assert.match(xml, /Hühnerklappe/);
+});
+
 async function ensureSetupComplete() {
   const setupPage = await agent.get("/setup");
   if (setupPage.status !== 200) {
