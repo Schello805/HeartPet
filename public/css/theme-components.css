@@ -121,6 +121,18 @@ body.bootstrap-app {
   font-weight: 700;
 }
 
+.app-confirm-icon {
+  display: grid;
+  width: 3.25rem;
+  height: 3.25rem;
+  place-items: center;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, var(--bs-primary), var(--bs-info));
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
 .dashboard-door-schedule {
   display: grid;
   grid-template-columns: 2.4rem minmax(0, 1fr) auto;

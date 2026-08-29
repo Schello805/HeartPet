@@ -259,8 +259,8 @@
       <strong><%= weatherState.sunset ? formatDateTime(weatherState.sunset).slice(11) : '–' %></strong>
     </div>
     <div class="row g-2 mt-1">
-      <% if (coopState.doorConfigured) { %><div class="col-6 d-grid"><form method="post" action="/coop/door/open" class="d-grid" data-confirm="Stalltür jetzt öffnen?"><button type="submit" class="btn btn-primary dashboard-door-button">↗ Öffnen</button></form></div><% } %>
-      <% if (coopState.doorCloseConfigured) { %><div class="col-6 d-grid"><form method="post" action="/coop/door/close" class="d-grid" data-confirm="Stalltür jetzt schließen?"><button type="submit" class="btn btn-outline-primary dashboard-door-button">↘ Schließen</button></form></div><% } %>
+      <% if (coopState.doorConfigured) { %><div class="col-6 d-grid"><form method="post" action="/coop/door/open" class="d-grid" data-confirm="Die Stalltür jetzt öffnen?" data-confirm-modal data-confirm-title="Stalltür öffnen"><button type="submit" class="btn btn-primary dashboard-door-button">↗ Öffnen</button></form></div><% } %>
+      <% if (coopState.doorCloseConfigured) { %><div class="col-6 d-grid"><form method="post" action="/coop/door/close" class="d-grid" data-confirm="Die Stalltür jetzt schließen?" data-confirm-modal data-confirm-title="Stalltür schließen"><button type="submit" class="btn btn-outline-primary dashboard-door-button">↘ Schließen</button></form></div><% } %>
     </div>
   </div>
 </section>

@@ -11,6 +11,22 @@
         <div class="offcanvas-body drawer-body" data-drawer-body></div>
       </div>
 
+      <div class="modal fade" id="app-confirm-modal" tabindex="-1" aria-labelledby="app-confirm-modal-title" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+          <div class="modal-content border-0 shadow-lg">
+            <div class="modal-body p-4 text-center">
+              <div class="app-confirm-icon mx-auto mb-3" aria-hidden="true">↕</div>
+              <h2 class="h5 mb-2" id="app-confirm-modal-title">Aktion bestätigen</h2>
+              <p class="text-body-secondary mb-4" data-confirm-modal-message></p>
+              <div class="d-grid gap-2">
+                <button type="button" class="btn btn-primary" data-confirm-modal-submit>Bestätigen</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Abbrechen</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <footer class="app-footer">

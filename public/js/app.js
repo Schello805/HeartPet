@@ -1438,6 +1438,25 @@ document.addEventListener("submit", (event) => {
     return;
   }
 
+  if (message && form.hasAttribute("data-confirm-modal")) {
+    event.preventDefault();
+    const modalElement = document.getElementById("app-confirm-modal");
+    const messageElement = modalElement?.querySelector("[data-confirm-modal-message]");
+    const titleElement = modalElement?.querySelector("#app-confirm-modal-title");
+    const submitButton = modalElement?.querySelector("[data-confirm-modal-submit]");
+    if (!modalElement || !messageElement || !titleElement || !submitButton || !window.bootstrap?.Modal) return;
+    messageElement.textContent = message;
+    titleElement.textContent = form.dataset.confirmTitle || "Aktion bestätigen";
+    submitButton.textContent = form.dataset.confirmSubmit || "Bestätigen";
+    submitButton.onclick = () => {
+      submitButton.disabled = true;
+      saveCurrentViewState();
+      form.submit();
+    };
+    window.bootstrap.Modal.getOrCreateInstance(modalElement).show();
+    return;
+  }
+
   if (message && !window.confirm(message)) {
     event.preventDefault();
     return;

@@ -765,6 +765,7 @@ app.get("/", async (req, res) => {
 
 app.post("/coop/door/open", async (req, res) => {
   const settings = getSettingsObject(db);
+  console.info(`[HeartPet][CCU][door-open] Bedienung durch Benutzer ${req.user?.id || "unbekannt"} angefordert.`);
   if (!isHttpUrl(normalizeConfiguredUrl(settings.homematic_door_open_url))) {
     setFlash(req, "error", "Für die Stalltür ist noch kein gültiger Homematic-Befehl hinterlegt.");
     return res.redirect("/#coop-control");
@@ -781,6 +782,7 @@ app.post("/coop/door/open", async (req, res) => {
         : "Die offene Endlage wurde vom Türsensor bestätigt.");
     }
   } catch (error) {
+    console.error(`[HeartPet][CCU][door-open] Fehlgeschlagen: ${error.message}`);
     createAuditLog(req, "coop.door_open_failed", {
       error: error.message,
       state_change: parseHomematicStateChange(settings.homematic_door_open_url),
@@ -792,6 +794,7 @@ app.post("/coop/door/open", async (req, res) => {
 
 app.post("/coop/door/close", async (req, res) => {
   const settings = getSettingsObject(db);
+  console.info(`[HeartPet][CCU][door-close] Bedienung durch Benutzer ${req.user?.id || "unbekannt"} angefordert.`);
   if (!isHttpUrl(normalizeConfiguredUrl(settings.homematic_door_close_url))) {
     setFlash(req, "error", "Für das Schließen der Stalltür ist noch kein gültiger Homematic-Befehl hinterlegt.");
     return res.redirect("/#coop-control");
@@ -808,6 +811,7 @@ app.post("/coop/door/close", async (req, res) => {
         : "Die geschlossene Endlage wurde vom Türsensor bestätigt.");
     }
   } catch (error) {
+    console.error(`[HeartPet][CCU][door-close] Fehlgeschlagen: ${error.message}`);
     createAuditLog(req, "coop.door_close_failed", {
       error: error.message,
       state_change: parseHomematicStateChange(settings.homematic_door_close_url),
@@ -5561,21 +5565,24 @@ async function callHomematicJsonRpc(apiUrl, method, params) {
 
 async function executeHomematicCommand(settings, configuredUrl, { expectedDoorOpen = null } = {}) {
   const stateChange = parseHomematicStateChange(configuredUrl);
+  const commandId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
   const commandUrlFromXmlApi = stateChange ? buildHomematicXmlApiUrl(settings, "statechange.cgi", {
     ise_id: stateChange.iseId,
     new_value: stateChange.newValue,
   }) : "";
   if (commandUrlFromXmlApi) {
     const targetValue = Number(stateChange.newValue);
-    console.info(`[HeartPet][CCU][door-command] Sende Datenpunkt ${stateChange.iseId} mit Sollwert ${targetValue}.`);
+    console.info(`[HeartPet][CCU][door-command][${commandId}] Sende XML-API-Datenpunkt ${stateChange.iseId} mit Sollwert ${targetValue} über ${new URL(commandUrlFromXmlApi).origin}${new URL(commandUrlFromXmlApi).pathname}.`);
     const commandUrl = commandUrlFromXmlApi;
     const response = await fetchWithTimeout(commandUrl, 5000);
     if (!response.ok) throw new Error(`XML-API antwortet mit HTTP ${response.status}.`);
-    const responseError = getHomematicCommandResponseError(await response.text());
+    const responseText = await response.text();
+    console.info(`[HeartPet][CCU][door-command][${commandId}] CCU-Antwort: ${responseText.replace(/\s+/g, " ").trim().slice(0, 500)}`);
+    const responseError = getHomematicCommandResponseError(responseText);
     if (responseError) throw new Error(responseError);
-    const sensorResult = await waitForDoorSensor(settings, expectedDoorOpen);
-    console.info(`[HeartPet][CCU][door-command] CCU-Befehl bestätigt.${sensorResult.sensorConfigured ? ` Türsensor: ${sensorResult.sensorConfirmed ? "Endlage bestätigt" : "Endlage nicht bestätigt"}.` : ""}`);
-    return { accepted: true, targetValue, ...sensorResult };
+    const sensorResult = await waitForDoorSensor(settings, expectedDoorOpen, commandId);
+    console.info(`[HeartPet][CCU][door-command][${commandId}] CCU-Befehl bestätigt.${sensorResult.sensorConfigured ? ` Türsensor: ${sensorResult.sensorConfirmed ? "Endlage bestätigt" : "Endlage nicht bestätigt"}.` : ""}`);
+    return { accepted: true, commandId, targetValue, ...sensorResult };
   }
   const apiUrl = getHomematicApiUrl(settings);
   const hasCredentials = Boolean(String(settings?.homematic_ccu_username || "").trim());
@@ -5589,21 +5596,23 @@ async function executeHomematicCommand(settings, configuredUrl, { expectedDoorOp
       console.error(`[HeartPet][CCU][door-command] Datenpunkt ${stateChange.iseId}, Wert ${stateChange.newValue}: ${error.message}`);
       throw new Error(`CCU-Schaltbefehl fehlgeschlagen: ${error.message}`);
     }
-    const sensorResult = await waitForDoorSensor(settings, expectedDoorOpen);
-    return { accepted: true, targetValue: Number(stateChange.newValue), ...sensorResult };
+    const sensorResult = await waitForDoorSensor(settings, expectedDoorOpen, commandId);
+    return { accepted: true, commandId, targetValue: Number(stateChange.newValue), ...sensorResult };
   }
 
   const commandUrl = buildHomematicCommandUrl(configuredUrl, await resolveHomematicSid(settings));
   if (!isHttpUrl(commandUrl)) throw new Error("Ungültige Homematic-Befehls-URL.");
   const response = await fetchWithTimeout(commandUrl, 5000);
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  const responseError = getHomematicCommandResponseError(await response.text());
+  const responseText = await response.text();
+  console.info(`[HeartPet][CCU][door-command][${commandId}] Direkte CCU-Antwort: ${responseText.replace(/\s+/g, " ").trim().slice(0, 500)}`);
+  const responseError = getHomematicCommandResponseError(responseText);
   if (responseError) throw new Error(responseError);
-  const sensorResult = await waitForDoorSensor(settings, expectedDoorOpen);
-  return { accepted: true, targetValue: stateChange ? Number(stateChange.newValue) : null, ...sensorResult };
+  const sensorResult = await waitForDoorSensor(settings, expectedDoorOpen, commandId);
+  return { accepted: true, commandId, targetValue: stateChange ? Number(stateChange.newValue) : null, ...sensorResult };
 }
 
-async function waitForDoorSensor(settings, expectedDoorOpen) {
+async function waitForDoorSensor(settings, expectedDoorOpen, commandId = "status") {
   const sensorId = String(settings?.homematic_door_sensor_datapoint_id || "").trim();
   if (!/^\d+$/.test(sensorId) || typeof expectedDoorOpen !== "boolean") {
     return { changed: true, sensorConfigured: false, sensorConfirmed: false, sensorValue: null };
@@ -5612,9 +5621,13 @@ async function waitForDoorSensor(settings, expectedDoorOpen) {
   const trueMeansOpen = settings?.homematic_door_sensor_true_state !== "closed";
   const expectedValue = expectedDoorOpen === trueMeansOpen ? 1 : 0;
   const previousValue = await readHomematicXmlApiDatapoint(settings, sensorId);
+  console.info(`[HeartPet][CCU][door-command][${commandId}] Türsensor ${sensorId}: vorher ${previousValue}, erwartet ${expectedValue}.`);
   for (let attempt = 0; attempt < 12; attempt += 1) {
     if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 1000));
     const sensorValue = await readHomematicXmlApiDatapoint(settings, sensorId);
+    if (attempt === 0 || sensorValue === expectedValue || attempt === 11) {
+      console.info(`[HeartPet][CCU][door-command][${commandId}] Türsensor ${sensorId}: Versuch ${attempt + 1}/12, Wert ${sensorValue}.`);
+    }
     if (sensorValue === expectedValue) {
       return {
         changed: previousValue !== expectedValue,
