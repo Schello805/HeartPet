@@ -753,9 +753,11 @@ app.post("/coop/door/open", async (req, res) => {
   }
 
   try {
-    await executeHomematicCommand(settings, settings.homematic_door_open_url);
+    const result = await executeHomematicCommand(settings, settings.homematic_door_open_url);
     createAuditLog(req, "coop.door_open", {}, { entityType: "coop" });
-    setFlash(req, "success", "Der Befehl zum Öffnen der Stalltür wurde gesendet.");
+    setFlash(req, "success", result?.changed === false
+      ? `Die CCU meldet bereits den Öffnungswert ${result.value}. Es wurde keine neue Bewegung ausgelöst.`
+      : "Die Stalltür wurde auf den Öffnungswert gesetzt.");
   } catch (error) {
     createAuditLog(req, "coop.door_open_failed", {
       error: error.message,
@@ -774,9 +776,11 @@ app.post("/coop/door/close", async (req, res) => {
   }
 
   try {
-    await executeHomematicCommand(settings, settings.homematic_door_close_url);
+    const result = await executeHomematicCommand(settings, settings.homematic_door_close_url);
     createAuditLog(req, "coop.door_close", {}, { entityType: "coop" });
-    setFlash(req, "success", "Der Befehl zum Schließen der Stalltür wurde gesendet.");
+    setFlash(req, "success", result?.changed === false
+      ? `Die CCU meldet bereits den Schließwert ${result.value}. Es wurde keine neue Bewegung ausgelöst.`
+      : "Die Stalltür wurde auf den Schließwert gesetzt.");
   } catch (error) {
     createAuditLog(req, "coop.door_close_failed", {
       error: error.message,
@@ -5536,6 +5540,13 @@ async function executeHomematicCommand(settings, configuredUrl) {
     new_value: stateChange.newValue,
   }) : "";
   if (commandUrlFromXmlApi) {
+    const targetValue = Number(stateChange.newValue);
+    const previousValue = await readHomematicXmlApiDatapoint(settings, stateChange.iseId);
+    console.info(`[HeartPet][CCU][door-command] Datenpunkt ${stateChange.iseId}: Vorwert ${previousValue ?? "unbekannt"}, Sollwert ${targetValue}.`);
+    if (previousValue !== null && Math.abs(previousValue - targetValue) <= 0.01) {
+      console.info(`[HeartPet][CCU][door-command] Keine Bewegung angefordert: Sollwert ist bereits gesetzt.`);
+      return { changed: false, value: previousValue, previousValue };
+    }
     const commandUrl = commandUrlFromXmlApi;
     const response = await fetchWithTimeout(commandUrl, 5000);
     if (!response.ok) throw new Error(`XML-API antwortet mit HTTP ${response.status}.`);
@@ -5544,10 +5555,11 @@ async function executeHomematicCommand(settings, configuredUrl) {
     await new Promise((resolve) => setTimeout(resolve, 1200));
     const actualValue = await readHomematicXmlApiDatapoint(settings, stateChange.iseId);
     if (actualValue === null) throw new Error(`Türbefehl wurde angenommen, Datenpunkt ${stateChange.iseId} konnte danach aber nicht gelesen werden.`);
-    if (Math.abs(actualValue - Number(stateChange.newValue)) > 0.01) {
+    if (Math.abs(actualValue - targetValue) > 0.01) {
       throw new Error(`Türbefehl wurde angenommen, aber Datenpunkt ${stateChange.iseId} blieb bei ${actualValue} statt ${stateChange.newValue}.`);
     }
-    return;
+    console.info(`[HeartPet][CCU][door-command] Datenpunkt ${stateChange.iseId}: Rücklesewert ${actualValue}, Änderung bestätigt.`);
+    return { changed: true, value: actualValue, previousValue };
   }
   const apiUrl = getHomematicApiUrl(settings);
   const hasCredentials = Boolean(String(settings?.homematic_ccu_username || "").trim());
@@ -5561,7 +5573,7 @@ async function executeHomematicCommand(settings, configuredUrl) {
       console.error(`[HeartPet][CCU][door-command] Datenpunkt ${stateChange.iseId}, Wert ${stateChange.newValue}: ${error.message}`);
       throw new Error(`CCU-Schaltbefehl fehlgeschlagen: ${error.message}`);
     }
-    return;
+    return { changed: true, value: Number(stateChange.newValue), previousValue: null };
   }
 
   const commandUrl = buildHomematicCommandUrl(configuredUrl, await resolveHomematicSid(settings));
@@ -5570,6 +5582,7 @@ async function executeHomematicCommand(settings, configuredUrl) {
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const responseError = getHomematicCommandResponseError(await response.text());
   if (responseError) throw new Error(responseError);
+  return { changed: true, value: stateChange ? Number(stateChange.newValue) : null, previousValue: null };
 }
 
 async function readHomematicXmlApiDatapoint(settings, datapointId) {
