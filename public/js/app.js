@@ -229,11 +229,65 @@ function initHomematicDoorDiscovery() {
   root.dataset.bound = "1";
   const button = root.querySelector("[data-homematic-discover]");
   const status = root.querySelector("[data-homematic-discovery-status]");
-  const list = root.querySelector("[data-homematic-datapoints]");
   const input = root.querySelector("#homematic_door_command_datapoint_id");
-  if (!button || !status || !list || !input) return;
+  const selectedLabel = root.querySelector("[data-homematic-selected-label]");
+  const picker = document.querySelector("[data-homematic-picker]");
+  const search = picker?.querySelector("[data-homematic-search]");
+  const results = picker?.querySelector("[data-homematic-results]");
+  const resultCount = picker?.querySelector("[data-homematic-result-count]");
+  if (!button || !status || !input || !picker || !search || !results || !resultCount) return;
+  let datapoints = [];
+
+  const describeDatapoint = (datapoint) => `${datapoint.device} · ${datapoint.channel} · ${datapoint.type || datapoint.name}`;
+  const renderResults = () => {
+    const query = search.value.trim().toLocaleLowerCase("de");
+    const filtered = datapoints.filter((datapoint) => !query || `${datapoint.id} ${datapoint.device} ${datapoint.channel} ${datapoint.name} ${datapoint.type}`.toLocaleLowerCase("de").includes(query));
+    const visible = filtered.slice(0, 60);
+    resultCount.textContent = `${filtered.length} Treffer${filtered.length > visible.length ? ` · die ersten ${visible.length} werden angezeigt` : ""}`;
+    results.replaceChildren(...visible.map((datapoint) => {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = `list-group-item list-group-item-action p-3 ${input.value === datapoint.id ? "active" : ""}`;
+      const heading = document.createElement("span");
+      heading.className = "d-flex justify-content-between align-items-start gap-2";
+      const name = document.createElement("strong");
+      name.textContent = datapoint.device;
+      const id = document.createElement("span");
+      id.className = "badge text-bg-secondary-subtle border";
+      id.textContent = `ISE ${datapoint.id}`;
+      heading.append(name, id);
+      const details = document.createElement("span");
+      details.className = "small d-block mt-1";
+      details.textContent = `${datapoint.channel} · ${datapoint.type || datapoint.name} · aktuell ${datapoint.value}`;
+      item.append(heading, details);
+      item.addEventListener("click", () => {
+        input.value = datapoint.id;
+        if (selectedLabel) {
+          selectedLabel.textContent = describeDatapoint(datapoint);
+          selectedLabel.classList.remove("d-none");
+        }
+        status.className = "alert alert-success py-2 mb-0 small";
+        status.textContent = `${datapoint.device} mit ISE-ID ${datapoint.id} ausgewählt. Zum Abschluss Einstellungen speichern.`;
+        window.bootstrap.Modal.getOrCreateInstance(picker).hide();
+      });
+      return item;
+    }));
+    if (!visible.length) {
+      const empty = document.createElement("div");
+      empty.className = "text-center text-body-secondary py-4";
+      empty.textContent = "Keine passenden schreibbaren Datenpunkte gefunden.";
+      results.replaceChildren(empty);
+    }
+  };
+  search.addEventListener("input", renderResults);
 
   button.addEventListener("click", async () => {
+    if (datapoints.length) {
+      renderResults();
+      window.bootstrap.Modal.getOrCreateInstance(picker).show();
+      window.setTimeout(() => search.focus(), 250);
+      return;
+    }
     button.disabled = true;
     status.className = "alert alert-info py-2 mb-0 small";
     status.textContent = "Schreibbare CCU-Datenpunkte werden geladen …";
@@ -241,17 +295,14 @@ function initHomematicDoorDiscovery() {
       const response = await fetch(root.dataset.discoveryUrl, { headers: { Accept: "application/json" } });
       const payload = await response.json();
       if (!response.ok || !payload.ok) throw new Error(payload.error || "CCU-Datenpunkte konnten nicht geladen werden.");
-      list.replaceChildren(...payload.datapoints.map((datapoint) => {
-        const option = document.createElement("option");
-        option.value = datapoint.id;
-        option.label = `${datapoint.device} · ${datapoint.channel} · ${datapoint.type || datapoint.name} · aktuell ${datapoint.value}`;
-        return option;
-      }));
+      datapoints = payload.datapoints;
       const likelyDoor = payload.datapoints.find((datapoint) => /hühner|huehner|stall.*tür|stall.*tuer/i.test(`${datapoint.device} ${datapoint.channel}`) && datapoint.type === "LEVEL");
-      if (!input.value && likelyDoor) input.value = likelyDoor.id;
       status.className = "alert alert-success py-2 mb-0 small";
-      status.textContent = `${payload.datapoints.length} schreibbare Datenpunkte geladen.${likelyDoor ? ` Wahrscheinliche Hühnerklappe: ${likelyDoor.id}.` : " Datenpunkt anhand des Gerätenamens auswählen."}`;
-      input.focus();
+      status.textContent = `${payload.datapoints.length} schreibbare Datenpunkte geladen.`;
+      search.value = likelyDoor ? "Hühnerklappe" : "";
+      renderResults();
+      window.bootstrap.Modal.getOrCreateInstance(picker).show();
+      window.setTimeout(() => search.focus(), 250);
     } catch (error) {
       status.className = "alert alert-danger py-2 mb-0 small";
       status.textContent = error.message;
