@@ -720,14 +720,21 @@ app.get("/", async (req, res) => {
   const coopCameras = parseCoopCameras(coopSettings.coop_camera_streams);
   const doorSensorId = String(coopSettings.homematic_door_sensor_datapoint_id || "").trim();
   const doorSensorConfigured = /^\d+$/.test(doorSensorId);
-  const [climate, doorSensorValue] = await Promise.all([
+  const doorLevelId = String(coopSettings.homematic_door_level_datapoint_id || "").trim();
+  const doorLevelConfigured = /^\d+$/.test(doorLevelId);
+  const [climate, doorSensorValue, doorLevelValue] = await Promise.all([
     readHomematicClimateFromCcu(coopSettings),
     doorSensorConfigured ? readHomematicXmlApiDatapoint(coopSettings, doorSensorId) : Promise.resolve(null),
+    doorLevelConfigured ? readHomematicXmlApiDatapoint(coopSettings, doorLevelId) : Promise.resolve(null),
   ]);
   const { temperature, humidity } = climate;
   const climateConfigured = Boolean(getHomematicClimateDatapointIds(coopSettings));
   const sensorTrueMeansOpen = coopSettings.homematic_door_sensor_true_state !== "closed";
   const doorIsOpen = doorSensorValue === null ? null : (Boolean(doorSensorValue) === sensorTrueMeansOpen);
+  const rawDoorLevel = Number(doorLevelValue);
+  const doorOpenPercent = doorLevelValue === null || !Number.isFinite(rawDoorLevel)
+    ? null
+    : Math.round(Math.max(0, Math.min(100, rawDoorLevel > 1 ? rawDoorLevel : rawDoorLevel * 100)));
 
   res.render("pages/dashboard", {
     pageTitle: "Dashboard",
@@ -750,6 +757,8 @@ app.get("/", async (req, res) => {
       doorCloseConfigured: isHttpUrl(coopSettings.homematic_door_close_url),
       doorSensorConfigured,
       doorIsOpen,
+      doorLevelConfigured,
+      doorOpenPercent,
     },
   });
 });

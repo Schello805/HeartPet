@@ -81,7 +81,7 @@
   <section class="card border-0 bg-body-tertiary admin-section-card" id="huehnerstall">
     <div class="card-body">
       <form method="post" action="/admin/settings" class="vstack gap-3 compact-workflow-form">
-        <input type="hidden" name="_fields" value="weather_location_name,weather_latitude,weather_longitude,coop_camera_streams,homematic_ccu_url,homematic_xmlapi_token,homematic_ccu_username,homematic_ccu_password,homematic_door_open_url,homematic_door_close_url,homematic_door_sensor_datapoint_id,homematic_door_sensor_true_state,homematic_temperature_datapoint_id,homematic_humidity_datapoint_id" />
+        <input type="hidden" name="_fields" value="weather_location_name,weather_latitude,weather_longitude,coop_camera_streams,homematic_ccu_url,homematic_xmlapi_token,homematic_ccu_username,homematic_ccu_password,homematic_door_open_url,homematic_door_close_url,homematic_door_sensor_datapoint_id,homematic_door_sensor_true_state,homematic_door_level_datapoint_id,homematic_temperature_datapoint_id,homematic_humidity_datapoint_id" />
         <div>
           <p class="eyebrow mb-1">Hühnerstall</p>
           <h2 class="h4 mb-1">Wetter, Kameras und Steuerung</h2>
@@ -208,6 +208,11 @@
                 <div class="form-text">Beispiel: <code>http://192.168.1.22/addons/xmlapi/statechange.cgi?ise_id=12990&amp;new_value=0.0</code>. Die <code>ise_id</code> ist bei Öffnen und Schließen identisch. Bei virtuellen HmIP-Kanälen kann LEVEL nach dem Schalten sofort zurückspringen; deshalb bestätigt HeartPet die Endlage über den separaten Türsensor.</div>
               </div>
               <div class="row g-2">
+                <div class="col-12">
+                  <label class="form-label" for="homematic_door_level_datapoint_id">ISE-ID Öffnungsgrad (LEVEL)</label>
+                  <input class="form-control" id="homematic_door_level_datapoint_id" inputmode="numeric" pattern="[0-9]+" name="homematic_door_level_datapoint_id" value="<%= settings.homematic_door_level_datapoint_id || '' %>" placeholder="12983" />
+                  <div class="form-text">Hier den lesbaren <code>LEVEL</code>-Datenpunkt der tatsächlichen Türposition eintragen, bei deiner Hühnerklappe <code>12983</code>. Der Schalt-Datenpunkt <code>12990</code> gehört weiterhin nur in die beiden Befehls-URLs.</div>
+                </div>
                 <div class="col-md-6">
                   <label class="form-label" for="homematic_door_sensor_datapoint_id">ISE-ID Türsensor</label>
                   <input class="form-control" id="homematic_door_sensor_datapoint_id" inputmode="numeric" pattern="[0-9]+" name="homematic_door_sensor_datapoint_id" value="<%= settings.homematic_door_sensor_datapoint_id || '' %>" placeholder="3152" />

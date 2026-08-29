@@ -6,7 +6,7 @@
 <% const speciesOverview = typeof speciesCounts !== 'undefined' ? speciesCounts : []; %>
 <% const issueCount = attentionList.length; %>
 <% const hasPriorityContent = urgentList.length > 0 || upcomingReminders.length > 0 || attentionList.length > 0; %>
-<% const coopState = typeof coop !== 'undefined' ? coop : { cameras: [], temperature: null, humidity: null, climateError: '', temperatureConfigured: false, humidityConfigured: false, doorConfigured: false, doorCloseConfigured: false, doorSensorConfigured: false, doorIsOpen: null }; %>
+<% const coopState = typeof coop !== 'undefined' ? coop : { cameras: [], temperature: null, humidity: null, climateError: '', temperatureConfigured: false, humidityConfigured: false, doorConfigured: false, doorCloseConfigured: false, doorSensorConfigured: false, doorIsOpen: null, doorLevelConfigured: false, doorOpenPercent: null }; %>
 <% const weatherState = typeof weather !== 'undefined' ? weather : { configured: false, location: '', error: '' }; %>
 <% const hasCoopClimate = coopState.temperatureConfigured || coopState.humidityConfigured; %>
 <% const hasDoorControl = coopState.doorConfigured || coopState.doorCloseConfigured; %>
@@ -205,7 +205,7 @@
     <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
       <div>
         <h2 class="h5 mb-1">Wetter in <%= weatherState.location || 'deinem Ort' %></h2>
-        <p class="text-body-secondary small mb-0">Außenklima und Tageslicht für den Stall.</p>
+        <p class="text-body-secondary small mb-0">Temperatur und Luftfeuchte am Standort.</p>
       </div>
       <span class="dashboard-visual-icon" aria-hidden="true"><%= weatherState.icon || '🌤️' %></span>
     </div>
@@ -215,8 +215,6 @@
       <div class="row g-2">
         <div class="col-6 col-lg-3"><div class="card border h-100"><div class="card-body p-2 text-center"><span class="dashboard-metric-icon" aria-hidden="true">🌡</span><span class="small text-body-secondary d-block"><%= weatherState.label || 'Aktuell' %></span><strong class="dashboard-weather-value"><%= Number.isFinite(weatherState.temperature) ? `${weatherState.temperature.toLocaleString('de-DE', { maximumFractionDigits: 1 })} °C` : '–' %></strong></div></div></div>
         <div class="col-6 col-lg-3"><div class="card border h-100"><div class="card-body p-2 text-center"><span class="dashboard-metric-icon" aria-hidden="true">💧</span><span class="small text-body-secondary d-block">Luftfeuchte außen</span><strong class="dashboard-weather-value"><%= Number.isFinite(weatherState.humidity) ? `${weatherState.humidity.toLocaleString('de-DE', { maximumFractionDigits: 0 })} %` : '–' %></strong></div></div></div>
-        <div class="col-6 col-lg-3"><div class="card border h-100"><div class="card-body p-2 text-center"><span class="dashboard-metric-icon" aria-hidden="true">☀</span><span class="small text-body-secondary d-block">Sonnenaufgang</span><strong class="dashboard-weather-value"><%= weatherState.sunrise ? formatDateTime(weatherState.sunrise).slice(11) : '–' %></strong><small class="d-block text-success-emphasis">Stalltür öffnet</small></div></div></div>
-        <div class="col-6 col-lg-3"><div class="card border h-100"><div class="card-body p-2 text-center"><span class="dashboard-metric-icon" aria-hidden="true">☾</span><span class="small text-body-secondary d-block">Sonnenuntergang</span><strong class="dashboard-weather-value"><%= weatherState.sunset ? formatDateTime(weatherState.sunset).slice(11) : '–' %></strong><small class="d-block text-primary-emphasis">Stalltür schließt</small></div></div></div>
       </div>
     <% } %>
   </div>
@@ -239,19 +237,28 @@
 <section class="card border-0 dashboard-surface-card dashboard-door-section mb-2" id="coop-control">
   <div class="card-body p-2">
     <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
-      <h2 class="h5 mb-0">Stalltür</h2>
-      <% if (coopState.doorSensorConfigured) { %>
-        <span class="badge rounded-pill border d-inline-flex align-items-center gap-2 <%= coopState.doorIsOpen === true ? 'text-bg-success-subtle' : coopState.doorIsOpen === false ? 'text-bg-secondary-subtle' : 'text-bg-warning-subtle' %>">
-          <% if (coopState.doorIsOpen === true) { %>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 3h16v18H4z"/><path d="M6 6h12M6 9h12"/><path d="M7 12h10" stroke-dasharray="2 2"/></svg>
-          <% } else { %>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 3h16v18H4z"/><path d="M6 6h12M6 9h12M6 12h12M6 15h12M6 18h12"/></svg>
-          <% } %>
-          <strong><%= coopState.doorIsOpen === true ? 'Offen' : coopState.doorIsOpen === false ? 'Geschlossen' : 'Status unbekannt' %></strong>
-        </span>
-      <% } else { %><span class="dashboard-visual-icon" aria-hidden="true">🚪</span><% } %>
+      <div><h2 class="h5 mb-1">Stalltür</h2><p class="small text-body-secondary mb-0">Tageszeiten, Position und Steuerung.</p></div>
+      <span class="badge text-bg-primary-subtle border">Automatik</span>
     </div>
-    <div class="row g-2">
+    <div class="dashboard-door-schedule dashboard-door-schedule--sunrise">
+      <span class="dashboard-door-sun" aria-hidden="true">☀</span>
+      <span><span class="small text-body-secondary d-block">Sonnenaufgang</span><small class="text-success-emphasis">Stalltür öffnet</small></span>
+      <strong><%= weatherState.sunrise ? formatDateTime(weatherState.sunrise).slice(11) : '–' %></strong>
+    </div>
+    <div class="dashboard-door-hero">
+      <div class="dashboard-door-percentage"><%= coopState.doorOpenPercent !== null ? `${coopState.doorOpenPercent} % geöffnet` : coopState.doorLevelConfigured ? 'Öffnungsgrad nicht verfügbar' : 'Öffnungsgrad nicht eingerichtet' %></div>
+      <div class="dashboard-shutter-frame" style="--door-open: <%= coopState.doorOpenPercent !== null ? coopState.doorOpenPercent : coopState.doorIsOpen === true ? 100 : 0 %>%" aria-hidden="true">
+        <div class="dashboard-shutter-panel"></div>
+        <div class="dashboard-shutter-handle"></div>
+      </div>
+      <strong class="dashboard-door-status"><%= coopState.doorIsOpen === true ? 'Offen' : coopState.doorIsOpen === false ? 'Geschlossen' : 'Status unbekannt' %></strong>
+    </div>
+    <div class="dashboard-door-schedule dashboard-door-schedule--sunset">
+      <span class="dashboard-door-sun" aria-hidden="true">☾</span>
+      <span><span class="small text-body-secondary d-block">Sonnenuntergang</span><small class="text-primary-emphasis">Stalltür schließt</small></span>
+      <strong><%= weatherState.sunset ? formatDateTime(weatherState.sunset).slice(11) : '–' %></strong>
+    </div>
+    <div class="row g-2 mt-1">
       <% if (coopState.doorConfigured) { %><div class="col-6 d-grid"><form method="post" action="/coop/door/open" class="d-grid" data-confirm="Stalltür jetzt öffnen?"><button type="submit" class="btn btn-primary dashboard-door-button">↗ Öffnen</button></form></div><% } %>
       <% if (coopState.doorCloseConfigured) { %><div class="col-6 d-grid"><form method="post" action="/coop/door/close" class="d-grid" data-confirm="Stalltür jetzt schließen?"><button type="submit" class="btn btn-outline-primary dashboard-door-button">↘ Schließen</button></form></div><% } %>
     </div>
