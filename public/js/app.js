@@ -231,7 +231,10 @@ function initHomematicDoorDiscovery() {
   const status = root.querySelector("[data-homematic-discovery-status]");
   const input = root.querySelector("#homematic_door_command_datapoint_id");
   const selectedLabel = root.querySelector("[data-homematic-selected-label]");
-  const picker = document.querySelector("[data-homematic-picker]");
+  const picker = root.closest("form")?.querySelector("[data-homematic-picker]");
+  const stalePicker = Array.from(document.body.children).find((element) => element.matches?.("[data-homematic-picker]"));
+  if (stalePicker && stalePicker !== picker) stalePicker.remove();
+  if (picker && picker.parentElement !== document.body) document.body.append(picker);
   const search = picker?.querySelector("[data-homematic-search]");
   const results = picker?.querySelector("[data-homematic-results]");
   const resultCount = picker?.querySelector("[data-homematic-result-count]");

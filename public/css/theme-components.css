@@ -318,6 +318,19 @@ body.bootstrap-app {
   box-shadow: 0 -8px 24px rgba(33, 97, 119, 0.12);
 }
 
+.bootstrap-app .modal-backdrop {
+  z-index: 1090;
+}
+
+.bootstrap-app .modal {
+  z-index: 1100;
+}
+
+.homematic-device-results {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
 .bootstrap-app .app-mobile-nav-item {
   position: relative;
   display: grid;
