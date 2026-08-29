@@ -67,6 +67,10 @@ function initCameraDiagnostics() {
     const streamUrl = card.dataset.cameraStreamUrl;
     let streaming = false;
     let diagnosing = false;
+    const refreshFrame = () => {
+      if (streaming || document.visibilityState !== "visible" || !frameUrl) return;
+      image.src = `${frameUrl}${frameUrl.includes("?") ? "&" : "?"}t=${Date.now()}`;
+    };
     const setStreaming = (active) => {
       streaming = active;
       if (!toggle) return;
@@ -100,6 +104,7 @@ function initCameraDiagnostics() {
       setStreaming(!streaming);
       image.src = `${nextUrl}${nextUrl.includes("?") ? "&" : "?"}t=${Date.now()}`;
     });
+    window.setInterval(refreshFrame, 15000);
   });
 }
 

@@ -852,9 +852,10 @@ app.get("/coop/cameras/:index/frame", async (req, res) => {
   if (!camera) return res.sendStatus(404);
 
   const cached = cameraFrameCache.get(cameraIndex);
-  if (cached?.cameraUrl === camera.snapshotUrl && Date.now() - cached.createdAt < 900) {
-    res.set("Content-Type", "image/jpeg");
+  if (cached?.cameraUrl === camera.snapshotUrl && Date.now() - cached.createdAt < 1000) {
+    res.set("Content-Type", cached.contentType || "image/jpeg");
     res.set("Cache-Control", "no-store");
+    res.set("X-HeartPet-Camera-Cache", "fresh");
     return res.send(cached.buffer);
   }
 
@@ -865,13 +866,44 @@ app.get("/coop/cameras/:index/frame", async (req, res) => {
       protocol: camera.snapshotProtocol,
     };
     const buffer = await captureCameraFrame(snapshotCamera);
-    cameraFrameCache.set(cameraIndex, { cameraUrl: camera.snapshotUrl, createdAt: Date.now(), buffer });
+    cameraFrameCache.set(cameraIndex, {
+      cameraUrl: camera.snapshotUrl,
+      createdAt: Date.now(),
+      buffer,
+      contentType: "image/jpeg",
+      failedAttempts: 0,
+    });
     res.set("Content-Type", "image/jpeg");
     res.set("Cache-Control", "no-store");
+    res.set("X-HeartPet-Camera-Cache", "refreshed");
     return res.send(buffer);
   } catch (error) {
-    console.error(`[HeartPet] Einzelbild von Kamera „${camera.name}“ fehlgeschlagen: ${error.message}`);
-    return res.status(502).send(error.message);
+    const errorMessage = describeFetchError(error);
+    const failedAttempts = cached?.cameraUrl === camera.snapshotUrl ? Number(cached.failedAttempts || 0) + 1 : 1;
+    console.error(`[HeartPet] Einzelbild von Kamera „${camera.name}“ fehlgeschlagen (${failedAttempts}/2): ${errorMessage}`);
+    if (cached?.cameraUrl === camera.snapshotUrl && cached.buffer && failedAttempts < 2) {
+      cameraFrameCache.set(cameraIndex, { ...cached, failedAttempts });
+      res.set("Content-Type", cached.contentType || "image/jpeg");
+      res.set("Cache-Control", "no-store");
+      res.set("X-HeartPet-Camera-Cache", "stale");
+      return res.send(cached.buffer);
+    }
+
+    cameraFrameCache.set(cameraIndex, {
+      ...(cached?.cameraUrl === camera.snapshotUrl ? cached : {}),
+      cameraUrl: camera.snapshotUrl,
+      createdAt: 0,
+      failedAttempts,
+    });
+    const statusCode = error?.name === "AbortError" ? "TIMEOUT" : String(error?.cause?.code || error?.code || "CAMERA_OFFLINE");
+    res.set("Content-Type", "image/svg+xml; charset=utf-8");
+    res.set("Cache-Control", "no-store");
+    res.set("X-HeartPet-Camera-Cache", failedAttempts < 2 ? "waiting" : "error");
+    return res.status(200).send(buildCameraPlaceholderSvg({
+      cameraName: camera.name,
+      statusCode: failedAttempts < 2 ? "NEUER VERSUCH" : statusCode,
+      message: failedAttempts < 2 ? "Kamerabild wird erneut geladen." : errorMessage,
+    }));
   }
 });
 
@@ -5955,6 +5987,27 @@ function describeFetchError(error) {
   return String(error?.message || "Verbindung fehlgeschlagen.");
 }
 
+function buildCameraPlaceholderSvg({ cameraName, statusCode, message }) {
+  const escapeXml = (value) => String(value || "").replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&apos;",
+  })[character]);
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-label="${escapeXml(cameraName)}: ${escapeXml(message)}">
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e9f5f7"/><stop offset="1" stop-color="#d8ece8"/></linearGradient></defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <rect x="478" y="180" width="324" height="220" rx="34" fill="none" stroke="#527680" stroke-width="24"/>
+  <circle cx="640" cy="290" r="62" fill="none" stroke="#527680" stroke-width="24"/>
+  <path d="M802 238l92-58v220l-92-58" fill="none" stroke="#527680" stroke-width="24" stroke-linejoin="round"/>
+  <text x="640" y="490" text-anchor="middle" fill="#173943" font-family="sans-serif" font-size="42" font-weight="700">${escapeXml(cameraName)}</text>
+  <text x="640" y="548" text-anchor="middle" fill="#527680" font-family="sans-serif" font-size="30">${escapeXml(message)}</text>
+  <text x="640" y="600" text-anchor="middle" fill="#267389" font-family="monospace" font-size="26" font-weight="700">${escapeXml(statusCode)}</text>
+</svg>`;
+}
+
 async function readOutdoorWeather(settings) {
   const latitude = Number(settings.weather_latitude);
   const longitude = Number(settings.weather_longitude);
@@ -6929,6 +6982,7 @@ app.__test = {
   parseHomematicTextValue,
   findHomematicXmlDatapoint,
   parseCoopCameras,
+  buildCameraPlaceholderSvg,
   getWeatherCodeMeta,
 };
 

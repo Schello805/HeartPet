@@ -64,6 +64,18 @@ test("Kameras können getrennte Standbild- und Stream-URLs verwenden", () => {
   assert.equal(cameras[0].group, "Hühnerstall");
 });
 
+test("Kamera-Platzhalter zeigt Fehlercode und maskiert XML-Zeichen", () => {
+  const svg = app.__test.buildCameraPlaceholderSvg({
+    cameraName: "Stall <innen>",
+    statusCode: "TIMEOUT",
+    message: "Kamera & Netzwerk nicht erreichbar.",
+  });
+  assert.match(svg, /Stall &lt;innen&gt;/);
+  assert.match(svg, /Kamera &amp; Netzwerk/);
+  assert.match(svg, /TIMEOUT/);
+  assert.doesNotMatch(svg, /Stall <innen>/);
+});
+
 test("Wettercodes liefern verständliche und visuelle Zustände", () => {
   assert.deepEqual(app.__test.getWeatherCodeMeta(0, 1), { label: "Klar", icon: "☀️" });
   assert.deepEqual(app.__test.getWeatherCodeMeta(63, 1), { label: "Regen", icon: "🌧️" });
