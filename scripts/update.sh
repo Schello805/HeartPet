@@ -116,7 +116,7 @@ require_command git
 require_command node
 require_command npm
 if ! command -v ffmpeg >/dev/null 2>&1; then
-  echo "Hinweis: ffmpeg fehlt. HTTP-Kameras funktionieren, RTSP-Kameras erst nach Installation von ffmpeg."
+  echo "Hinweis: ffmpeg fehlt. Nachinstallation mit: ./scripts/install.sh"
 fi
 
 if ! git -C "$APP_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then

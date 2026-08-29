@@ -26,14 +26,25 @@ HeartPet ist inzwischen ein brauchbares MVP für den Alltag:
 - EJS Templates
 - SQLite
 - Lokaler Dateispeicher unter `data/uploads`
-- `ffmpeg` (optional, aber für RTSP-Kameras erforderlich)
+- `ffmpeg` für Kamera-Standbilder und RTSP-Streams
 
 Kein Docker. Kein externer Objekt-Storage. HeartPet ist für einen einfachen Betrieb auf einem LXC oder Linux-Server gedacht.
 
 ## Installation
 
+Das Installationsskript installiert `ffmpeg` über den verfügbaren Linux-Paketmanager und anschließend alle Node.js-Abhängigkeiten:
+
 ```bash
-npm install
+chmod +x scripts/install.sh
+./scripts/install.sh
+```
+
+Unter Debian und Ubuntu entspricht die manuelle FFmpeg-Nachinstallation:
+
+```bash
+sudo apt update
+sudo apt install -y ffmpeg
+sudo systemctl restart heartpet
 ```
 
 Für einen kurzen Test ohne `systemd`:
