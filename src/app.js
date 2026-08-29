@@ -718,9 +718,16 @@ app.get("/", async (req, res) => {
   const coopSettings = getSettingsObject(db);
   const weather = await readOutdoorWeather(coopSettings);
   const coopCameras = parseCoopCameras(coopSettings.coop_camera_streams);
-  const climate = await readHomematicClimateFromCcu(coopSettings);
+  const doorSensorId = String(coopSettings.homematic_door_sensor_datapoint_id || "").trim();
+  const doorSensorConfigured = /^\d+$/.test(doorSensorId);
+  const [climate, doorSensorValue] = await Promise.all([
+    readHomematicClimateFromCcu(coopSettings),
+    doorSensorConfigured ? readHomematicXmlApiDatapoint(coopSettings, doorSensorId) : Promise.resolve(null),
+  ]);
   const { temperature, humidity } = climate;
   const climateConfigured = Boolean(getHomematicClimateDatapointIds(coopSettings));
+  const sensorTrueMeansOpen = coopSettings.homematic_door_sensor_true_state !== "closed";
+  const doorIsOpen = doorSensorValue === null ? null : (Boolean(doorSensorValue) === sensorTrueMeansOpen);
 
   res.render("pages/dashboard", {
     pageTitle: "Dashboard",
@@ -741,6 +748,8 @@ app.get("/", async (req, res) => {
       humidityConfigured: climateConfigured,
       doorConfigured: isHttpUrl(coopSettings.homematic_door_open_url),
       doorCloseConfigured: isHttpUrl(coopSettings.homematic_door_close_url),
+      doorSensorConfigured,
+      doorIsOpen,
     },
   });
 });
@@ -5593,8 +5602,11 @@ async function readHomematicXmlApiDatapoint(settings, datapointId) {
   const text = await response.text();
   if (/<not_authenticated\b/i.test(text)) return null;
   const tag = (text.match(new RegExp(`<datapoint\\b[^>]*\\bise_id=["']${datapointId}["'][^>]*>`, "i")) || [])[0] || "";
-  const value = tag.match(/\bvalue=["'](-?\d+(?:[.,]\d+)?)["']/i)?.[1];
-  return value === undefined ? null : Number(value.replace(",", "."));
+  const value = tag.match(/\bvalue=["'](true|false|-?\d+(?:[.,]\d+)?)["']/i)?.[1];
+  if (value === undefined) return null;
+  if (/^true$/i.test(value)) return 1;
+  if (/^false$/i.test(value)) return 0;
+  return Number(value.replace(",", "."));
 }
 
 async function readHomematicClimateFromCcu(settings) {

@@ -1776,6 +1776,9 @@ test("Kamera-Einstellungen erklären RTSP und Wansview verständlich", async () 
   assert.match(response.text, /Homematic XML-API/);
   assert.match(response.text, /homematic_temperature_datapoint_id/);
   assert.match(response.text, /homematic_humidity_datapoint_id/);
+  assert.match(response.text, /homematic_door_sensor_datapoint_id/);
+  assert.match(response.text, /homematic_door_sensor_true_state/);
+  assert.match(response.text, /Alle Stall-Einstellungen speichern/);
   assert.doesNotMatch(response.text, /name="homematic_climate_url"/);
   assert.match(response.text, /name="homematic_xmlapi_token"/);
 

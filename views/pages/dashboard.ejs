@@ -6,7 +6,7 @@
 <% const speciesOverview = typeof speciesCounts !== 'undefined' ? speciesCounts : []; %>
 <% const issueCount = attentionList.length; %>
 <% const hasPriorityContent = urgentList.length > 0 || upcomingReminders.length > 0 || attentionList.length > 0; %>
-<% const coopState = typeof coop !== 'undefined' ? coop : { cameras: [], temperature: null, humidity: null, climateError: '', temperatureConfigured: false, humidityConfigured: false, doorConfigured: false, doorCloseConfigured: false }; %>
+<% const coopState = typeof coop !== 'undefined' ? coop : { cameras: [], temperature: null, humidity: null, climateError: '', temperatureConfigured: false, humidityConfigured: false, doorConfigured: false, doorCloseConfigured: false, doorSensorConfigured: false, doorIsOpen: null }; %>
 <% const weatherState = typeof weather !== 'undefined' ? weather : { configured: false, location: '', error: '' }; %>
 <% const hasCoopClimate = coopState.temperatureConfigured || coopState.humidityConfigured; %>
 <% const hasDoorControl = coopState.doorConfigured || coopState.doorCloseConfigured; %>
@@ -236,7 +236,19 @@
 <% if (hasDoorControl) { %>
 <section class="card border-0 dashboard-surface-card dashboard-door-section mb-2" id="coop-control">
   <div class="card-body p-2">
-    <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Stalltür</h2><span class="dashboard-visual-icon" aria-hidden="true">🚪</span></div>
+    <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+      <h2 class="h5 mb-0">Stalltür</h2>
+      <% if (coopState.doorSensorConfigured) { %>
+        <span class="badge rounded-pill border d-inline-flex align-items-center gap-2 <%= coopState.doorIsOpen === true ? 'text-bg-success-subtle' : coopState.doorIsOpen === false ? 'text-bg-secondary-subtle' : 'text-bg-warning-subtle' %>">
+          <% if (coopState.doorIsOpen === true) { %>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 3h16v18H4z"/><path d="M6 6h12M6 9h12"/><path d="M7 12h10" stroke-dasharray="2 2"/></svg>
+          <% } else { %>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 3h16v18H4z"/><path d="M6 6h12M6 9h12M6 12h12M6 15h12M6 18h12"/></svg>
+          <% } %>
+          <strong><%= coopState.doorIsOpen === true ? 'Offen' : coopState.doorIsOpen === false ? 'Geschlossen' : 'Status unbekannt' %></strong>
+        </span>
+      <% } else { %><span class="dashboard-visual-icon" aria-hidden="true">🚪</span><% } %>
+    </div>
     <div class="row g-2">
       <% if (coopState.doorConfigured) { %><div class="col-6 d-grid"><form method="post" action="/coop/door/open" class="d-grid" data-confirm="Stalltür jetzt öffnen?"><button type="submit" class="btn btn-primary dashboard-door-button">↗ Öffnen</button></form></div><% } %>
       <% if (coopState.doorCloseConfigured) { %><div class="col-6 d-grid"><form method="post" action="/coop/door/close" class="d-grid" data-confirm="Stalltür jetzt schließen?"><button type="submit" class="btn btn-outline-primary dashboard-door-button">↘ Schließen</button></form></div><% } %>

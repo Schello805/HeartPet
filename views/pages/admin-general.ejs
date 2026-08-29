@@ -81,7 +81,7 @@
   <section class="card border-0 bg-body-tertiary admin-section-card" id="huehnerstall">
     <div class="card-body">
       <form method="post" action="/admin/settings" class="vstack gap-3 compact-workflow-form">
-        <input type="hidden" name="_fields" value="weather_location_name,weather_latitude,weather_longitude,coop_camera_streams,homematic_ccu_url,homematic_xmlapi_token,homematic_ccu_username,homematic_ccu_password,homematic_door_open_url,homematic_door_close_url,homematic_temperature_datapoint_id,homematic_humidity_datapoint_id" />
+        <input type="hidden" name="_fields" value="weather_location_name,weather_latitude,weather_longitude,coop_camera_streams,homematic_ccu_url,homematic_xmlapi_token,homematic_ccu_username,homematic_ccu_password,homematic_door_open_url,homematic_door_close_url,homematic_door_sensor_datapoint_id,homematic_door_sensor_true_state,homematic_temperature_datapoint_id,homematic_humidity_datapoint_id" />
         <div>
           <p class="eyebrow mb-1">Hühnerstall</p>
           <h2 class="h4 mb-1">Wetter, Kameras und Steuerung</h2>
@@ -200,6 +200,20 @@
               </div>
               <div class="row g-2">
                 <div class="col-md-6">
+                  <label class="form-label" for="homematic_door_sensor_datapoint_id">ISE-ID Türsensor</label>
+                  <input class="form-control" id="homematic_door_sensor_datapoint_id" inputmode="numeric" pattern="[0-9]+" name="homematic_door_sensor_datapoint_id" value="<%= settings.homematic_door_sensor_datapoint_id || '' %>" placeholder="3152" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label" for="homematic_door_sensor_true_state">Sensorwert true bedeutet</label>
+                  <select class="form-select" id="homematic_door_sensor_true_state" name="homematic_door_sensor_true_state">
+                    <option value="open" <%= settings.homematic_door_sensor_true_state !== 'closed' ? 'selected' : '' %>>Tür offen</option>
+                    <option value="closed" <%= settings.homematic_door_sensor_true_state === 'closed' ? 'selected' : '' %>>Tür geschlossen</option>
+                  </select>
+                </div>
+                <div class="form-text">Für deinen separaten Kontaktsensor ist der STATE-Datenpunkt <code>3152</code>. Die Zuordnung kann bei umgekehrt montiertem Magnetkontakt gewechselt werden.</div>
+              </div>
+              <div class="row g-2">
+                <div class="col-md-6">
                   <label class="form-label" for="homematic_temperature_datapoint_id">Datenpunkt Temperatur</label>
                   <input class="form-control" id="homematic_temperature_datapoint_id" inputmode="numeric" pattern="[0-9]+" name="homematic_temperature_datapoint_id" value="<%= settings.homematic_temperature_datapoint_id || settings.homematic_climate_channel_id || '' %>" placeholder="2363" />
                 </div>
@@ -217,8 +231,8 @@
             </div>
           </div>
         </div>
-        <div class="d-flex justify-content-end">
-          <button type="submit" class="btn btn-primary">Hühnerstall speichern</button>
+        <div class="d-grid d-sm-flex justify-content-sm-end pt-3 border-top">
+          <button type="submit" class="btn btn-primary btn-lg px-4">Alle Stall-Einstellungen speichern</button>
         </div>
       </form>
     </div>
