@@ -753,8 +753,8 @@ app.get("/", async (req, res) => {
       climateError: climate?.error || "",
       temperatureConfigured: climateConfigured,
       humidityConfigured: climateConfigured,
-      doorConfigured: isHttpUrl(coopSettings.homematic_door_open_url),
-      doorCloseConfigured: isHttpUrl(coopSettings.homematic_door_close_url),
+      doorConfigured: Boolean(getHomematicDoorCommand(coopSettings, true)),
+      doorCloseConfigured: Boolean(getHomematicDoorCommand(coopSettings, false)),
       doorSensorConfigured,
       doorIsOpen,
       doorLevelConfigured,
@@ -765,14 +765,15 @@ app.get("/", async (req, res) => {
 
 app.post("/coop/door/open", async (req, res) => {
   const settings = getSettingsObject(db);
+  const command = getHomematicDoorCommand(settings, true);
   console.info(`[HeartPet][CCU][door-open] Bedienung durch Benutzer ${req.user?.id || "unbekannt"} angefordert.`);
-  if (!isHttpUrl(normalizeConfiguredUrl(settings.homematic_door_open_url))) {
+  if (!command) {
     setFlash(req, "error", "Für die Stalltür ist noch kein gültiger Homematic-Befehl hinterlegt.");
     return res.redirect("/#coop-control");
   }
 
   try {
-    const result = await executeHomematicCommand(settings, settings.homematic_door_open_url, { expectedDoorOpen: true });
+    const result = await executeHomematicCommand(settings, command, { expectedDoorOpen: true });
     createAuditLog(req, "coop.door_open", result, { entityType: "coop" });
     if (result.sensorConfigured && !result.sensorConfirmed) {
       setFlash(req, "error", "Der Öffnungsbefehl wurde von der CCU angenommen, der Türsensor hat die offene Endlage aber nicht bestätigt.");
@@ -785,7 +786,7 @@ app.post("/coop/door/open", async (req, res) => {
     console.error(`[HeartPet][CCU][door-open] Fehlgeschlagen: ${error.message}`);
     createAuditLog(req, "coop.door_open_failed", {
       error: error.message,
-      state_change: parseHomematicStateChange(settings.homematic_door_open_url),
+      state_change: parseHomematicStateChange(command),
     }, { entityType: "coop" });
     setFlash(req, "error", `Die Stalltür konnte nicht geöffnet werden: ${error.message}`);
   }
@@ -794,14 +795,15 @@ app.post("/coop/door/open", async (req, res) => {
 
 app.post("/coop/door/close", async (req, res) => {
   const settings = getSettingsObject(db);
+  const command = getHomematicDoorCommand(settings, false);
   console.info(`[HeartPet][CCU][door-close] Bedienung durch Benutzer ${req.user?.id || "unbekannt"} angefordert.`);
-  if (!isHttpUrl(normalizeConfiguredUrl(settings.homematic_door_close_url))) {
+  if (!command) {
     setFlash(req, "error", "Für das Schließen der Stalltür ist noch kein gültiger Homematic-Befehl hinterlegt.");
     return res.redirect("/#coop-control");
   }
 
   try {
-    const result = await executeHomematicCommand(settings, settings.homematic_door_close_url, { expectedDoorOpen: false });
+    const result = await executeHomematicCommand(settings, command, { expectedDoorOpen: false });
     createAuditLog(req, "coop.door_close", result, { entityType: "coop" });
     if (result.sensorConfigured && !result.sensorConfirmed) {
       setFlash(req, "error", "Der Schließbefehl wurde von der CCU angenommen, der Türsensor hat die geschlossene Endlage aber nicht bestätigt.");
@@ -814,7 +816,7 @@ app.post("/coop/door/close", async (req, res) => {
     console.error(`[HeartPet][CCU][door-close] Fehlgeschlagen: ${error.message}`);
     createAuditLog(req, "coop.door_close_failed", {
       error: error.message,
-      state_change: parseHomematicStateChange(settings.homematic_door_close_url),
+      state_change: parseHomematicStateChange(command),
     }, { entityType: "coop" });
     setFlash(req, "error", `Die Stalltür konnte nicht geschlossen werden: ${error.message}`);
   }
@@ -959,6 +961,24 @@ app.get("/admin/coop/climate-status", requireAdmin, async (req, res) => {
     temperature: climate.temperature,
     humidity: climate.humidity,
   });
+});
+
+app.get("/admin/coop/homematic-datapoints", requireAdmin, async (req, res) => {
+  const settings = getSettingsObject(db);
+  const url = buildHomematicXmlApiUrl(settings, "statelist.cgi");
+  if (!url) return res.status(400).json({ ok: false, error: "Bitte zuerst XML-API-Adresse und Token speichern." });
+  try {
+    const response = await fetchWithTimeout(url, 15000);
+    if (!response.ok) throw new Error(`XML-API antwortet mit HTTP ${response.status}.`);
+    const xml = await response.text();
+    if (/<not_authenticated\b/i.test(xml)) throw new Error("XML-API-Token ist ungültig oder fehlt.");
+    const datapoints = parseWritableHomematicDatapoints(xml);
+    console.info(`[HeartPet][CCU][discovery] ${datapoints.length} schreibbare Datenpunkte geladen.`);
+    return res.json({ ok: true, datapoints });
+  } catch (error) {
+    console.error(`[HeartPet][CCU][discovery] Fehlgeschlagen: ${error.message}`);
+    return res.status(502).json({ ok: false, error: describeFetchError(error) });
+  }
 });
 
 app.get("/animals/historie", (req, res) => {
@@ -2813,10 +2833,20 @@ app.post("/admin/settings", requireAdmin, upload.single("app_logo"), (req, res) 
   const invalidCamera = fields.includes("coop_camera_streams")
     ? parseCoopCameraLines(req.body.coop_camera_streams).find((camera) => !camera.valid)
     : null;
-  if (invalidUrlField || invalidCamera) {
+  const invalidDoorDatapoint = fields.includes("homematic_door_command_datapoint_id")
+    && String(req.body.homematic_door_command_datapoint_id || "").trim()
+    && !/^\d+$/.test(String(req.body.homematic_door_command_datapoint_id).trim());
+  const invalidDoorValue = ["homematic_door_open_value", "homematic_door_close_value"].find((key) =>
+    fields.includes(key) && !/^-?\d+(?:[.,]\d+)?$/.test(String(req.body[key] || "").trim())
+  );
+  if (invalidUrlField || invalidCamera || invalidDoorDatapoint || invalidDoorValue) {
     setFlash(req, "error", invalidCamera
       ? `Ungültige Kamera-URL in der Zeile „${invalidCamera.source}“.`
-      : "Bitte für Homematic eine vollständige HTTP- oder HTTPS-URL eingeben.");
+      : invalidDoorDatapoint
+        ? "Der Tür-Datenpunkt muss eine numerische ISE-ID sein."
+        : invalidDoorValue
+          ? "Öffnungs- und Schließwert müssen Zahlen sein."
+          : "Bitte für Homematic eine vollständige HTTP- oder HTTPS-URL eingeben.");
     return res.redirect(backTo(req, "/admin/allgemein"));
   }
 
@@ -5449,6 +5479,48 @@ function parseHomematicStateChange(value) {
   return { iseId, newValue };
 }
 
+function getHomematicDoorCommand(settings, open) {
+  const datapointId = String(settings?.homematic_door_command_datapoint_id || "").trim();
+  const configuredValue = String((open ? settings?.homematic_door_open_value : settings?.homematic_door_close_value) || "").trim();
+  const defaultValue = open ? "1.0" : "0.0";
+  const value = configuredValue || defaultValue;
+  if (/^\d+$/.test(datapointId) && /^-?\d+(?:[.,]\d+)?$/.test(value)) {
+    const config = getHomematicXmlApiConfig(settings);
+    if (!config) return "";
+    const url = new URL(config.url.origin);
+    url.pathname = `${config.basePath}statechange.cgi`;
+    url.searchParams.set("ise_id", datapointId);
+    url.searchParams.set("new_value", value.replace(",", "."));
+    return url.toString();
+  }
+  return normalizeConfiguredUrl(open ? settings?.homematic_door_open_url : settings?.homematic_door_close_url);
+}
+
+function parseWritableHomematicDatapoints(xml) {
+  const readAttributes = (tag) => Object.fromEntries(Array.from(String(tag).matchAll(/([\w:-]+)=["']([^"']*)["']/g), (match) => [match[1], match[2]]));
+  const results = [];
+  for (const deviceMatch of String(xml || "").matchAll(/<device\b([^>]*)>([\s\S]*?)<\/device>/gi)) {
+    const device = readAttributes(deviceMatch[1]);
+    for (const channelMatch of deviceMatch[2].matchAll(/<channel\b([^>]*)>([\s\S]*?)<\/channel>/gi)) {
+      const channel = readAttributes(channelMatch[1]);
+      for (const datapointMatch of channelMatch[2].matchAll(/<datapoint\b([^>]*)\/?\s*>/gi)) {
+        const datapoint = readAttributes(datapointMatch[1]);
+        const operations = Number.parseInt(datapoint.operations || "0", 10);
+        if (!/^\d+$/.test(datapoint.ise_id || "") || (operations & 2) !== 2) continue;
+        results.push({
+          id: datapoint.ise_id,
+          device: device.name || "Unbenanntes Gerät",
+          channel: channel.name || "Unbenannter Kanal",
+          name: datapoint.name || datapoint.type || "Datenpunkt",
+          type: datapoint.type || "",
+          value: datapoint.value || "",
+        });
+      }
+    }
+  }
+  return results.sort((left, right) => `${left.device} ${left.channel} ${left.type}`.localeCompare(`${right.device} ${right.channel} ${right.type}`, "de"));
+}
+
 function getHomematicClimateDatapointIds(settings) {
   const temperatureId = String(settings?.homematic_temperature_datapoint_id || settings?.homematic_climate_channel_id || "").trim();
   const humidityId = String(settings?.homematic_humidity_datapoint_id || "").trim();
@@ -6977,6 +7049,8 @@ app.__test = {
   buildHomematicXmlApiUrl,
   normalizeHomematicXmlApiToken,
   parseHomematicStateChange,
+  getHomematicDoorCommand,
+  parseWritableHomematicDatapoints,
   getHomematicCommandResponseError,
   findHomematicValue,
   parseHomematicTextValue,

@@ -223,6 +223,44 @@ function initCameraSettings() {
   });
 }
 
+function initHomematicDoorDiscovery() {
+  const root = document.querySelector("[data-homematic-door-setup]");
+  if (!root || root.dataset.bound === "1") return;
+  root.dataset.bound = "1";
+  const button = root.querySelector("[data-homematic-discover]");
+  const status = root.querySelector("[data-homematic-discovery-status]");
+  const list = root.querySelector("[data-homematic-datapoints]");
+  const input = root.querySelector("#homematic_door_command_datapoint_id");
+  if (!button || !status || !list || !input) return;
+
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    status.className = "alert alert-info py-2 mb-0 small";
+    status.textContent = "Schreibbare CCU-Datenpunkte werden geladen …";
+    try {
+      const response = await fetch(root.dataset.discoveryUrl, { headers: { Accept: "application/json" } });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) throw new Error(payload.error || "CCU-Datenpunkte konnten nicht geladen werden.");
+      list.replaceChildren(...payload.datapoints.map((datapoint) => {
+        const option = document.createElement("option");
+        option.value = datapoint.id;
+        option.label = `${datapoint.device} · ${datapoint.channel} · ${datapoint.type || datapoint.name} · aktuell ${datapoint.value}`;
+        return option;
+      }));
+      const likelyDoor = payload.datapoints.find((datapoint) => /hühner|huehner|stall.*tür|stall.*tuer/i.test(`${datapoint.device} ${datapoint.channel}`) && datapoint.type === "LEVEL");
+      if (!input.value && likelyDoor) input.value = likelyDoor.id;
+      status.className = "alert alert-success py-2 mb-0 small";
+      status.textContent = `${payload.datapoints.length} schreibbare Datenpunkte geladen.${likelyDoor ? ` Wahrscheinliche Hühnerklappe: ${likelyDoor.id}.` : " Datenpunkt anhand des Gerätenamens auswählen."}`;
+      input.focus();
+    } catch (error) {
+      status.className = "alert alert-danger py-2 mb-0 small";
+      status.textContent = error.message;
+    } finally {
+      button.disabled = false;
+    }
+  });
+}
+
 async function initClimateStatus() {
   const status = document.querySelector("[data-climate-status]");
   if (!status) return;
@@ -1391,6 +1429,7 @@ function initPage() {
   initAnimalWorkspace();
   initCameraDiagnostics();
   initCameraSettings();
+  initHomematicDoorDiscovery();
   initClimateStatus();
   loadPendingReminders();
   openHashTargetDetails();

@@ -183,6 +183,26 @@ test("Homematic-Türbefehle erkennen abgelehnte und unbekannte Datenpunkte", () 
   assert.equal(app.__test.getHomematicCommandResponseError('<result><changed id="12990" new_value="1.0" success="true" /></result>'), "");
 });
 
+test("Stalltür-Konfiguration erzeugt Befehle nur aus ISE-ID und Wert", () => {
+  const settings = {
+    homematic_ccu_url: "http://192.168.1.22/addons/xmlapi/",
+    homematic_door_command_datapoint_id: "12990",
+    homematic_door_open_value: "1.0",
+    homematic_door_close_value: "0.0",
+  };
+  assert.equal(app.__test.parseHomematicStateChange(app.__test.getHomematicDoorCommand(settings, true)).iseId, "12990");
+  assert.equal(app.__test.parseHomematicStateChange(app.__test.getHomematicDoorCommand(settings, true)).newValue, "1.0");
+  assert.equal(app.__test.parseHomematicStateChange(app.__test.getHomematicDoorCommand(settings, false)).newValue, "0.0");
+});
+
+test("CCU-Erkennung liefert ausschließlich schreibbare Datenpunkte", () => {
+  const xml = `<device name="Hühnerklappe"><channel name="Hühnerklappe:3">
+    <datapoint name="LEVEL" type="LEVEL" ise_id="12983" value="0.0" operations="5" />
+    <datapoint name="LEVEL" type="LEVEL" ise_id="12990" value="0.0" operations="7" />
+  </channel></device>`;
+  assert.deepEqual(app.__test.parseWritableHomematicDatapoints(xml).map((item) => item.id), ["12990"]);
+});
+
 async function ensureSetupComplete() {
   const setupPage = await agent.get("/setup");
   if (setupPage.status !== 200) {
@@ -1793,6 +1813,9 @@ test("Kamera-Einstellungen erklären RTSP und Wansview verständlich", async () 
   assert.match(response.text, /homematic_door_sensor_datapoint_id/);
   assert.match(response.text, /homematic_door_sensor_true_state/);
   assert.match(response.text, /homematic_door_level_datapoint_id/);
+  assert.match(response.text, /homematic_door_command_datapoint_id/);
+  assert.match(response.text, /Aus CCU laden/);
+  assert.doesNotMatch(response.text, /name="homematic_door_open_url"/);
   assert.match(response.text, /Alle Stall-Einstellungen speichern/);
   assert.doesNotMatch(response.text, /name="homematic_climate_url"/);
   assert.match(response.text, /name="homematic_xmlapi_token"/);

@@ -81,7 +81,7 @@
   <section class="card border-0 bg-body-tertiary admin-section-card" id="huehnerstall">
     <div class="card-body">
       <form method="post" action="/admin/settings" class="vstack gap-3 compact-workflow-form">
-        <input type="hidden" name="_fields" value="weather_location_name,weather_latitude,weather_longitude,coop_camera_streams,homematic_ccu_url,homematic_xmlapi_token,homematic_ccu_username,homematic_ccu_password,homematic_door_open_url,homematic_door_close_url,homematic_door_sensor_datapoint_id,homematic_door_sensor_true_state,homematic_door_level_datapoint_id,homematic_temperature_datapoint_id,homematic_humidity_datapoint_id" />
+        <input type="hidden" name="_fields" value="weather_location_name,weather_latitude,weather_longitude,coop_camera_streams,homematic_ccu_url,homematic_xmlapi_token,homematic_ccu_username,homematic_ccu_password,homematic_door_command_datapoint_id,homematic_door_open_value,homematic_door_close_value,homematic_door_sensor_datapoint_id,homematic_door_sensor_true_state,homematic_door_level_datapoint_id,homematic_temperature_datapoint_id,homematic_humidity_datapoint_id" />
         <div>
           <p class="eyebrow mb-1">Hühnerstall</p>
           <h2 class="h4 mb-1">Wetter, Kameras und Steuerung</h2>
@@ -170,7 +170,7 @@
                       <li>In der CCU die Zusatzsoftware <strong>XML-API</strong> öffnen und dort einen Zugriffstoken erzeugen.</li>
                       <li>Als Adresse nur die Basis bis <code>/addons/xmlapi/</code> eintragen.</li>
                       <li>Den erzeugten Token vollständig in das Tokenfeld eintragen.</li>
-                      <li>Türbefehle und Klima-Datenpunkte eintragen, speichern und die Verbindungsanzeige prüfen.</li>
+                      <li>Adresse und Token speichern, danach den Tür-Datenpunkt direkt aus der CCU laden.</li>
                     </ol>
                   </div>
                   <div class="row g-2">
@@ -197,16 +197,26 @@
                   </details>
                 </div>
               </section>
-              <div>
-                <label class="form-label" for="homematic_door_open_url">Befehl „Stalltür öffnen“</label>
-                <input class="form-control" id="homematic_door_open_url" type="url" name="homematic_door_open_url" value="<%= settings.homematic_door_open_url || '' %>" placeholder="http://192.168.1.22/addons/xmlapi/statechange.cgi?ise_id=12990&amp;new_value=1" />
-                <div class="form-text">Beispiel: <code>http://192.168.1.22/addons/xmlapi/statechange.cgi?ise_id=12990&amp;new_value=1.0</code>. Eine <code>sid</code> ist hier nicht nötig; HeartPet ergänzt den oben eingetragenen Token.</div>
-              </div>
-              <div>
-                <label class="form-label" for="homematic_door_close_url">Befehl „Stalltür schließen“</label>
-                <input class="form-control" id="homematic_door_close_url" type="url" name="homematic_door_close_url" value="<%= settings.homematic_door_close_url || '' %>" placeholder="http://192.168.1.22/addons/xmlapi/statechange.cgi?ise_id=12990&amp;new_value=0" />
-                <div class="form-text">Beispiel: <code>http://192.168.1.22/addons/xmlapi/statechange.cgi?ise_id=12990&amp;new_value=0.0</code>. Die <code>ise_id</code> ist bei Öffnen und Schließen identisch. Bei virtuellen HmIP-Kanälen kann LEVEL nach dem Schalten sofort zurückspringen; deshalb bestätigt HeartPet die Endlage über den separaten Türsensor.</div>
-              </div>
+              <section class="card border bg-body" data-homematic-door-setup data-discovery-url="/admin/coop/homematic-datapoints">
+                <div class="card-body vstack gap-3">
+                  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div><h3 class="h6 mb-1">Stalltür schalten</h3><p class="small text-body-secondary mb-0">Keine Befehls-URLs nötig.</p></div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-homematic-discover>Aus CCU laden</button>
+                  </div>
+                  <div class="alert alert-secondary py-2 mb-0 small d-none" data-homematic-discovery-status></div>
+                  <div>
+                    <label class="form-label" for="homematic_door_command_datapoint_id">Schreibbarer Tür-Datenpunkt</label>
+                    <input class="form-control" id="homematic_door_command_datapoint_id" list="homematic-door-datapoints" inputmode="numeric" pattern="[0-9]+" name="homematic_door_command_datapoint_id" value="<%= settings.homematic_door_command_datapoint_id || '' %>" placeholder="12990" />
+                    <datalist id="homematic-door-datapoints" data-homematic-datapoints></datalist>
+                    <div class="form-text">Bei deiner Hühnerklappe ist dies voraussichtlich <code>12990</code>. HeartPet akzeptiert aus der CCU-Auswahl nur Datenpunkte mit Schreibrecht.</div>
+                  </div>
+                  <div class="row g-2">
+                    <div class="col-6"><label class="form-label" for="homematic_door_open_value">Wert für Öffnen</label><input class="form-control" id="homematic_door_open_value" name="homematic_door_open_value" inputmode="decimal" value="<%= settings.homematic_door_open_value || '1.0' %>" /></div>
+                    <div class="col-6"><label class="form-label" for="homematic_door_close_value">Wert für Schließen</label><input class="form-control" id="homematic_door_close_value" name="homematic_door_close_value" inputmode="decimal" value="<%= settings.homematic_door_close_value || '0.0' %>" /></div>
+                  </div>
+                  <div class="form-text">Für deinen Aktor: Öffnen <code>1.0</code>, Schließen <code>0.0</code>. HeartPet baut daraus den XML-API-Aufruf selbst und ergänzt den Token sicher.</div>
+                </div>
+              </section>
               <div class="row g-2">
                 <div class="col-12">
                   <label class="form-label" for="homematic_door_level_datapoint_id">ISE-ID Öffnungsgrad (LEVEL)</label>
