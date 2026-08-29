@@ -5717,12 +5717,14 @@ function parseCoopCameraLines(value) {
       const name = hasName ? parts.shift() : `Kamera ${index + 1}`;
       const snapshotUrl = normalizeConfiguredUrl(parts[0] || source);
       const streamUrl = normalizeConfiguredUrl(parts[1] || snapshotUrl);
+      const group = String(parts[2] || "Kameras").trim() || "Kameras";
       return {
         source,
         name: name || `Kamera ${index + 1}`,
         url: streamUrl,
         snapshotUrl,
         streamUrl,
+        group,
         snapshotProtocol: isRtspUrl(snapshotUrl) ? "rtsp" : "http",
         protocol: isRtspUrl(streamUrl) ? "rtsp" : "http",
         valid: isCameraUrl(snapshotUrl) && isCameraUrl(streamUrl),
@@ -5733,11 +5735,12 @@ function parseCoopCameraLines(value) {
 function parseCoopCameras(value) {
   return parseCoopCameraLines(value)
     .filter((camera) => camera.valid)
-    .map(({ name, url, snapshotUrl, streamUrl, snapshotProtocol, protocol }) => ({
+    .map(({ name, url, snapshotUrl, streamUrl, group, snapshotProtocol, protocol }) => ({
       name,
       url,
       snapshotUrl,
       streamUrl,
+      group,
       snapshotProtocol,
       protocol,
     }));

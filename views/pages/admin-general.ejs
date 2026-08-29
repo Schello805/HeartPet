@@ -121,11 +121,20 @@
                   <div class="card-body vstack gap-3">
                     <div class="d-flex justify-content-between align-items-center gap-2">
                       <strong data-camera-heading>Kamera</strong>
-                      <button type="button" class="btn btn-sm btn-outline-danger" data-camera-remove>Entfernen</button>
+                      <div class="btn-group" role="group" aria-label="Kamera sortieren oder entfernen">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-camera-move-up title="Nach oben" aria-label="Kamera nach oben verschieben">↑</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-camera-move-down title="Nach unten" aria-label="Kamera nach unten verschieben">↓</button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" data-camera-remove>Entfernen</button>
+                      </div>
                     </div>
                     <div>
                       <label class="form-label">Name</label>
                       <input type="text" class="form-control" placeholder="Stall innen" data-camera-name />
+                    </div>
+                    <div>
+                      <label class="form-label">Gruppe / Abschnitt</label>
+                      <input type="text" class="form-control" placeholder="Hühnerstall" data-camera-group />
+                      <div class="form-text">Kameras mit derselben Gruppenbezeichnung erscheinen gemeinsam im Dashboard.</div>
                     </div>
                     <div>
                       <label class="form-label">Standbild-URL</label>

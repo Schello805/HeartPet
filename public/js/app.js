@@ -119,7 +119,8 @@ function initCameraSettings() {
           const name = card.querySelector("[data-camera-name]")?.value.trim() || "";
           const snapshotUrl = card.querySelector("[data-camera-snapshot-url]")?.value.trim() || "";
           const streamUrl = card.querySelector("[data-camera-stream-url]")?.value.trim() || snapshotUrl;
-          return name || snapshotUrl || streamUrl ? `${name}|${snapshotUrl}|${streamUrl}` : "";
+          const group = card.querySelector("[data-camera-group]")?.value.trim() || "Kameras";
+          return name || snapshotUrl || streamUrl ? `${name}|${snapshotUrl}|${streamUrl}|${group}` : "";
         })
         .filter(Boolean)
         .join("\n");
@@ -169,12 +170,13 @@ function initCameraSettings() {
       }
     };
 
-    const addCamera = ({ name = "", snapshotUrl = "", streamUrl = "" } = {}) => {
+    const addCamera = ({ name = "", snapshotUrl = "", streamUrl = "", group = "Kameras" } = {}) => {
       const fragment = template.content.cloneNode(true);
       const card = fragment.querySelector(".camera-settings-card");
       card.querySelector("[data-camera-name]").value = name;
       card.querySelector("[data-camera-snapshot-url]").value = snapshotUrl;
       card.querySelector("[data-camera-stream-url]").value = streamUrl;
+      card.querySelector("[data-camera-group]").value = group;
       card.querySelector("[data-camera-heading]").textContent = name || "Neue Kamera";
       let previewTimer;
       card.addEventListener("input", (event) => {
@@ -191,6 +193,16 @@ function initCameraSettings() {
         card.remove();
         serialize();
       });
+      card.querySelector("[data-camera-move-up]").addEventListener("click", () => {
+        const previous = card.previousElementSibling;
+        if (previous) list.insertBefore(card, previous);
+        serialize();
+      });
+      card.querySelector("[data-camera-move-down]").addEventListener("click", () => {
+        const next = card.nextElementSibling;
+        if (next) list.insertBefore(next, card);
+        serialize();
+      });
       list.appendChild(fragment);
       serialize();
       if (snapshotUrl) loadPreview(card);
@@ -199,7 +211,7 @@ function initCameraSettings() {
     String(config.value || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean).forEach((line) => {
       const parts = line.split("|").map((part) => part.trim());
       if (parts.length === 1) addCamera({ snapshotUrl: parts[0], streamUrl: parts[0] });
-      else addCamera({ name: parts[0], snapshotUrl: parts[1], streamUrl: parts[2] || parts[1] });
+      else addCamera({ name: parts[0], snapshotUrl: parts[1], streamUrl: parts[2] || parts[1], group: parts[3] || "Kameras" });
     });
     root.querySelector("[data-camera-add]")?.addEventListener("click", () => addCamera());
     serialize();

@@ -116,6 +116,25 @@ body.bootstrap-app {
   font-weight: 700;
 }
 
+.dashboard-camera-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.65rem;
+}
+
+.dashboard-camera-card [data-camera-image] {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+@media (min-width: 768px) {
+  .dashboard-camera-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 280px));
+    align-items: start;
+  }
+}
+
 .dashboard-visual-icon {
   display: inline-grid;
   width: 2.5rem;
