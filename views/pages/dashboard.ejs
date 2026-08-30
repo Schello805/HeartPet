@@ -234,6 +234,7 @@
 <% } %>
 
 <% if (hasDoorControl) { %>
+<% const visualDoorOpenPercent = coopState.doorIsOpen === true ? 100 : coopState.doorIsOpen === false ? 0 : coopState.doorOpenPercent; %>
 <section class="card border-0 dashboard-surface-card dashboard-door-section mb-2" id="coop-control">
   <div class="card-body p-2">
     <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
@@ -246,10 +247,9 @@
       <strong><%= weatherState.sunrise ? formatDateTime(weatherState.sunrise).slice(11) : '–' %></strong>
     </div>
     <div class="dashboard-door-hero">
-      <div class="dashboard-door-percentage"><%= coopState.doorOpenPercent !== null ? `${coopState.doorOpenPercent} % geöffnet` : coopState.doorLevelConfigured ? 'Öffnungsgrad nicht verfügbar' : 'Öffnungsgrad nicht eingerichtet' %></div>
-      <div class="dashboard-shutter-frame" style="--door-open: <%= coopState.doorOpenPercent !== null ? coopState.doorOpenPercent : coopState.doorIsOpen === true ? 100 : 0 %>%" aria-hidden="true">
-        <div class="dashboard-shutter-panel"></div>
-        <div class="dashboard-shutter-handle"></div>
+      <div class="dashboard-door-percentage"><%= coopState.doorIsOpen === true ? 'Vollständig geöffnet' : coopState.doorIsOpen === false ? 'Geschlossen' : coopState.doorOpenPercent !== null ? `${coopState.doorOpenPercent} % geöffnet` : coopState.doorLevelConfigured ? 'Öffnungsgrad nicht verfügbar' : 'Öffnungsgrad nicht eingerichtet' %></div>
+      <div class="dashboard-shutter-frame" style="--door-open: <%= visualDoorOpenPercent !== null ? visualDoorOpenPercent : 0 %>%" aria-hidden="true">
+        <div class="dashboard-shutter-panel"><div class="dashboard-shutter-handle"></div></div>
       </div>
       <strong class="dashboard-door-status"><%= coopState.doorIsOpen === true ? 'Offen' : coopState.doorIsOpen === false ? 'Geschlossen' : 'Status unbekannt' %></strong>
     </div>
