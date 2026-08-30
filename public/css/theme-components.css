@@ -507,10 +507,6 @@ body.bootstrap-app {
     padding: 0.66rem 0.7rem;
   }
 
-  .bootstrap-app.animals-page .animals-choice-list {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
   .bootstrap-app.animals-page .animal-list-item .card-body {
     padding: 0.55rem 0.6rem !important;
   }

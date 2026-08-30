@@ -1450,6 +1450,8 @@ async function navigateTo(url, options = {}) {
 
     currentShell.innerHTML = nextShell.innerHTML;
     document.title = doc.title || document.title;
+    document.body.className = doc.body.className;
+    document.body.dataset.bsTheme = doc.body.dataset.bsTheme || "light";
 
     if (push) {
       window.history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`);

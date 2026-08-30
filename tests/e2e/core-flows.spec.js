@@ -152,7 +152,19 @@ test("Dashboard zeigt mobil nur einen Einstieg für ein neues Tier", async ({ pa
   await expect(page.locator('a[data-drawer="animal-form"]:visible')).toHaveCount(1);
   await expect(page.locator("main").getByText("Was ist heute wichtig?", { exact: true })).toHaveCount(0);
 
-  await page.goto("/animals");
+  await page.locator(".app-mobile-bottom-nav").getByText("Tiere", { exact: true }).click();
+  await expect(page).toHaveURL(/\/animals$/);
+  await expect(page.locator("body")).toHaveClass(/animals-page/);
+  const mobileGrid = page.locator(".animals-choice-list");
+  const mobileGridStyle = await mobileGrid.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      columns: style.gridTemplateColumns.split(" ").length,
+      gap: Number.parseFloat(style.gap),
+    };
+  });
+  expect(mobileGridStyle.columns).toBe(2);
+  expect(mobileGridStyle.gap).toBeGreaterThan(0);
   await expect(page.locator('a[data-drawer="animal-form"]:visible')).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Aktualisieren" })).toHaveCount(0);
   await expect(page.locator(".animals-choice-list img")).toHaveCount(0);
