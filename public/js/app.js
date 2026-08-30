@@ -62,6 +62,7 @@ function initCameraDiagnostics() {
     const image = card.querySelector("[data-camera-image]");
     const errorBox = card.querySelector("[data-camera-error]");
     const toggle = card.querySelector("[data-camera-stream-toggle]");
+    const meta = card.querySelector("[data-camera-meta]");
     if (!image || !errorBox) return;
     const frameUrl = image.dataset.cameraFrameUrl;
     const streamUrl = card.dataset.cameraStreamUrl;
@@ -81,10 +82,12 @@ function initCameraDiagnostics() {
     image.addEventListener("load", () => {
       image.classList.remove("d-none");
       errorBox.classList.add("d-none");
+      if (meta) meta.textContent = streaming ? "Live-Stream aktiv" : `Standbild ${new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}`;
     });
     image.addEventListener("error", async () => {
       setStreaming(false);
       errorBox.classList.remove("d-none");
+      if (meta) meta.textContent = "Verbindung unterbrochen";
       errorBox.textContent = "Kameraverbindung wird geprüft …";
       if (diagnosing) return;
       diagnosing = true;
@@ -348,7 +351,10 @@ function initHomematicDoorDiscovery() {
       const payload = await response.json();
       if (!response.ok || !payload.ok) throw new Error(payload.error || "Türtest fehlgeschlagen.");
       testStatus.className = `alert ${payload.sensorConfigured && !payload.sensorConfirmed ? "alert-warning" : "alert-success"} py-2 mb-0 small`;
-      testStatus.textContent = `${payload.message} Diagnose-ID: ${payload.commandId || "–"}`;
+      const sensorDetail = payload.sensorConfigured
+        ? ` Sensorwert ${payload.sensorValue ?? "–"}, erwartet ${payload.expectedSensorValue ?? "–"}; ${payload.attempts || 0} Prüfungen.`
+        : "";
+      testStatus.textContent = `${payload.message}${sensorDetail} Diagnose-ID: ${payload.commandId || "–"}`;
     } catch (error) {
       testStatus.className = "alert alert-danger py-2 mb-0 small";
       testStatus.textContent = error.message;

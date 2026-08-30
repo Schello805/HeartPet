@@ -90,6 +90,42 @@ body.bootstrap-app {
   margin-bottom: 0.5rem;
 }
 
+.bootstrap-app .app-section-card {
+  border-radius: 1rem;
+  box-shadow: 0 0.35rem 1rem rgba(33, 76, 85, 0.06);
+}
+
+.bootstrap-app .app-metric-card,
+.bootstrap-app .app-media-card {
+  border-color: rgba(73, 119, 128, 0.2) !important;
+  border-radius: 0.85rem;
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.94), rgba(235, 247, 247, 0.78));
+}
+
+.bootstrap-app .app-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.bootstrap-app .app-status-pill::before {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+
+.bootstrap-app .app-status-pill.is-ok { color: #18715f; background: #e5f7f0; }
+.bootstrap-app .app-status-pill.is-warning { color: #8a6415; background: #fff6d8; }
+.bootstrap-app .app-status-pill.is-error { color: #a63d4d; background: #ffebee; }
+
 .bootstrap-app.dashboard-page .dashboard-inventory-section {
   order: 1;
 }

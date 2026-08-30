@@ -200,7 +200,7 @@
 </div>
 <% } %>
 
-<section class="card border-0 dashboard-surface-card dashboard-weather-card dashboard-weather-section mb-2">
+<section class="card border-0 dashboard-surface-card app-section-card dashboard-weather-card dashboard-weather-section mb-2">
   <div class="card-body p-2">
     <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
       <div>
@@ -213,21 +213,21 @@
       <div class="alert alert-warning py-2 mb-0 small"><%= weatherState.error %></div>
     <% } else if (weatherState.configured) { %>
       <div class="row g-2">
-        <div class="col-6 col-lg-3"><div class="card border h-100"><div class="card-body p-2 text-center"><span class="dashboard-metric-icon" aria-hidden="true">🌡</span><span class="small text-body-secondary d-block"><%= weatherState.label || 'Aktuell' %></span><strong class="dashboard-weather-value"><%= Number.isFinite(weatherState.temperature) ? `${weatherState.temperature.toLocaleString('de-DE', { maximumFractionDigits: 1 })} °C` : '–' %></strong></div></div></div>
-        <div class="col-6 col-lg-3"><div class="card border h-100"><div class="card-body p-2 text-center"><span class="dashboard-metric-icon" aria-hidden="true">💧</span><span class="small text-body-secondary d-block">Luftfeuchte außen</span><strong class="dashboard-weather-value"><%= Number.isFinite(weatherState.humidity) ? `${weatherState.humidity.toLocaleString('de-DE', { maximumFractionDigits: 0 })} %` : '–' %></strong></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card border h-100 app-metric-card"><div class="card-body p-2 text-center"><span class="dashboard-metric-icon" aria-hidden="true">🌡</span><span class="small text-body-secondary d-block"><%= weatherState.label || 'Aktuell' %></span><strong class="dashboard-weather-value"><%= Number.isFinite(weatherState.temperature) ? `${weatherState.temperature.toLocaleString('de-DE', { maximumFractionDigits: 1 })} °C` : '–' %></strong></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card border h-100 app-metric-card"><div class="card-body p-2 text-center"><span class="dashboard-metric-icon" aria-hidden="true">💧</span><span class="small text-body-secondary d-block">Luftfeuchte außen</span><strong class="dashboard-weather-value"><%= Number.isFinite(weatherState.humidity) ? `${weatherState.humidity.toLocaleString('de-DE', { maximumFractionDigits: 0 })} %` : '–' %></strong></div></div></div>
       </div>
     <% } %>
   </div>
 </section>
 
 <% if (hasCoopClimate) { %>
-<section class="card border-0 dashboard-surface-card dashboard-climate-section mb-2">
+<section class="card border-0 dashboard-surface-card app-section-card dashboard-climate-section mb-2">
   <div class="card-body p-2">
     <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Klima im Stall</h2><span class="dashboard-visual-icon" aria-hidden="true">🌡️</span></div>
     <div class="row g-2">
       <% if (coopState.climateError) { %><div class="col-12"><div class="alert alert-warning py-2 mb-0 small"><%= coopState.climateError %></div></div><% } %>
-      <% if (coopState.temperatureConfigured) { %><div class="col-6 col-lg-3"><div class="card border h-100"><div class="card-body p-2 text-center"><span class="dashboard-metric-icon" aria-hidden="true">🌡</span><span class="small text-body-secondary d-block">Temperatur</span><strong class="fs-4"><%= coopState.temperature !== null ? `${coopState.temperature.toLocaleString('de-DE', { maximumFractionDigits: 1 })} °C` : 'Nicht verfügbar' %></strong></div></div></div><% } %>
-      <% if (coopState.humidityConfigured) { %><div class="col-6 col-lg-3"><div class="card border h-100"><div class="card-body p-2 text-center"><span class="dashboard-metric-icon" aria-hidden="true">💧</span><span class="small text-body-secondary d-block">Luftfeuchte</span><strong class="fs-4"><%= coopState.humidity !== null ? `${coopState.humidity.toLocaleString('de-DE', { maximumFractionDigits: 1 })} %` : 'Nicht verfügbar' %></strong></div></div></div><% } %>
+      <% if (coopState.temperatureConfigured) { %><div class="col-6 col-lg-3"><div class="card border h-100 app-metric-card"><div class="card-body p-2 text-center"><span class="dashboard-metric-icon" aria-hidden="true">🌡</span><span class="small text-body-secondary d-block">Temperatur</span><strong class="fs-4"><%= coopState.temperature !== null ? `${coopState.temperature.toLocaleString('de-DE', { maximumFractionDigits: 1 })} °C` : 'Nicht verfügbar' %></strong></div></div></div><% } %>
+      <% if (coopState.humidityConfigured) { %><div class="col-6 col-lg-3"><div class="card border h-100 app-metric-card"><div class="card-body p-2 text-center"><span class="dashboard-metric-icon" aria-hidden="true">💧</span><span class="small text-body-secondary d-block">Luftfeuchte</span><strong class="fs-4"><%= coopState.humidity !== null ? `${coopState.humidity.toLocaleString('de-DE', { maximumFractionDigits: 1 })} %` : 'Nicht verfügbar' %></strong></div></div></div><% } %>
     </div>
   </div>
 </section>
@@ -235,11 +235,11 @@
 
 <% if (hasDoorControl) { %>
 <% const visualDoorOpenPercent = coopState.doorIsOpen === true ? 100 : coopState.doorIsOpen === false ? 0 : coopState.doorOpenPercent; %>
-<section class="card border-0 dashboard-surface-card dashboard-door-section mb-2" id="coop-control">
+<section class="card border-0 dashboard-surface-card app-section-card dashboard-door-section mb-2" id="coop-control">
   <div class="card-body p-2">
     <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
       <div><h2 class="h5 mb-1">Stalltür</h2><p class="small text-body-secondary mb-0">Tageszeiten, Position und Steuerung.</p></div>
-      <span class="badge text-bg-primary-subtle border">Automatik</span>
+      <span class="app-status-pill <%= coopState.doorSensorConfigured ? 'is-ok' : 'is-warning' %>"><%= coopState.doorSensorConfigured ? 'Sensor aktiv' : 'Ohne Endlagensensor' %></span>
     </div>
     <div class="dashboard-door-schedule dashboard-door-schedule--sunrise">
       <span class="dashboard-door-sun" aria-hidden="true">☀</span>
@@ -267,7 +267,7 @@
 <% } %>
 
 <% if (coopState.cameras.length) { %>
-<section class="card border-0 dashboard-surface-card dashboard-coop-section mb-2">
+<section class="card border-0 dashboard-surface-card app-section-card dashboard-coop-section mb-2">
   <div class="card-body p-2">
     <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Kameras</h2><span class="badge text-bg-secondary-subtle border"><%= coopState.cameras.length %></span></div>
     <div class="vstack gap-3">
@@ -276,11 +276,11 @@
           <h3 class="h6 text-body-secondary mb-2"><%= cameraGroup.name %></h3>
           <div class="dashboard-camera-grid">
           <% cameraGroup.cameras.forEach(({ camera, cameraIndex }) => { %>
-          <figure class="card border h-100 mb-0 overflow-hidden dashboard-camera-card" data-camera-card data-camera-status-url="/coop/cameras/<%= cameraIndex %>/status" data-camera-stream-url="/coop/cameras/<%= cameraIndex %>/stream">
+          <figure class="card border h-100 mb-0 overflow-hidden dashboard-camera-card app-media-card" data-camera-card data-camera-status-url="/coop/cameras/<%= cameraIndex %>/status" data-camera-stream-url="/coop/cameras/<%= cameraIndex %>/stream">
             <img src="/coop/cameras/<%= cameraIndex %>/frame" data-camera-frame-url="/coop/cameras/<%= cameraIndex %>/frame" class="card-img-top ratio ratio-16x9 object-fit-cover" alt="Kamerabild <%= camera.name %>" loading="lazy" data-camera-image />
             <div class="alert alert-warning rounded-0 mb-0 d-none small" data-camera-error></div>
             <figcaption class="card-body p-2 d-flex align-items-center justify-content-between gap-2">
-              <strong>📷 <%= camera.name %></strong>
+              <span class="min-w-0"><strong class="d-block text-truncate">📷 <%= camera.name %></strong><small class="text-body-secondary" data-camera-meta>Standbild wird aktualisiert</small></span>
               <button type="button" class="btn btn-sm btn-outline-primary" data-camera-stream-toggle>Stream starten</button>
             </figcaption>
           </figure>

@@ -25,6 +25,10 @@ if [ -f "$APP_DIR/data/sessions.sqlite" ]; then
   cp "$APP_DIR/data/sessions.sqlite" "$BACKUP_DIR/"
 fi
 
+if [ -f "$APP_DIR/data/.session-secret" ]; then
+  cp -p "$APP_DIR/data/.session-secret" "$BACKUP_DIR/"
+fi
+
 if [ -d "$APP_DIR/data/uploads" ]; then
   cp -R "$APP_DIR/data/uploads" "$BACKUP_DIR/"
 fi

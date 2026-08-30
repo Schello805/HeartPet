@@ -18,7 +18,6 @@
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.8.0",
-    "connect-sqlite3": "^0.9.16",
     "dayjs": "^1.11.20",
     "ejs": "^5.0.1",
     "express": "^5.2.1",
@@ -34,7 +33,7 @@
     "supertest": "^7.2.2"
   },
   "overrides": {
-    "brace-expansion": "^1.1.16",
+    "brace-expansion": "^1.1.18",
     "form-data": "^4.0.6"
   }
 }

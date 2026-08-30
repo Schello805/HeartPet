@@ -59,12 +59,29 @@ const weatherCache = new Map();
 const homematicSessionCache = new Map();
 const homematicLoginPromises = new Map();
 const cameraFrameCache = new Map();
+const cameraCacheDir = path.join(dataDir, "cache", "cameras");
 
 app.set("view engine", "ejs");
 app.set("views", path.join(projectRoot, "views"));
 
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+app.disable("x-powered-by");
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
+app.use(express.json({ limit: "1mb" }));
+app.use((req, res, next) => {
+  res.set({
+    "Content-Security-Policy": "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+    "Referrer-Policy": "same-origin",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+  });
+  if (!["GET", "HEAD", "OPTIONS"].includes(req.method) && req.headers.origin) {
+    let originHost = "";
+    try { originHost = new URL(req.headers.origin).host; } catch {}
+    if (!originHost || originHost !== req.get("host")) return res.status(403).send("Anfrage aus fremder Quelle abgelehnt.");
+  }
+  return next();
+});
 app.use((req, res, next) => {
   if (req.method === "GET" && req.accepts("html")) {
     res.set("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -860,7 +877,7 @@ app.get("/coop/cameras/:index/stream", async (req, res) => {
     res.set("Cache-Control", "no-store");
     return Readable.fromWeb(response.body).pipe(res);
   } catch (error) {
-    console.error(`[HeartPet] Kamera „${camera.name}“ nicht erreichbar:`, error.message);
+    console.error(`[HeartPet] Kamera „${camera.name}“ nicht erreichbar:`, redactSensitiveText(error.message));
     return res.sendStatus(502);
   }
 });
@@ -871,11 +888,13 @@ app.get("/coop/cameras/:index/frame", async (req, res) => {
   const camera = cameras[cameraIndex];
   if (!camera) return res.sendStatus(404);
 
-  const cached = cameraFrameCache.get(cameraIndex);
+  const cached = cameraFrameCache.get(cameraIndex) || readCameraFrameCache(cameraIndex, camera.snapshotUrl);
+  if (cached) cameraFrameCache.set(cameraIndex, cached);
   if (cached?.cameraUrl === camera.snapshotUrl && Date.now() - cached.createdAt < 1000) {
     res.set("Content-Type", cached.contentType || "image/jpeg");
     res.set("Cache-Control", "no-store");
     res.set("X-HeartPet-Camera-Cache", "fresh");
+    res.set("X-HeartPet-Camera-Captured-At", new Date(cached.createdAt).toISOString());
     return res.send(cached.buffer);
   }
 
@@ -886,26 +905,31 @@ app.get("/coop/cameras/:index/frame", async (req, res) => {
       protocol: camera.snapshotProtocol,
     };
     const buffer = await captureCameraFrame(snapshotCamera);
-    cameraFrameCache.set(cameraIndex, {
+    const cacheEntry = {
       cameraUrl: camera.snapshotUrl,
       createdAt: Date.now(),
       buffer,
       contentType: "image/jpeg",
       failedAttempts: 0,
-    });
+    };
+    cameraFrameCache.set(cameraIndex, cacheEntry);
+    writeCameraFrameCache(cameraIndex, cacheEntry);
     res.set("Content-Type", "image/jpeg");
     res.set("Cache-Control", "no-store");
     res.set("X-HeartPet-Camera-Cache", "refreshed");
+    res.set("X-HeartPet-Camera-Captured-At", new Date(cacheEntry.createdAt).toISOString());
     return res.send(buffer);
   } catch (error) {
-    const errorMessage = describeFetchError(error);
+    const errorMessage = redactSensitiveText(describeFetchError(error));
     const failedAttempts = cached?.cameraUrl === camera.snapshotUrl ? Number(cached.failedAttempts || 0) + 1 : 1;
     console.error(`[HeartPet] Einzelbild von Kamera „${camera.name}“ fehlgeschlagen (${failedAttempts}/2): ${errorMessage}`);
-    if (cached?.cameraUrl === camera.snapshotUrl && cached.buffer && failedAttempts < 2) {
+    if (cached?.cameraUrl === camera.snapshotUrl && cached.buffer && Date.now() - cached.createdAt < 24 * 60 * 60 * 1000) {
       cameraFrameCache.set(cameraIndex, { ...cached, failedAttempts });
       res.set("Content-Type", cached.contentType || "image/jpeg");
       res.set("Cache-Control", "no-store");
       res.set("X-HeartPet-Camera-Cache", "stale");
+      res.set("X-HeartPet-Camera-Captured-At", new Date(cached.createdAt).toISOString());
+      res.set("X-HeartPet-Camera-Warning", failedAttempts < 2 ? "retrying" : "offline");
       return res.send(cached.buffer);
     }
 
@@ -937,7 +961,7 @@ app.get("/coop/cameras/:index/status", async (req, res) => {
   }
 
   try {
-    const response = await fetchCameraStream(camera.url, 7000);
+    const response = await fetchCameraStream(camera.snapshotUrl, 7000);
     const contentType = response.headers.get("content-type") || "";
     await response.body?.cancel();
     if (!response.ok) {
@@ -946,9 +970,10 @@ app.get("/coop/cameras/:index/status", async (req, res) => {
     if (!/^image\/(?:jpeg|jpg|png|webp)|multipart\/x-mixed-replace/i.test(contentType)) {
       return res.status(502).json({ ok: false, error: `Kein Bildstream empfangen (${contentType || "Content-Type fehlt"}).` });
     }
-    return res.json({ ok: true, contentType });
+    const cachedFrame = cameraFrameCache.get(Number.parseInt(req.params.index, 10)) || readCameraFrameCache(Number.parseInt(req.params.index, 10), camera.snapshotUrl);
+    return res.json({ ok: true, contentType, lastFrameAt: cachedFrame?.createdAt ? new Date(cachedFrame.createdAt).toISOString() : null });
   } catch (error) {
-    return res.status(502).json({ ok: false, error: describeFetchError(error) });
+    return res.status(502).json({ ok: false, error: redactSensitiveText(describeFetchError(error)) });
   }
 });
 
@@ -995,7 +1020,7 @@ app.get("/admin/coop/homematic-datapoints", requireAdmin, async (req, res) => {
     return res.json({ ok: true, datapoints });
   } catch (error) {
     console.error(`[HeartPet][CCU][discovery] Fehlgeschlagen: ${error.message}`);
-    return res.status(502).json({ ok: false, error: describeFetchError(error) });
+    return res.status(502).json({ ok: false, error: redactSensitiveText(describeFetchError(error)) });
   }
 });
 
@@ -1014,6 +1039,9 @@ app.post("/admin/coop/door-test/:direction", requireAdmin, async (req, res) => {
       sensorConfigured: result.sensorConfigured,
       sensorConfirmed: result.sensorConfirmed,
       sensorValue: result.sensorValue,
+      expectedSensorValue: result.expectedSensorValue,
+      attempts: result.attempts,
+      operationStatus: result.operationStatus,
       message: result.sensorConfigured
         ? (result.sensorConfirmed ? "CCU-Befehl und Türsensor bestätigen die Endlage." : "CCU hat den Befehl angenommen, der Türsensor bestätigt die Endlage nicht.")
         : "CCU hat den Befehl angenommen. Kein Türsensor zur Endlagenprüfung konfiguriert.",
@@ -5876,7 +5904,7 @@ async function executeHomematicCommand(settings, configuredUrl, { expectedDoorOp
     if (responseError) throw new Error(responseError);
     const sensorResult = await waitForDoorSensor(settings, expectedDoorOpen, commandId);
     console.info(`[HeartPet][CCU][door-command][${commandId}] CCU-Befehl bestätigt.${sensorResult.sensorConfigured ? ` Türsensor: ${sensorResult.sensorConfirmed ? "Endlage bestätigt" : "Endlage nicht bestätigt"}.` : ""}`);
-    return { accepted: true, commandId, targetValue, ...sensorResult };
+    return { accepted: true, operationStatus: sensorResult.sensorConfigured ? (sensorResult.sensorConfirmed ? "confirmed" : "timeout") : "accepted", commandId, targetValue, ...sensorResult };
   }
   const apiUrl = getHomematicApiUrl(settings);
   const hasCredentials = Boolean(String(settings?.homematic_ccu_username || "").trim());
@@ -5891,7 +5919,7 @@ async function executeHomematicCommand(settings, configuredUrl, { expectedDoorOp
       throw new Error(`CCU-Schaltbefehl fehlgeschlagen: ${error.message}`);
     }
     const sensorResult = await waitForDoorSensor(settings, expectedDoorOpen, commandId);
-    return { accepted: true, commandId, targetValue: Number(stateChange.newValue), ...sensorResult };
+    return { accepted: true, operationStatus: sensorResult.sensorConfigured ? (sensorResult.sensorConfirmed ? "confirmed" : "timeout") : "accepted", commandId, targetValue: Number(stateChange.newValue), ...sensorResult };
   }
 
   const commandUrl = buildHomematicCommandUrl(configuredUrl, await resolveHomematicSid(settings));
@@ -5903,13 +5931,13 @@ async function executeHomematicCommand(settings, configuredUrl, { expectedDoorOp
   const responseError = getHomematicCommandResponseError(responseText);
   if (responseError) throw new Error(responseError);
   const sensorResult = await waitForDoorSensor(settings, expectedDoorOpen, commandId);
-  return { accepted: true, commandId, targetValue: stateChange ? Number(stateChange.newValue) : null, ...sensorResult };
+  return { accepted: true, operationStatus: sensorResult.sensorConfigured ? (sensorResult.sensorConfirmed ? "confirmed" : "timeout") : "accepted", commandId, targetValue: stateChange ? Number(stateChange.newValue) : null, ...sensorResult };
 }
 
 async function waitForDoorSensor(settings, expectedDoorOpen, commandId = "status") {
   const sensorId = String(settings?.homematic_door_sensor_datapoint_id || "").trim();
   if (!/^\d+$/.test(sensorId) || typeof expectedDoorOpen !== "boolean") {
-    return { changed: true, sensorConfigured: false, sensorConfirmed: false, sensorValue: null };
+    return { changed: true, sensorConfigured: false, sensorConfirmed: false, sensorValue: null, expectedSensorValue: null, previousSensorValue: null, attempts: 0 };
   }
 
   const trueMeansOpen = settings?.homematic_door_sensor_true_state !== "closed";
@@ -5928,11 +5956,14 @@ async function waitForDoorSensor(settings, expectedDoorOpen, commandId = "status
         sensorConfigured: true,
         sensorConfirmed: true,
         sensorValue,
+        expectedSensorValue: expectedValue,
+        previousSensorValue: previousValue,
+        attempts: attempt + 1,
       };
     }
   }
   const sensorValue = await readHomematicXmlApiDatapoint(settings, sensorId);
-  return { changed: false, sensorConfigured: true, sensorConfirmed: false, sensorValue };
+  return { changed: false, sensorConfigured: true, sensorConfirmed: false, sensorValue, expectedSensorValue: expectedValue, previousSensorValue: previousValue, attempts: 12 };
 }
 
 async function readHomematicXmlApiDatapoint(settings, datapointId) {
@@ -6062,6 +6093,44 @@ function parseCoopCameras(value) {
     }));
 }
 
+function getCameraCachePaths(cameraIndex) {
+  return {
+    image: path.join(cameraCacheDir, `${cameraIndex}.jpg`),
+    metadata: path.join(cameraCacheDir, `${cameraIndex}.json`),
+  };
+}
+
+function readCameraFrameCache(cameraIndex, cameraUrl) {
+  try {
+    const paths = getCameraCachePaths(cameraIndex);
+    const metadata = JSON.parse(fs.readFileSync(paths.metadata, "utf8"));
+    if (metadata.cameraUrlHash !== crypto.createHash("sha256").update(cameraUrl).digest("hex")) return null;
+    return {
+      cameraUrl,
+      createdAt: Number(metadata.createdAt),
+      contentType: "image/jpeg",
+      failedAttempts: 0,
+      buffer: fs.readFileSync(paths.image),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeCameraFrameCache(cameraIndex, entry) {
+  try {
+    fs.mkdirSync(cameraCacheDir, { recursive: true, mode: 0o700 });
+    const paths = getCameraCachePaths(cameraIndex);
+    fs.writeFileSync(paths.image, entry.buffer, { mode: 0o600 });
+    fs.writeFileSync(paths.metadata, JSON.stringify({
+      cameraUrlHash: crypto.createHash("sha256").update(entry.cameraUrl).digest("hex"),
+      createdAt: entry.createdAt,
+    }), { mode: 0o600 });
+  } catch (error) {
+    console.warn(`[HeartPet][Kamera] Cache konnte nicht gespeichert werden: ${redactSensitiveText(error.message)}`);
+  }
+}
+
 function streamRtspCamera(camera, req, res) {
   const ffmpeg = spawn("ffmpeg", [
     "-hide_banner", "-loglevel", "error", "-rtsp_transport", "tcp",
@@ -6173,6 +6242,13 @@ function createAuthenticatedFetchTarget(value) {
     url.password = "";
   }
   return { url: url.toString(), headers, username, password };
+}
+
+function redactSensitiveText(value) {
+  return String(value || "")
+    .replace(/(https?:\/\/)([^\s/@:]+):([^\s/@]+)@/gi, "$1***:***@")
+    .replace(/([?&](?:sid|token|password|passwort)=)[^&\s]+/gi, "$1***")
+    .replace(/("(?:password|token|sid)"\s*:\s*")[^"]+/gi, "$1***");
 }
 
 function parseDigestChallenge(value) {
@@ -6617,12 +6693,21 @@ function createAuditLog(req, action, details = {}, options = {}) {
     action,
     options.entityType || "",
     options.entityId != null ? String(options.entityId) : "",
-    JSON.stringify(details || {})
+    JSON.stringify(sanitizeDiagnosticDetails(details || {}))
   );
 }
 
 function isSensitiveAuditField(key) {
   return /password|token|secret|authorization|cookie|smtp|url/i.test(String(key || ""));
+}
+
+function sanitizeDiagnosticDetails(value, key = "") {
+  if (isSensitiveAuditField(key)) return "[geschützt]";
+  if (Array.isArray(value)) return value.map((item) => sanitizeDiagnosticDetails(item));
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([childKey, childValue]) => [childKey, sanitizeDiagnosticDetails(childValue, childKey)]));
+  }
+  return typeof value === "string" ? redactSensitiveText(value) : value;
 }
 
 function createNotificationLog({ userId = null, channel, type, recipient = "", subject = "", status, error = "", details = {} }) {
@@ -7273,6 +7358,7 @@ app.__test = {
   findHomematicXmlDatapoint,
   parseCoopCameras,
   buildCameraPlaceholderSvg,
+  redactSensitiveText,
   getWeatherCodeMeta,
 };
 

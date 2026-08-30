@@ -2612,3 +2612,22 @@ test("PDF-Export bleibt bei typischen Tierdaten auf einer A4-Seite", async () =>
 
   assert.equal(pageCount, 1);
 });
+
+test("Browser-Antworten enthalten Sicherheitsheader und verraten Express nicht", async () => {
+  const response = await request(app).get("/login");
+  assert.equal(response.status, 200);
+  assert.equal(response.headers["x-powered-by"], undefined);
+  assert.equal(response.headers["x-content-type-options"], "nosniff");
+  assert.equal(response.headers["x-frame-options"], "DENY");
+  assert.match(response.headers["content-security-policy"], /frame-ancestors 'none'/);
+});
+
+test("Technische Diagnosen maskieren Zugangsdaten und Tokens", () => {
+  const text = app.__test.redactSensitiveText("http://admin:geheim@192.168.1.80/x?sid=ABC123&token=XYZ");
+  assert.equal(text, "http://***:***@192.168.1.80/x?sid=***&token=***");
+});
+
+test("Schreibzugriffe aus einer fremden Browser-Origin werden abgelehnt", async () => {
+  const response = await request(app).post("/logout").set("Origin", "https://fremde-seite.example");
+  assert.equal(response.status, 403);
+});
