@@ -122,6 +122,7 @@ body.bootstrap-app {
 }
 
 .app-confirm-icon {
+  position: relative;
   display: grid;
   width: 3.25rem;
   height: 3.25rem;
@@ -131,6 +132,60 @@ body.bootstrap-app {
   color: #fff;
   font-size: 1.5rem;
   font-weight: 800;
+}
+
+#app-confirm-modal.is-processing .app-confirm-icon {
+  animation: confirmDoorMove 900ms ease-in-out infinite alternate;
+  box-shadow: 0 0 0 0 rgba(38, 180, 205, 0.42);
+}
+
+#app-confirm-modal.is-processing .app-confirm-icon::after {
+  position: absolute;
+  inset: -0.45rem;
+  border: 0.18rem solid transparent;
+  border-top-color: var(--bs-info);
+  border-right-color: color-mix(in srgb, var(--bs-primary) 65%, transparent);
+  border-radius: 1.35rem;
+  content: "";
+  animation: confirmDoorRing 1.1s linear infinite;
+}
+
+.app-confirm-progress-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-top: 0.8rem;
+}
+
+.app-confirm-progress-dots i {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--bs-primary), var(--bs-info));
+  animation: confirmDot 900ms ease-in-out infinite;
+}
+
+.app-confirm-progress-dots i:nth-child(2) { animation-delay: 150ms; }
+.app-confirm-progress-dots i:nth-child(3) { animation-delay: 300ms; }
+
+@keyframes confirmDoorMove {
+  from { transform: translateY(0) scale(1); }
+  to { transform: translateY(-0.35rem) scale(1.04); }
+}
+
+@keyframes confirmDoorRing {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes confirmDot {
+  0%, 100% { opacity: 0.3; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-0.3rem); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #app-confirm-modal.is-processing .app-confirm-icon,
+  #app-confirm-modal.is-processing .app-confirm-icon::after,
+  .app-confirm-progress-dots i { animation-duration: 2s; }
 }
 
 .dashboard-door-schedule {
