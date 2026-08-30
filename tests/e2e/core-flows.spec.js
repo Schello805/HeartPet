@@ -165,6 +165,19 @@ test("Dashboard zeigt mobil nur einen Einstieg für ein neues Tier", async ({ pa
   });
   expect(mobileGridStyle.columns).toBe(2);
   expect(mobileGridStyle.gap).toBeGreaterThan(0);
+  const longNameLayout = await mobileGrid.locator(".animal-list-item").first().evaluate((card) => {
+    const title = card.querySelector(".animal-choice-copy .fw-semibold");
+    title.textContent = "Prinzessin Pfirsichblüte von Bechhofen am langen Hühnerstall";
+    const cardRect = card.getBoundingClientRect();
+    const titleRect = title.getBoundingClientRect();
+    return {
+      cardRight: cardRect.right,
+      titleRight: titleRect.right,
+      pageOverflows: document.documentElement.scrollWidth > window.innerWidth,
+    };
+  });
+  expect(longNameLayout.titleRight).toBeLessThanOrEqual(longNameLayout.cardRight);
+  expect(longNameLayout.pageOverflows).toBe(false);
   await expect(page.locator('a[data-drawer="animal-form"]:visible')).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Aktualisieren" })).toHaveCount(0);
   await expect(page.locator(".animals-choice-list .animal-choice-thumb").first()).toBeVisible();
