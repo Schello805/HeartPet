@@ -264,7 +264,7 @@ async function ensureSetupComplete() {
   const setupResponse = await agent.post("/setup").type("form").send({
     admin_name: "Test Admin",
     admin_email: "admin@test.local",
-    admin_password: "passwort123",
+    admin_password: "passwort123!",
     organization_name: "Test Tierbestand",
     veterinarian_name: "Tierarzt Test",
     species_name: "Katze",
@@ -326,7 +326,7 @@ test("Ersteinrichtung funktioniert", async () => {
   const setupResponse = await agent.post("/setup").type("form").send({
     admin_name: "Test Admin",
     admin_email: "admin@test.local",
-    admin_password: "passwort123",
+    admin_password: "passwort123!",
     organization_name: "Test Tierbestand",
     veterinarian_name: "Tierarzt Test",
     species_name: "Katze",
@@ -443,7 +443,7 @@ test("Login führt mit return_to wieder direkt zur Tierakte zurück", async () =
 
   const login = await anonymousAgent.post("/login").type("form").send({
     email: "admin@test.local",
-    password: "passwort123",
+    password: "passwort123!",
     return_to: "/animals/1",
   });
 
@@ -574,40 +574,51 @@ test("Import normalisiert unbekannte Statuswerte und schließt Erinnerungen bei 
   assert.ok(["closed", "archived"].includes(importedReminder?.last_delivery_status));
 });
 
-test("Öffentliche Hilfeseite enthält indexierbare SEO-Metadaten", async () => {
+test("Auch die Hilfeseite bleibt vollständig von Suchmaschinen ausgeschlossen", async () => {
   const response = await agent.get("/hilfe");
   assert.equal(response.status, 200);
-  assert.match(response.text, /<meta name="robots" content="index,follow"\s*\/?>/i);
-  assert.match(response.text, /<link rel="canonical" href="https?:\/\/[^"]+\/hilfe"\s*\/?>/i);
-  assert.match(response.text, /<meta property="og:title" content="Hilfe \| /i);
+  assert.match(response.text, /<meta name="robots" content="noindex,nofollow,noarchive,nosnippet"\s*\/?>/i);
+  assert.doesNotMatch(response.text, /rel="canonical"|property="og:|name="twitter:/i);
+  assert.equal(response.headers["x-robots-tag"], "noindex, nofollow, noarchive, nosnippet");
 });
 
 test("Interne Dashboard-Seite bleibt für Suchmaschinen auf noindex", async () => {
   const response = await agent.get("/");
   assert.equal(response.status, 200);
-  assert.match(response.text, /<meta name="robots" content="noindex,nofollow"\s*\/?>/i);
+  assert.match(response.text, /<meta name="robots" content="noindex,nofollow,noarchive,nosnippet"\s*\/?>/i);
 });
 
-test("robots.txt und sitemap.xml listen nur die öffentlichen SEO-Ziele", async () => {
-  const robots = await agent.get("/robots.txt");
+test("robots.txt sperrt alles und eine Sitemap existiert nicht", async () => {
+  const robots = await request(app).get("/robots.txt");
   assert.equal(robots.status, 200);
-  assert.match(robots.text, /Allow: \/hilfe/);
-  assert.match(robots.text, /Disallow: \//);
-  assert.match(robots.text, /Sitemap: https?:\/\/.+\/sitemap\.xml/);
+  assert.equal(robots.text.trim(), "User-agent: *\nDisallow: /");
 
-  const sitemap = await agent.get("/sitemap.xml");
-  assert.equal(sitemap.status, 200);
-  assert.match(sitemap.text, /<loc>https?:\/\/.+\/hilfe<\/loc>/);
-  assert.match(sitemap.text, /<loc>https?:\/\/.+\/kontakt<\/loc>/);
-  assert.doesNotMatch(sitemap.text, /\/(?:impressum|datenschutz|cookies)<\/loc>/);
-  assert.doesNotMatch(sitemap.text, /\/animals<\/loc>/);
+  const sitemap = await request(app).get("/sitemap.xml");
+  assert.equal(sitemap.status, 404);
+});
+
+test("Hochgeladene Mediendateien sind ohne Anmeldung nicht erreichbar", async () => {
+  const response = await request(app).get("/media/vertrauliches-tierbild.jpg");
+  assert.equal(response.status, 302);
+  assert.match(response.headers.location, /^\/login/);
+});
+
+test("Login wird nach wiederholten Fehlversuchen vorübergehend gesperrt", async () => {
+  const limitedAgent = request.agent(app);
+  const email = `unbekannt-${Date.now()}@example.invalid`;
+  for (let index = 0; index < 6; index += 1) {
+    const response = await limitedAgent.post("/login").type("form").send({ email, password: "absichtlich-falsch" });
+    assert.equal(response.status, 302);
+  }
+  const loginPage = await limitedAgent.get("/login");
+  assert.match(loginPage.text, /Zu viele fehlgeschlagene Anmeldeversuche/);
 });
 
 test("favicon.ico leitet auf das aktuelle App-Logo weiter", async () => {
   const response = await agent.get("/favicon.ico");
   assert.equal(response.status, 302);
   assert.ok(response.headers.location);
-  assert.match(response.headers.location, /logo-heartpet\.png|\/media\//i);
+  assert.match(response.headers.location, /logo-heartpet\.png|\/app-logo/i);
 });
 
 test("Weitere Admin-Aliase sind erreichbar", async () => {
@@ -2054,7 +2065,10 @@ test("App-Logo kann hochgeladen und in der Oberflaeche verwendet werden", async 
 
   const adminGeneral = await agent.get("/admin/allgemein");
   assert.equal(adminGeneral.status, 200);
-  assert.match(adminGeneral.text, /\/media\/\d+-logo-heartpet\.png/);
+  assert.match(adminGeneral.text, /\/app-logo/);
+  const publicLogo = await request(app).get("/app-logo");
+  assert.equal(publicLogo.status, 200);
+  assert.match(publicLogo.headers["content-type"], /^image\//);
 });
 
 test("Erinnerungs-Mail verwendet Umlaute und Direktlink", async () => {

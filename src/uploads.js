@@ -15,11 +15,23 @@ function createUploadMiddleware(projectRoot) {
     },
   });
 
-  return multer({ storage: uploadStorage });
+  const allowedMimeTypes = new Set([
+    "image/jpeg", "image/png", "image/webp", "application/pdf", "text/plain", "text/csv",
+    "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ]);
+  return multer({
+    storage: uploadStorage,
+    limits: { fileSize: 20 * 1024 * 1024, files: 1, fields: 100 },
+    fileFilter: (req, file, cb) => cb(null, allowedMimeTypes.has(String(file.mimetype || "").toLowerCase())),
+  });
 }
 
 function createImportUploadMiddleware() {
-  return multer({ storage: multer.memoryStorage() });
+  return multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 50 * 1024 * 1024, files: 1, fields: 20 },
+    fileFilter: (req, file, cb) => cb(null, ["application/json", "text/json", "text/plain"].includes(String(file.mimetype || "").toLowerCase())),
+  });
 }
 
 module.exports = {

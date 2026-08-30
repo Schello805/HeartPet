@@ -60,6 +60,7 @@ const homematicSessionCache = new Map();
 const homematicLoginPromises = new Map();
 const cameraFrameCache = new Map();
 const cameraCacheDir = path.join(dataDir, "cache", "cameras");
+const loginAttempts = new Map();
 
 app.set("view engine", "ejs");
 app.set("views", path.join(projectRoot, "views"));
@@ -74,6 +75,7 @@ app.use((req, res, next) => {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    "X-Robots-Tag": "noindex, nofollow, noarchive, nosnippet",
   });
   if (!["GET", "HEAD", "OPTIONS"].includes(req.method) && req.headers.origin) {
     let originHost = "";
@@ -101,12 +103,25 @@ app.use(
     },
   }),
 );
-app.use("/media", express.static(path.join(projectRoot, "data", "uploads")));
-
 app.get("/favicon.ico", (req, res) => {
   const logoUrl = getAppLogoUrl(getSettingsObject(db)) || "/static/images/logo-heartpet.png";
   return res.redirect(302, logoUrl);
 });
+
+app.get("/app-logo", (req, res) => {
+  const storedName = String(getSettingsObject(db).app_logo_stored_name || "").trim();
+  const fallback = path.join(projectRoot, "public", "images", "logo-heartpet.png");
+  if (!storedName || path.basename(storedName) !== storedName) return res.sendFile(fallback);
+  return res.sendFile(path.join(projectRoot, "data", "uploads", storedName), (error) => {
+    if (error && !res.headersSent) res.sendFile(fallback);
+  });
+});
+
+app.get("/robots.txt", (req, res) => {
+  res.type("text/plain").send("User-agent: *\nDisallow: /\n");
+});
+
+app.get("/sitemap.xml", (req, res) => res.sendStatus(404));
 
 app.use(createSessionMiddleware(dataDir));
 
@@ -201,8 +216,8 @@ app.post("/setup", (req, res) => {
     return res.redirect("/setup");
   }
 
-  if (adminPassword.length < 8) {
-    setFlash(req, "error", "Das Admin-Passwort muss mindestens 8 Zeichen lang sein.");
+  if (adminPassword.length < 12) {
+    setFlash(req, "error", "Das Admin-Passwort muss mindestens 12 Zeichen lang sein.");
     return res.redirect("/setup");
   }
 
@@ -300,10 +315,25 @@ app.get("/login", (req, res) => {
 
 app.post("/login", (req, res) => {
   const returnTo = safeLocalReturnPath(req.body.return_to || req.query.return_to, "");
-  const { email, password } = req.body;
+  const email = String(req.body.email || "").trim().toLowerCase();
+  const password = String(req.body.password || "");
+  const attemptKey = `${req.ip}|${email}`;
+  if (loginAttempts.size > 1000) {
+    const cutoff = Date.now() - 60 * 60 * 1000;
+    for (const [key, value] of loginAttempts) {
+      if (Number(value.updatedAt || 0) < cutoff || loginAttempts.size > 1000) loginAttempts.delete(key);
+    }
+  }
+  const attempt = loginAttempts.get(attemptKey);
+  if (attempt?.blockedUntil > Date.now()) {
+    setFlash(req, "error", "Zu viele fehlgeschlagene Anmeldeversuche. Bitte warte 15 Minuten.");
+    return res.redirect("/login");
+  }
   const user = db.prepare("SELECT * FROM users WHERE email = ?").get(email);
 
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
+    const failures = Number(attempt?.failures || 0) + 1;
+    loginAttempts.set(attemptKey, { failures, blockedUntil: failures >= 5 ? Date.now() + 15 * 60 * 1000 : 0, updatedAt: Date.now() });
     setFlash(req, "error", "Login fehlgeschlagen. Bitte prüfe E-Mail und Passwort.");
     return res.redirect("/login");
   }
@@ -312,6 +342,8 @@ app.post("/login", (req, res) => {
     setFlash(req, "error", "Bitte zuerst über den Einladungslink ein Passwort festlegen.");
     return res.redirect("/login");
   }
+
+  loginAttempts.delete(attemptKey);
 
   req.session.user = {
     id: user.id,
@@ -418,6 +450,10 @@ app.post("/invite/accept", (req, res) => {
 
   if (String(req.body.new_password || "") !== String(req.body.new_password_confirm || "")) {
     setFlash(req, "error", "Die neuen Passwörter stimmen nicht überein.");
+    return res.redirect(`/invite/accept?token=${encodeURIComponent(token)}`);
+  }
+  if (String(req.body.new_password || "").length < 12) {
+    setFlash(req, "error", "Das Passwort muss mindestens 12 Zeichen lang sein.");
     return res.redirect(`/invite/accept?token=${encodeURIComponent(token)}`);
   }
 
@@ -623,6 +659,12 @@ app.get("/reminders/:id/email-snooze", (req, res) => {
 });
 
 app.use(requireAuth);
+app.use("/media", express.static(path.join(projectRoot, "data", "uploads"), {
+  fallthrough: false,
+  index: false,
+  dotfiles: "deny",
+  setHeaders(res) { res.setHeader("Cache-Control", "private, max-age=300"); },
+}));
 
 app.use((req, res, next) => {
   if (!["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) return next();
@@ -3811,6 +3853,10 @@ app.post("/admin/password", (req, res) => {
     setFlash(req, "error", "Die neuen Passwörter stimmen nicht überein.");
     return res.redirect("/admin/benutzer");
   }
+  if (String(req.body.new_password || "").length < 12) {
+    setFlash(req, "error", "Das neue Passwort muss mindestens 12 Zeichen lang sein.");
+    return res.redirect("/admin/benutzer");
+  }
 
   const currentUser = db.prepare("SELECT * FROM users WHERE id = ?").get(req.session.user.id);
   if (!currentUser || !bcrypt.compareSync(req.body.current_password, currentUser.password_hash)) {
@@ -4022,34 +4068,6 @@ app.get("/kontakt", (req, res) => {
   renderInfoPage(res, "Kontakt", getSettingsObject(db).contact_text);
 });
 
-app.get("/robots.txt", (req, res) => {
-  const appBaseUrl = resolveAppBaseUrl(getSettingsObject(db));
-  const lines = [
-    "User-agent: *",
-    "Disallow: /",
-    "Allow: /hilfe",
-    "Allow: /kontakt",
-    `Sitemap: ${appBaseUrl}/sitemap.xml`,
-  ];
-  res.type("text/plain").send(lines.join("\n"));
-});
-
-app.get("/sitemap.xml", (req, res) => {
-  const appBaseUrl = resolveAppBaseUrl(getSettingsObject(db));
-  const lastmod = dayjs().format("YYYY-MM-DD");
-  const urls = ["/hilfe", "/kontakt"];
-  const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.map((pathname) => `  <url>
-    <loc>${appBaseUrl}${pathname}</loc>
-    <lastmod>${lastmod}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>${pathname === "/hilfe" ? "0.8" : "0.3"}</priority>
-  </url>`).join("\n")}
-</urlset>`;
-  res.type("application/xml").send(xml);
-});
-
 app.get("/api/species/search", (req, res) => {
   const query = String(req.query.q || "").trim();
   if (query.length < 2) {
@@ -4128,6 +4146,21 @@ app.get("/api/reminders/pending", (req, res) => {
 
 app.use((req, res) => {
   renderNotFound(req, res, "Seite nicht gefunden.");
+});
+
+app.use((error, req, res, next) => {
+  if (res.headersSent) return next(error);
+  console.error(`[HeartPet][HTTP] ${req.method} ${req.path}: ${redactSensitiveText(error.message)}`);
+  if (error?.name === "MulterError" || /file type|unexpected field/i.test(String(error?.message || ""))) {
+    setFlash(req, "error", error.code === "LIMIT_FILE_SIZE"
+      ? "Die Datei ist zu groß. Erlaubt sind maximal 20 MB."
+      : "Datei konnte nicht hochgeladen werden. Bitte Dateityp und Größe prüfen.");
+    return res.redirect("/");
+  }
+  return res.status(500).render("pages/not-found", {
+    pageTitle: "Technischer Fehler",
+    message: "Die Anfrage konnte nicht verarbeitet werden.",
+  });
 });
 
 async function maybeSendDailyDigest() {
@@ -6519,7 +6552,7 @@ async function readHomematicValue(url, preferredKeys) {
 
 function getAppLogoUrl(settings) {
   const storedName = String(settings?.app_logo_stored_name || "").trim();
-  return storedName ? `/media/${storedName}` : "/static/images/logo-heartpet.png";
+  return storedName ? "/app-logo" : "/static/images/logo-heartpet.png";
 }
 
 function getAppLogoFilePath(settings) {
@@ -6741,30 +6774,9 @@ function getLastSuccessfulNotificationCheck(channel, types = ["test"]) {
 
 function buildSeoMeta(req, settings) {
   const appName = String(settings?.app_name || "HeartPet").trim();
-  const appBaseUrl = resolveAppBaseUrl(settings);
-  const logoUrl = getAppLogoUrl(settings);
-  const absoluteLogoUrl = /^https?:\/\//i.test(logoUrl) ? logoUrl : `${appBaseUrl}${logoUrl.startsWith("/") ? "" : "/"}${logoUrl}`;
-  const publicPages = {
-    "/hilfe": {
-      description: `${appName} Hilfe, Bedienhinweise und Antworten zu Tierakten, Erinnerungen, Dokumenten und Verwaltung.`,
-      robots: "index,follow",
-      type: "article",
-    },
-    "/kontakt": {
-      description: `Kontaktinformationen und Ansprechpartner für ${appName}.`,
-      robots: "index,follow",
-      type: "article",
-    },
-  };
-
-  const publicMeta = publicPages[req.path] || {};
   return {
-    description: publicMeta.description || `${appName} bündelt Tierakten, Dokumente, Erinnerungen und Verwaltungsaufgaben in einer Oberfläche.`,
-    robots: publicMeta.robots || "noindex,nofollow",
-    canonicalUrl: `${appBaseUrl}${req.path}`,
-    imageUrl: absoluteLogoUrl,
-    type: publicMeta.type || "website",
-    siteName: appName,
+    description: `${appName} ist eine private Tierverwaltung.`,
+    robots: "noindex,nofollow,noarchive,nosnippet",
   };
 }
 

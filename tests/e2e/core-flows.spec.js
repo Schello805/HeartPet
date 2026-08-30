@@ -7,7 +7,7 @@ const path = require("node:path");
 const adminCredentials = {
   name: "E2E Admin",
   email: "admin@heartpet-e2e.local",
-  password: "passwort123",
+  password: "passwort123!",
 };
 
 let server;
