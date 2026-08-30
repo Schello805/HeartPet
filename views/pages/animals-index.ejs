@@ -121,16 +121,23 @@
                   data-no-soft-nav="true"
                   data-panel-url="/animals/<%= animal.id %>/workspace-panel?<%= rowParams.toString() %>"
                 >
-                  <div class="card-body p-2">
-                    <div class="fw-semibold text-truncate"><span class="animal-species-icon" aria-hidden="true"><%= getAnimalSpeciesIcon(animal.species_name) %></span> <%= animal.name %></div>
-                    <div class="small text-body-secondary text-truncate"><%= animal.species_name || '-' %></div>
-                    <% if (animal.overdueReminderCount > 0) { %>
-                      <span class="badge text-bg-danger mt-1"><%= animal.overdueReminderCount %> überfällig</span>
-                    <% } else if (animal.openReminderCount > 0) { %>
-                      <span class="badge text-bg-warning mt-1"><%= animal.openReminderCount %> offen</span>
-                    <% } else if (sectionState.key === 'history' && animal.statusSummary) { %>
-                      <span class="badge text-bg-secondary-subtle border mt-1"><%= animal.statusSummary %></span>
+                  <div class="card-body p-2 d-flex align-items-center gap-2">
+                    <% if (animal.profile_image_stored_name) { %>
+                      <img class="animal-choice-thumb" src="/media/<%= animal.profile_image_stored_name %>" alt="Profilbild von <%= animal.name %>" loading="lazy" />
+                    <% } else { %>
+                      <span class="animal-choice-thumb animal-choice-thumb--fallback" aria-hidden="true"><%= getAnimalSpeciesIcon(animal.species_name) %></span>
                     <% } %>
+                    <div class="animal-choice-copy min-w-0">
+                      <div class="fw-semibold text-truncate"><span class="animal-species-icon" aria-hidden="true"><%= getAnimalSpeciesIcon(animal.species_name) %></span> <%= animal.name %></div>
+                      <div class="small text-body-secondary text-truncate"><%= animal.species_name || '-' %></div>
+                      <% if (animal.overdueReminderCount > 0) { %>
+                        <span class="badge text-bg-danger mt-1"><%= animal.overdueReminderCount %> überfällig</span>
+                      <% } else if (animal.openReminderCount > 0) { %>
+                        <span class="badge text-bg-warning mt-1"><%= animal.openReminderCount %> offen</span>
+                      <% } else if (sectionState.key === 'history' && animal.statusSummary) { %>
+                        <span class="badge text-bg-secondary-subtle border mt-1"><%= animal.statusSummary %></span>
+                      <% } %>
+                    </div>
                   </div>
                 </a>
               <% }) %>

@@ -167,7 +167,8 @@ test("Dashboard zeigt mobil nur einen Einstieg für ein neues Tier", async ({ pa
   expect(mobileGridStyle.gap).toBeGreaterThan(0);
   await expect(page.locator('a[data-drawer="animal-form"]:visible')).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Aktualisieren" })).toHaveCount(0);
-  await expect(page.locator(".animals-choice-list img")).toHaveCount(0);
+  await expect(page.locator(".animals-choice-list .animal-choice-thumb").first()).toBeVisible();
+  await expect(page.locator(".animals-choice-list .animal-choice-thumb--fallback").first()).toBeVisible();
 
   await page.locator(".app-mobile-bottom-nav").getByRole("button", { name: "Mehr" }).click();
   await expect(page.locator("#mobileNavOffcanvas")).toBeVisible();

@@ -1224,6 +1224,26 @@ small {
   font-size: 0.74rem;
 }
 
+.bootstrap-app.animals-page .animal-choice-thumb {
+  width: 3rem;
+  height: 3rem;
+  flex: 0 0 3rem;
+  border-radius: 0.7rem;
+  object-fit: cover;
+  border: 1px solid rgba(95, 130, 140, 0.2);
+  background: rgba(224, 245, 246, 0.75);
+}
+
+.bootstrap-app.animals-page .animal-choice-thumb--fallback {
+  display: grid;
+  place-items: center;
+  font-size: 1.35rem;
+}
+
+.bootstrap-app.animals-page .animal-choice-copy {
+  flex: 1 1 auto;
+}
+
 .bootstrap-app.animals-page .animals-filter-form .form-label {
   margin-bottom: 0.22rem;
   font-size: 0.68rem;

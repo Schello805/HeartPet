@@ -1391,7 +1391,10 @@ test("Alle Tierakten-Aktionen liefern keine 404", async () => {
 
 test("Tiere-Arbeitsansicht zeigt Liste und ausgewählte Akte", async () => {
   await ensureSetupComplete();
+  const previousProfileImage = db.prepare("SELECT profile_image_stored_name FROM animals WHERE id = 1").get()?.profile_image_stored_name || null;
+  db.prepare("UPDATE animals SET profile_image_stored_name = ? WHERE id = 1").run("tierliste-test.jpg");
   const response = await agent.get("/animals").query({ animal_id: "1" });
+  db.prepare("UPDATE animals SET profile_image_stored_name = ? WHERE id = 1").run(previousProfileImage);
   assert.equal(response.status, 200);
   assert.match(response.text, /Tiere filtern/);
   assert.match(response.text, /id="animalFilterCollapse"/);
@@ -1402,6 +1405,8 @@ test("Tiere-Arbeitsansicht zeigt Liste und ausgewählte Akte", async () => {
   assert.doesNotMatch(response.text, /Akte öffnen/);
   assert.doesNotMatch(response.text, /Tierliste anzeigen/);
   assert.match(response.text, /data-animal-workspace-link/);
+  assert.match(response.text, /class="animal-choice-thumb"/);
+  assert.match(response.text, /src="\/media\/tierliste-test\.jpg"/);
   assert.match(response.text, /data-animal-workspace-target/);
   assert.doesNotMatch(response.text, /Standardpasswort ist noch aktiv/);
   assert.doesNotMatch(response.text, /Administration/);
