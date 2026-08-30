@@ -2876,9 +2876,9 @@ app.post("/admin/settings", requireAdmin, upload.single("app_logo"), (req, res) 
   const invalidCamera = fields.includes("coop_camera_streams")
     ? parseCoopCameraLines(req.body.coop_camera_streams).find((camera) => !camera.valid)
     : null;
-  const invalidDoorDatapoint = fields.includes("homematic_door_command_datapoint_id")
-    && String(req.body.homematic_door_command_datapoint_id || "").trim()
-    && !/^\d+$/.test(String(req.body.homematic_door_command_datapoint_id).trim());
+  const invalidDoorDatapoint = ["homematic_door_open_datapoint_id", "homematic_door_close_datapoint_id", "homematic_door_command_datapoint_id"].find((key) =>
+    fields.includes(key) && String(req.body[key] || "").trim() && !/^\d+$/.test(String(req.body[key]).trim())
+  );
   const invalidDoorValue = ["homematic_door_open_value", "homematic_door_close_value"].find((key) =>
     fields.includes(key) && !/^-?\d+(?:[.,]\d+)?$/.test(String(req.body[key] || "").trim())
   );
@@ -5523,9 +5523,10 @@ function parseHomematicStateChange(value) {
 }
 
 function getHomematicDoorCommand(settings, open) {
-  const datapointId = String(settings?.homematic_door_command_datapoint_id || "").trim();
+  const directionalKey = open ? "homematic_door_open_datapoint_id" : "homematic_door_close_datapoint_id";
+  const datapointId = String(settings?.[directionalKey] || settings?.homematic_door_command_datapoint_id || "").trim();
   const configuredValue = String((open ? settings?.homematic_door_open_value : settings?.homematic_door_close_value) || "").trim();
-  const defaultValue = open ? "1.0" : "0.0";
+  const defaultValue = "1.0";
   const value = configuredValue || defaultValue;
   if (/^\d+$/.test(datapointId) && /^-?\d+(?:[.,]\d+)?$/.test(value)) {
     const config = getHomematicXmlApiConfig(settings);
