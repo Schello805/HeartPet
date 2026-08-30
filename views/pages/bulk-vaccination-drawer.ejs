@@ -6,7 +6,7 @@
       <p class="text-body-secondary small mb-0">Impfdaten einmal erfassen und anschließend allen ausgewählten Tieren zuordnen.</p>
     </div>
 
-    <form method="post" action="/animals/vaccinations/bulk" class="d-grid gap-3" data-drawer-form="true">
+    <form method="post" action="/animals/vaccinations/bulk" enctype="multipart/form-data" class="d-grid gap-3" data-drawer-form="true">
       <input type="hidden" name="return_to" value="<%= returnTo %>" />
 
       <section class="card border bg-body form-section-card">
@@ -33,6 +33,11 @@
             <div class="col-12">
               <label class="form-label" for="bulk-vaccination-notes">Notizen</label>
               <textarea class="form-control" id="bulk-vaccination-notes" name="notes" rows="2" placeholder="z. B. über das Trinkwasser verabreicht"></textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="bulk-vaccination-certificate">Impfnachweis (optional)</label>
+              <input class="form-control" id="bulk-vaccination-certificate" name="vaccination_certificate" type="file" accept=".pdf,image/*" />
+              <div class="form-text">Ein Nachweis wird bei allen ausgewählten Tieren an dieser Impfung hinterlegt.</div>
             </div>
           </div>
         </div>

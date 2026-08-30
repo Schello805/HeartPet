@@ -55,7 +55,7 @@
     <% } %>
 
     <% if (isEvent) { %>
-      <form method="post" action="/animals/<%= animal.id %>/events" class="vstack gap-4 event-form compact-workflow-form" data-drawer-form="animal-entry" data-event-form>
+      <form method="post" action="/animals/<%= animal.id %>/events" enctype="multipart/form-data" class="vstack gap-4 event-form compact-workflow-form" data-drawer-form="animal-entry" data-event-form>
         <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
         <section class="card border bg-body form-section-card">
           <div class="card-body">
@@ -125,6 +125,10 @@
               <div class="col-12">
                 <label class="form-label" for="event-notes">Bemerkung (optional)</label>
                 <textarea class="form-control" id="event-notes" name="notes" rows="3" placeholder="Optionaler Hinweis"></textarea>
+              </div>
+              <div class="col-12" data-vaccination-certificate-wrap hidden>
+                <label class="form-label" for="event-vaccination-certificate">Impfnachweis (optional)</label>
+                <input class="form-control" id="event-vaccination-certificate" name="vaccination_certificate" type="file" accept=".pdf,image/*" data-vaccination-certificate />
               </div>
             </div>
           </div>
@@ -265,7 +269,7 @@
     <% } %>
 
     <% if (isVaccination) { %>
-      <form method="post" action="/animals/<%= animal.id %>/vaccinations/<%= item.id %>/update" class="vstack gap-4 compact-workflow-form" data-drawer-form="animal-entry">
+      <form method="post" action="/animals/<%= animal.id %>/vaccinations/<%= item.id %>/update" enctype="multipart/form-data" class="vstack gap-4 compact-workflow-form" data-drawer-form="animal-entry">
         <input type="hidden" name="return_to" value="<%= defaultReturnTo %>" />
         <section class="card border bg-body">
           <div class="card-body">
@@ -286,10 +290,23 @@
                 <label class="form-label" for="vaccination-notes">Notizen</label>
                 <textarea class="form-control" id="vaccination-notes" name="notes" rows="4"><%= item?.notes || '' %></textarea>
               </div>
+              <div class="col-12">
+                <label class="form-label" for="vaccination-certificate">Impfnachweis (optional)</label>
+                <input class="form-control" id="vaccination-certificate" name="vaccination_certificate" type="file" accept=".pdf,image/*" />
+                <% if (item?.certificate_stored_name) { %>
+                  <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+                    <a href="/vaccinations/<%= item.id %>/certificate" class="btn btn-outline-secondary btn-sm"><%= item.certificate_original_name || 'Impfnachweis öffnen' %></a>
+                    <div class="form-check mb-0">
+                      <input class="form-check-input" id="vaccination-certificate-remove" name="remove_vaccination_certificate" type="checkbox" value="1" />
+                      <label class="form-check-label" for="vaccination-certificate-remove">Vorhandenen Nachweis entfernen</label>
+                    </div>
+                  </div>
+                <% } %>
+              </div>
             </div>
           </div>
         </section>
-        <p class="text-body-secondary small mb-0">Hinterlege hier bei Bedarf Chargenhinweise, Reaktionen auf die Impfung oder Verweise auf einen hochgeladenen Nachweis.</p>
+        <p class="text-body-secondary small mb-0">Hinterlege hier bei Bedarf Chargenhinweise, Reaktionen oder den originalen Impfnachweis.</p>
         <div class="d-flex flex-wrap gap-2 pt-2 border-top">
           <button type="submit" class="btn btn-success">Impfung speichern</button>
           <button type="button" class="btn btn-outline-secondary" data-drawer-close>Abbrechen</button>

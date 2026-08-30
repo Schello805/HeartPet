@@ -959,6 +959,8 @@ function initEventFormBehavior(scope = document) {
     const createReminder = form.querySelector("[data-create-reminder]");
     const reminderInlineWrap = form.querySelector("[data-reminder-inline-wrap]");
     const vetInlineWrap = form.querySelector("[data-vet-inline-wrap]");
+    const vaccinationCertificateWrap = form.querySelector("[data-vaccination-certificate-wrap]");
+    const vaccinationCertificate = form.querySelector("[data-vaccination-certificate]");
 
     function updateEventForm() {
       const kind = kindInputs.find((input) => input.checked)?.value || "medication";
@@ -967,6 +969,15 @@ function initEventFormBehavior(scope = document) {
       const canUseVeterinarian = ["medication", "vaccination", "appointment"].includes(kind);
       const showVeterinarian = canUseVeterinarian && Boolean(handledByVet?.checked);
       const canHaveReminder = ["medication", "vaccination", "appointment"].includes(kind);
+      const isVaccination = kind === "vaccination";
+
+      if (vaccinationCertificateWrap) {
+        vaccinationCertificateWrap.hidden = !isVaccination;
+      }
+      if (vaccinationCertificate) {
+        vaccinationCertificate.disabled = !isVaccination;
+        if (!isVaccination) vaccinationCertificate.value = "";
+      }
 
       if (dateWrap) {
         dateWrap.hidden = !needsDate;

@@ -791,6 +791,9 @@
                   <strong><%= item.name %></strong>
                   <p>Geimpft: <%= formatDate(item.vaccination_date) %> | Nächste Fälligkeit: <%= formatDate(item.next_due_date) %></p>
                   <% if (item.notes) { %><small><%= item.notes %></small><% } %>
+                  <% if (item.certificate_stored_name) { %>
+                    <a href="/vaccinations/<%= item.id %>/certificate" class="btn btn-outline-secondary btn-sm justify-self-start">📄 <%= item.certificate_original_name || 'Impfnachweis' %></a>
+                  <% } %>
                   <% if (vaccinationReminders.length > 0) { %>
                     <div class="inline-reminder-list">
                     <% vaccinationReminders.forEach((reminder) => { %>

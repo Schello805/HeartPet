@@ -1486,27 +1486,36 @@ test("Gruppenimpfung wird mehreren aktiven Tieren gleichzeitig zugeordnet", asyn
   assert.match(drawer.text, /data-bulk-group/);
   assert.match(drawer.text, /data-bulk-select-group/);
 
-  const response = await agent.post("/animals/vaccinations/bulk").type("form").send({
-    name: "Schluckimpfung",
-    vaccination_date: "2026-08-27",
-    next_due_date: "2027-08-27",
-    notes: "Über Trinkwasser",
-    animal_ids: [firstAnimalId, secondAnimalId],
-    return_to: "/animals",
-  });
+  const certificatePath = path.join(tempDataDir, "impfnachweis.pdf");
+  fs.writeFileSync(certificatePath, "%PDF-1.4 HeartPet Test");
+  const response = await agent.post("/animals/vaccinations/bulk")
+    .field("name", "Schluckimpfung")
+    .field("vaccination_date", "2026-08-27")
+    .field("next_due_date", "2027-08-27")
+    .field("notes", "Über Trinkwasser")
+    .field("animal_ids", String(firstAnimalId))
+    .field("animal_ids", String(secondAnimalId))
+    .field("return_to", "/animals")
+    .attach("vaccination_certificate", certificatePath, { contentType: "application/pdf" });
   assert.equal(response.status, 302);
   assert.equal(response.headers.location, "/animals");
   const vaccinations = db.prepare(`
-    SELECT animal_id, name, notes FROM animal_vaccinations
+    SELECT animal_id, name, notes, certificate_original_name, certificate_stored_name FROM animal_vaccinations
     WHERE animal_id IN (?, ?) ORDER BY animal_id
   `).all(firstAnimalId, secondAnimalId);
   assert.equal(vaccinations.length, 2);
   assert.ok(vaccinations.every((item) => item.name === "Schluckimpfung" && item.notes === "Über Trinkwasser"));
+  assert.ok(vaccinations.every((item) => item.certificate_original_name === "impfnachweis.pdf"));
+  assert.ok(vaccinations[0].certificate_stored_name);
+  assert.equal(vaccinations[0].certificate_stored_name, vaccinations[1].certificate_stored_name);
+  const certificateResponse = await agent.get(`/vaccinations/${db.prepare("SELECT id FROM animal_vaccinations WHERE animal_id = ? ORDER BY id DESC LIMIT 1").get(firstAnimalId).id}/certificate`);
+  assert.equal(certificateResponse.status, 200);
   const auditEntry = db.prepare("SELECT action FROM audit_logs WHERE action = 'vaccination.bulk_create' ORDER BY id DESC LIMIT 1").get();
   assert.equal(auditEntry?.action, "vaccination.bulk_create");
 
   db.prepare("DELETE FROM reminders WHERE animal_id IN (?, ?)").run(firstAnimalId, secondAnimalId);
   db.prepare("DELETE FROM animals WHERE id IN (?, ?)").run(firstAnimalId, secondAnimalId);
+  fs.rmSync(path.join(__dirname, "..", "data", "uploads", vaccinations[0].certificate_stored_name), { force: true });
 });
 
 test("Tiere-Arbeitsansicht öffnet ohne animal_id keine Akte automatisch", async () => {
