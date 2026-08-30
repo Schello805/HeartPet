@@ -357,6 +357,10 @@ body.bootstrap-app {
   padding-bottom: 6rem;
 }
 
+.bootstrap-app {
+  --mobile-nav-safe-bottom: max(env(safe-area-inset-bottom), 1.5rem);
+}
+
 .bootstrap-app .app-sidebar,
 .bootstrap-app .app-mobile-offcanvas,
 .bootstrap-app .drawer-panel {
@@ -400,8 +404,8 @@ body.bootstrap-app {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.2rem;
-  min-height: calc(64px + env(safe-area-inset-bottom));
-  padding: 0.35rem 0.55rem calc(0.35rem + env(safe-area-inset-bottom));
+  min-height: calc(64px + var(--mobile-nav-safe-bottom));
+  padding: 0.35rem 0.55rem calc(0.35rem + var(--mobile-nav-safe-bottom));
   border: 0;
   border-top: 1px solid rgba(142, 190, 199, 0.55);
   border-radius: 0;
@@ -498,11 +502,11 @@ body.bootstrap-app {
 
 @media (max-width: 991.98px) {
   .bootstrap-app .app-main-container {
-    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+    padding-bottom: calc(76px + var(--mobile-nav-safe-bottom));
   }
 
   .bootstrap-app .app-footer {
-    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+    padding-bottom: calc(76px + var(--mobile-nav-safe-bottom));
   }
 
   .bootstrap-app .main-content-inner > * {
@@ -1499,7 +1503,7 @@ body.bootstrap-app {
 
 @media (max-width: 991.98px) {
   .bootstrap-app .app-main-container {
-    padding: 0 1rem calc(7.5rem + env(safe-area-inset-bottom));
+    padding: 0 1rem calc(7.5rem + var(--mobile-nav-safe-bottom));
   }
 
   .bootstrap-app .page-header-body {

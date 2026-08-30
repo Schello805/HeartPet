@@ -390,11 +390,17 @@ test("Mobiler Seiteninhalt endet vollständig oberhalb der Navigation", async ({
   const spacing = await page.evaluate(() => {
     const container = document.querySelector(".app-main-container");
     const navigation = document.querySelector(".app-mobile-bottom-nav");
+    const labels = [...navigation.querySelectorAll(".app-mobile-nav-item span")];
+    const lowestLabelEdge = Math.max(...labels.map((label) => label.getBoundingClientRect().bottom));
     return {
       paddingBottom: Number.parseFloat(getComputedStyle(container).paddingBottom),
       navigationHeight: navigation.getBoundingClientRect().height,
+      labelBottomClearance: window.innerHeight - lowestLabelEdge,
+      viewportFit: document.querySelector('meta[name="viewport"]')?.content || "",
     };
   });
 
   expect(spacing.paddingBottom).toBeGreaterThan(spacing.navigationHeight);
+  expect(spacing.labelBottomClearance).toBeGreaterThanOrEqual(20);
+  expect(spacing.viewportFit).toContain("viewport-fit=cover");
 });
