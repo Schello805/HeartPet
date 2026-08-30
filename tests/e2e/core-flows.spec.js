@@ -45,6 +45,7 @@ test.beforeEach(async () => {
   process.env.HEARTPET_DATA_DIR = tempDataDir;
   process.env.HEARTPET_SESSION_SECRET = "playwright-secret";
   process.env.HEARTPET_SESSION_STORE = "memory";
+  process.env.HEARTPET_DISABLE_PWNED_PASSWORD_CHECK = "true";
 
   delete require.cache[require.resolve("../../src/app")];
   const app = require("../../src/app");

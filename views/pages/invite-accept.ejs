@@ -49,11 +49,12 @@
                   </div>
                   <div class="col-12">
                     <label class="form-label" for="invite-password">Neues Passwort</label>
-                    <input class="form-control" id="invite-password" type="password" name="new_password" required />
+                    <input class="form-control" id="invite-password" type="password" name="new_password" required minlength="8" />
+                    <div class="form-text">Mindestens 8 Zeichen. Kompromittierte Passwörter werden datenschutzfreundlich mit Have I Been Pwned geprüft.</div>
                   </div>
                   <div class="col-12">
                     <label class="form-label" for="invite-password-confirm">Neues Passwort wiederholen</label>
-                    <input class="form-control" id="invite-password-confirm" type="password" name="new_password_confirm" required />
+                    <input class="form-control" id="invite-password-confirm" type="password" name="new_password_confirm" required minlength="8" />
                   </div>
                 </div>
 

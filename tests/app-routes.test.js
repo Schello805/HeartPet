@@ -14,6 +14,7 @@ process.env.HEARTPET_DATA_DIR = tempDataDir;
 process.env.HEARTPET_SESSION_SECRET = "test-secret";
 process.env.HEARTPET_SESSION_STORE = "memory";
 process.env.HEARTPET_DISABLE_EXTERNAL_WEATHER = "true";
+process.env.HEARTPET_DISABLE_PWNED_PASSWORD_CHECK = "true";
 
 const { initDatabase, upsertSetting } = require("../src/db");
 const { createAnimalPdf } = require("../src/exporters");

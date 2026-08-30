@@ -46,6 +46,7 @@ const {
   verifyReminderActionToken,
 } = require("./reminders");
 const { buildAnimalExportPayload, createAnimalPdf } = require("./exporters");
+const { validateNewPassword } = require("./password-security");
 
 const app = express();
 const db = initDatabase();
@@ -198,7 +199,7 @@ app.get("/setup", (req, res) => {
   });
 });
 
-app.post("/setup", (req, res) => {
+app.post("/setup", async (req, res) => {
   if (isSetupComplete()) {
     return res.redirect(req.session.user ? "/" : "/login");
   }
@@ -216,8 +217,9 @@ app.post("/setup", (req, res) => {
     return res.redirect("/setup");
   }
 
-  if (adminPassword.length < 12) {
-    setFlash(req, "error", "Das Admin-Passwort muss mindestens 12 Zeichen lang sein.");
+  const passwordError = await validateNewPassword(adminPassword);
+  if (passwordError) {
+    setFlash(req, "error", passwordError);
     return res.redirect("/setup");
   }
 
@@ -441,7 +443,7 @@ app.get("/invite/accept", (req, res) => {
   });
 });
 
-app.post("/invite/accept", (req, res) => {
+app.post("/invite/accept", async (req, res) => {
   const token = String(req.body.token || "").trim();
   if (!token) {
     setFlash(req, "error", "Ungültiger Einladungslink.");
@@ -452,8 +454,9 @@ app.post("/invite/accept", (req, res) => {
     setFlash(req, "error", "Die neuen Passwörter stimmen nicht überein.");
     return res.redirect(`/invite/accept?token=${encodeURIComponent(token)}`);
   }
-  if (String(req.body.new_password || "").length < 12) {
-    setFlash(req, "error", "Das Passwort muss mindestens 12 Zeichen lang sein.");
+  const passwordError = await validateNewPassword(req.body.new_password);
+  if (passwordError) {
+    setFlash(req, "error", passwordError);
     return res.redirect(`/invite/accept?token=${encodeURIComponent(token)}`);
   }
 
@@ -3844,7 +3847,7 @@ app.post("/admin/profile", requireAdmin, async (req, res) => {
   res.redirect("/admin/benutzer");
 });
 
-app.post("/admin/password", (req, res) => {
+app.post("/admin/password", async (req, res) => {
   if (!req.session.user) {
     return res.redirect("/login");
   }
@@ -3853,8 +3856,9 @@ app.post("/admin/password", (req, res) => {
     setFlash(req, "error", "Die neuen Passwörter stimmen nicht überein.");
     return res.redirect("/admin/benutzer");
   }
-  if (String(req.body.new_password || "").length < 12) {
-    setFlash(req, "error", "Das neue Passwort muss mindestens 12 Zeichen lang sein.");
+  const passwordError = await validateNewPassword(req.body.new_password);
+  if (passwordError) {
+    setFlash(req, "error", passwordError);
     return res.redirect("/admin/benutzer");
   }
 
