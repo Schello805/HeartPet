@@ -692,19 +692,41 @@ function initBulkSelection(scope = document) {
   scope.querySelectorAll("[data-bulk-selection]").forEach((container) => {
     const selectAll = container.querySelector("[data-bulk-select-all]");
     const animalInputs = [...container.querySelectorAll("[data-bulk-animal]")];
+    const groups = [...container.querySelectorAll("[data-bulk-group]")];
     if (!selectAll || selectAll.dataset.bound === "1") return;
 
     selectAll.dataset.bound = "1";
+    const updateGroups = () => {
+      groups.forEach((group) => {
+        const groupSelect = group.querySelector("[data-bulk-select-group]");
+        const groupInputs = [...group.querySelectorAll("[data-bulk-animal]")];
+        if (!groupSelect) return;
+        const selectedCount = groupInputs.filter((input) => input.checked).length;
+        groupSelect.checked = groupInputs.length > 0 && selectedCount === groupInputs.length;
+        groupSelect.indeterminate = selectedCount > 0 && selectedCount < groupInputs.length;
+      });
+    };
     const updateSelectAll = () => {
       const selectedCount = animalInputs.filter((input) => input.checked).length;
       selectAll.checked = animalInputs.length > 0 && selectedCount === animalInputs.length;
       selectAll.indeterminate = selectedCount > 0 && selectedCount < animalInputs.length;
+      updateGroups();
     };
     selectAll.addEventListener("change", () => {
       animalInputs.forEach((input) => {
         input.checked = selectAll.checked;
       });
       updateSelectAll();
+    });
+    groups.forEach((group) => {
+      const groupSelect = group.querySelector("[data-bulk-select-group]");
+      const groupInputs = [...group.querySelectorAll("[data-bulk-animal]")];
+      groupSelect?.addEventListener("change", () => {
+        groupInputs.forEach((input) => {
+          input.checked = groupSelect.checked;
+        });
+        updateSelectAll();
+      });
     });
     animalInputs.forEach((input) => input.addEventListener("change", updateSelectAll));
     updateSelectAll();

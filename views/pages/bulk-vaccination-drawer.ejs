@@ -52,20 +52,46 @@
           </div>
 
           <% if (animals.length > 0) { %>
-            <div class="row g-2">
-              <% animals.forEach((animal) => { %>
-                <div class="col-12 col-sm-6">
-                  <label class="card border h-100 bulk-animal-option">
-                    <span class="card-body p-2 d-flex align-items-center gap-2">
-                      <input class="form-check-input mt-0" type="checkbox" name="animal_ids" value="<%= animal.id %>" data-bulk-animal />
-                      <span class="min-w-0">
-                        <strong class="d-block text-truncate"><span aria-hidden="true"><%= getAnimalSpeciesIcon(animal.species_name) %></span> <%= animal.name %></strong>
-                        <small class="text-body-secondary"><%= animal.species_name || 'Tier' %></small>
-                      </span>
-                    </span>
-                  </label>
-                </div>
-              <% }) %>
+            <% const animalGroups = []; %>
+            <% animals.forEach((animal) => { %>
+              <% const speciesName = animal.species_name || 'Ohne Tierart'; %>
+              <% let group = animalGroups.find((item) => item.name === speciesName); %>
+              <% if (!group) { group = { name: speciesName, animals: [] }; animalGroups.push(group); } %>
+              <% group.animals.push(animal); %>
+            <% }); %>
+            <div class="bulk-species-groups">
+              <% animalGroups.forEach((group, groupIndex) => { %>
+                <section class="bulk-species-group" data-bulk-group data-species-name="<%= group.name %>">
+                  <div class="bulk-species-heading">
+                    <div class="d-flex align-items-center gap-2 min-w-0">
+                      <span class="bulk-species-icon" aria-hidden="true"><%= getAnimalSpeciesIcon(group.name) %></span>
+                      <div class="min-w-0">
+                        <h4 class="h6 mb-0 text-truncate"><%= group.name %></h4>
+                        <small class="text-body-secondary"><%= group.animals.length %> <%= group.animals.length === 1 ? 'Tier' : 'Tiere' %></small>
+                      </div>
+                    </div>
+                    <div class="form-check mb-0">
+                      <input class="form-check-input" id="bulk-select-species-<%= groupIndex %>" type="checkbox" data-bulk-select-group />
+                      <label class="form-check-label" for="bulk-select-species-<%= groupIndex %>">Alle <%= group.name %></label>
+                    </div>
+                  </div>
+                  <div class="row g-2">
+                    <% group.animals.forEach((animal) => { %>
+                      <div class="col-12 col-sm-6">
+                        <label class="card border h-100 bulk-animal-option">
+                          <span class="card-body p-2 d-flex align-items-center gap-2">
+                            <input class="form-check-input mt-0" type="checkbox" name="animal_ids" value="<%= animal.id %>" data-bulk-animal />
+                            <span class="min-w-0">
+                              <strong class="d-block text-truncate"><span aria-hidden="true"><%= getAnimalSpeciesIcon(animal.species_name) %></span> <%= animal.name %></strong>
+                              <small class="text-body-secondary"><%= animal.species_name || 'Tier' %></small>
+                            </span>
+                          </span>
+                        </label>
+                      </div>
+                    <% }) %>
+                  </div>
+                </section>
+              <% }); %>
             </div>
           <% } else { %>
             <p class="text-body-secondary mb-0">Keine passenden aktiven Tiere vorhanden.</p>

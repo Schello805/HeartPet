@@ -1483,6 +1483,8 @@ test("Gruppenimpfung wird mehreren aktiven Tieren gleichzeitig zugeordnet", asyn
   assert.match(drawer.text, /Gruppenimpfung/);
   assert.match(drawer.text, /Impfgruppe A/);
   assert.match(drawer.text, /Impfgruppe B/);
+  assert.match(drawer.text, /data-bulk-group/);
+  assert.match(drawer.text, /data-bulk-select-group/);
 
   const response = await agent.post("/animals/vaccinations/bulk").type("form").send({
     name: "Schluckimpfung",

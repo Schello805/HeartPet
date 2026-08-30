@@ -1635,6 +1635,41 @@ small {
   background: rgba(255, 255, 255, 0.58);
 }
 
+.bootstrap-app .bulk-species-groups {
+  display: grid;
+  gap: 1rem;
+}
+
+.bootstrap-app .bulk-species-group {
+  display: grid;
+  gap: 0.6rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(87, 126, 136, 0.18);
+}
+
+.bootstrap-app .bulk-species-group:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.bootstrap-app .bulk-species-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.bootstrap-app .bulk-species-icon {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 2.25rem;
+  border-radius: 0.65rem;
+  background: rgba(207, 241, 244, 0.75);
+  font-size: 1.2rem;
+}
+
 .bootstrap-app .compact-form-footer {
   margin-top: 0.12rem;
 }
