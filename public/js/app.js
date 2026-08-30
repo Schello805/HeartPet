@@ -227,19 +227,23 @@ function initHomematicDoorDiscovery() {
   const root = document.querySelector("[data-homematic-door-setup]");
   if (!root || root.dataset.bound === "1") return;
   root.dataset.bound = "1";
-  const button = root.querySelector("[data-homematic-discover]");
+  const form = root.closest("form");
+  const buttons = Array.from(form?.querySelectorAll("[data-homematic-discover]") || []);
   const status = root.querySelector("[data-homematic-discovery-status]");
-  const input = root.querySelector("#homematic_door_command_datapoint_id");
   const selectedLabel = root.querySelector("[data-homematic-selected-label]");
-  const picker = root.closest("form")?.querySelector("[data-homematic-picker]");
+  const picker = form?.querySelector("[data-homematic-picker]");
   const stalePicker = Array.from(document.body.children).find((element) => element.matches?.("[data-homematic-picker]"));
   if (stalePicker && stalePicker !== picker) stalePicker.remove();
   if (picker && picker.parentElement !== document.body) document.body.append(picker);
   const search = picker?.querySelector("[data-homematic-search]");
   const results = picker?.querySelector("[data-homematic-results]");
   const resultCount = picker?.querySelector("[data-homematic-result-count]");
-  if (!button || !status || !input || !picker || !search || !results || !resultCount) return;
+  const pickerTitle = picker?.querySelector("[data-homematic-picker-title]");
+  const pickerDescription = picker?.querySelector("[data-homematic-picker-description]");
+  if (!buttons.length || !status || !picker || !search || !results || !resultCount) return;
   let datapoints = [];
+  let activeButton = buttons[0];
+  let activeInput = form.querySelector(`#${activeButton.dataset.homematicTarget}`);
 
   const describeDatapoint = (datapoint) => `${datapoint.device} · ${datapoint.channel} · ${datapoint.type || datapoint.name}`;
   const normalizeSearchText = (value) => String(value || "")
@@ -252,13 +256,19 @@ function initHomematicDoorDiscovery() {
     .replace(/[\u0300-\u036f]/g, "");
   const renderResults = () => {
     const query = normalizeSearchText(search.value.trim());
-    const filtered = datapoints.filter((datapoint) => !query || normalizeSearchText(`${datapoint.id} ${datapoint.device} ${datapoint.channel} ${datapoint.name} ${datapoint.type}`).includes(query));
+    const allowedTypes = String(activeButton.dataset.homematicTypes || "").split(",").filter(Boolean);
+    const needsWriteAccess = activeButton.dataset.homematicWritable === "true";
+    const filtered = datapoints.filter((datapoint) =>
+      (!needsWriteAccess || datapoint.writable)
+      && (!allowedTypes.length || allowedTypes.includes(datapoint.type))
+      && (!query || normalizeSearchText(`${datapoint.id} ${datapoint.device} ${datapoint.channel} ${datapoint.name} ${datapoint.type}`).includes(query))
+    );
     const visible = filtered.slice(0, 60);
     resultCount.textContent = `${filtered.length} Treffer${filtered.length > visible.length ? ` · die ersten ${visible.length} werden angezeigt` : ""}`;
     results.replaceChildren(...visible.map((datapoint) => {
       const item = document.createElement("button");
       item.type = "button";
-      item.className = `list-group-item list-group-item-action p-3 ${input.value === datapoint.id ? "active" : ""}`;
+      item.className = `list-group-item list-group-item-action p-3 ${activeInput?.value === datapoint.id ? "active" : ""}`;
       const heading = document.createElement("span");
       heading.className = "d-flex justify-content-between align-items-start gap-2";
       const name = document.createElement("strong");
@@ -272,8 +282,8 @@ function initHomematicDoorDiscovery() {
       details.textContent = `${datapoint.channel} · ${datapoint.type || datapoint.name} · aktuell ${datapoint.value}`;
       item.append(heading, details);
       item.addEventListener("click", () => {
-        input.value = datapoint.id;
-        if (selectedLabel) {
+        activeInput.value = datapoint.id;
+        if (selectedLabel && activeInput.id === "homematic_door_command_datapoint_id") {
           selectedLabel.textContent = describeDatapoint(datapoint);
           selectedLabel.classList.remove("d-none");
         }
@@ -286,14 +296,20 @@ function initHomematicDoorDiscovery() {
     if (!visible.length) {
       const empty = document.createElement("div");
       empty.className = "text-center text-body-secondary py-4";
-      empty.textContent = "Keine passenden schreibbaren Datenpunkte gefunden.";
+      empty.textContent = "Keine passenden Datenpunkte gefunden.";
       results.replaceChildren(empty);
     }
   };
   search.addEventListener("input", renderResults);
 
-  button.addEventListener("click", async () => {
+  const openPicker = async (button) => {
+    activeButton = button;
+    activeInput = form.querySelector(`#${button.dataset.homematicTarget}`);
+    if (!activeInput) return;
+    if (pickerTitle) pickerTitle.textContent = `${activeInput.closest("div")?.querySelector("label")?.textContent || "Datenpunkt"} auswählen`;
+    if (pickerDescription) pickerDescription.textContent = button.dataset.homematicWritable === "true" ? "Nur schreibbare CCU-Datenpunkte werden angezeigt." : "Passende Sensor-Datenpunkte werden angezeigt.";
     if (datapoints.length) {
+      search.value = "";
       renderResults();
       window.bootstrap.Modal.getOrCreateInstance(picker).show();
       window.setTimeout(() => search.focus(), 250);
@@ -307,10 +323,9 @@ function initHomematicDoorDiscovery() {
       const payload = await response.json();
       if (!response.ok || !payload.ok) throw new Error(payload.error || "CCU-Datenpunkte konnten nicht geladen werden.");
       datapoints = payload.datapoints;
-      const likelyDoor = payload.datapoints.find((datapoint) => /hühner|huehner|stall.*tür|stall.*tuer/i.test(`${datapoint.device} ${datapoint.channel}`) && datapoint.type === "LEVEL");
       status.className = "alert alert-success py-2 mb-0 small";
-      status.textContent = `${payload.datapoints.length} schreibbare Datenpunkte geladen.`;
-      search.value = likelyDoor ? "Hühnerklappe" : "";
+      status.textContent = `${payload.datapoints.length} CCU-Datenpunkte geladen.`;
+      search.value = "Hühnerklappe";
       renderResults();
       window.bootstrap.Modal.getOrCreateInstance(picker).show();
       window.setTimeout(() => search.focus(), 250);
@@ -320,7 +335,27 @@ function initHomematicDoorDiscovery() {
     } finally {
       button.disabled = false;
     }
-  });
+  };
+  buttons.forEach((button) => button.addEventListener("click", () => openPicker(button)));
+
+  const testStatus = form.querySelector("[data-door-test-status]");
+  form.querySelectorAll("[data-door-test]").forEach((button) => button.addEventListener("click", async () => {
+    button.disabled = true;
+    testStatus.className = "alert alert-info py-2 mb-0 small";
+    testStatus.textContent = "Befehl wird an die CCU gesendet und die Endlage geprüft …";
+    try {
+      const response = await fetch(button.dataset.testUrl, { method: "POST", headers: { Accept: "application/json" } });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) throw new Error(payload.error || "Türtest fehlgeschlagen.");
+      testStatus.className = `alert ${payload.sensorConfigured && !payload.sensorConfirmed ? "alert-warning" : "alert-success"} py-2 mb-0 small`;
+      testStatus.textContent = `${payload.message} Diagnose-ID: ${payload.commandId || "–"}`;
+    } catch (error) {
+      testStatus.className = "alert alert-danger py-2 mb-0 small";
+      testStatus.textContent = error.message;
+    } finally {
+      button.disabled = false;
+    }
+  }));
 }
 
 async function initClimateStatus() {

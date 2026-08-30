@@ -201,7 +201,7 @@
                 <div class="card-body vstack gap-3">
                   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <div><h3 class="h6 mb-1">Stalltür schalten</h3><p class="small text-body-secondary mb-0">Keine Befehls-URLs nötig.</p></div>
-                    <button type="button" class="btn btn-sm btn-outline-primary" data-homematic-discover>Gerät auswählen</button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-homematic-discover data-homematic-target="homematic_door_command_datapoint_id" data-homematic-writable="true">Gerät auswählen</button>
                   </div>
                   <div class="alert alert-secondary py-2 mb-0 small d-none" data-homematic-discovery-status></div>
                   <div>
@@ -215,13 +215,18 @@
                     <div class="col-6"><label class="form-label" for="homematic_door_close_value">Wert für Schließen</label><input class="form-control" id="homematic_door_close_value" name="homematic_door_close_value" inputmode="decimal" value="<%= settings.homematic_door_close_value || '0.0' %>" /></div>
                   </div>
                   <div class="form-text">Für deinen Aktor: Öffnen <code>1.0</code>, Schließen <code>0.0</code>. HeartPet baut daraus den XML-API-Aufruf selbst und ergänzt den Token sicher.</div>
+                  <div class="row g-2">
+                    <div class="col-6 d-grid"><button type="button" class="btn btn-outline-primary" data-door-test="open" data-test-url="/admin/coop/door-test/open">Öffnen testen</button></div>
+                    <div class="col-6 d-grid"><button type="button" class="btn btn-outline-primary" data-door-test="close" data-test-url="/admin/coop/door-test/close">Schließen testen</button></div>
+                  </div>
+                  <div class="alert alert-secondary py-2 mb-0 small d-none" data-door-test-status></div>
                 </div>
               </section>
               <div class="modal fade" id="homematic-device-picker" tabindex="-1" aria-labelledby="homematic-device-picker-title" aria-hidden="true" data-homematic-picker>
                 <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
                   <div class="modal-content border-0 shadow-lg">
                     <div class="modal-header">
-                      <div><h2 class="modal-title h5 mb-1" id="homematic-device-picker-title">Tür-Datenpunkt auswählen</h2><p class="small text-body-secondary mb-0">Nur schreibbare CCU-Datenpunkte werden angezeigt.</p></div>
+                      <div><h2 class="modal-title h5 mb-1" id="homematic-device-picker-title" data-homematic-picker-title>Datenpunkt auswählen</h2><p class="small text-body-secondary mb-0" data-homematic-picker-description>Passende CCU-Datenpunkte werden angezeigt.</p></div>
                       <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
                     </div>
                     <div class="modal-body p-3">
@@ -236,12 +241,12 @@
               <div class="row g-2">
                 <div class="col-12">
                   <label class="form-label" for="homematic_door_level_datapoint_id">ISE-ID Öffnungsgrad (LEVEL)</label>
-                  <input class="form-control" id="homematic_door_level_datapoint_id" inputmode="numeric" pattern="[0-9]+" name="homematic_door_level_datapoint_id" value="<%= settings.homematic_door_level_datapoint_id || '' %>" placeholder="12983" />
+                  <div class="input-group"><input class="form-control" id="homematic_door_level_datapoint_id" inputmode="numeric" pattern="[0-9]+" name="homematic_door_level_datapoint_id" value="<%= settings.homematic_door_level_datapoint_id || '' %>" placeholder="12983" /><button class="btn btn-outline-secondary" type="button" data-homematic-discover data-homematic-target="homematic_door_level_datapoint_id" data-homematic-types="LEVEL">Auswählen</button></div>
                   <div class="form-text">Hier den lesbaren <code>LEVEL</code>-Datenpunkt der tatsächlichen Türposition eintragen, bei deiner Hühnerklappe <code>12983</code>. Der Schalt-Datenpunkt <code>12990</code> gehört weiterhin nur in die beiden Befehls-URLs.</div>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label" for="homematic_door_sensor_datapoint_id">ISE-ID Türsensor</label>
-                  <input class="form-control" id="homematic_door_sensor_datapoint_id" inputmode="numeric" pattern="[0-9]+" name="homematic_door_sensor_datapoint_id" value="<%= settings.homematic_door_sensor_datapoint_id || '' %>" placeholder="3152" />
+                  <div class="input-group"><input class="form-control" id="homematic_door_sensor_datapoint_id" inputmode="numeric" pattern="[0-9]+" name="homematic_door_sensor_datapoint_id" value="<%= settings.homematic_door_sensor_datapoint_id || '' %>" placeholder="3152" /><button class="btn btn-outline-secondary" type="button" data-homematic-discover data-homematic-target="homematic_door_sensor_datapoint_id" data-homematic-types="STATE">Auswählen</button></div>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label" for="homematic_door_sensor_true_state">Sensorwert true bedeutet</label>
@@ -255,11 +260,11 @@
               <div class="row g-2">
                 <div class="col-md-6">
                   <label class="form-label" for="homematic_temperature_datapoint_id">Datenpunkt Temperatur</label>
-                  <input class="form-control" id="homematic_temperature_datapoint_id" inputmode="numeric" pattern="[0-9]+" name="homematic_temperature_datapoint_id" value="<%= settings.homematic_temperature_datapoint_id || settings.homematic_climate_channel_id || '' %>" placeholder="2363" />
+                  <div class="input-group"><input class="form-control" id="homematic_temperature_datapoint_id" inputmode="numeric" pattern="[0-9]+" name="homematic_temperature_datapoint_id" value="<%= settings.homematic_temperature_datapoint_id || settings.homematic_climate_channel_id || '' %>" placeholder="2363" /><button class="btn btn-outline-secondary" type="button" data-homematic-discover data-homematic-target="homematic_temperature_datapoint_id" data-homematic-types="TEMPERATURE">Auswählen</button></div>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label" for="homematic_humidity_datapoint_id">Datenpunkt Luftfeuchte</label>
-                  <input class="form-control" id="homematic_humidity_datapoint_id" inputmode="numeric" pattern="[0-9]+" name="homematic_humidity_datapoint_id" value="<%= settings.homematic_humidity_datapoint_id || '' %>" placeholder="2362" />
+                  <div class="input-group"><input class="form-control" id="homematic_humidity_datapoint_id" inputmode="numeric" pattern="[0-9]+" name="homematic_humidity_datapoint_id" value="<%= settings.homematic_humidity_datapoint_id || '' %>" placeholder="2362" /><button class="btn btn-outline-secondary" type="button" data-homematic-discover data-homematic-target="homematic_humidity_datapoint_id" data-homematic-types="HUMIDITY">Auswählen</button></div>
                 </div>
                 <div class="form-text">Hier stehen nur die numerischen Datenpunkt-IDs, keine URLs. Beispiel: Temperatur <code>2363</code>, Luftfeuchte <code>2362</code>. Die IDs findest du in der XML-Ausgabe von <code>statelist.cgi?sid=TOKEN</code> beim jeweiligen Sensor.</div>
               </div>

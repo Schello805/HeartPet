@@ -972,12 +972,37 @@ app.get("/admin/coop/homematic-datapoints", requireAdmin, async (req, res) => {
     if (!response.ok) throw new Error(`XML-API antwortet mit HTTP ${response.status}.`);
     const xml = decodeHomematicXmlBuffer(await response.arrayBuffer(), response.headers.get("content-type"));
     if (/<not_authenticated\b/i.test(xml)) throw new Error("XML-API-Token ist ungültig oder fehlt.");
-    const datapoints = parseWritableHomematicDatapoints(xml);
-    console.info(`[HeartPet][CCU][discovery] ${datapoints.length} schreibbare Datenpunkte geladen.`);
+    const datapoints = parseHomematicDatapoints(xml);
+    console.info(`[HeartPet][CCU][discovery] ${datapoints.length} Datenpunkte geladen.`);
     return res.json({ ok: true, datapoints });
   } catch (error) {
     console.error(`[HeartPet][CCU][discovery] Fehlgeschlagen: ${error.message}`);
     return res.status(502).json({ ok: false, error: describeFetchError(error) });
+  }
+});
+
+app.post("/admin/coop/door-test/:direction", requireAdmin, async (req, res) => {
+  const open = req.params.direction === "open";
+  if (!open && req.params.direction !== "close") return res.status(404).json({ ok: false, error: "Unbekannte Türrichtung." });
+  const settings = getSettingsObject(db);
+  const command = getHomematicDoorCommand(settings, open);
+  if (!command) return res.status(400).json({ ok: false, error: "Tür-Datenpunkt und Schaltwerte zuerst speichern." });
+  try {
+    const result = await executeHomematicCommand(settings, command, { expectedDoorOpen: open });
+    createAuditLog(req, open ? "coop.door_open_test" : "coop.door_close_test", result, { entityType: "coop" });
+    return res.json({
+      ok: true,
+      commandId: result.commandId,
+      sensorConfigured: result.sensorConfigured,
+      sensorConfirmed: result.sensorConfirmed,
+      sensorValue: result.sensorValue,
+      message: result.sensorConfigured
+        ? (result.sensorConfirmed ? "CCU-Befehl und Türsensor bestätigen die Endlage." : "CCU hat den Befehl angenommen, der Türsensor bestätigt die Endlage nicht.")
+        : "CCU hat den Befehl angenommen. Kein Türsensor zur Endlagenprüfung konfiguriert.",
+    });
+  } catch (error) {
+    console.error(`[HeartPet][CCU][door-test] ${open ? "Öffnen" : "Schließen"}: ${error.message}`);
+    return res.status(502).json({ ok: false, error: error.message });
   }
 });
 
@@ -5497,6 +5522,10 @@ function getHomematicDoorCommand(settings, open) {
 }
 
 function parseWritableHomematicDatapoints(xml) {
+  return parseHomematicDatapoints(xml).filter((datapoint) => datapoint.writable);
+}
+
+function parseHomematicDatapoints(xml) {
   const readAttributes = (tag) => Object.fromEntries(Array.from(String(tag).matchAll(/([\w:-]+)=["']([^"']*)["']/g), (match) => [match[1], match[2]]));
   const results = [];
   for (const deviceMatch of String(xml || "").matchAll(/<device\b([^>]*)>([\s\S]*?)<\/device>/gi)) {
@@ -5506,7 +5535,7 @@ function parseWritableHomematicDatapoints(xml) {
       for (const datapointMatch of channelMatch[2].matchAll(/<datapoint\b([^>]*)\/?\s*>/gi)) {
         const datapoint = readAttributes(datapointMatch[1]);
         const operations = Number.parseInt(datapoint.operations || "0", 10);
-        if (!/^\d+$/.test(datapoint.ise_id || "") || (operations & 2) !== 2) continue;
+        if (!/^\d+$/.test(datapoint.ise_id || "")) continue;
         results.push({
           id: datapoint.ise_id,
           device: device.name || "Unbenanntes Gerät",
@@ -5514,6 +5543,7 @@ function parseWritableHomematicDatapoints(xml) {
           name: datapoint.name || datapoint.type || "Datenpunkt",
           type: datapoint.type || "",
           value: datapoint.value || "",
+          writable: (operations & 2) === 2,
         });
       }
     }
@@ -7064,6 +7094,7 @@ app.__test = {
   parseHomematicStateChange,
   getHomematicDoorCommand,
   parseWritableHomematicDatapoints,
+  parseHomematicDatapoints,
   decodeHomematicXmlBuffer,
   getHomematicCommandResponseError,
   findHomematicValue,
