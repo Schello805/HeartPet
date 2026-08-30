@@ -5526,7 +5526,7 @@ function getHomematicDoorCommand(settings, open) {
   const directionalKey = open ? "homematic_door_open_datapoint_id" : "homematic_door_close_datapoint_id";
   const datapointId = String(settings?.[directionalKey] || settings?.homematic_door_command_datapoint_id || "").trim();
   const configuredValue = String((open ? settings?.homematic_door_open_value : settings?.homematic_door_close_value) || "").trim();
-  const defaultValue = "1.0";
+  const defaultValue = open ? "0.0" : "1.0";
   const value = configuredValue || defaultValue;
   if (/^\d+$/.test(datapointId) && /^-?\d+(?:[.,]\d+)?$/.test(value)) {
     const config = getHomematicXmlApiConfig(settings);

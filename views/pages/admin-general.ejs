@@ -163,36 +163,37 @@
             <div class="vstack gap-3">
               <section class="card border bg-body">
                 <div class="card-body">
-                  <h3 class="h6 mb-2">Homematic XML-API</h3>
+                  <h3 class="h6 mb-2">OpenCCU und Homematic XML-API</h3>
                   <div class="alert alert-info small mb-3">
-                    <strong class="d-block mb-1">Empfohlene Einrichtung</strong>
+                    <strong class="d-block mb-1">Aktuelle Einrichtung für OpenCCU</strong>
                     <ol class="mb-0 ps-3">
-                      <li>In der CCU die Zusatzsoftware <strong>XML-API</strong> öffnen und dort einen Zugriffstoken erzeugen.</li>
-                      <li>Als Adresse nur die Basis bis <code>/addons/xmlapi/</code> eintragen.</li>
-                      <li>Den erzeugten Token vollständig in das Tokenfeld eintragen.</li>
-                      <li>Adresse und Token speichern, danach den Tür-Datenpunkt direkt aus der CCU laden.</li>
+                      <li>In OpenCCU unter <strong>Einstellungen → Systemsteuerung → Zusatzsoftware → XML-API → Einstellen</strong> einen Zugriffstoken registrieren.</li>
+                      <li>Als Adresse die OpenCCU-Basis mit <code>/addons/xmlapi/</code> eintragen.</li>
+                      <li>Den statischen XML-API-Token vollständig und ohne <code>@</code>-Zeichen eintragen.</li>
+                      <li>Speichern und anschließend die Datenpunkte direkt aus OpenCCU auswählen.</li>
                     </ol>
                   </div>
                   <div class="row g-2">
                     <div class="col-12">
                       <label class="form-label" for="homematic_ccu_url">1. XML-API-Adresse</label>
                       <input class="form-control" id="homematic_ccu_url" type="url" name="homematic_ccu_url" value="<%= settings.homematic_ccu_url || '' %>" placeholder="http://192.168.1.22/addons/xmlapi/" />
-                      <div class="form-text">Mit <code>http://</code> und abschließendem <code>/</code>. Alternativ ist die vollständige Browseradresse einschließlich <code>?sid=…</code> erlaubt.</div>
+                      <div class="form-text">Empfohlen: <code>http://OPENCCU-IP/addons/xmlapi/</code> oder HTTPS, falls es in OpenCCU eingerichtet ist. Der alte Pfad <code>/config/xmlapi/</code> wird nur noch aus Kompatibilitätsgründen akzeptiert.</div>
                     </div>
                     <div class="col-12">
                       <label class="form-label" for="homematic_xmlapi_token">2. XML-API-Token (sid)</label>
                       <input class="form-control font-monospace" id="homematic_xmlapi_token" name="homematic_xmlapi_token" value="<%= settings.homematic_xmlapi_token || '' %>" autocomplete="off" placeholder="zum Beispiel RdNQqjPaQbLSsslS" />
-                      <div class="form-text">Einen langen Wert aus <code>tokenlist.cgi</code> zwischen <code>&lt;token&gt;</code> und <code>&lt;/token&gt;</code> eintragen. Die kurze <code>@…@</code>-SID aus der Browser-URL ist nur eine vorübergehende WebUI-Sitzung und hier falsch.</div>
+                      <div class="form-text">XML-API 2.x verlangt für jeden Aufruf einen registrierten Token als Parameter <code>sid</code>. Die kurze <code>@…@</code>-SID aus der OpenCCU-WebUI ist eine andere, vorübergehende Sitzung und hier falsch.</div>
                     </div>
-                    <div class="col-md-6"><label class="form-label" for="homematic_ccu_username">CCU-Benutzername (nur Ausweichweg)</label><input class="form-control" id="homematic_ccu_username" name="homematic_ccu_username" value="<%= settings.homematic_ccu_username || '' %>" autocomplete="username" placeholder="bei XML-API-Token nicht nötig" /></div>
-                    <div class="col-md-6"><label class="form-label" for="homematic_ccu_password">CCU-Passwort (nur Ausweichweg)</label><input class="form-control" id="homematic_ccu_password" type="password" name="homematic_ccu_password" value="" autocomplete="new-password" placeholder="<%= settings.homematic_ccu_password ? 'Gespeichert, leer lassen zum Beibehalten' : 'bei XML-API-Token nicht nötig' %>" /></div>
+                    <div class="col-md-6"><label class="form-label" for="homematic_ccu_username">OpenCCU-Benutzername (optionaler Ausweichweg)</label><input class="form-control" id="homematic_ccu_username" name="homematic_ccu_username" value="<%= settings.homematic_ccu_username || '' %>" autocomplete="username" placeholder="bei XML-API-Token nicht nötig" /></div>
+                    <div class="col-md-6"><label class="form-label" for="homematic_ccu_password">OpenCCU-Passwort (optionaler Ausweichweg)</label><input class="form-control" id="homematic_ccu_password" type="password" name="homematic_ccu_password" value="" autocomplete="new-password" placeholder="<%= settings.homematic_ccu_password ? 'Gespeichert, leer lassen zum Beibehalten' : 'bei XML-API-Token nicht nötig' %>" /></div>
                   </div>
                   <details class="mt-3">
                     <summary class="fw-semibold">Ausführliche Beispiele und Browser-Test</summary>
                     <div class="small mt-2 vstack gap-2">
-                      <p class="mb-0"><strong>Token finden:</strong> <code>tokenlist.cgi</code> zeigt registrierte Tokens als <code>&lt;token&gt;RdNQqjPaQbLSsslS&lt;/token&gt;</code>. Nur <code>RdNQqjPaQbLSsslS</code> wird in HeartPet eingetragen. Die zum Öffnen von <code>tokenlist.cgi</code> verwendete <code>@…@</code>-SID wird nicht übernommen.</p>
+                      <p class="mb-0"><strong>Token registrieren:</strong> Die XML-API-Oberfläche in der OpenCCU-Zusatzsoftware verwendet <code>tokenregister.cgi</code>. <code>tokenlist.cgi</code> listet vorhandene Tokens. In HeartPet gehört nur der Tokenwert hinein, beispielsweise <code>RdNQqjPaQbLSsslS</code>.</p>
                       <p class="mb-0"><strong>Empfohlene Eingabe:</strong><br />Adresse: <code>http://192.168.1.22/addons/xmlapi/</code><br />Token: <code>RdNQqjPaQbLSsslS</code></p>
-                      <p class="mb-0"><strong>Browser-Test:</strong><br /><code>http://192.168.1.22/addons/xmlapi/state.cgi?sid=RdNQqjPaQbLSsslS&amp;datapoint_id=2363,2362</code><br />Es muss XML mit den beiden Datenpunkten und deren <code>value</code> erscheinen. Bei <code>not_authenticated</code> ist der Token falsch oder nicht mehr gültig.</p>
+                      <p class="mb-0"><strong>OpenCCU-Browser-Test:</strong><br /><code>http://192.168.1.22/addons/xmlapi/state.cgi?sid=RdNQqjPaQbLSsslS&amp;datapoint_id=2363,2362</code><br />Es muss XML mit beiden Datenpunkten erscheinen. <code>&lt;not_authenticated/&gt;</code> bedeutet, dass OpenCCU den Token nicht akzeptiert.</p>
+                      <p class="mb-0"><strong>Technische Grundlage:</strong> HeartPet verwendet <code>state.cgi?datapoint_id=…</code> zum Lesen sowie <code>statechange.cgi?ise_id=…&amp;new_value=…</code> zum Schalten, jeweils mit dem registrierten Token als <code>sid</code>.</p>
                     </div>
                   </details>
                 </div>
@@ -200,17 +201,17 @@
               <section class="card border bg-body" data-homematic-door-setup data-discovery-url="/admin/coop/homematic-datapoints">
                 <div class="card-body vstack gap-3">
                   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
-                    <div><h3 class="h6 mb-1">Stalltür schalten</h3><p class="small text-body-secondary mb-0">Keine Befehls-URLs nötig.</p></div>
+                    <div><h3 class="h6 mb-1">Stalltür über OpenCCU schalten</h3><p class="small text-body-secondary mb-0">HeartPet erzeugt die XML-API-Aufrufe aus ISE-ID und Wert.</p></div>
                     <span class="badge text-bg-primary-subtle border">Ein oder zwei Kanäle</span>
                   </div>
                   <div class="alert alert-secondary py-2 mb-0 small d-none" data-homematic-discovery-status></div>
                   <div class="row g-2">
-                    <div class="col-md-6"><label class="form-label" for="homematic_door_open_datapoint_id">ISE-ID Öffnen</label><div class="input-group"><input class="form-control" id="homematic_door_open_datapoint_id" inputmode="numeric" pattern="[0-9]+" name="homematic_door_open_datapoint_id" value="<%= settings.homematic_door_open_datapoint_id || settings.homematic_door_command_datapoint_id || '' %>" placeholder="12990" /><button class="btn btn-outline-secondary" type="button" data-homematic-discover data-homematic-target="homematic_door_open_datapoint_id" data-homematic-writable="true">Auswählen</button></div></div>
-                    <div class="col-md-6"><label class="form-label" for="homematic_door_close_datapoint_id">ISE-ID Schließen</label><div class="input-group"><input class="form-control" id="homematic_door_close_datapoint_id" inputmode="numeric" pattern="[0-9]+" name="homematic_door_close_datapoint_id" value="<%= settings.homematic_door_close_datapoint_id || settings.homematic_door_command_datapoint_id || '' %>" placeholder="12998" /><button class="btn btn-outline-secondary" type="button" data-homematic-discover data-homematic-target="homematic_door_close_datapoint_id" data-homematic-writable="true">Auswählen</button></div></div>
-                    <div class="col-6"><label class="form-label" for="homematic_door_open_value">Wert für Öffnen</label><input class="form-control" id="homematic_door_open_value" name="homematic_door_open_value" inputmode="decimal" value="<%= settings.homematic_door_open_value || '1.0' %>" /></div>
+                    <div class="col-md-6"><label class="form-label" for="homematic_door_open_datapoint_id">ISE-ID Öffnen</label><div class="input-group"><input class="form-control" id="homematic_door_open_datapoint_id" inputmode="numeric" pattern="[0-9]+" name="homematic_door_open_datapoint_id" value="<%= settings.homematic_door_open_datapoint_id || settings.homematic_door_command_datapoint_id || '' %>" placeholder="13006" /><button class="btn btn-outline-secondary" type="button" data-homematic-discover data-homematic-target="homematic_door_open_datapoint_id" data-homematic-writable="true">Auswählen</button></div></div>
+                    <div class="col-md-6"><label class="form-label" for="homematic_door_close_datapoint_id">ISE-ID Schließen</label><div class="input-group"><input class="form-control" id="homematic_door_close_datapoint_id" inputmode="numeric" pattern="[0-9]+" name="homematic_door_close_datapoint_id" value="<%= settings.homematic_door_close_datapoint_id || settings.homematic_door_command_datapoint_id || '' %>" placeholder="13006" /><button class="btn btn-outline-secondary" type="button" data-homematic-discover data-homematic-target="homematic_door_close_datapoint_id" data-homematic-writable="true">Auswählen</button></div></div>
+                    <div class="col-6"><label class="form-label" for="homematic_door_open_value">Wert für Öffnen</label><input class="form-control" id="homematic_door_open_value" name="homematic_door_open_value" inputmode="decimal" value="<%= settings.homematic_door_open_value || '0.0' %>" /></div>
                     <div class="col-6"><label class="form-label" for="homematic_door_close_value">Wert für Schließen</label><input class="form-control" id="homematic_door_close_value" name="homematic_door_close_value" inputmode="decimal" value="<%= settings.homematic_door_close_value || '1.0' %>" /></div>
                   </div>
-                  <div class="form-text">Für deine Klappe bestätigt: Öffnen <code>13006 / 0.0</code>, Schließen <code>13006 / 1.0</code>. Bei anderen Aktoren können beide Richtungen auch auf getrennten LEVEL-Kanälen liegen.</div>
+                  <div class="form-text"><strong>Bestätigte HeartPet-Konfiguration:</strong> Öffnen <code>ISE 13006 / 0.0</code>, Schließen <code>ISE 13006 / 1.0</code>. Die ISE-ID ist installationsabhängig und wird aus OpenCCU ausgewählt; nur die Bedienlogik <code>LEVEL 0…1</code> ist allgemein.</div>
                   <div class="row g-2">
                     <div class="col-6 d-grid"><button type="button" class="btn btn-outline-primary" data-door-test="open" data-test-url="/admin/coop/door-test/open">Öffnen testen</button></div>
                     <div class="col-6 d-grid"><button type="button" class="btn btn-outline-primary" data-door-test="close" data-test-url="/admin/coop/door-test/close">Schließen testen</button></div>
@@ -238,7 +239,7 @@
                 <div class="col-12">
                   <label class="form-label" for="homematic_door_level_datapoint_id">ISE-ID Öffnungsgrad (LEVEL)</label>
                   <div class="input-group"><input class="form-control" id="homematic_door_level_datapoint_id" inputmode="numeric" pattern="[0-9]+" name="homematic_door_level_datapoint_id" value="<%= settings.homematic_door_level_datapoint_id || '' %>" placeholder="12983" /><button class="btn btn-outline-secondary" type="button" data-homematic-discover data-homematic-target="homematic_door_level_datapoint_id" data-homematic-types="LEVEL">Auswählen</button></div>
-                  <div class="form-text">Hier den lesbaren <code>LEVEL</code>-Datenpunkt der tatsächlichen Türposition eintragen, bei deiner Hühnerklappe <code>12983</code>. Der Schalt-Datenpunkt <code>12990</code> gehört weiterhin nur in die beiden Befehls-URLs.</div>
+                  <div class="form-text">Hier einen lesbaren <code>LEVEL</code>-Datenpunkt für die tatsächliche Position auswählen. In deiner OpenCCU-Installation ist <code>12983</code> ein möglicher Statuskanal; für die eindeutige Endlage hat der separate Türsensor Vorrang.</div>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label" for="homematic_door_sensor_datapoint_id">ISE-ID Türsensor</label>
@@ -268,7 +269,7 @@
                 <strong class="d-block">Verbindung wird geprüft …</strong>
                 <span class="small">HeartPet prüft Token und Datenpunkte direkt über die XML-API.</span>
               </div>
-              <div class="alert alert-info mb-0 small">CCU und Kameras müssen aus dem Netzwerk des HeartPet-Servers erreichbar sein.</div>
+              <div class="alert alert-info mb-0 small">OpenCCU und Kameras müssen aus dem Netzwerk des HeartPet-Servers erreichbar sein. Die OpenCCU-WebUI und XML-API sollten nicht ungeschützt aus dem Internet erreichbar sein.</div>
             </div>
           </div>
         </div>
