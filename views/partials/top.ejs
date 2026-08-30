@@ -3,6 +3,7 @@
   <head>
     <% const resolvedAppLogoUrl = typeof appLogoUrl !== 'undefined' && appLogoUrl ? appLogoUrl : '/static/images/logo-heartpet.png'; %>
     <% const resolvedAppName = appSettings.app_name || "HeartPet"; %>
+    <% const assetVersion = encodeURIComponent(typeof appRevision !== 'undefined' ? appRevision : 'dev'); %>
     <% const defaultSeoMeta = typeof seoMeta !== 'undefined' && seoMeta ? seoMeta : {}; %>
     <% const pageSeo = typeof seo !== 'undefined' && seo ? seo : {}; %>
     <% const mergedSeo = Object.assign({}, defaultSeoMeta, pageSeo); %>
@@ -45,9 +46,9 @@
     <link rel="shortcut icon" type="image/png" href="<%= resolvedAppLogoUrl %>" />
     <link rel="apple-touch-icon" href="<%= resolvedAppLogoUrl %>" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous" />
-    <link rel="stylesheet" href="/static/css/theme-foundation.css" />
-    <link rel="stylesheet" href="/static/css/theme-layout.css" />
-    <link rel="stylesheet" href="/static/css/theme-components.css" />
+    <link rel="stylesheet" href="/static/css/theme-foundation.css?v=<%= assetVersion %>" />
+    <link rel="stylesheet" href="/static/css/theme-layout.css?v=<%= assetVersion %>" />
+    <link rel="stylesheet" href="/static/css/theme-components.css?v=<%= assetVersion %>" />
   </head>
   <body class="bootstrap-app<%= typeof pageClass !== 'undefined' && pageClass ? ` ${pageClass}` : '' %>" data-bs-theme="light">
     <div class="app-shell">

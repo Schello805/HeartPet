@@ -65,7 +65,25 @@ app.set("views", path.join(projectRoot, "views"));
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use("/static", express.static(path.join(projectRoot, "public")));
+app.use((req, res, next) => {
+  if (req.method === "GET" && req.accepts("html")) {
+    res.set("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.set("Pragma", "no-cache");
+    res.set("Expires", "0");
+  }
+  next();
+});
+app.use(
+  "/static",
+  express.static(path.join(projectRoot, "public"), {
+    etag: true,
+    lastModified: true,
+    maxAge: 0,
+    setHeaders(res) {
+      res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+    },
+  }),
+);
 app.use("/media", express.static(path.join(projectRoot, "data", "uploads")));
 
 app.get("/favicon.ico", (req, res) => {
