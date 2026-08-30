@@ -201,7 +201,7 @@
                 <div class="card-body vstack gap-3">
                   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <div><h3 class="h6 mb-1">Stalltür schalten</h3><p class="small text-body-secondary mb-0">Keine Befehls-URLs nötig.</p></div>
-                    <span class="badge text-bg-primary-subtle border">Getrennte Richtungen</span>
+                    <span class="badge text-bg-primary-subtle border">Ein oder zwei Kanäle</span>
                   </div>
                   <div class="alert alert-secondary py-2 mb-0 small d-none" data-homematic-discovery-status></div>
                   <div class="row g-2">
@@ -210,7 +210,7 @@
                     <div class="col-6"><label class="form-label" for="homematic_door_open_value">Wert für Öffnen</label><input class="form-control" id="homematic_door_open_value" name="homematic_door_open_value" inputmode="decimal" value="<%= settings.homematic_door_open_value || '1.0' %>" /></div>
                     <div class="col-6"><label class="form-label" for="homematic_door_close_value">Wert für Schließen</label><input class="form-control" id="homematic_door_close_value" name="homematic_door_close_value" inputmode="decimal" value="<%= settings.homematic_door_close_value || '1.0' %>" /></div>
                   </div>
-                  <div class="form-text">Für deine Klappe: Öffnen <code>12990 / 1.0</code>, Schließen <code>12998 / 1.0</code>. Die CCU verwendet getrennte virtuelle LEVEL-Kanäle.</div>
+                  <div class="form-text">Für deine Klappe bestätigt: Öffnen <code>13006 / 0.0</code>, Schließen <code>13006 / 1.0</code>. Bei anderen Aktoren können beide Richtungen auch auf getrennten LEVEL-Kanälen liegen.</div>
                   <div class="row g-2">
                     <div class="col-6 d-grid"><button type="button" class="btn btn-outline-primary" data-door-test="open" data-test-url="/admin/coop/door-test/open">Öffnen testen</button></div>
                     <div class="col-6 d-grid"><button type="button" class="btn btn-outline-primary" data-door-test="close" data-test-url="/admin/coop/door-test/close">Schließen testen</button></div>

@@ -222,6 +222,24 @@ test("Getrennte LEVEL-Richtungen setzen vor dem Schalten den Gegenkanal zurück"
   ]);
 });
 
+test("Gemeinsamer LEVEL-Kanal schaltet beide Richtungen ohne Gegenkanal-Sequenz", () => {
+  const settings = {
+    homematic_ccu_url: "http://192.168.1.22/addons/xmlapi/",
+    homematic_door_open_datapoint_id: "13006",
+    homematic_door_close_datapoint_id: "13006",
+    homematic_door_open_value: "0.0",
+    homematic_door_close_value: "1.0",
+  };
+  assert.deepEqual(
+    app.__test.getHomematicDoorCommandSequence(settings, true).map(app.__test.parseHomematicStateChange),
+    [{ iseId: "13006", newValue: "0.0" }],
+  );
+  assert.deepEqual(
+    app.__test.getHomematicDoorCommandSequence(settings, false).map(app.__test.parseHomematicStateChange),
+    [{ iseId: "13006", newValue: "1.0" }],
+  );
+});
+
 test("CCU-Erkennung liefert ausschließlich schreibbare Datenpunkte", () => {
   const xml = `<device name="Hühnerklappe"><channel name="Hühnerklappe:3">
     <datapoint name="LEVEL" type="LEVEL" ise_id="12983" value="0.0" operations="5" />
