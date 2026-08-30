@@ -791,7 +791,7 @@ app.post("/coop/door/open", async (req, res) => {
   }
 
   try {
-    const result = await executeHomematicCommand(settings, command, { expectedDoorOpen: true });
+    const result = await executeHomematicDoorDirection(settings, true);
     createAuditLog(req, "coop.door_open", result, { entityType: "coop" });
     if (result.sensorConfigured && !result.sensorConfirmed) {
       setFlash(req, "error", "Der Öffnungsbefehl wurde von der CCU angenommen, der Türsensor hat die offene Endlage aber nicht bestätigt.");
@@ -821,7 +821,7 @@ app.post("/coop/door/close", async (req, res) => {
   }
 
   try {
-    const result = await executeHomematicCommand(settings, command, { expectedDoorOpen: false });
+    const result = await executeHomematicDoorDirection(settings, false);
     createAuditLog(req, "coop.door_close", result, { entityType: "coop" });
     if (result.sensorConfigured && !result.sensorConfirmed) {
       setFlash(req, "error", "Der Schließbefehl wurde von der CCU angenommen, der Türsensor hat die geschlossene Endlage aber nicht bestätigt.");
@@ -1006,7 +1006,7 @@ app.post("/admin/coop/door-test/:direction", requireAdmin, async (req, res) => {
   const command = getHomematicDoorCommand(settings, open);
   if (!command) return res.status(400).json({ ok: false, error: "Tür-Datenpunkt und Schaltwerte zuerst speichern." });
   try {
-    const result = await executeHomematicCommand(settings, command, { expectedDoorOpen: open });
+    const result = await executeHomematicDoorDirection(settings, open);
     createAuditLog(req, open ? "coop.door_open_test" : "coop.door_close_test", result, { entityType: "coop" });
     return res.json({
       ok: true,
@@ -5540,6 +5540,33 @@ function getHomematicDoorCommand(settings, open) {
   return normalizeConfiguredUrl(open ? settings?.homematic_door_open_url : settings?.homematic_door_close_url);
 }
 
+function getHomematicDoorCommandSequence(settings, open) {
+  const targetCommand = getHomematicDoorCommand(settings, open);
+  const oppositeCommand = getHomematicDoorCommand(settings, !open);
+  const targetState = parseHomematicStateChange(targetCommand);
+  const oppositeState = parseHomematicStateChange(oppositeCommand);
+  if (!targetState || !oppositeState || targetState.iseId === oppositeState.iseId) return [targetCommand].filter(Boolean);
+
+  const usesDirectionalLevels = Number(targetState.newValue) === 1 && Number(oppositeState.newValue) === 1;
+  if (!usesDirectionalLevels) return [targetCommand].filter(Boolean);
+
+  const resetUrl = new URL(oppositeCommand);
+  resetUrl.searchParams.set("new_value", "0.0");
+  return [resetUrl.toString(), targetCommand];
+}
+
+async function executeHomematicDoorDirection(settings, open) {
+  const commands = getHomematicDoorCommandSequence(settings, open);
+  if (!commands.length) throw new Error("Für diese Richtung ist kein gültiger Homematic-Befehl hinterlegt.");
+  if (commands.length > 1) {
+    const resetState = parseHomematicStateChange(commands[0]);
+    console.info(`[HeartPet][CCU][door-direction] Setze Gegenkanal ${resetState?.iseId || "unbekannt"} vor dem ${open ? "Öffnen" : "Schließen"} zurück.`);
+    await executeHomematicCommand(settings, commands[0]);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  }
+  return executeHomematicCommand(settings, commands.at(-1), { expectedDoorOpen: open });
+}
+
 function parseWritableHomematicDatapoints(xml) {
   return parseHomematicDatapoints(xml).filter((datapoint) => datapoint.writable);
 }
@@ -7112,6 +7139,7 @@ app.__test = {
   normalizeHomematicXmlApiToken,
   parseHomematicStateChange,
   getHomematicDoorCommand,
+  getHomematicDoorCommandSequence,
   parseWritableHomematicDatapoints,
   parseHomematicDatapoints,
   decodeHomematicXmlBuffer,
