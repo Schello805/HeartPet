@@ -264,9 +264,8 @@
         <input type="hidden" name="_fields" value="telegram_bot_token,telegram_chat_id" />
         <section class="card border bg-body">
           <div class="card-body vstack gap-3">
-            <div>
-              <h4 class="h6 mb-1">BotFather-Anleitung</h4>
-              <p class="text-body-secondary mb-2">Einmal sauber einrichten, danach laufen Telegram-Tests und Erinnerungen direkt über den Bot.</p>
+            <details class="technical-settings">
+              <summary><strong>BotFather-Anleitung anzeigen</strong><span>Einmalige technische Einrichtung</span></summary>
               <div class="alert alert-secondary mb-0" role="alert">
                 <ol class="mb-0 ps-3">
                   <li>In Telegram <strong>@BotFather</strong> öffnen.</li>
@@ -277,7 +276,7 @@
                   <li>Token und Chat ID hier speichern.</li>
                 </ol>
               </div>
-            </div>
+            </details>
             <div class="row g-3">
               <div class="col-md-6">
                 <label class="form-label" for="telegram_bot_token">Telegram Bot Token</label>

@@ -925,6 +925,7 @@ app.get("/", async (req, res) => {
   const doorOpenPercent = doorLevelValue === null || !Number.isFinite(rawDoorLevel)
     ? null
     : Math.round(Math.max(0, Math.min(100, rawDoorLevel > 1 ? rawDoorLevel : rawDoorLevel * 100)));
+  const coopRetrievedAt = new Date().toISOString();
 
   res.render("pages/dashboard", {
     pageTitle: "Dashboard",
@@ -941,6 +942,7 @@ app.get("/", async (req, res) => {
       temperature,
       humidity,
       climateError: climate?.error || "",
+      retrievedAt: coopRetrievedAt,
       temperatureConfigured: climateConfigured,
       humidityConfigured: climateConfigured,
       doorConfigured: Boolean(getHomematicDoorCommand(coopSettings, true)),
@@ -6540,6 +6542,7 @@ async function readOutdoorWeather(settings) {
       sunset: payload.daily?.sunset?.[0] || "",
       label: weatherMeta.label,
       icon: weatherMeta.icon,
+      retrievedAt: new Date().toISOString(),
       error: "",
     };
     weatherCache.set(cacheKey, { createdAt: Date.now(), value });

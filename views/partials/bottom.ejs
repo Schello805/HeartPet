@@ -15,12 +15,12 @@
         <div class="modal-dialog modal-dialog-centered modal-sm">
           <div class="modal-content border-0 shadow-lg">
             <div class="modal-body p-4 text-center">
-              <div class="app-confirm-icon mx-auto mb-3" aria-hidden="true" data-confirm-modal-icon>↕</div>
+              <div class="app-confirm-icon mx-auto mb-3" aria-hidden="true" data-confirm-modal-icon><%- include('./ui-icon', { name: 'warning' }) %></div>
               <h2 class="h5 mb-2" id="app-confirm-modal-title">Aktion bestätigen</h2>
               <p class="text-body-secondary mb-4" data-confirm-modal-message></p>
               <div class="app-confirm-progress mb-4 d-none" data-confirm-modal-progress role="status" aria-live="polite">
-                <strong class="d-block">Befehl wird ausgeführt</strong>
-                <span class="small text-body-secondary">CCU und Türsensor werden geprüft</span>
+                <strong class="d-block">Aktion wird ausgeführt</strong>
+                <span class="small text-body-secondary">Bitte dieses Fenster kurz geöffnet lassen.</span>
                 <span class="app-confirm-progress-dots" aria-hidden="true"><i></i><i></i><i></i></span>
               </div>
               <div class="d-grid gap-2" data-confirm-modal-actions>

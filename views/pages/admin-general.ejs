@@ -164,15 +164,17 @@
               <section class="card border bg-body">
                 <div class="card-body">
                   <h3 class="h6 mb-2">OpenCCU und Homematic XML-API</h3>
-                  <div class="alert alert-info small mb-3">
-                    <strong class="d-block mb-1">Aktuelle Einrichtung für OpenCCU</strong>
+                  <details class="technical-settings mb-3">
+                    <summary><strong>Einrichtung für OpenCCU anzeigen</strong><span>Schritt-für-Schritt-Anleitung</span></summary>
+                    <div class="alert alert-info small mb-0 mt-3">
                     <ol class="mb-0 ps-3">
                       <li>In OpenCCU unter <strong>Einstellungen → Systemsteuerung → Zusatzsoftware → XML-API → Einstellen</strong> einen Zugriffstoken registrieren.</li>
                       <li>Als Adresse die OpenCCU-Basis mit <code>/addons/xmlapi/</code> eintragen.</li>
                       <li>Den statischen XML-API-Token vollständig und ohne <code>@</code>-Zeichen eintragen.</li>
                       <li>Speichern und anschließend die Datenpunkte direkt aus OpenCCU auswählen.</li>
                     </ol>
-                  </div>
+                    </div>
+                  </details>
                   <div class="row g-2">
                     <div class="col-12">
                       <label class="form-label" for="homematic_ccu_url">1. XML-API-Adresse</label>
@@ -187,7 +189,7 @@
                     <div class="col-md-6"><label class="form-label" for="homematic_ccu_username">OpenCCU-Benutzername (optionaler Ausweichweg)</label><input class="form-control" id="homematic_ccu_username" name="homematic_ccu_username" value="<%= settings.homematic_ccu_username || '' %>" autocomplete="username" placeholder="bei XML-API-Token nicht nötig" /></div>
                     <div class="col-md-6"><label class="form-label" for="homematic_ccu_password">OpenCCU-Passwort (optionaler Ausweichweg)</label><input class="form-control" id="homematic_ccu_password" type="password" name="homematic_ccu_password" value="" autocomplete="new-password" placeholder="<%= settings.homematic_ccu_password ? 'Gespeichert, leer lassen zum Beibehalten' : 'bei XML-API-Token nicht nötig' %>" /></div>
                   </div>
-                  <details class="mt-3">
+                  <details class="technical-settings mt-3">
                     <summary class="fw-semibold">Ausführliche Beispiele und Browser-Test</summary>
                     <div class="small mt-2 vstack gap-2">
                       <p class="mb-0"><strong>Token registrieren:</strong> Die XML-API-Oberfläche in der OpenCCU-Zusatzsoftware verwendet <code>tokenregister.cgi</code>. <code>tokenlist.cgi</code> listet vorhandene Tokens. In HeartPet gehört nur der Tokenwert hinein, beispielsweise <code>RdNQqjPaQbLSsslS</code>.</p>
@@ -273,7 +275,7 @@
             </div>
           </div>
         </div>
-        <div class="d-grid d-sm-flex justify-content-sm-end pt-3 border-top">
+        <div class="form-save-bar d-grid d-sm-flex justify-content-sm-end pt-3 border-top">
           <button type="submit" class="btn btn-primary btn-lg px-4">Alle Stall-Einstellungen speichern</button>
         </div>
       </form>

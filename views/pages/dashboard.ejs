@@ -207,15 +207,16 @@
         <h2 class="h5 mb-1">Wetter in <%= weatherState.location || 'deinem Ort' %></h2>
         <p class="text-body-secondary small mb-0">Temperatur und Luftfeuchte am Standort.</p>
       </div>
-      <span class="dashboard-visual-icon" aria-hidden="true"><%= weatherState.icon || '🌤️' %></span>
+      <span class="dashboard-visual-icon"><%- include('../partials/ui-icon', { name: 'sunrise' }) %></span>
     </div>
     <% if (weatherState.error) { %>
       <div class="alert alert-warning py-2 mb-0 small"><%= weatherState.error %></div>
     <% } else if (weatherState.configured) { %>
       <div class="row g-2">
-        <div class="col-6 col-lg-3"><div class="card border h-100 app-metric-card"><div class="card-body p-2 text-center"><span class="dashboard-metric-icon" aria-hidden="true">🌡</span><span class="small text-body-secondary d-block"><%= weatherState.label || 'Aktuell' %></span><strong class="dashboard-weather-value"><%= Number.isFinite(weatherState.temperature) ? `${weatherState.temperature.toLocaleString('de-DE', { maximumFractionDigits: 1 })} °C` : '–' %></strong></div></div></div>
-        <div class="col-6 col-lg-3"><div class="card border h-100 app-metric-card"><div class="card-body p-2 text-center"><span class="dashboard-metric-icon" aria-hidden="true">💧</span><span class="small text-body-secondary d-block">Luftfeuchte außen</span><strong class="dashboard-weather-value"><%= Number.isFinite(weatherState.humidity) ? `${weatherState.humidity.toLocaleString('de-DE', { maximumFractionDigits: 0 })} %` : '–' %></strong></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card border h-100 app-metric-card"><div class="card-body p-2 text-center"><span class="dashboard-metric-icon"><%- include('../partials/ui-icon', { name: 'temperature' }) %></span><span class="small text-body-secondary d-block"><%= weatherState.label || 'Aktuell' %></span><strong class="dashboard-weather-value"><%= Number.isFinite(weatherState.temperature) ? `${weatherState.temperature.toLocaleString('de-DE', { maximumFractionDigits: 1 })} °C` : '–' %></strong></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card border h-100 app-metric-card"><div class="card-body p-2 text-center"><span class="dashboard-metric-icon"><%- include('../partials/ui-icon', { name: 'humidity' }) %></span><span class="small text-body-secondary d-block">Luftfeuchte außen</span><strong class="dashboard-weather-value"><%= Number.isFinite(weatherState.humidity) ? `${weatherState.humidity.toLocaleString('de-DE', { maximumFractionDigits: 0 })} %` : '–' %></strong></div></div></div>
       </div>
+      <% if (weatherState.retrievedAt) { %><p class="app-updated-at"><span class="ui-status ui-status--ok"><span class="ui-status__dot"></span>Aktuell</span> Aktualisiert <time datetime="<%= weatherState.retrievedAt %>"><%= formatDateTime(weatherState.retrievedAt) %></time></p><% } %>
     <% } %>
   </div>
 </section>
@@ -223,12 +224,13 @@
 <% if (hasCoopClimate) { %>
 <section class="card border-0 dashboard-surface-card app-section-card dashboard-climate-section mb-2">
   <div class="card-body p-2">
-    <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Klima im Stall</h2><span class="dashboard-visual-icon" aria-hidden="true">🌡️</span></div>
+    <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Klima im Stall</h2><span class="dashboard-visual-icon"><%- include('../partials/ui-icon', { name: 'temperature' }) %></span></div>
     <div class="row g-2">
       <% if (coopState.climateError) { %><div class="col-12"><div class="alert alert-warning py-2 mb-0 small"><%= coopState.climateError %></div></div><% } %>
-      <% if (coopState.temperatureConfigured) { %><div class="col-6 col-lg-3"><div class="card border h-100 app-metric-card"><div class="card-body p-2 text-center"><span class="dashboard-metric-icon" aria-hidden="true">🌡</span><span class="small text-body-secondary d-block">Temperatur</span><strong class="fs-4"><%= coopState.temperature !== null ? `${coopState.temperature.toLocaleString('de-DE', { maximumFractionDigits: 1 })} °C` : 'Nicht verfügbar' %></strong></div></div></div><% } %>
-      <% if (coopState.humidityConfigured) { %><div class="col-6 col-lg-3"><div class="card border h-100 app-metric-card"><div class="card-body p-2 text-center"><span class="dashboard-metric-icon" aria-hidden="true">💧</span><span class="small text-body-secondary d-block">Luftfeuchte</span><strong class="fs-4"><%= coopState.humidity !== null ? `${coopState.humidity.toLocaleString('de-DE', { maximumFractionDigits: 1 })} %` : 'Nicht verfügbar' %></strong></div></div></div><% } %>
+      <% if (coopState.temperatureConfigured) { %><div class="col-6 col-lg-3"><div class="card border h-100 app-metric-card"><div class="card-body p-2 text-center"><span class="dashboard-metric-icon"><%- include('../partials/ui-icon', { name: 'temperature' }) %></span><span class="small text-body-secondary d-block">Temperatur</span><strong class="fs-4"><%= coopState.temperature !== null ? `${coopState.temperature.toLocaleString('de-DE', { maximumFractionDigits: 1 })} °C` : 'Nicht verfügbar' %></strong></div></div></div><% } %>
+      <% if (coopState.humidityConfigured) { %><div class="col-6 col-lg-3"><div class="card border h-100 app-metric-card"><div class="card-body p-2 text-center"><span class="dashboard-metric-icon"><%- include('../partials/ui-icon', { name: 'humidity' }) %></span><span class="small text-body-secondary d-block">Luftfeuchte</span><strong class="fs-4"><%= coopState.humidity !== null ? `${coopState.humidity.toLocaleString('de-DE', { maximumFractionDigits: 1 })} %` : 'Nicht verfügbar' %></strong></div></div></div><% } %>
     </div>
+    <p class="app-updated-at"><span class="ui-status <%= coopState.climateError ? 'ui-status--error' : 'ui-status--ok' %>"><span class="ui-status__dot"></span><%= coopState.climateError ? 'Fehler' : 'Verbunden' %></span><% if (coopState.retrievedAt) { %> Aktualisiert <time datetime="<%= coopState.retrievedAt %>"><%= formatDateTime(coopState.retrievedAt) %></time><% } %></p>
   </div>
 </section>
 <% } %>
@@ -242,7 +244,7 @@
       <span class="app-status-pill <%= coopState.doorSensorConfigured ? 'is-ok' : 'is-warning' %>"><%= coopState.doorSensorConfigured ? 'Sensor aktiv' : 'Ohne Endlagensensor' %></span>
     </div>
     <div class="dashboard-door-schedule dashboard-door-schedule--sunrise">
-      <span class="dashboard-door-sun" aria-hidden="true">☀</span>
+      <span class="dashboard-door-sun"><%- include('../partials/ui-icon', { name: 'sunrise' }) %></span>
       <span><span class="small text-body-secondary d-block">Sonnenaufgang</span><small class="text-success-emphasis">Stalltür öffnet</small></span>
       <strong><%= weatherState.sunrise ? formatDateTime(weatherState.sunrise).slice(11) : '–' %></strong>
     </div>
@@ -254,13 +256,13 @@
       <strong class="dashboard-door-status"><%= coopState.doorIsOpen === true ? 'Offen' : coopState.doorIsOpen === false ? 'Geschlossen' : 'Status unbekannt' %></strong>
     </div>
     <div class="dashboard-door-schedule dashboard-door-schedule--sunset">
-      <span class="dashboard-door-sun" aria-hidden="true">☾</span>
+      <span class="dashboard-door-sun"><%- include('../partials/ui-icon', { name: 'sunset' }) %></span>
       <span><span class="small text-body-secondary d-block">Sonnenuntergang</span><small class="text-primary-emphasis">Stalltür schließt</small></span>
       <strong><%= weatherState.sunset ? formatDateTime(weatherState.sunset).slice(11) : '–' %></strong>
     </div>
     <div class="row g-2 mt-1">
-      <% if (coopState.doorConfigured) { %><div class="col-6 d-grid"><form method="post" action="/coop/door/open" class="d-grid" data-confirm="Die Stalltür jetzt öffnen?" data-confirm-modal data-confirm-title="Stalltür öffnen"><button type="submit" class="btn btn-primary dashboard-door-button">↗ Öffnen</button></form></div><% } %>
-      <% if (coopState.doorCloseConfigured) { %><div class="col-6 d-grid"><form method="post" action="/coop/door/close" class="d-grid" data-confirm="Die Stalltür jetzt schließen?" data-confirm-modal data-confirm-title="Stalltür schließen"><button type="submit" class="btn btn-outline-primary dashboard-door-button">↘ Schließen</button></form></div><% } %>
+      <% if (coopState.doorConfigured) { %><div class="col-6 d-grid"><form method="post" action="/coop/door/open" class="d-grid" data-confirm="Die Stalltür jetzt öffnen?" data-confirm-modal data-confirm-title="Stalltür öffnen"><button type="submit" class="btn btn-primary dashboard-door-button"><%- include('../partials/ui-icon', { name: 'open' }) %> Öffnen</button></form></div><% } %>
+      <% if (coopState.doorCloseConfigured) { %><div class="col-6 d-grid"><form method="post" action="/coop/door/close" class="d-grid" data-confirm="Die Stalltür jetzt schließen?" data-confirm-modal data-confirm-title="Stalltür schließen"><button type="submit" class="btn btn-outline-primary dashboard-door-button"><%- include('../partials/ui-icon', { name: 'close' }) %> Schließen</button></form></div><% } %>
     </div>
   </div>
 </section>
@@ -280,8 +282,8 @@
             <img src="/coop/cameras/<%= cameraIndex %>/frame" data-camera-frame-url="/coop/cameras/<%= cameraIndex %>/frame" class="card-img-top ratio ratio-16x9 object-fit-cover" alt="Kamerabild <%= camera.name %>" loading="lazy" data-camera-image />
             <div class="alert alert-warning rounded-0 mb-0 d-none small" data-camera-error></div>
             <figcaption class="card-body p-2 d-flex align-items-center justify-content-between gap-2">
-              <span class="min-w-0"><strong class="d-block text-truncate">📷 <%= camera.name %></strong><small class="text-body-secondary" data-camera-meta>Standbild wird aktualisiert</small></span>
-              <button type="button" class="btn btn-sm btn-outline-primary" data-camera-stream-toggle>Stream starten</button>
+              <span class="min-w-0"><strong class="d-flex align-items-center gap-1 text-truncate"><%- include('../partials/ui-icon', { name: 'camera' }) %> <%= camera.name %></strong><small class="ui-status ui-status--loading" data-camera-meta aria-live="polite"><span class="ui-status__dot"></span>Standbild wird geladen</small></span>
+              <button type="button" class="btn btn-sm btn-outline-primary" data-camera-stream-toggle><%- include('../partials/ui-icon', { name: 'video' }) %> Stream</button>
             </figcaption>
           </figure>
           <% }) %>

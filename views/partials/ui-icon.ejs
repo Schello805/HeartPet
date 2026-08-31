@@ -1,0 +1,16 @@
+<% const iconName = typeof name === 'string' ? name : 'info'; %>
+<svg class="app-icon <%= typeof className === 'string' ? className : '' %>" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+  <% if (iconName === 'temperature') { %><path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0Z"/><path d="M12 9v8"/>
+  <% } else if (iconName === 'humidity') { %><path d="M12 2.8S6 9.2 6 14a6 6 0 0 0 12 0c0-4.8-6-11.2-6-11.2Z"/><path d="M9.5 15.2a2.8 2.8 0 0 0 2.7 2"/>
+  <% } else if (iconName === 'sunrise') { %><path d="M4 18h16M6 14a6 6 0 0 1 12 0M12 2v3M4.9 6.9 7 9M19.1 6.9 17 9"/><path d="m9 18 3-3 3 3"/>
+  <% } else if (iconName === 'sunset') { %><path d="M4 18h16M6 14a6 6 0 0 1 12 0M12 2v3M4.9 6.9 7 9M19.1 6.9 17 9"/><path d="m9 15 3 3 3-3"/>
+  <% } else if (iconName === 'camera') { %><path d="M4 7h3l1.4-2h7.2L17 7h3a2 2 0 0 1 2 2v9H2V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="12.5" r="3.5"/>
+  <% } else if (iconName === 'video') { %><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/>
+  <% } else if (iconName === 'open') { %><path d="M5 20h14M7 20V8h10v12M9 11h6M9 14h6"/><path d="m8 5 4-3 4 3"/>
+  <% } else if (iconName === 'close') { %><path d="M5 20h14M7 20V8h10v12M9 11h6M9 14h6"/><path d="m8 2 4 3 4-3"/>
+  <% } else if (iconName === 'refresh') { %><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6.1 8a7 7 0 0 1 11.7-2.6L20 7M4 17l2.2 1.6A7 7 0 0 0 17.9 16"/>
+  <% } else if (iconName === 'check') { %><path d="m5 12 4 4L19 6"/>
+  <% } else if (iconName === 'warning') { %><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 9v4M12 17h.01"/>
+  <% } else if (iconName === 'plus') { %><path d="M12 5v14M5 12h14"/>
+  <% } else { %><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/><% } %>
+</svg>

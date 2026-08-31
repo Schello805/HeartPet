@@ -68,6 +68,12 @@ function initCameraDiagnostics() {
     const streamUrl = card.dataset.cameraStreamUrl;
     let streaming = false;
     let diagnosing = false;
+    const setMeta = (state, label) => {
+      if (!meta) return;
+      meta.className = `ui-status ui-status--${state}`;
+      meta.innerHTML = '<span class="ui-status__dot" aria-hidden="true"></span>';
+      meta.append(document.createTextNode(label));
+    };
     const refreshFrame = () => {
       if (streaming || document.visibilityState !== "visible" || !frameUrl) return;
       image.src = `${frameUrl}${frameUrl.includes("?") ? "&" : "?"}t=${Date.now()}`;
@@ -75,19 +81,19 @@ function initCameraDiagnostics() {
     const setStreaming = (active) => {
       streaming = active;
       if (!toggle) return;
-      toggle.textContent = active ? "Stream stoppen" : "Stream starten";
+      toggle.textContent = active ? "Stream stoppen" : "Stream";
       toggle.classList.toggle("btn-primary", active);
       toggle.classList.toggle("btn-outline-primary", !active);
     };
     image.addEventListener("load", () => {
       image.classList.remove("d-none");
       errorBox.classList.add("d-none");
-      if (meta) meta.textContent = streaming ? "Live-Stream aktiv" : `Standbild ${new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}`;
+      setMeta("ok", streaming ? "Live-Stream aktiv" : `Aktualisiert ${new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}`);
     });
     image.addEventListener("error", async () => {
       setStreaming(false);
       errorBox.classList.remove("d-none");
-      if (meta) meta.textContent = "Verbindung unterbrochen";
+      setMeta("error", "Verbindung unterbrochen");
       errorBox.textContent = "Kameraverbindung wird geprüft …";
       if (diagnosing) return;
       diagnosing = true;
@@ -105,6 +111,7 @@ function initCameraDiagnostics() {
       const nextUrl = streaming ? frameUrl : streamUrl;
       if (!nextUrl) return;
       setStreaming(!streaming);
+      setMeta("loading", streaming ? "Stream wird geladen" : "Standbild wird geladen");
       image.src = `${nextUrl}${nextUrl.includes("?") ? "&" : "?"}t=${Date.now()}`;
     });
     window.setInterval(refreshFrame, 15000);
@@ -1620,7 +1627,7 @@ document.addEventListener("submit", (event) => {
     return;
   }
 
-  if (message && form.hasAttribute("data-confirm-modal")) {
+  if (message) {
     event.preventDefault();
     const modalElement = document.getElementById("app-confirm-modal");
     const messageElement = modalElement?.querySelector("[data-confirm-modal-message]");
@@ -1643,7 +1650,7 @@ document.addEventListener("submit", (event) => {
       submitButton.disabled = true;
       modalElement.classList.add("is-processing");
       modalElement.setAttribute("aria-busy", "true");
-      titleElement.textContent = form.dataset.confirmProgressTitle || "Stalltür wird bewegt";
+      titleElement.textContent = form.dataset.confirmProgressTitle || "Aktion wird ausgeführt";
       messageElement.classList.add("d-none");
       actionsElement.classList.add("d-none");
       progressElement.classList.remove("d-none");
@@ -1654,13 +1661,17 @@ document.addEventListener("submit", (event) => {
     return;
   }
 
-  if (message && !window.confirm(message)) {
-    event.preventDefault();
-    return;
-  }
-
   if (form.dataset.drawerForm !== "true") {
     saveCurrentViewState();
+  }
+  const submitter = event.submitter;
+  if (submitter instanceof HTMLButtonElement && !submitter.disabled && !submitter.name) {
+    submitter.disabled = true;
+    submitter.setAttribute("aria-busy", "true");
+    submitter.classList.add("is-submitting");
+    const originalText = submitter.textContent.trim();
+    submitter.dataset.originalText = originalText;
+    submitter.textContent = originalText ? `${originalText} …` : "Wird gespeichert …";
   }
 });
 
