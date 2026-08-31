@@ -136,6 +136,34 @@ test("Tiere-Arbeitsansicht zeigt die Akte im Browser-Kontext", async ({ page }) 
   await expect(workspaceTarget.getByRole("button", { name: "Tier mit allen Daten kopieren" })).toBeVisible();
 });
 
+test("Dashboard bleibt auf Smartphone, Tablet und Desktop visuell stabil", async ({ page }, testInfo) => {
+  await ensureAuthenticated(page);
+  for (const viewport of [
+    { name: "smartphone", width: 390, height: 844 },
+    { name: "tablet", width: 768, height: 1024 },
+    { name: "desktop", width: 1440, height: 1000 },
+  ]) {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await page.goto("/");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await expect(page.getByRole("heading", { name: "Tierbestand" })).toBeVisible();
+    const overflow = await page.locator("main").evaluate((element) => element.scrollWidth - element.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(1);
+    await page.screenshot({ path: testInfo.outputPath(`dashboard-${viewport.name}.png`), fullPage: true });
+  }
+});
+
+test("Dashboard-Abschnitte lassen sich lokal ausblenden und zurücksetzen", async ({ page }) => {
+  await ensureAuthenticated(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Dashboard anpassen" }).click();
+  const row = page.locator(".dashboard-customize-row").filter({ hasText: "Wetter" });
+  await row.getByRole("button", { name: "Ausblenden" }).click();
+  await expect(page.locator('[data-dashboard-section="weather"]')).toBeHidden();
+  await page.getByRole("button", { name: "Standard wiederherstellen" }).click();
+  await expect(page.locator('[data-dashboard-section="weather"]')).toBeVisible();
+});
+
 test("Dashboard zeigt mobil nur einen Einstieg für ein neues Tier", async ({ page }) => {
   await ensureAuthenticated(page);
   await page.setViewportSize({ width: 390, height: 844 });

@@ -1552,6 +1552,53 @@ function initSoftNavigation() {
   });
 }
 
+function initDashboardCustomizer() {
+  const root = document.querySelector("[data-dashboard-customizer]");
+  const panel = root?.querySelector("[data-dashboard-customize-panel]");
+  const toggle = root?.querySelector("[data-dashboard-customize-toggle]");
+  const sections = [...document.querySelectorAll("[data-dashboard-section]")];
+  if (!root || !panel || !toggle || !sections.length) return;
+  const key = "heartpet-dashboard-layout-v1";
+  const defaults = sections.map((section) => section.dataset.dashboardSection);
+  let state = { order: defaults, hidden: [] };
+  try {
+    const saved = JSON.parse(localStorage.getItem(key) || "null");
+    if (saved?.order) state = { order: [...saved.order.filter((id) => defaults.includes(id)), ...defaults.filter((id) => !saved.order.includes(id))], hidden: saved.hidden || [] };
+  } catch {}
+  const save = () => localStorage.setItem(key, JSON.stringify(state));
+  const apply = () => sections.forEach((section) => {
+    const id = section.dataset.dashboardSection;
+    section.style.order = String(state.order.indexOf(id) + 1);
+    section.classList.toggle("d-none", state.hidden.includes(id));
+  });
+  const render = () => {
+    panel.replaceChildren();
+    state.order.forEach((id, index) => {
+      const section = sections.find((item) => item.dataset.dashboardSection === id);
+      if (!section) return;
+      const row = document.createElement("div");
+      row.className = "dashboard-customize-row";
+      const label = document.createElement("strong");
+      label.textContent = section.dataset.dashboardTitle || id;
+      const actions = document.createElement("div");
+      actions.className = "btn-group btn-group-sm";
+      [["↑", -1, "Nach oben"], ["↓", 1, "Nach unten"]].forEach(([text, direction, title]) => {
+        const button = document.createElement("button"); button.type = "button"; button.className = "btn btn-outline-secondary"; button.textContent = text; button.title = title;
+        button.disabled = index + direction < 0 || index + direction >= state.order.length;
+        button.addEventListener("click", () => { const next = index + direction; [state.order[index], state.order[next]] = [state.order[next], state.order[index]]; save(); apply(); render(); });
+        actions.append(button);
+      });
+      const visibility = document.createElement("button"); visibility.type = "button"; visibility.className = "btn btn-outline-secondary"; visibility.textContent = state.hidden.includes(id) ? "Einblenden" : "Ausblenden";
+      visibility.addEventListener("click", () => { state.hidden = state.hidden.includes(id) ? state.hidden.filter((item) => item !== id) : [...state.hidden, id]; save(); apply(); render(); });
+      actions.append(visibility); row.append(label, actions); panel.append(row);
+    });
+    const reset = document.createElement("button"); reset.type = "button"; reset.className = "btn btn-sm btn-link"; reset.textContent = "Standard wiederherstellen";
+    reset.addEventListener("click", () => { state = { order: defaults, hidden: [] }; save(); apply(); render(); }); panel.append(reset);
+  };
+  toggle.addEventListener("click", () => { panel.classList.toggle("d-none"); toggle.textContent = panel.classList.contains("d-none") ? "Dashboard anpassen" : "Anpassen schließen"; });
+  apply(); render();
+}
+
 function initPage() {
   try {
     sessionStorage.setItem("heartpet-nav-loaded", "1");
@@ -1573,6 +1620,7 @@ function initPage() {
   initGlobalSearchAutocomplete();
   initAnimalWorkspace();
   initCameraDiagnostics();
+  initDashboardCustomizer();
   initCameraSettings();
   initHomematicDoorDiscovery();
   initClimateStatus();

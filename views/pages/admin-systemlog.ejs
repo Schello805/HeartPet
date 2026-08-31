@@ -14,6 +14,25 @@
     </div>
   </section>
 
+  <section class="card border-0 bg-body-tertiary">
+    <div class="card-body">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
+        <div><h3 class="h5 mb-1">Betriebszustand</h3><p class="text-body-secondary mb-0">Live-Zustand, Laufzeit und Antwortzeiten der HeartPet-Instanz.</p></div>
+        <form method="post" action="/admin/systemlog/diagnose" data-confirm="Jetzt OpenCCU und alle Kameras prüfen? Die Prüfung kann einige Sekunden dauern." data-confirm-title="Gerätediagnose starten"><button class="btn btn-primary" type="submit">Geräte jetzt prüfen</button></form>
+      </div>
+      <div class="row g-2 mb-3">
+        <% overview.healthChecks.forEach((check) => { %><div class="col-6 col-lg"><div class="card border h-100"><div class="card-body p-2"><span class="ui-status <%= check.ok ? 'ui-status--ok' : 'ui-status--error' %>"><span class="ui-status__dot"></span><%= check.name %></span><small class="d-block text-body-secondary mt-1"><%= check.detail %></small></div></div></div><% }) %>
+      </div>
+      <div class="row g-2">
+        <div class="col-6 col-lg-3"><div class="card border"><div class="card-body p-2"><small class="text-body-secondary d-block">Ø Antwortzeit</small><strong><%= overview.runtime.averageDurationMs %> ms</strong></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card border"><div class="card-body p-2"><small class="text-body-secondary d-block">Langsamste Anfrage</small><strong><%= overview.runtime.slowestDurationMs %> ms</strong></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card border"><div class="card-body p-2"><small class="text-body-secondary d-block">HTTP-Fehler</small><strong><%= overview.runtime.errors %></strong></div></div></div>
+        <div class="col-6 col-lg-3"><div class="card border"><div class="card-body p-2"><small class="text-body-secondary d-block">Arbeitsspeicher</small><strong><%= overview.runtime.memoryMb %> MB</strong></div></div></div>
+      </div>
+      <p class="small text-body-secondary mb-0 mt-3">Uptime-Monitor: <code>/health</code> · geschützte Details: <code>/admin/health</code></p>
+    </div>
+  </section>
+
   <section class="card border-0 <%= latestCcuLog && latestCcuLog.action.endsWith('_failed') ? 'bg-danger-subtle' : 'bg-body-tertiary' %>">
     <div class="card-body">
       <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2">

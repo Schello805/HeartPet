@@ -390,6 +390,19 @@ test("Systemlog ist erreichbar (inkl. Alias)", async () => {
   assert.equal(nestedAlias.headers.location, "/admin/systemlog");
 });
 
+test("Health-Checks liefern einen minimalen öffentlichen und geschützten Detailstatus", async () => {
+  const publicHealth = await request(app).get("/health");
+  assert.equal(publicHealth.status, 200);
+  assert.equal(publicHealth.body.ok, true);
+  assert.equal(publicHealth.body.service, "heartpet");
+
+  const adminHealth = await agent.get("/admin/health");
+  assert.equal(adminHealth.status, 200);
+  assert.equal(adminHealth.body.ok, true);
+  assert.ok(Array.isArray(adminHealth.body.checks));
+  assert.equal(typeof adminHealth.body.runtime.averageDurationMs, "number");
+});
+
 test("Such-Suggestions liefern Ergebnisse", async () => {
   const response = await agent.get("/api/search/suggest").query({ q: "min" });
   assert.equal(response.status, 200);

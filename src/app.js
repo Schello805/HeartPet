@@ -65,11 +65,26 @@ const cameraCacheDir = path.join(dataDir, "cache", "cameras");
 const loginAttempts = new Map();
 const passwordResetAttempts = new Map();
 const userPresenceWrites = new Map();
+const runtimeMetrics = { startedAt: Date.now(), requests: 0, errors: 0, totalDurationMs: 0, slowestDurationMs: 0, recent: [] };
 
 app.set("view engine", "ejs");
 app.set("views", path.join(projectRoot, "views"));
 
 app.disable("x-powered-by");
+app.use((req, res, next) => {
+  const startedAt = process.hrtime.bigint();
+  res.on("finish", () => {
+    if (req.path.startsWith("/static/")) return;
+    const durationMs = Number(process.hrtime.bigint() - startedAt) / 1e6;
+    runtimeMetrics.requests += 1;
+    runtimeMetrics.totalDurationMs += durationMs;
+    runtimeMetrics.slowestDurationMs = Math.max(runtimeMetrics.slowestDurationMs, durationMs);
+    if (res.statusCode >= 500) runtimeMetrics.errors += 1;
+    runtimeMetrics.recent.push({ method: req.method, path: req.path, status: res.statusCode, durationMs, at: new Date().toISOString() });
+    if (runtimeMetrics.recent.length > 50) runtimeMetrics.recent.shift();
+  });
+  next();
+});
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(express.json({ limit: "1mb" }));
 app.use((req, res, next) => {
@@ -126,6 +141,15 @@ app.get("/robots.txt", (req, res) => {
 });
 
 app.get("/sitemap.xml", (req, res) => res.sendStatus(404));
+
+app.get("/health", (req, res) => {
+  try {
+    db.prepare("SELECT 1 AS ok").get();
+    return res.json({ ok: true, service: "heartpet", revision: readAppRevision(), uptimeSeconds: Math.round(process.uptime()) });
+  } catch {
+    return res.status(503).json({ ok: false, service: "heartpet" });
+  }
+});
 
 app.use(createSessionMiddleware(dataDir));
 
@@ -3112,6 +3136,8 @@ app.get("/admin/systemlog", requireAdmin, (req, res) => {
     emailEnabled: settings.reminder_email_enabled === "true",
     telegramEnabled: settings.reminder_telegram_enabled === "true",
     ntfyEnabled: settings.reminder_ntfy_enabled === "true",
+    runtime: getRuntimeMetricsSnapshot(),
+    healthChecks: buildOperationalHealthChecks(settings),
   };
 
   res.render("pages/admin-systemlog", {
@@ -3122,6 +3148,38 @@ app.get("/admin/systemlog", requireAdmin, (req, res) => {
     latestCcuLog,
     overview,
   });
+});
+
+app.get("/admin/health", requireAdmin, (req, res) => {
+  const settings = getSettingsObject(db);
+  return res.json({ ok: true, revision: readAppRevision(), checkedAt: new Date().toISOString(), runtime: getRuntimeMetricsSnapshot(), checks: buildOperationalHealthChecks(settings) });
+});
+
+app.post("/admin/systemlog/diagnose", requireAdmin, async (req, res) => {
+  const settings = getSettingsObject(db);
+  const results = [];
+  const run = async (name, callback) => {
+    const startedAt = Date.now();
+    try {
+      await callback();
+      results.push({ name, ok: true, durationMs: Date.now() - startedAt });
+    } catch (error) {
+      results.push({ name, ok: false, durationMs: Date.now() - startedAt, error: redactSensitiveText(error.message) });
+    }
+  };
+  await run("Datenbank", async () => db.prepare("SELECT 1").get());
+  if (getHomematicClimateDatapointIds(settings)) await run("OpenCCU Klima", async () => {
+    const climate = await readHomematicClimateFromCcu(settings);
+    if (climate.error) throw new Error(climate.error);
+  });
+  for (const camera of parseCoopCameras(settings.coop_camera_streams)) await run(`Kamera ${camera.name}`, async () => {
+    const frame = await captureCameraFrame({ ...camera, url: camera.snapshotUrl, protocol: camera.snapshotProtocol });
+    if (!frame?.length) throw new Error("Kein Kamerabild empfangen.");
+  });
+  const ok = results.every((item) => item.ok);
+  createAuditLog(req, ok ? "system.diagnostic" : "system.diagnostic_failed", { results }, { entityType: "system" });
+  setFlash(req, ok ? "success" : "error", ok ? "Gerätediagnose erfolgreich abgeschlossen." : `${results.filter((item) => !item.ok).length} Diagnose-Prüfung(en) sind fehlgeschlagen.`);
+  return res.redirect("/admin/systemlog");
 });
 
 ["/systemlog", "/system-log", "/admin/system-log", "/admin/log"].forEach((aliasPath) => {
@@ -6555,6 +6613,34 @@ async function readOutdoorWeather(settings) {
 function toFiniteNumber(value) {
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
+}
+
+function getRuntimeMetricsSnapshot() {
+  const requests = runtimeMetrics.requests;
+  return {
+    uptimeSeconds: Math.round((Date.now() - runtimeMetrics.startedAt) / 1000),
+    requests,
+    errors: runtimeMetrics.errors,
+    averageDurationMs: requests ? Math.round(runtimeMetrics.totalDurationMs / requests) : 0,
+    slowestDurationMs: Math.round(runtimeMetrics.slowestDurationMs),
+    memoryMb: Math.round(process.memoryUsage().rss / 1024 / 1024),
+    recent: runtimeMetrics.recent.slice(-10).reverse(),
+  };
+}
+
+function buildOperationalHealthChecks(settings) {
+  const cameras = parseCoopCameras(settings.coop_camera_streams);
+  const cachedCameras = cameras.filter((camera, index) => {
+    const cached = cameraFrameCache.get(index) || readCameraFrameCache(index, camera.snapshotUrl);
+    return cached?.createdAt && Date.now() - cached.createdAt < 5 * 60 * 1000;
+  }).length;
+  return [
+    { name: "Datenbank", ok: Boolean(db.prepare("SELECT 1 AS ok").get()?.ok), detail: "SQLite erreichbar" },
+    { name: "OpenCCU", ok: Boolean(getHomematicXmlApiConfig(settings)), detail: getHomematicXmlApiConfig(settings) ? "XML-API konfiguriert" : "Nicht konfiguriert" },
+    { name: "Kameras", ok: cameras.length === 0 || cachedCameras === cameras.length, detail: cameras.length ? `${cachedCameras}/${cameras.length} mit aktuellem Cache` : "Keine Kameras konfiguriert" },
+    { name: "Wetter", ok: Boolean(settings.weather_latitude && settings.weather_longitude), detail: weatherCache.size ? "Cache aktiv" : "Noch kein Cachewert" },
+    { name: "Benachrichtigungen", ok: isEmailConfigured(settings) || isTelegramConfigured(settings) || isNtfyConfigured(settings), detail: "Mindestens ein Kanal konfiguriert" },
+  ];
 }
 
 function getWeatherCodeMeta(code, isDay = 1) {

@@ -2091,3 +2091,32 @@ body.bootstrap-app {
 [data-bs-theme="light"].bootstrap-app .animal-vet-trigger small {
   color: #183640 !important;
 }
+
+.bootstrap-app .dashboard-customize-bar {
+  order: 0;
+  display: flex;
+  justify-content: flex-end;
+  position: relative;
+}
+
+.bootstrap-app .dashboard-customize-panel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + .35rem);
+  right: 0;
+  width: min(24rem, calc(100vw - 2rem));
+  padding: .65rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: .8rem;
+  background: var(--bs-body-bg);
+  box-shadow: 0 .75rem 2rem rgba(23, 57, 67, .2);
+}
+
+.bootstrap-app .dashboard-customize-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .4rem 0;
+  border-bottom: 1px solid var(--bs-border-color);
+}

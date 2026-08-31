@@ -13,6 +13,11 @@
 <% const cameraGroups = []; %>
 <% coopState.cameras.forEach((camera, cameraIndex) => { const groupName = camera.group || 'Kameras'; let group = cameraGroups.find((item) => item.name === groupName); if (!group) { group = { name: groupName, cameras: [] }; cameraGroups.push(group); } group.cameras.push({ camera, cameraIndex }); }); %>
 
+<div class="dashboard-customize-bar mb-2" data-dashboard-customizer>
+  <button type="button" class="btn btn-sm btn-outline-secondary" data-dashboard-customize-toggle>Dashboard anpassen</button>
+  <div class="dashboard-customize-panel d-none" data-dashboard-customize-panel aria-live="polite"></div>
+</div>
+
 <% if (searchState.searchable) { %>
   <section class="card border-0 dashboard-feed-card mb-2">
     <div class="card-body p-2">
@@ -41,7 +46,7 @@
   </section>
 <% } %>
 
-<div class="row g-2 mb-2 dashboard-inventory-section">
+<div class="row g-2 mb-2 dashboard-inventory-section" data-dashboard-section="inventory" data-dashboard-title="Tierbestand">
   <div class="col-12">
     <section class="card border-0 h-100 dashboard-surface-card">
       <div class="card-body p-2">
@@ -84,7 +89,7 @@
 </div>
 
 <% if (hasPriorityContent) { %>
-<div class="row g-2 dashboard-priority-grid dashboard-priority-section">
+<div class="row g-2 dashboard-priority-grid dashboard-priority-section" data-dashboard-section="priority" data-dashboard-title="Hinweise und Erinnerungen">
   <% if (urgentList.length > 0) { %>
   <div class="<%= upcomingReminders.length > 0 ? 'col-lg-6' : 'col-12' %>">
     <article class="card border-0 h-100 dashboard-feed-card dashboard-surface-card semantic-card <%= urgentList.length > 0 ? 'semantic-card--danger' : 'semantic-card--ok' %>" id="dringende-erinnerungen">
@@ -200,7 +205,7 @@
 </div>
 <% } %>
 
-<section class="card border-0 dashboard-surface-card app-section-card dashboard-weather-card dashboard-weather-section mb-2">
+<section class="card border-0 dashboard-surface-card app-section-card dashboard-weather-card dashboard-weather-section mb-2" data-dashboard-section="weather" data-dashboard-title="Wetter">
   <div class="card-body p-2">
     <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
       <div>
@@ -222,7 +227,7 @@
 </section>
 
 <% if (hasCoopClimate) { %>
-<section class="card border-0 dashboard-surface-card app-section-card dashboard-climate-section mb-2">
+<section class="card border-0 dashboard-surface-card app-section-card dashboard-climate-section mb-2" data-dashboard-section="climate" data-dashboard-title="Klima im Stall">
   <div class="card-body p-2">
     <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Klima im Stall</h2><span class="dashboard-visual-icon"><%- include('../partials/ui-icon', { name: 'temperature' }) %></span></div>
     <div class="row g-2">
@@ -237,7 +242,7 @@
 
 <% if (hasDoorControl) { %>
 <% const visualDoorOpenPercent = coopState.doorIsOpen === true ? 100 : coopState.doorIsOpen === false ? 0 : coopState.doorOpenPercent; %>
-<section class="card border-0 dashboard-surface-card app-section-card dashboard-door-section mb-2" id="coop-control">
+<section class="card border-0 dashboard-surface-card app-section-card dashboard-door-section mb-2" id="coop-control" data-dashboard-section="door" data-dashboard-title="Stalltür">
   <div class="card-body p-2">
     <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
       <div><h2 class="h5 mb-1">Stalltür</h2><p class="small text-body-secondary mb-0">Tageszeiten, Position und Steuerung.</p></div>
@@ -269,7 +274,7 @@
 <% } %>
 
 <% if (coopState.cameras.length) { %>
-<section class="card border-0 dashboard-surface-card app-section-card dashboard-coop-section mb-2">
+<section class="card border-0 dashboard-surface-card app-section-card dashboard-coop-section mb-2" data-dashboard-section="cameras" data-dashboard-title="Kameras">
   <div class="card-body p-2">
     <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Kameras</h2><span class="badge text-bg-secondary-subtle border"><%= coopState.cameras.length %></span></div>
     <div class="vstack gap-3">
