@@ -281,8 +281,9 @@
           <figure class="card border h-100 mb-0 overflow-hidden dashboard-camera-card app-media-card" data-camera-card data-camera-status-url="/coop/cameras/<%= cameraIndex %>/status" data-camera-stream-url="/coop/cameras/<%= cameraIndex %>/stream">
             <img src="/coop/cameras/<%= cameraIndex %>/frame" data-camera-frame-url="/coop/cameras/<%= cameraIndex %>/frame" class="card-img-top ratio ratio-16x9 object-fit-cover" alt="Kamerabild <%= camera.name %>" loading="lazy" data-camera-image />
             <div class="alert alert-warning rounded-0 mb-0 d-none small" data-camera-error></div>
-            <figcaption class="card-body p-2 d-flex align-items-center justify-content-between gap-2">
-              <span class="min-w-0"><strong class="d-flex align-items-center gap-1 text-truncate"><%- include('../partials/ui-icon', { name: 'camera' }) %> <%= camera.name %></strong><small class="ui-status ui-status--loading" data-camera-meta aria-live="polite"><span class="ui-status__dot"></span>Standbild wird geladen</small></span>
+            <figcaption class="card-body p-2 dashboard-camera-caption">
+              <strong class="d-flex align-items-center gap-1 text-truncate"><%- include('../partials/ui-icon', { name: 'camera' }) %> <%= camera.name %></strong>
+              <small class="ui-status ui-status--loading" data-camera-meta aria-live="polite"><span class="ui-status__dot"></span>Wird geladen</small>
               <button type="button" class="btn btn-sm btn-outline-primary" data-camera-stream-toggle><%- include('../partials/ui-icon', { name: 'video' }) %> Stream</button>
             </figcaption>
           </figure>

@@ -1787,6 +1787,23 @@ body.bootstrap-app {
   padding: .55rem !important;
 }
 
+.bootstrap-app .dashboard-camera-caption {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .4rem .7rem;
+}
+
+.bootstrap-app .dashboard-camera-caption > .ui-status {
+  justify-self: end;
+  white-space: nowrap;
+}
+
+.bootstrap-app .dashboard-camera-caption > [data-camera-stream-toggle] {
+  grid-column: 1 / -1;
+  justify-self: center;
+}
+
 .bootstrap-app .dashboard-camera-card [data-camera-error] {
   position: absolute;
   z-index: 2;
@@ -1890,31 +1907,10 @@ body.bootstrap-app {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .bootstrap-app .dashboard-camera-card figcaption {
-    flex-wrap: wrap;
-  }
-
   .bootstrap-app .dashboard-camera-card [data-camera-stream-toggle] {
     min-height: 38px;
     justify-content: center;
     padding: .35rem .45rem;
-  }
-}
-
-@media (min-width: 500px) and (max-width: 767.98px) {
-  .bootstrap-app .dashboard-camera-card figcaption {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    align-items: center !important;
-    gap: .65rem !important;
-  }
-
-  .bootstrap-app .dashboard-camera-card figcaption > span {
-    display: contents;
-  }
-
-  .bootstrap-app .dashboard-camera-card .ui-status {
-    white-space: nowrap;
   }
 }
 
