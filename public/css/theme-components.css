@@ -1788,7 +1788,8 @@ body.bootstrap-app {
 }
 
 .bootstrap-app .dashboard-camera-caption {
-  display: grid;
+  display: grid !important;
+  flex-direction: initial !important;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: .4rem .7rem;

@@ -275,7 +275,7 @@
     <div class="vstack gap-3">
       <% cameraGroups.forEach((cameraGroup) => { %>
         <section>
-          <h3 class="h6 text-body-secondary mb-2"><%= cameraGroup.name %></h3>
+          <% if (cameraGroups.length > 1 || cameraGroup.name !== 'Kameras') { %><h3 class="h6 text-body-secondary mb-2"><%= cameraGroup.name %></h3><% } %>
           <div class="dashboard-camera-grid">
           <% cameraGroup.cameras.forEach(({ camera, cameraIndex }) => { %>
           <figure class="card border h-100 mb-0 overflow-hidden dashboard-camera-card app-media-card" data-camera-card data-camera-status-url="/coop/cameras/<%= cameraIndex %>/status" data-camera-stream-url="/coop/cameras/<%= cameraIndex %>/stream">
