@@ -194,6 +194,12 @@ test("Dashboard zeigt mobil nur einen Einstieg für ein neues Tier", async ({ pa
   });
   expect(mobileGridStyle.columns).toBe(2);
   expect(mobileGridStyle.gap).toBeGreaterThan(0);
+  const mobileThumb = await mobileGrid.locator(".animal-choice-thumb").first().evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return { width: rect.width, height: rect.height };
+  });
+  expect(mobileThumb.width).toBeGreaterThanOrEqual(95);
+  expect(mobileThumb.height).toBeGreaterThanOrEqual(95);
   const longNameLayout = await mobileGrid.locator(".animal-list-item").first().evaluate((card) => {
     const title = card.querySelector(".animal-choice-copy .fw-semibold");
     title.textContent = "Prinzessin Pfirsichblüte von Bechhofen am langen Hühnerstall";
