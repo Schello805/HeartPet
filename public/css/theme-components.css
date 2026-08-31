@@ -305,6 +305,7 @@ body.bootstrap-app {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 0.65rem;
+  align-items: start;
 }
 
 .dashboard-camera-card [data-camera-image] {
@@ -313,10 +314,21 @@ body.bootstrap-app {
   object-fit: cover;
 }
 
+@media (min-width: 400px) {
+  .dashboard-camera-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (min-width: 768px) {
   .dashboard-camera-grid {
-    grid-template-columns: repeat(auto-fill, minmax(220px, 280px));
-    align-items: start;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .dashboard-camera-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
@@ -1777,7 +1789,8 @@ body.bootstrap-app {
 }
 
 .bootstrap-app .dashboard-camera-card figcaption {
-  min-height: 3.55rem;
+  min-height: 3.35rem;
+  padding: .55rem !important;
 }
 
 .bootstrap-app .dashboard-camera-card [data-camera-error] {
@@ -1863,12 +1876,42 @@ body.bootstrap-app {
 
 @media (min-width: 768px) {
   .bootstrap-app .dashboard-camera-grid {
-    grid-template-columns: repeat(auto-fill, minmax(190px, 240px));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: .75rem;
   }
 
   .bootstrap-app.dashboard-page .app-metric-card .card-body {
     padding-block: .65rem !important;
+  }
+}
+
+@media (min-width: 1200px) {
+  .bootstrap-app .dashboard-camera-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 400px) and (max-width: 767.98px) {
+  .bootstrap-app .dashboard-camera-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .55rem;
+  }
+
+  .bootstrap-app .dashboard-camera-card figcaption {
+    display: grid !important;
+    align-items: start !important;
+    gap: .45rem !important;
+  }
+
+  .bootstrap-app .dashboard-camera-card [data-camera-stream-toggle] {
+    width: 100%;
+    min-height: 38px;
+    justify-content: center;
+    padding: .35rem .45rem;
+  }
+
+  .bootstrap-app .dashboard-camera-card .ui-status {
+    font-size: .7rem;
   }
 }
 
