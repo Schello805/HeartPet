@@ -224,6 +224,40 @@ body.bootstrap-app {
   .app-confirm-progress-dots i { animation-duration: 2s; }
 }
 
+/* One typographic scale for dashboard inventory and climate values. */
+.bootstrap-app.dashboard-page .dashboard-stat-card .card-body {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding-block: .7rem !important;
+}
+
+.bootstrap-app.dashboard-page .dashboard-stat-card .d-flex {
+  justify-content: center;
+  margin-bottom: .35rem !important;
+}
+
+.bootstrap-app.dashboard-page .dashboard-stat-card .dashboard-species-icon {
+  font-size: 1.55rem;
+}
+
+.bootstrap-app.dashboard-page .dashboard-stat-card .text-body-secondary {
+  color: var(--bs-body-color) !important;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.bootstrap-app.dashboard-page .dashboard-stat-card strong,
+.bootstrap-app.dashboard-page .dashboard-weather-value,
+.bootstrap-app.dashboard-page .app-metric-card strong.fs-4 {
+  font-family: inherit;
+  font-size: 1.55rem !important;
+  font-weight: 750;
+  line-height: 1.1;
+  letter-spacing: -.02em;
+  text-align: center;
+}
+
 .dashboard-door-schedule {
   display: grid;
   grid-template-columns: 2.4rem minmax(0, 1fr) auto;
