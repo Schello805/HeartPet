@@ -369,6 +369,7 @@ test("Datenbank-Migrationen werden protokolliert", () => {
   assert.ok(migrationIds.includes("002_schema_updates"));
   assert.ok(migrationIds.includes("003_user_invites"));
   assert.ok(migrationIds.includes("004_animal_status_context"));
+  assert.ok(migrationIds.includes("006_user_access_tracking"));
 });
 
 test("Systemlog ist erreichbar (inkl. Alias)", async () => {
@@ -455,6 +456,93 @@ test("Login führt mit return_to wieder direkt zur Tierakte zurück", async () =
   const expiresMatch = sessionCookie.match(/Expires=([^;]+)/i);
   assert.ok(expiresMatch);
   assert.ok(new Date(expiresMatch[1]).getTime() - Date.now() > 20 * 24 * 60 * 60 * 1000);
+});
+
+test("Passwort-Reset verwendet einen Einmal-Link und beendet bestehende Sitzungen", async () => {
+  const email = `reset-${Date.now()}@test.local`;
+  const userId = createUserWithPassword({
+    name: "Reset Nutzer",
+    email,
+    password: "altesPasswort1",
+    role: "viewer",
+  });
+  db.prepare("UPDATE settings SET value = ? WHERE key = ?").run("smtp.test.local", "smtp_host");
+  db.prepare("UPDATE settings SET value = ? WHERE key = ?").run("noreply@test.local", "smtp_from");
+
+  const activeSession = request.agent(app);
+  const activeLogin = await activeSession.post("/login").type("form").send({ email, password: "altesPasswort1" });
+  assert.equal(activeLogin.status, 302);
+  assert.equal((await activeSession.get("/")).status, 200);
+
+  const originalCreateTransport = nodemailer.createTransport;
+  let sentMail = null;
+  nodemailer.createTransport = () => ({
+    sendMail: async (payload) => {
+      sentMail = payload;
+      return { messageId: "password-reset" };
+    },
+  });
+
+  try {
+    const forgotPage = await request(app).get("/password-forgot");
+    assert.equal(forgotPage.status, 200);
+    assert.match(forgotPage.text, /Passwort vergessen/i);
+
+    const requestReset = await request(app).post("/password-forgot").type("form").send({ email });
+    assert.equal(requestReset.status, 302);
+    assert.equal(requestReset.headers.location, "/login");
+    assert.equal(sentMail?.to, email);
+    const token = sentMail?.text?.match(/password-reset\?token=([a-f0-9]+)/i)?.[1];
+    assert.ok(token);
+
+    const tokenPage = await request(app).get("/password-reset").query({ token });
+    assert.equal(tokenPage.status, 200);
+    assert.match(tokenPage.text, /Neues Passwort festlegen/i);
+
+    const save = await request(app).post("/password-reset").type("form").send({
+      token,
+      new_password: "neuesPasswort2",
+      new_password_confirm: "neuesPasswort2",
+    });
+    assert.equal(save.status, 302);
+    assert.equal(save.headers.location, "/login");
+    assert.equal(bcrypt.compareSync("neuesPasswort2", db.prepare("SELECT password_hash FROM users WHERE id = ?").get(userId).password_hash), true);
+
+    const oldSessionResponse = await activeSession.get("/");
+    assert.equal(oldSessionResponse.status, 302);
+    assert.match(oldSessionResponse.headers.location, /^\/login/);
+    assert.equal((await request(app).get("/password-reset").query({ token })).status, 400);
+
+    const newSession = request.agent(app);
+    const newLogin = await newSession.post("/login").type("form").send({ email, password: "neuesPasswort2" });
+    assert.equal(newLogin.status, 302);
+  } finally {
+    nodemailer.createTransport = originalCreateTransport;
+    db.prepare("UPDATE settings SET value = '' WHERE key IN ('smtp_host', 'smtp_from')").run();
+  }
+});
+
+test("Passwort-Reset verrät nicht, ob eine E-Mail-Adresse registriert ist", async () => {
+  const unknownAgent = request.agent(app);
+  const response = await unknownAgent.post("/password-forgot").type("form").send({ email: `nicht-vorhanden-${Date.now()}@test.local` });
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.location, "/login");
+  const loginPage = await unknownAgent.get("/login");
+  assert.match(loginPage.text, /Falls ein Konto mit dieser E-Mail-Adresse existiert/);
+});
+
+test("Admin sieht Online-Status und letzten Login weiterer Nutzer", async () => {
+  const email = `online-${Date.now()}@test.local`;
+  createUserWithPassword({ name: "Online Nutzer", email, password: "onlinePasswort1", role: "viewer" });
+  const onlineAgent = request.agent(app);
+  assert.equal((await onlineAgent.post("/login").type("form").send({ email, password: "onlinePasswort1" })).status, 302);
+
+  const usersPage = await agent.get("/admin/benutzer");
+  assert.equal(usersPage.status, 200);
+  assert.match(usersPage.text, /Online Nutzer/);
+  assert.match(usersPage.text, /● Online/);
+  assert.match(usersPage.text, /Letzter Login:/);
+  assert.doesNotMatch(usersPage.text, /Online Nutzer[\s\S]{0,800}Letzter Login:\s*Noch nie/);
 });
 
 test("Importseite erklärt klar, was importiert wird und was nicht", async () => {

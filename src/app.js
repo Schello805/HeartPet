@@ -36,6 +36,7 @@ const {
   sendUserInviteEmail,
   sendUserCreatedAdminEmail,
   sendEmailChangeConfirmation,
+  sendPasswordResetEmail,
   verifySmtpConnection,
   isEmailEnabled,
   isTelegramEnabled,
@@ -62,6 +63,8 @@ const homematicLoginPromises = new Map();
 const cameraFrameCache = new Map();
 const cameraCacheDir = path.join(dataDir, "cache", "cameras");
 const loginAttempts = new Map();
+const passwordResetAttempts = new Map();
+const userPresenceWrites = new Map();
 
 app.set("view engine", "ejs");
 app.set("views", path.join(projectRoot, "views"));
@@ -129,17 +132,28 @@ app.use(createSessionMiddleware(dataDir));
 app.use((req, res, next) => {
   const flash = req.session.flash || null;
   delete req.session.flash;
-  const currentUserRecord = req.session.user
+  let currentUserRecord = req.session.user
     ? db.prepare("SELECT * FROM users WHERE id = ?").get(req.session.user.id)
     : null;
 
+  if (currentUserRecord && Number(req.session.user.sessionVersion || 0) !== Number(currentUserRecord.session_version || 0)) {
+    delete req.session.user;
+    currentUserRecord = null;
+  }
+
   if (currentUserRecord) {
+    const lastPresenceWrite = Number(userPresenceWrites.get(currentUserRecord.id) || 0);
+    if (Date.now() - lastPresenceWrite >= 60_000) {
+      db.prepare("UPDATE users SET last_seen_at = CURRENT_TIMESTAMP WHERE id = ?").run(currentUserRecord.id);
+      userPresenceWrites.set(currentUserRecord.id, Date.now());
+    }
     req.session.user = {
       id: currentUserRecord.id,
       name: currentUserRecord.name,
       email: currentUserRecord.email,
       role: currentUserRecord.role,
       mustChangePassword: Boolean(currentUserRecord.must_change_password),
+      sessionVersion: Number(currentUserRecord.session_version || 0),
     };
   }
 
@@ -300,6 +314,7 @@ app.post("/setup", async (req, res) => {
     email: adminEmail,
     role: "admin",
     mustChangePassword: false,
+    sessionVersion: 0,
   };
 
   setFlash(req, "success", "Ersteinrichtung abgeschlossen.");
@@ -346,6 +361,8 @@ app.post("/login", (req, res) => {
   }
 
   loginAttempts.delete(attemptKey);
+  db.prepare("UPDATE users SET last_login_at = CURRENT_TIMESTAMP, last_seen_at = CURRENT_TIMESTAMP, last_logout_at = NULL WHERE id = ?").run(user.id);
+  userPresenceWrites.set(user.id, Date.now());
 
   req.session.user = {
     id: user.id,
@@ -353,6 +370,7 @@ app.post("/login", (req, res) => {
     email: user.email,
     role: user.role,
     mustChangePassword: Boolean(user.must_change_password),
+    sessionVersion: Number(user.session_version || 0),
   };
 
   setFlash(req, "success", "Login erfolgreich.");
@@ -360,9 +378,101 @@ app.post("/login", (req, res) => {
 });
 
 app.post("/logout", requireAuth, (req, res) => {
+  db.prepare("UPDATE users SET last_logout_at = CURRENT_TIMESTAMP, last_seen_at = CURRENT_TIMESTAMP WHERE id = ?").run(req.session.user.id);
+  userPresenceWrites.delete(req.session.user.id);
   req.session.destroy(() => {
     res.redirect("/login");
   });
+});
+
+app.get("/password-forgot", (req, res) => {
+  if (req.session.user) return res.redirect("/");
+  res.render("pages/password-forgot", { pageTitle: "Passwort vergessen" });
+});
+
+app.post("/password-forgot", async (req, res) => {
+  const email = String(req.body.email || "").trim().toLowerCase();
+  const attemptKey = `${req.ip}|${email}`;
+  const now = Date.now();
+  if (passwordResetAttempts.size > 1000) {
+    for (const [key, timestamps] of passwordResetAttempts) {
+      const active = timestamps.filter((timestamp) => now - timestamp < 60 * 60 * 1000);
+      if (active.length) passwordResetAttempts.set(key, active);
+      else passwordResetAttempts.delete(key);
+    }
+  }
+  const recentAttempts = (passwordResetAttempts.get(attemptKey) || []).filter((timestamp) => now - timestamp < 60 * 60 * 1000);
+  if (recentAttempts.length < 3) {
+    recentAttempts.push(now);
+    passwordResetAttempts.set(attemptKey, recentAttempts);
+    const user = db.prepare("SELECT id, name, email FROM users WHERE email = ?").get(email);
+    if (user) {
+      const token = crypto.randomBytes(32).toString("hex");
+      const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+      const settings = getSettingsObject(db);
+      const resetUrl = `${resolveAppBaseUrl(settings)}/password-reset?token=${encodeURIComponent(token)}`;
+      db.prepare("DELETE FROM password_reset_tokens WHERE user_id = ? AND used_at IS NULL").run(user.id);
+      db.prepare("INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES (?, ?, datetime('now', '+30 minutes'))").run(user.id, tokenHash);
+      try {
+        await sendPasswordResetEmail(settings, { recipient: user.email, name: user.name, resetUrl });
+        createNotificationLog({ userId: user.id, channel: "email", type: "password_reset", recipient: user.email, subject: "Passwort zurücksetzen", status: "sent" });
+        createAuditLog(req, "user.password_reset_requested", {}, { entityType: "user", entityId: user.id });
+      } catch (error) {
+        db.prepare("DELETE FROM password_reset_tokens WHERE token_hash = ?").run(tokenHash);
+        createNotificationLog({ userId: user.id, channel: "email", type: "password_reset", recipient: user.email, subject: "Passwort zurücksetzen", status: "error", error: error.message });
+        console.error("[HeartPet] Passwort-Reset-Mail fehlgeschlagen:", error.message);
+      }
+    }
+  }
+  setFlash(req, "success", "Falls ein Konto mit dieser E-Mail-Adresse existiert, wurde ein Link zum Zurücksetzen versendet.");
+  res.redirect("/login");
+});
+
+app.get("/password-reset", (req, res) => {
+  const token = String(req.query.token || "").trim();
+  const tokenHash = token ? crypto.createHash("sha256").update(token).digest("hex") : "";
+  const reset = tokenHash ? db.prepare(`
+    SELECT id FROM password_reset_tokens
+    WHERE token_hash = ? AND used_at IS NULL AND expires_at >= CURRENT_TIMESTAMP
+  `).get(tokenHash) : null;
+  res.status(reset ? 200 : 400).render("pages/password-reset", {
+    pageTitle: "Neues Passwort",
+    token,
+    valid: Boolean(reset),
+  });
+});
+
+app.post("/password-reset", async (req, res) => {
+  const token = String(req.body.token || "").trim();
+  const redirectUrl = `/password-reset?token=${encodeURIComponent(token)}`;
+  if (String(req.body.new_password || "") !== String(req.body.new_password_confirm || "")) {
+    setFlash(req, "error", "Die neuen Passwörter stimmen nicht überein.");
+    return res.redirect(redirectUrl);
+  }
+  const passwordError = await validateNewPassword(req.body.new_password);
+  if (passwordError) {
+    setFlash(req, "error", passwordError);
+    return res.redirect(redirectUrl);
+  }
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+  const reset = db.prepare(`
+    SELECT * FROM password_reset_tokens
+    WHERE token_hash = ? AND used_at IS NULL AND expires_at >= CURRENT_TIMESTAMP
+  `).get(tokenHash);
+  if (!reset) {
+    setFlash(req, "error", "Der Link ist ungültig oder abgelaufen.");
+    return res.redirect("/password-forgot");
+  }
+  db.transaction(() => {
+    db.prepare("UPDATE users SET password_hash = ?, must_change_password = 0, session_version = session_version + 1 WHERE id = ?")
+      .run(bcrypt.hashSync(req.body.new_password, 10), reset.user_id);
+    db.prepare("UPDATE password_reset_tokens SET used_at = CURRENT_TIMESTAMP WHERE id = ?").run(reset.id);
+    db.prepare("UPDATE password_reset_tokens SET used_at = CURRENT_TIMESTAMP WHERE user_id = ? AND used_at IS NULL").run(reset.user_id);
+  })();
+  userPresenceWrites.delete(reset.user_id);
+  createAuditLog(req, "user.password_reset_completed", {}, { entityType: "user", entityId: reset.user_id });
+  setFlash(req, "success", "Passwort gespeichert. Du kannst dich jetzt anmelden.");
+  return res.redirect("/login");
 });
 
 app.get("/email-change/confirm", (req, res) => {
@@ -476,7 +586,7 @@ app.post("/invite/accept", async (req, res) => {
   }
 
   const tx = db.transaction(() => {
-    db.prepare("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?")
+    db.prepare("UPDATE users SET password_hash = ?, must_change_password = 0, session_version = session_version + 1 WHERE id = ?")
       .run(bcrypt.hashSync(req.body.new_password, 10), invite.user_id);
     db.prepare("UPDATE user_invites SET used_at = CURRENT_TIMESTAMP WHERE id = ?").run(invite.id);
     db.prepare("UPDATE user_invites SET used_at = CURRENT_TIMESTAMP WHERE user_id = ? AND id != ? AND used_at IS NULL")
@@ -2866,7 +2976,13 @@ app.get("/admin/veterinarians/:id/update", requireAdmin, (req, res) => {
 app.get("/admin/benutzer", requireAdmin, (req, res) => {
   const viewData = getAdminViewData("Benutzer", "/admin/benutzer");
   viewData.selfUser = db.prepare(`
-    SELECT id, name, email, role, must_change_password
+    SELECT id, name, email, role, must_change_password, last_login_at, last_seen_at, last_logout_at,
+      CASE
+        WHEN last_seen_at IS NOT NULL
+          AND datetime(last_seen_at) >= datetime('now', '-5 minutes')
+          AND (last_logout_at IS NULL OR datetime(last_seen_at) > datetime(last_logout_at))
+        THEN 1 ELSE 0
+      END AS is_online
     FROM users
     WHERE id = ?
   `).get(req.session.user.id);
@@ -3868,10 +3984,11 @@ app.post("/admin/password", async (req, res) => {
     return res.redirect("/admin/benutzer");
   }
 
-  db.prepare("UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?")
+  db.prepare("UPDATE users SET password_hash = ?, must_change_password = 0, session_version = session_version + 1 WHERE id = ?")
     .run(bcrypt.hashSync(req.body.new_password, 10), currentUser.id);
 
   req.session.user.mustChangePassword = false;
+  req.session.user.sessionVersion = Number(currentUser.session_version || 0) + 1;
   createAuditLog(req, "self.password_change", { user_id: currentUser.id }, { entityType: "user", entityId: currentUser.id });
   setFlash(req, "success", "Passwort wurde aktualisiert.");
   res.redirect("/admin/benutzer");
@@ -7179,6 +7296,13 @@ function getAdminViewData(pageTitle, adminPath) {
     users: db.prepare(`
       SELECT
         id, name, email, role, must_change_password, created_at,
+        last_login_at, last_seen_at, last_logout_at,
+        CASE
+          WHEN last_seen_at IS NOT NULL
+            AND datetime(last_seen_at) >= datetime('now', '-5 minutes')
+            AND (last_logout_at IS NULL OR datetime(last_seen_at) > datetime(last_logout_at))
+          THEN 1 ELSE 0
+        END AS is_online,
         can_edit_animals, can_manage_documents, can_manage_gallery, can_manage_health,
         can_manage_feedings, can_manage_notes, can_manage_reminders
       FROM users

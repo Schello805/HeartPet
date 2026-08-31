@@ -4,6 +4,7 @@ const migrations = [
   require("./003_user_invites"),
   require("./004_animal_status_context"),
   require("./005_vaccination_certificates"),
+  require("./006_user_access_tracking"),
 ];
 
 function ensureMigrationsTable(db) {

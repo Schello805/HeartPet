@@ -32,6 +32,10 @@
               <div class="card-body py-2 px-3">
                 <strong class="d-block"><%= me.name || 'Administrator' %></strong>
                 <small class="text-body-secondary"><%= me.email || '-' %> · <%= getRoleLabel(me.role || 'admin') %></small>
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                  <span class="status-chip <%= me.is_online ? 'status-ok' : 'status-muted' %>"><%= me.is_online ? '● Online' : 'Offline' %></span>
+                  <small class="text-body-secondary">Letzter Login: <%= me.last_login_at ? formatDateTime(me.last_login_at) : 'Noch nie' %></small>
+                </div>
               </div>
             </div>
           </div>
@@ -116,7 +120,7 @@
           <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
             <div>
               <h3 class="h5 mb-1">Bestehende Nutzer</h3>
-              <p class="text-body-secondary mb-0">Rollen, Rechte und Kontaktdaten direkt pro Karte.</p>
+              <p class="text-body-secondary mb-0">Rollen, Rechte und Kontaktdaten direkt pro Karte. Online bedeutet: innerhalb der letzten 5 Minuten aktiv.</p>
             </div>
             <span class="badge text-bg-secondary"><%= managedUsers.length %></span>
           </div>
@@ -138,6 +142,11 @@
                         <div>
                           <strong class="d-block mb-1"><%= user.name %></strong>
                           <p class="mb-1 text-body-secondary"><%= user.email %> · <%= getRoleLabel(user.role) %></p>
+                          <div class="d-flex flex-wrap gap-2 mb-2">
+                            <span class="status-chip <%= user.is_online ? 'status-ok' : 'status-muted' %>"><%= user.is_online ? '● Online' : 'Offline' %></span>
+                            <small class="text-body-secondary">Letzter Login: <%= user.last_login_at ? formatDateTime(user.last_login_at) : 'Noch nie' %></small>
+                            <small class="text-body-secondary">Zuletzt aktiv: <%= user.last_seen_at ? formatDateTime(user.last_seen_at) : 'Noch nie' %></small>
+                          </div>
                           <small class="text-body-secondary">
                             Rechte:
                             <%= [

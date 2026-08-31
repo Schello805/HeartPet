@@ -323,6 +323,46 @@ async function sendEmailChangeConfirmation(settings, payload) {
   });
 }
 
+async function sendPasswordResetEmail(settings, payload) {
+  const recipient = String(payload?.recipient || "").trim();
+  const resetUrl = String(payload?.resetUrl || "").trim();
+  if (!recipient || !resetUrl) throw new Error("Passwort-Reset-E-Mail konnte nicht erstellt werden.");
+  if (!settings.smtp_host || !settings.smtp_from) throw new Error("SMTP ist nicht vollständig konfiguriert.");
+
+  const transporter = createSmtpTransport(settings);
+  const appName = settings.app_name || "HeartPet";
+  const appBaseUrl = getAppBaseUrl(settings);
+  const { attachments, logoUrl } = resolveEmailLogo({
+    logoFilePath: getAppLogoFilePath(settings),
+    logoCid: "heartpet-password-reset-logo",
+    appBaseUrl,
+  });
+  const safe = (value) => String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+  const html = `<!doctype html><html lang="de"><body style="margin:0;padding:24px 12px;background:#f2faf6;font-family:Segoe UI,Arial,sans-serif;color:#1d3128;"><table role="presentation" width="100%"><tr><td align="center"><table role="presentation" width="100%" style="max-width:600px;background:#fcfffd;border:1px solid #cfe5d8;border-radius:10px;"><tr><td style="padding:20px;"><div style="display:flex;align-items:center;justify-content:space-between;gap:16px;"><div><div style="font-size:12px;color:#5f7b6f;text-transform:uppercase;letter-spacing:.08em;">${safe(appName)}</div><h1 style="font-size:22px;margin:5px 0 0;">Passwort zurücksetzen</h1></div>${logoUrl ? `<img src="${safe(logoUrl)}" alt="${safe(appName)} Logo" style="width:56px;height:56px;object-fit:contain;" />` : ""}</div><p style="line-height:1.55;margin:20px 0;">Hallo ${safe(payload.name || "")}, über diesen einmalig nutzbaren Link kannst du dein Passwort neu festlegen. Der Link ist 30 Minuten gültig.</p><a href="${safe(resetUrl)}" style="display:inline-block;padding:11px 16px;border-radius:8px;background:#2e9a6f;color:#fff;text-decoration:none;font-weight:700;">Neues Passwort festlegen</a><p style="font-size:12px;color:#6f897d;line-height:1.5;margin:20px 0 0;">Falls du das nicht angefordert hast, kannst du diese Nachricht ignorieren. Dein bisheriges Passwort bleibt unverändert.</p></td></tr></table></td></tr></table></body></html>`;
+  const text = [
+    `${appName} - Passwort zurücksetzen`,
+    "",
+    `Hallo ${payload.name || ""},`,
+    "über diesen einmalig nutzbaren Link kannst du dein Passwort neu festlegen. Er ist 30 Minuten gültig:",
+    resetUrl,
+    "",
+    "Falls du das nicht angefordert hast, kannst du diese Nachricht ignorieren.",
+  ].join("\n");
+
+  await transporter.sendMail({
+    from: settings.smtp_from,
+    to: recipient,
+    subject: `[${appName}] Passwort zurücksetzen`,
+    text,
+    html,
+    attachments,
+  });
+}
+
 async function sendTelegramReminder(settings, reminder) {
   const animalPart = reminder.animal_name ? ` für *${escapeTelegram(reminder.animal_name)}*` : "";
   const appName = settings.app_name || "HeartPet";
@@ -1006,6 +1046,7 @@ module.exports = {
   sendUserInviteEmail,
   sendUserCreatedAdminEmail,
   sendEmailChangeConfirmation,
+  sendPasswordResetEmail,
   sendTestEmail,
   sendTestTelegram,
   sendTestNtfy,
