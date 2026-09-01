@@ -1202,6 +1202,10 @@ small {
   transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
 }
 
+.bootstrap-app.animals-page [data-animal-workspace-target] {
+  scroll-margin-top: calc(var(--app-mobile-topbar-height, 4.75rem) + 0.75rem);
+}
+
 .bootstrap-app.animals-page .animal-list-item:hover,
 .bootstrap-app.animals-page .animal-list-item:focus-visible {
   transform: translateY(-1px);

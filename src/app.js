@@ -4352,8 +4352,10 @@ async function maybeSendDailyDigest() {
 
   const timeRaw = String(settings.daily_digest_time || "07:30").trim();
   const [hourRaw, minuteRaw] = timeRaw.split(":");
-  const hour = Math.max(0, Math.min(23, Number.parseInt(hourRaw || "7", 10) || 7));
-  const minute = Math.max(0, Math.min(59, Number.parseInt(minuteRaw || "30", 10) || 30));
+  const parsedHour = Number.parseInt(hourRaw, 10);
+  const parsedMinute = Number.parseInt(minuteRaw, 10);
+  const hour = Math.max(0, Math.min(23, Number.isFinite(parsedHour) ? parsedHour : 7));
+  const minute = Math.max(0, Math.min(59, Number.isFinite(parsedMinute) ? parsedMinute : 30));
   const now = dayjs();
   const today = now.format("YYYY-MM-DD");
   const sendAt = dayjs(`${today}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`);

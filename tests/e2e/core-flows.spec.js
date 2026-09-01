@@ -126,7 +126,7 @@ test("Tiere-Arbeitsansicht zeigt die Akte im Browser-Kontext", async ({ page }) 
   const animalWorkspaceLink = page.locator("[data-animal-workspace-link]").first();
   await expect(animalWorkspaceLink).toBeVisible();
   const workspaceHref = await animalWorkspaceLink.getAttribute("href");
-  expect(workspaceHref).not.toContain("#selected-animal");
+  expect(workspaceHref).toContain("#selected-animal");
   await page.goto(workspaceHref || "/animals");
 
   const workspaceTarget = page.locator("[data-animal-workspace-target]");
@@ -217,6 +217,16 @@ test("Dashboard zeigt mobil nur einen Einstieg für ein neues Tier", async ({ pa
   await expect(page.getByRole("link", { name: "Aktualisieren" })).toHaveCount(0);
   await expect(page.locator(".animals-choice-list .animal-choice-thumb").first()).toBeVisible();
   await expect(page.locator(".animals-choice-list .animal-choice-thumb--fallback").first()).toBeVisible();
+
+  const mobileAnimalLink = mobileGrid.locator("[data-animal-workspace-link]").first();
+  await mobileAnimalLink.click();
+  await expect(page).toHaveURL(/animal_id=.*#selected-animal$/);
+  const selectedAnimalPosition = await page.locator("#selected-animal").evaluate((element) => ({
+    top: element.getBoundingClientRect().top,
+    viewportHeight: window.innerHeight,
+  }));
+  expect(selectedAnimalPosition.top).toBeGreaterThanOrEqual(0);
+  expect(selectedAnimalPosition.top).toBeLessThan(selectedAnimalPosition.viewportHeight * 0.5);
 
   await page.locator(".app-mobile-bottom-nav").getByRole("button", { name: "Mehr" }).click();
   await expect(page.locator("#mobileNavOffcanvas")).toBeVisible();
