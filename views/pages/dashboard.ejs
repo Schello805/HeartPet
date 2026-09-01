@@ -14,7 +14,7 @@
 <% coopState.cameras.forEach((camera, cameraIndex) => { const groupName = camera.group || 'Kameras'; let group = cameraGroups.find((item) => item.name === groupName); if (!group) { group = { name: groupName, cameras: [] }; cameraGroups.push(group); } group.cameras.push({ camera, cameraIndex }); }); %>
 
 <div class="dashboard-customize-bar mb-2" data-dashboard-customizer>
-  <button type="button" class="btn btn-sm btn-outline-secondary" data-dashboard-customize-toggle>Dashboard anpassen</button>
+  <button type="button" class="btn btn-sm btn-link text-secondary" data-dashboard-customize-toggle aria-label="Dashboard anpassen">⚙ Anpassen</button>
   <div class="dashboard-customize-panel d-none" data-dashboard-customize-panel aria-live="polite"></div>
 </div>
 

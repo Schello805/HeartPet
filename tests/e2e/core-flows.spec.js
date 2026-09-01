@@ -157,11 +157,21 @@ test("Dashboard-Abschnitte lassen sich lokal ausblenden und zurücksetzen", asyn
   await ensureAuthenticated(page);
   await page.goto("/");
   await page.getByRole("button", { name: "Dashboard anpassen" }).click();
-  const row = page.locator(".dashboard-customize-row").filter({ hasText: "Wetter" });
-  await row.getByRole("button", { name: "Ausblenden" }).click();
-  await expect(page.locator('[data-dashboard-section="weather"]')).toBeHidden();
+  const inventorySection = page.locator('[data-dashboard-section="inventory"]');
+  const inventoryOrderBefore = await inventorySection.evaluate((element) => Number.parseInt(element.style.order, 10));
+  await inventorySection.getByRole("button", { name: "Tierbestand Nach unten" }).click();
+  const inventoryOrderAfter = await inventorySection.evaluate((element) => Number.parseInt(element.style.order, 10));
+  expect(inventoryOrderAfter).toBeGreaterThan(inventoryOrderBefore);
+  const weatherSection = page.locator('[data-dashboard-section="weather"]');
+  const controls = weatherSection.locator(":scope > .dashboard-section-controls");
+  await expect(controls).toBeVisible();
+  await controls.getByRole("button", { name: "Wetter Ausblenden" }).click();
+  await expect(weatherSection).toHaveClass(/dashboard-section-is-hidden/);
+  await page.getByRole("button", { name: "Dashboard-Anpassung schließen" }).click();
+  await expect(weatherSection).toBeHidden();
+  await page.getByRole("button", { name: "Dashboard anpassen" }).click();
   await page.getByRole("button", { name: "Standard wiederherstellen" }).click();
-  await expect(page.locator('[data-dashboard-section="weather"]')).toBeVisible();
+  await expect(weatherSection).toBeVisible();
 });
 
 test("Dashboard zeigt mobil nur einen Einstieg für ein neues Tier", async ({ page }) => {
