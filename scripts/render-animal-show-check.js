@@ -1,12 +1,21 @@
 const ejs = require("ejs");
+const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const dayjs = require("dayjs");
+
+const temporaryDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "heartpet-render-check-"));
+process.env.HEARTPET_DATA_DIR = temporaryDataDir;
 
 const { initDatabase, getSettingsObject } = require("../src/db");
 const { getAnimalSpeciesIcon } = require("../src/view-helpers");
 
 const db = initDatabase();
-const animalId = Number(process.argv[2] || 1);
+const speciesId = db.prepare("INSERT INTO species (name) VALUES (?)").run("Huhn").lastInsertRowid;
+const animalId = db.prepare(`
+  INSERT INTO animals (name, species_id, sex, birth_date, intake_date, status)
+  VALUES (?, ?, ?, ?, ?, ?)
+`).run("Render-Testtier", speciesId, "Weiblich", "2024-01-01", "2024-02-01", "Aktiv").lastInsertRowid;
 
 const animal = db.prepare(`
   SELECT
@@ -23,6 +32,8 @@ const animal = db.prepare(`
 
 if (!animal) {
   console.error(`Tier ${animalId} wurde nicht gefunden.`);
+  db.close();
+  fs.rmSync(temporaryDataDir, { recursive: true, force: true });
   process.exit(1);
 }
 
@@ -124,12 +135,18 @@ const locals = {
   },
 };
 
-ejs.renderFile(path.join(process.cwd(), "views", "pages", "animal-show.ejs"), locals, {}, (error, html) => {
-  if (error) {
-    console.error(error);
-    process.exit(1);
+async function renderAnimalShow() {
+  try {
+    const html = await ejs.renderFile(path.join(process.cwd(), "views", "pages", "animal-show.ejs"), locals);
+    console.log("render-ok");
+    console.log(html.slice(0, 600));
+  } finally {
+    db.close();
+    fs.rmSync(temporaryDataDir, { recursive: true, force: true });
   }
+}
 
-  console.log("render-ok");
-  console.log(html.slice(0, 600));
+renderAnimalShow().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
 });
