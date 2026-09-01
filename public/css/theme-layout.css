@@ -1466,7 +1466,7 @@ small {
 }
 
 .bootstrap-app .animal-primary-actions {
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .bootstrap-app .animal-primary-actions .animal-quick-action-tile {
@@ -2057,4 +2057,24 @@ small {
     max-width: none;
   }
 
+}
+
+@media (max-width: 575.98px) {
+  .bootstrap-app .animal-simple-actions-card .card-body {
+    gap: 0.48rem;
+    padding: 0.62rem !important;
+  }
+
+  .bootstrap-app .animal-primary-actions .animal-quick-action-tile {
+    min-height: 3.25rem;
+    padding: 0.5rem 0.58rem;
+  }
+
+  .bootstrap-app .animal-primary-actions .animal-quick-action-tile span {
+    font-size: 0.82rem;
+  }
+
+  .bootstrap-app .animal-primary-actions .animal-quick-action-tile small {
+    display: none;
+  }
 }

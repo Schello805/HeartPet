@@ -2111,6 +2111,24 @@ test("Tierseite zeigt die Timeline vor den Details und begrenzt sie zunächst au
   assert.doesNotMatch(response.text, /id="animal-timeline-body"/);
 });
 
+test("Tierseite blendet den aktuellen Stand ohne offene Erinnerungen aus", async () => {
+  const animalId = db.prepare("INSERT INTO animals (name, status) VALUES (?, ?)").run("Ruhige Akte", "Aktiv").lastInsertRowid;
+
+  const emptyResponse = await agent.get(`/animals/${animalId}`);
+  assert.equal(emptyResponse.status, 200);
+  assert.doesNotMatch(emptyResponse.text, /animal-current-status-card/);
+  assert.doesNotMatch(emptyResponse.text, /Alles erledigt/);
+
+  db.prepare("INSERT INTO reminders (animal_id, title, reminder_type, due_at) VALUES (?, ?, ?, ?)")
+    .run(animalId, "Offene Aufgabe", "Allgemein", dayjs().add(1, "day").format("YYYY-MM-DDTHH:mm"));
+  const openResponse = await agent.get(`/animals/${animalId}`);
+  db.prepare("DELETE FROM animals WHERE id = ?").run(animalId);
+
+  assert.equal(openResponse.status, 200);
+  assert.match(openResponse.text, /animal-current-status-card/);
+  assert.match(openResponse.text, /1 offene Erinnerung/);
+});
+
 test("Wichtige interne Links liefern keine 404", async () => {
   const pages = [
     "/",

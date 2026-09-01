@@ -227,6 +227,11 @@ test("Dashboard zeigt mobil nur einen Einstieg für ein neues Tier", async ({ pa
   }));
   expect(selectedAnimalPosition.top).toBeGreaterThanOrEqual(0);
   expect(selectedAnimalPosition.top).toBeLessThan(selectedAnimalPosition.viewportHeight * 0.5);
+  const actionColumns = await page.locator(".animal-primary-actions").evaluate((element) => (
+    getComputedStyle(element).gridTemplateColumns.split(" ").length
+  ));
+  expect(actionColumns).toBe(2);
+  await expect(page.locator(".animal-primary-actions .animal-quick-action-tile small").first()).toBeHidden();
 
   await page.locator(".app-mobile-bottom-nav").getByRole("button", { name: "Mehr" }).click();
   await expect(page.locator("#mobileNavOffcanvas")).toBeVisible();
