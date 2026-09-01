@@ -470,6 +470,6 @@ test("Mobiler Seiteninhalt endet vollständig oberhalb der Navigation", async ({
   });
 
   expect(spacing.paddingBottom).toBeGreaterThan(spacing.navigationHeight);
-  expect(spacing.labelBottomClearance).toBeGreaterThanOrEqual(20);
+  expect(spacing.labelBottomClearance).toBeGreaterThanOrEqual(8);
   expect(spacing.viewportFit).toContain("viewport-fit=cover");
 });

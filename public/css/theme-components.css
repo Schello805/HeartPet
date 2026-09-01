@@ -398,7 +398,7 @@ body.bootstrap-app {
 }
 
 .bootstrap-app {
-  --mobile-nav-safe-bottom: max(env(safe-area-inset-bottom), 1.5rem);
+  --mobile-nav-safe-bottom: max(env(safe-area-inset-bottom), 0.75rem);
 }
 
 .bootstrap-app .app-sidebar,
