@@ -61,6 +61,8 @@ test.afterEach(async () => {
       resolve();
       return;
     }
+    server.closeIdleConnections?.();
+    server.closeAllConnections?.();
     server.close((error) => {
       if (error) {
         reject(error);

@@ -1,0 +1,18 @@
+<% if (primaryActions.length > 0) { %>
+  <section class="card border-0 shadow-sm mb-3 animal-simple-actions-card">
+    <div class="card-body">
+      <div>
+        <p class="eyebrow mb-1">Direkt erledigen</p>
+        <h3 class="h6 mb-0">Was möchtest du tun?</h3>
+      </div>
+      <div class="animal-quick-actions animal-primary-actions">
+        <% primaryActions.forEach((action) => { %>
+          <a href="<%= action.href %>" class="btn btn-<%= action.tone %> animal-quick-action-tile" data-drawer="<%= action.drawer %>">
+            <span><%= action.label %></span>
+            <small><%= action.hint %></small>
+          </a>
+        <% }) %>
+      </div>
+    </div>
+  </section>
+<% } %>

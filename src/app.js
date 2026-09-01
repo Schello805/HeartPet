@@ -48,9 +48,12 @@ const {
 } = require("./reminders");
 const { buildAnimalExportPayload, createAnimalPdf } = require("./exporters");
 const { validateNewPassword } = require("./password-security");
+const { buildAnimalTimeline } = require("./animal-timeline");
+const { createAnimalRepository } = require("./animal-repository");
 
 const app = express();
 const db = initDatabase();
+const animalRepository = createAnimalRepository(db);
 const projectRoot = path.join(__dirname, "..");
 const revisionPath = path.join(projectRoot, "REVISION");
 const configuredDataDir = String(process.env.HEARTPET_DATA_DIR || "").trim();
@@ -4570,58 +4573,11 @@ function setFlash(req, type, message) {
 }
 
 function findAnimal(id) {
-  return db.prepare(`
-    SELECT
-      animals.*,
-      species.name AS species_name,
-      veterinarians.id AS veterinarian_id_resolved,
-      veterinarians.name AS veterinarian_name,
-      veterinarians.street AS veterinarian_street,
-      veterinarians.postal_code AS veterinarian_postal_code,
-      veterinarians.city AS veterinarian_city,
-      veterinarians.country AS veterinarian_country,
-      veterinarians.email AS veterinarian_email,
-      veterinarians.phone AS veterinarian_phone,
-      species_vet.id AS species_veterinarian_id,
-      species_vet.name AS species_veterinarian_name,
-      species_vet.street AS species_veterinarian_street,
-      species_vet.postal_code AS species_veterinarian_postal_code,
-      species_vet.city AS species_veterinarian_city,
-      species_vet.country AS species_veterinarian_country,
-      species_vet.email AS species_veterinarian_email,
-      species_vet.phone AS species_veterinarian_phone
-    FROM animals
-    LEFT JOIN species ON species.id = animals.species_id
-    LEFT JOIN veterinarians ON veterinarians.id = animals.veterinarian_id
-    LEFT JOIN veterinarians AS species_vet ON species_vet.id = species.default_veterinarian_id
-    WHERE animals.id = ?
-  `).get(id);
+  return animalRepository.findById(id);
 }
 
 function getAnimalRelatedData(animalId) {
-  return {
-    conditions: db.prepare("SELECT * FROM animal_conditions WHERE animal_id = ? ORDER BY created_at DESC").all(animalId),
-    medications: db.prepare("SELECT * FROM animal_medications WHERE animal_id = ? ORDER BY created_at DESC").all(animalId),
-    vaccinations: db.prepare("SELECT * FROM animal_vaccinations WHERE animal_id = ? ORDER BY next_due_date ASC").all(animalId),
-    appointments: db.prepare(`
-      SELECT animal_appointments.*, veterinarians.name AS veterinarian_name
-      FROM animal_appointments
-      LEFT JOIN veterinarians ON veterinarians.id = animal_appointments.veterinarian_id
-      WHERE animal_appointments.animal_id = ?
-      ORDER BY animal_appointments.appointment_at ASC
-    `).all(animalId),
-    feedings: db.prepare("SELECT * FROM animal_feedings WHERE animal_id = ? ORDER BY time_of_day ASC").all(animalId),
-    notes: db.prepare("SELECT * FROM animal_notes WHERE animal_id = ? ORDER BY created_at DESC").all(animalId),
-    reminders: db.prepare("SELECT * FROM reminders WHERE animal_id = ? ORDER BY due_at ASC").all(animalId),
-    images: db.prepare("SELECT * FROM animal_images WHERE animal_id = ? ORDER BY created_at DESC").all(animalId),
-    documents: db.prepare(`
-      SELECT documents.*, document_categories.name AS category_name, document_categories.is_required AS category_is_required
-      FROM documents
-      LEFT JOIN document_categories ON document_categories.id = documents.category_id
-      WHERE documents.animal_id = ?
-      ORDER BY documents.uploaded_at DESC
-    `).all(animalId),
-  };
+  return animalRepository.getRelated(animalId);
 }
 
 function buildAnimalDetailViewData(animalId, req) {
@@ -6990,82 +6946,6 @@ function buildSeoMeta(req, settings) {
     description: `${appName} ist eine private Tierverwaltung.`,
     robots: "noindex,nofollow,noarchive,nosnippet",
   };
-}
-
-function buildAnimalTimeline(related) {
-  const entries = [];
-
-  (related.vaccinations || []).forEach((item) => {
-    if (item.vaccination_date) {
-      entries.push({
-        at: `${item.vaccination_date}T09:00`,
-        title: `Impfung durchgeführt: ${item.name}`,
-        type: "Impfung",
-        details: item.notes || "",
-      });
-    }
-    if (item.next_due_date) {
-      entries.push({
-        at: `${item.next_due_date}T09:00`,
-        title: `Impfung fällig: ${item.name}`,
-        type: "Impfung",
-        details: item.notes || "",
-      });
-    }
-  });
-
-  (related.medications || []).forEach((item) => {
-    if (item.start_date) {
-      entries.push({
-        at: `${item.start_date}T08:00`,
-        title: `Medikation gestartet: ${item.name}`,
-        type: "Medikament",
-        details: [item.dosage ? `Dosis: ${item.dosage}` : "", item.notes || ""].filter(Boolean).join(" | "),
-      });
-    }
-    if (item.end_date) {
-      entries.push({
-        at: `${item.end_date}T18:00`,
-        title: `Medikation Ende: ${item.name}`,
-        type: "Medikament",
-        details: item.notes || "",
-      });
-    }
-  });
-
-  (related.appointments || []).forEach((item) => {
-    entries.push({
-      at: item.appointment_at,
-      title: `Arzttermin: ${item.title}`,
-      type: "Arzttermin",
-      details: [item.veterinarian_name ? `Tierarzt: ${item.veterinarian_name}` : "", item.location_text ? `Ort: ${item.location_text}` : "", item.notes || ""]
-        .filter(Boolean)
-        .join(" | "),
-    });
-  });
-
-  (related.reminders || []).forEach((item) => {
-    entries.push({
-      at: item.due_at,
-      title: `${item.completed_at ? "Erledigt" : "Erinnerung"}: ${item.title}`,
-      type: item.reminder_type || "Erinnerung",
-      details: item.notes || "",
-    });
-  });
-
-  (related.notes || []).forEach((item) => {
-    entries.push({
-      at: item.created_at,
-      title: `Protokoll: ${item.title}`,
-      type: "Protokoll",
-      details: item.content || "",
-    });
-  });
-
-  return entries
-    .filter((item) => item.at)
-    .sort((a, b) => String(b.at).localeCompare(String(a.at)))
-    .slice(0, 120);
 }
 
 function parseAuditDetails(rawValue) {
