@@ -2093,6 +2093,24 @@ test("Tierseite zeigt Tierarzt-Kontakt und einen einfachen Haupteinstieg", async
   assert.match(response.text, /Musterweg 12/i);
 });
 
+test("Tierseite zeigt die Timeline vor den Details und begrenzt sie zunächst auf zehn Einträge", async () => {
+  const animalId = db.prepare("INSERT INTO animals (name, status) VALUES (?, ?)").run("Timeline Tier", "Aktiv").lastInsertRowid;
+  const insertNote = db.prepare("INSERT INTO animal_notes (animal_id, title, content, created_at) VALUES (?, ?, ?, ?)");
+  for (let index = 1; index <= 12; index += 1) {
+    insertNote.run(animalId, `Timeline Test ${index}`, "Testeintrag", `2026-08-${String(index).padStart(2, "0")} 10:00:00`);
+  }
+
+  const response = await agent.get(`/animals/${animalId}`);
+  db.prepare("DELETE FROM animals WHERE id = ?").run(animalId);
+
+  assert.equal(response.status, 200);
+  assert.ok(response.text.indexOf('id="animal-timeline"') < response.text.indexOf("Weitere Details"));
+  assert.match(response.text, /data-timeline-primary/);
+  assert.match(response.text, /data-timeline-more/);
+  assert.match(response.text, /Mehr anzeigen \(2\)/);
+  assert.doesNotMatch(response.text, /id="animal-timeline-body"/);
+});
+
 test("Wichtige interne Links liefern keine 404", async () => {
   const pages = [
     "/",

@@ -1599,6 +1599,22 @@ function initDashboardCustomizer() {
   apply(); render();
 }
 
+function initTimelineToggles() {
+  document.querySelectorAll("[data-timeline-more-toggle]").forEach((button) => {
+    if (button.dataset.boundTimelineToggle === "1") return;
+    const targetSelector = button.getAttribute("data-bs-target");
+    const target = targetSelector ? document.querySelector(targetSelector) : null;
+    if (!target) return;
+    button.dataset.boundTimelineToggle = "1";
+    target.addEventListener("shown.bs.collapse", () => {
+      button.textContent = button.dataset.lessLabel || "Weniger anzeigen";
+    });
+    target.addEventListener("hidden.bs.collapse", () => {
+      button.textContent = button.dataset.moreLabel || "Mehr anzeigen";
+    });
+  });
+}
+
 function initPage() {
   try {
     sessionStorage.setItem("heartpet-nav-loaded", "1");
@@ -1621,6 +1637,7 @@ function initPage() {
   initAnimalWorkspace();
   initCameraDiagnostics();
   initDashboardCustomizer();
+  initTimelineToggles();
   initCameraSettings();
   initHomematicDoorDiscovery();
   initClimateStatus();
