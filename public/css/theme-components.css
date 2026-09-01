@@ -2117,12 +2117,13 @@ body.bootstrap-app {
 }
 
 .bootstrap-app .dashboard-customize-bar {
-  order: 0;
+  order: 9999;
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: .35rem;
-  padding-top: .35rem;
+  margin-top: .25rem;
+  padding: .15rem .25rem .35rem;
 }
 
 .bootstrap-app .dashboard-customize-bar [data-dashboard-customize-toggle] {

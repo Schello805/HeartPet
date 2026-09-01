@@ -151,6 +151,14 @@ test("Dashboard bleibt auf Smartphone, Tablet und Desktop visuell stabil", async
     await expect(page.getByRole("heading", { name: "Tierbestand" })).toBeVisible();
     const overflow = await page.locator("main").evaluate((element) => element.scrollWidth - element.clientWidth);
     expect(overflow).toBeLessThanOrEqual(1);
+    const customizerIsLast = await page.locator("main").evaluate((element) => {
+      const customizer = element.querySelector("[data-dashboard-customizer]");
+      const visibleSections = [...element.querySelectorAll("[data-dashboard-section]")]
+        .filter((section) => !section.classList.contains("d-none"));
+      const finalSectionBottom = Math.max(...visibleSections.map((section) => section.getBoundingClientRect().bottom));
+      return customizer.getBoundingClientRect().top >= finalSectionBottom;
+    });
+    expect(customizerIsLast).toBe(true);
     await page.screenshot({ path: testInfo.outputPath(`dashboard-${viewport.name}.png`), fullPage: true });
   }
 });

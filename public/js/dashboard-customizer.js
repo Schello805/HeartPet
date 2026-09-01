@@ -45,7 +45,7 @@
     toggle.addEventListener("click", () => {
       editing = !editing;
       panel.classList.toggle("d-none", !editing);
-      toggle.textContent = editing ? "Anpassen schließen" : "⚙ Anpassen";
+      toggle.textContent = editing ? "Anpassen schließen" : "⚙ Dashboard anpassen";
       toggle.setAttribute("aria-label", editing ? "Dashboard-Anpassung schließen" : "Dashboard anpassen");
       apply(); renderControls();
     });

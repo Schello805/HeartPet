@@ -13,11 +13,6 @@
 <% const cameraGroups = []; %>
 <% coopState.cameras.forEach((camera, cameraIndex) => { const groupName = camera.group || 'Kameras'; let group = cameraGroups.find((item) => item.name === groupName); if (!group) { group = { name: groupName, cameras: [] }; cameraGroups.push(group); } group.cameras.push({ camera, cameraIndex }); }); %>
 
-<div class="dashboard-customize-bar mb-2" data-dashboard-customizer>
-  <button type="button" class="btn btn-sm btn-link text-secondary" data-dashboard-customize-toggle aria-label="Dashboard anpassen">⚙ Anpassen</button>
-  <div class="dashboard-customize-panel d-none" data-dashboard-customize-panel aria-live="polite"></div>
-</div>
-
 <% if (searchState.searchable) { %>
   <section class="card border-0 dashboard-feed-card mb-2">
     <div class="card-body p-2">
@@ -300,5 +295,10 @@
   </div>
 </section>
 <% } %>
+
+<div class="dashboard-customize-bar" data-dashboard-customizer>
+  <button type="button" class="btn btn-sm btn-link text-secondary" data-dashboard-customize-toggle aria-label="Dashboard anpassen">⚙ Dashboard anpassen</button>
+  <div class="dashboard-customize-panel d-none" data-dashboard-customize-panel aria-live="polite"></div>
+</div>
 
 <%- include('../partials/bottom') %>
