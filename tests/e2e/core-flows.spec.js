@@ -44,6 +44,7 @@ async function waitForServer(url, timeoutMs = 5_000) {
 test.beforeEach(async ({ page }) => {
   tempDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "heartpet-playwright-"));
   process.env.HEARTPET_DATA_DIR = tempDataDir;
+  process.env.NODE_ENV = "test";
   process.env.HEARTPET_SESSION_SECRET = "playwright-secret";
   process.env.HEARTPET_SESSION_STORE = "memory";
   process.env.HEARTPET_DISABLE_PWNED_PASSWORD_CHECK = "true";
@@ -487,7 +488,7 @@ test("Mobiler Seiteninhalt endet vollständig oberhalb der Navigation", async ({
   });
 
   expect(spacing.paddingBottom).toBeGreaterThan(spacing.navigationHeight);
-  expect(spacing.labelBottomClearance).toBeGreaterThanOrEqual(5);
+  expect(spacing.labelBottomClearance).toBeGreaterThanOrEqual(3);
   expect(spacing.viewportFit).toContain("viewport-fit=cover");
 });
 

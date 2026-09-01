@@ -57,7 +57,7 @@ function resolveSessionSecret(dataDir) {
 }
 
 function createSessionMiddleware(dataDir) {
-  const useMemorySessionStore = String(process.env.HEARTPET_SESSION_STORE || "").trim().toLowerCase() === "memory";
+  const useMemorySessionStore = shouldUseMemorySessionStore(process.env);
   const configuredSessionDays = Number.parseInt(String(process.env.HEARTPET_SESSION_DAYS || "30"), 10);
   const sessionDays = Number.isFinite(configuredSessionDays) && configuredSessionDays > 0 ? configuredSessionDays : 30;
   const sessionMaxAgeMs = sessionDays * 24 * 60 * 60 * 1000;
@@ -79,8 +79,14 @@ function createSessionMiddleware(dataDir) {
   });
 }
 
+function shouldUseMemorySessionStore(environment) {
+  const requestedMemoryStore = String(environment.HEARTPET_SESSION_STORE || "").trim().toLowerCase() === "memory";
+  return requestedMemoryStore && String(environment.NODE_ENV || "").trim().toLowerCase() === "test";
+}
+
 module.exports = {
   BetterSqliteSessionStore,
   createSessionMiddleware,
   resolveSessionSecret,
+  shouldUseMemorySessionStore,
 };

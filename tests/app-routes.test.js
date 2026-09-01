@@ -11,6 +11,7 @@ const bcrypt = require("bcryptjs");
 
 const tempDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "heartpet-test-"));
 process.env.HEARTPET_DATA_DIR = tempDataDir;
+process.env.NODE_ENV = "test";
 process.env.HEARTPET_SESSION_SECRET = "test-secret";
 process.env.HEARTPET_SESSION_STORE = "memory";
 process.env.HEARTPET_DISABLE_EXTERNAL_WEATHER = "true";
