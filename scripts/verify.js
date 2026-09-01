@@ -14,14 +14,15 @@ delete childEnv.npm_config_loglevel;
 delete childEnv.npm_lifecycle_event;
 delete childEnv.npm_lifecycle_script;
 
-const syntaxFiles = ["src", "public/js"]
+const syntaxFiles = ["src", "public/js", "scripts"]
   .flatMap((directory) => listJavaScriptFiles(path.join(appDir, directory)))
   .map((filePath) => path.relative(appDir, filePath));
 
 const steps = [
-  { label: "1/5 Tests", command: "npm", args: ["test"] },
-  { label: "2/5 Browser-E2E", command: "npm", args: ["run", "test:e2e"] },
-  { label: "3/5 Tierakten-Ansicht", command: "node", args: ["scripts/render-animal-show-check.js"] },
+  { label: "1/6 Tests", command: "npm", args: ["test"] },
+  { label: "2/6 Browser-E2E", command: "npm", args: ["run", "test:e2e"] },
+  { label: "3/6 Tierakten-Ansicht", command: "node", args: ["scripts/render-animal-show-check.js"] },
+  { label: "4/6 Backup-Wiederherstellung", command: "node", args: ["scripts/check-backup-restore.js"] },
   ...syntaxFiles.map((filePath, index) => ({
     label: `Syntax ${index + 1}/${syntaxFiles.length}: ${filePath}`,
     command: "node",

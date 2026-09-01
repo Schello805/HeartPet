@@ -201,13 +201,15 @@ Backup erstellen:
 
 Gesichert werden:
 
-- Datenbank
-- WAL-/SHM-Dateien
+- konsistenter SQLite-Snapshot über die SQLite-Backup-API
 - Sessions
 - Uploads
 - Exporte
+- Prüfmanifest mit dem Ergebnis der SQLite-Integritätsprüfung
 
-Wiederherstellung erfolgt in der Praxis durch Zurückkopieren eines Backup-Ordners nach `data/`.
+Jedes Backup wird direkt nach der Erstellung geöffnet und mit `PRAGMA integrity_check` geprüft. Der vollständige Build prüft zusätzlich automatisch eine Wiederherstellung inklusive Upload-Datei.
+
+Wiederherstellung erfolgt durch Zurückkopieren des Inhalts eines Backup-Ordners nach `data/`.
 Vorher HeartPet stoppen:
 
 ```bash
@@ -219,6 +221,13 @@ danach Daten zurückkopieren und wieder starten:
 ```bash
 sudo systemctl start heartpet
 ```
+
+## Monitoring
+
+- `GET /health` liefert für Uptime Kuma einen minimalen Status ohne interne Details.
+- `GET /admin/health` liefert angemeldeten Administratoren Detailprüfungen.
+- Der Systemlog zeigt Datenbank, Datenablage, freien Speicher, Backup-Alter, Versandfehler und konfigurierte Integrationen.
+- Kritische Fehler bei Datenbank, Schreibzugriff oder Speicherplatz liefern über `/health` HTTP `503`; ein fehlendes Backup erzeugt nur den Zustand `degraded`.
 
 ## Schneller LXC-Check
 

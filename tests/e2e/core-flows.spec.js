@@ -12,6 +12,7 @@ const adminCredentials = {
 
 let server;
 let tempDataDir;
+let testBaseUrl;
 
 async function waitForServer(url, timeoutMs = 5_000) {
   const startedAt = Date.now();
@@ -40,7 +41,7 @@ async function waitForServer(url, timeoutMs = 5_000) {
   throw new Error(`Server unter ${url} wurde nicht rechtzeitig erreichbar.`);
 }
 
-test.beforeEach(async () => {
+test.beforeEach(async ({ page }) => {
   tempDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "heartpet-playwright-"));
   process.env.HEARTPET_DATA_DIR = tempDataDir;
   process.env.HEARTPET_SESSION_SECRET = "playwright-secret";
@@ -50,9 +51,12 @@ test.beforeEach(async () => {
   delete require.cache[require.resolve("../../src/app")];
   const app = require("../../src/app");
   await new Promise((resolve) => {
-    server = app.listen(3210, "127.0.0.1", resolve);
+    server = app.listen(0, "127.0.0.1", resolve);
   });
-  await waitForServer("http://127.0.0.1:3210/login");
+  testBaseUrl = `http://127.0.0.1:${server.address().port}`;
+  const originalGoto = page.goto.bind(page);
+  page.goto = (url, options) => originalGoto(new URL(url, testBaseUrl).href, options);
+  await waitForServer(`${testBaseUrl}/login`);
 });
 
 test.afterEach(async () => {
@@ -72,6 +76,7 @@ test.afterEach(async () => {
     });
   });
   server = null;
+  testBaseUrl = null;
 
   if (tempDataDir) {
     fs.rmSync(tempDataDir, { recursive: true, force: true });
@@ -472,4 +477,43 @@ test("Mobiler Seiteninhalt endet vollständig oberhalb der Navigation", async ({
   expect(spacing.paddingBottom).toBeGreaterThan(spacing.navigationHeight);
   expect(spacing.labelBottomClearance).toBeGreaterThanOrEqual(8);
   expect(spacing.viewportFit).toContain("viewport-fit=cover");
+});
+
+test("Kernseiten erfüllen grundlegende Barrierefreiheitsregeln", async ({ page }) => {
+  await ensureAuthenticated(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  for (const path of ["/", "/animals", "/admin/systemlog"]) {
+    await page.goto(path);
+    const violations = await page.evaluate(() => {
+      const visible = (element) => Boolean(element.getClientRects().length) && getComputedStyle(element).visibility !== "hidden";
+      const ids = [...document.querySelectorAll("[id]")].map((element) => element.id).filter(Boolean);
+      const duplicateIds = [...new Set(ids.filter((id, index) => ids.indexOf(id) !== index))];
+      const imagesWithoutText = [...document.querySelectorAll("img")]
+        .filter(visible)
+        .filter((image) => !image.hasAttribute("alt"));
+      const unnamedControls = [...document.querySelectorAll("button, a[href], input, select, textarea")]
+        .filter(visible)
+        .filter((element) => {
+          if (element.matches('input[type="hidden"]')) return false;
+          const labelledBy = element.getAttribute("aria-labelledby");
+          const labelledText = labelledBy ? labelledBy.split(/\s+/).map((id) => document.getElementById(id)?.textContent || "").join(" ") : "";
+          const explicitLabel = element.id ? document.querySelector(`label[for="${CSS.escape(element.id)}"]`)?.textContent : "";
+          return ![element.getAttribute("aria-label"), labelledText, explicitLabel, element.textContent, element.getAttribute("title"), element.getAttribute("alt")]
+            .some((value) => String(value || "").trim());
+        });
+      return { duplicateIds, imagesWithoutText: imagesWithoutText.length, unnamedControls: unnamedControls.length };
+    });
+
+    expect(violations, `${path} enthält grundlegende Accessibility-Probleme`).toEqual({ duplicateIds: [], imagesWithoutText: 0, unnamedControls: 0 });
+  }
+
+  await page.goto("/");
+  await page.keyboard.press("Tab");
+  await expect(page.locator(":focus")).not.toHaveCount(0);
+  const navTargetsAreLargeEnough = await page.locator(".app-mobile-nav-item").evaluateAll((items) => items.every((item) => {
+    const box = item.getBoundingClientRect();
+    return box.width >= 44 && box.height >= 44;
+  }));
+  expect(navTargetsAreLargeEnough).toBe(true);
 });

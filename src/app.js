@@ -50,6 +50,7 @@ const { buildAnimalExportPayload, createAnimalPdf } = require("./exporters");
 const { validateNewPassword } = require("./password-security");
 const { buildAnimalTimeline } = require("./animal-timeline");
 const { createAnimalRepository } = require("./animal-repository");
+const { buildCoreOperationalChecks, summarizeOperationalChecks } = require("./operational-health");
 
 const app = express();
 const db = initDatabase();
@@ -146,12 +147,8 @@ app.get("/robots.txt", (req, res) => {
 app.get("/sitemap.xml", (req, res) => res.sendStatus(404));
 
 app.get("/health", (req, res) => {
-  try {
-    db.prepare("SELECT 1 AS ok").get();
-    return res.json({ ok: true, service: "heartpet", revision: readAppRevision(), uptimeSeconds: Math.round(process.uptime()) });
-  } catch {
-    return res.status(503).json({ ok: false, service: "heartpet" });
-  }
+  const summary = summarizeOperationalChecks(buildCoreOperationalChecks({ db, dataDir }));
+  return res.status(summary.ok ? 200 : 503).json({ ok: summary.ok, status: summary.status, service: "heartpet", revision: readAppRevision(), uptimeSeconds: Math.round(process.uptime()) });
 });
 
 app.use(createSessionMiddleware(dataDir));
@@ -3155,7 +3152,8 @@ app.get("/admin/systemlog", requireAdmin, (req, res) => {
 
 app.get("/admin/health", requireAdmin, (req, res) => {
   const settings = getSettingsObject(db);
-  return res.json({ ok: true, revision: readAppRevision(), checkedAt: new Date().toISOString(), runtime: getRuntimeMetricsSnapshot(), checks: buildOperationalHealthChecks(settings) });
+  const checks = buildOperationalHealthChecks(settings);
+  return res.json({ ...summarizeOperationalChecks(checks), revision: readAppRevision(), checkedAt: new Date().toISOString(), runtime: getRuntimeMetricsSnapshot(), checks });
 });
 
 app.post("/admin/systemlog/diagnose", requireAdmin, async (req, res) => {
@@ -6593,7 +6591,7 @@ function buildOperationalHealthChecks(settings) {
     return cached?.createdAt && Date.now() - cached.createdAt < 5 * 60 * 1000;
   }).length;
   return [
-    { name: "Datenbank", ok: Boolean(db.prepare("SELECT 1 AS ok").get()?.ok), detail: "SQLite erreichbar" },
+    ...buildCoreOperationalChecks({ db, dataDir }),
     { name: "OpenCCU", ok: Boolean(getHomematicXmlApiConfig(settings)), detail: getHomematicXmlApiConfig(settings) ? "XML-API konfiguriert" : "Nicht konfiguriert" },
     { name: "Kameras", ok: cameras.length === 0 || cachedCameras === cameras.length, detail: cameras.length ? `${cachedCameras}/${cameras.length} mit aktuellem Cache` : "Keine Kameras konfiguriert" },
     { name: "Wetter", ok: Boolean(settings.weather_latitude && settings.weather_longitude), detail: weatherCache.size ? "Cache aktiv" : "Noch kein Cachewert" },
