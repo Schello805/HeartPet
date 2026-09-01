@@ -545,6 +545,10 @@ body.bootstrap-app {
     padding-bottom: calc(76px + var(--mobile-nav-safe-bottom));
   }
 
+  .bootstrap-app.dashboard-page .app-main-container {
+    padding-top: 1.125rem;
+  }
+
   .bootstrap-app .app-footer {
     padding-bottom: calc(76px + var(--mobile-nav-safe-bottom));
   }

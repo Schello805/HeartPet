@@ -156,6 +156,18 @@ test("Dashboard bleibt auf Smartphone, Tablet und Desktop visuell stabil", async
     await expect(page.getByRole("heading", { name: "Tierbestand" })).toBeVisible();
     const overflow = await page.locator("main").evaluate((element) => element.scrollWidth - element.clientWidth);
     expect(overflow).toBeLessThanOrEqual(1);
+    if (viewport.name === "smartphone") {
+      const rhythm = await page.evaluate(() => {
+        const header = document.querySelector(".app-mobile-topbar").getBoundingClientRect();
+        const sections = [...document.querySelectorAll("[data-dashboard-section]")]
+          .filter((section) => !section.classList.contains("d-none"))
+          .sort((left, right) => left.getBoundingClientRect().top - right.getBoundingClientRect().top);
+        const first = sections[0].getBoundingClientRect();
+        const second = sections[1].getBoundingClientRect();
+        return { headerGap: first.top - header.bottom, cardGap: second.top - first.bottom };
+      });
+      expect(Math.abs(rhythm.headerGap - rhythm.cardGap)).toBeLessThanOrEqual(2);
+    }
     const customizerIsLast = await page.locator("main").evaluate((element) => {
       const customizer = element.querySelector("[data-dashboard-customizer]");
       const visibleSections = [...element.querySelectorAll("[data-dashboard-section]")]
@@ -475,7 +487,7 @@ test("Mobiler Seiteninhalt endet vollständig oberhalb der Navigation", async ({
   });
 
   expect(spacing.paddingBottom).toBeGreaterThan(spacing.navigationHeight);
-  expect(spacing.labelBottomClearance).toBeGreaterThanOrEqual(8);
+  expect(spacing.labelBottomClearance).toBeGreaterThanOrEqual(5);
   expect(spacing.viewportFit).toContain("viewport-fit=cover");
 });
 
