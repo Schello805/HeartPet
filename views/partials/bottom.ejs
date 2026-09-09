@@ -40,7 +40,7 @@
           <a href="/kontakt">Kontakt</a>
           <a href="/hilfe">Hilfe</a>
           <% if (permissions.canManageAdmin) { %><a href="/admin/allgemein">Verwaltung</a><% } %>
-          <span class="text-body-secondary">Rev. <%= typeof appRevision !== 'undefined' ? appRevision : 'dev' %></span>
+          <span class="text-body-secondary">Version <%= typeof appRevision !== 'undefined' ? appRevision : 'dev' %></span>
         </div>
       </div>
     </footer>

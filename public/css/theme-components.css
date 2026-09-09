@@ -552,7 +552,16 @@ body.bootstrap-app {
   }
 
   .bootstrap-app .app-footer {
+    display: block;
+    margin: 0 10px;
+    font-size: 0.78rem;
+    text-align: center;
     padding-bottom: calc(62px + var(--mobile-nav-safe-bottom));
+  }
+
+  .bootstrap-app .app-footer .container-fluid > div {
+    justify-content: center;
+    gap: 0.65rem !important;
   }
 
   .bootstrap-app .main-content-inner > * {

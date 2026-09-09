@@ -8,10 +8,12 @@ const appDir = path.resolve(__dirname, "..");
 const revisionPath = path.join(appDir, "REVISION");
 
 const current = fs.existsSync(revisionPath)
-  ? Number.parseInt(fs.readFileSync(revisionPath, "utf8").trim(), 10)
-  : 0;
-
-const next = Number.isFinite(current) && current >= 0 ? current + 1 : 1;
+  ? fs.readFileSync(revisionPath, "utf8").trim()
+  : "0.0.0";
+const versionMatch = current.match(/^(\d+)\.(\d+)\.(\d+)$/);
+const next = versionMatch
+  ? `${versionMatch[1]}.${versionMatch[2]}.${Number(versionMatch[3]) + 1}`
+  : "0.10.1";
 fs.writeFileSync(revisionPath, `${next}\n`, "utf8");
 
 const addResult = spawnSync("git", ["add", "REVISION"], {
