@@ -27,7 +27,25 @@ jobs:
         run: npm ci
 
       - name: Chromium installieren
-        run: npx playwright install --with-deps chromium
+        shell: bash
+        run: |
+          # The hosted runner adds this optional source for system Chrome. Playwright
+          # downloads its own Chromium, while a stale Google mirror can break apt.
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+
+          for attempt in 1 2 3; do
+            if npx playwright install --with-deps chromium; then
+              exit 0
+            fi
+
+            if [ "$attempt" -lt 3 ]; then
+              echo "Chromium-Installation fehlgeschlagen, Versuch $((attempt + 1)) von 3 folgt."
+              sudo rm -rf /var/lib/apt/lists/*
+              sleep $((attempt * 5))
+            fi
+          done
+
+          exit 1
 
       - name: HeartPet vollständig prüfen
         run: npm run verify
