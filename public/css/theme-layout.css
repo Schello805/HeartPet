@@ -1456,6 +1456,8 @@ small {
 
 .bootstrap-app .animal-simple-actions-card .card-body {
   display: grid;
+  grid-template-columns: minmax(11rem, 0.45fr) minmax(0, 1fr);
+  align-items: center;
   gap: 0.62rem;
   padding: 0.72rem !important;
 }
@@ -1499,7 +1501,7 @@ small {
 }
 
 .bootstrap-app .animal-primary-actions {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .bootstrap-app .animal-primary-actions .animal-quick-action-tile {
@@ -2094,6 +2096,7 @@ small {
 
 @media (max-width: 575.98px) {
   .bootstrap-app .animal-simple-actions-card .card-body {
+    grid-template-columns: 1fr;
     gap: 0.48rem;
     padding: 0.62rem !important;
   }

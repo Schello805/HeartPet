@@ -2097,7 +2097,8 @@ test("Tierseite zeigt Tierarzt-Kontakt und einen einfachen Haupteinstieg", async
   assert.equal(response.status, 200);
   assert.match(response.text, /Kontaktdaten anzeigen/i);
   assert.match(response.text, /Was möchtest du tun/i);
-  assert.match(response.text, /Eintrag anlegen/i);
+  assert.match(response.text, /Aktion hinzufügen/i);
+  assert.match(response.text, /Medikament, Impfung, Termin, Erinnerung, Fütterung oder Notiz auswählen/i);
   assert.match(response.text, /Weitere Details/i);
   assert.match(response.text, /Vorerkrankung/i);
   assert.doesNotMatch(response.text, /animal-hero-address/i);

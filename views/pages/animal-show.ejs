@@ -79,8 +79,7 @@
   const canManageDocumentsNow = permissions.canManageDocuments && animalIsActive;
   const canManageGalleryNow = permissions.canManageGallery && animalIsActive;
   const primaryActions = [
-    (canManageHealthNow || canManageRemindersNow || canManageFeedingsNow || canManageNotesNow) ? { label: 'Eintrag anlegen', hint: 'Medikament, Impfung, Termin, Fütterung oder Notiz', href: `/animals/${animal.id}/events/new`, drawer: 'animal-entry', tone: 'primary' } : null,
-    canManageRemindersNow ? { label: 'Erinnerung anlegen', hint: 'Fälligkeit festlegen und nichts vergessen', href: `/animals/${animal.id}/events/new?kind=reminder`, drawer: 'animal-entry', tone: 'outline-primary' } : null,
+    (canManageHealthNow || canManageRemindersNow || canManageFeedingsNow || canManageNotesNow) ? { label: 'Aktion hinzufügen', hint: 'Danach Medikament, Impfung, Termin, Erinnerung, Fütterung oder Notiz auswählen', href: `/animals/${animal.id}/events/new`, drawer: 'animal-entry', tone: 'primary' } : null,
   ].filter(Boolean);
 %>
 

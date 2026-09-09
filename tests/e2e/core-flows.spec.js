@@ -144,19 +144,13 @@ test("Tiere-Arbeitsansicht zeigt die Akte im Browser-Kontext", async ({ page }) 
   await expect(workspaceTarget.getByRole("button", { name: "Tier mit allen Daten kopieren" })).toBeVisible();
 
   await page.mouse.move(0, 0);
-  const actionHintStyles = await workspaceTarget.locator(".animal-quick-action-tile small").evaluateAll((hints) => (
-    hints.map((hint) => {
-      const style = getComputedStyle(hint);
-      return { color: style.color, fontSize: Number.parseFloat(style.fontSize) };
-    })
-  ));
-  expect(actionHintStyles[0].color).toBe("rgba(255, 255, 255, 0.96)");
-  expect(actionHintStyles[1].color).toBe("rgb(49, 91, 120)");
-  expect(actionHintStyles.every(({ fontSize }) => fontSize >= 11)).toBe(true);
-
-  const reminderAction = workspaceTarget.getByRole("link", { name: /Erinnerung anlegen/ });
-  await reminderAction.hover();
-  await expect(reminderAction.locator("small")).toHaveCSS("color", "rgba(255, 255, 255, 0.96)");
+  const primaryActions = workspaceTarget.locator(".animal-primary-actions .animal-quick-action-tile");
+  await expect(primaryActions).toHaveCount(1);
+  const addAction = workspaceTarget.getByRole("link", { name: /Aktion hinzufügen/ });
+  await expect(addAction.locator("small")).toHaveCSS("color", "rgba(255, 255, 255, 0.96)");
+  await addAction.click();
+  await expect(page.locator("[data-drawer-body]")).toContainText("Was möchtest du eintragen?");
+  await expect(page.locator("[data-drawer-body] label[for='event-kind-reminder']")).toHaveText("Erinnerung");
 });
 
 test("Dashboard bleibt auf Smartphone, Tablet und Desktop visuell stabil", async ({ page }, testInfo) => {
@@ -283,7 +277,7 @@ test("Dashboard zeigt mobil nur einen Einstieg für ein neues Tier", async ({ pa
   const actionColumns = await page.locator(".animal-primary-actions").evaluate((element) => (
     getComputedStyle(element).gridTemplateColumns.split(" ").length
   ));
-  expect(actionColumns).toBe(2);
+  expect(actionColumns).toBe(1);
   await expect(page.locator(".animal-primary-actions .animal-quick-action-tile small").first()).toBeHidden();
 
   await page.locator(".app-mobile-bottom-nav").getByRole("button", { name: "Mehr" }).click();
