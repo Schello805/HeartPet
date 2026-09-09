@@ -473,6 +473,7 @@ test("Mobiler Seiteninhalt endet vollständig oberhalb der Navigation", async ({
   await ensureAuthenticated(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
+  await page.evaluate(() => Promise.all(document.body.getAnimations().map((animation) => animation.finished)));
 
   const spacing = await page.evaluate(() => {
     const container = document.querySelector(".app-main-container");
@@ -490,6 +491,20 @@ test("Mobiler Seiteninhalt endet vollständig oberhalb der Navigation", async ({
   expect(spacing.paddingBottom).toBeGreaterThan(spacing.navigationHeight);
   expect(spacing.labelBottomClearance).toBeGreaterThanOrEqual(3);
   expect(spacing.viewportFit).toContain("viewport-fit=cover");
+});
+
+test("Zusatzangaben lassen sich über die gesamte Titelzeile öffnen", async ({ page }) => {
+  await ensureAuthenticated(page);
+  await page.goto("/animals/new");
+
+  const details = page.locator("#animalFormOptionalDetails");
+  const summary = details.getByText("Mehr Angaben (später möglich)", { exact: true });
+  await expect(details).not.toHaveAttribute("open", "");
+  await expect(details).toHaveCSS("margin-bottom", "12px");
+
+  await summary.click();
+  await expect(details).toHaveAttribute("open", "");
+  await expect(page.locator("#animal-sex")).toBeVisible();
 });
 
 test("Kernseiten erfüllen grundlegende Barrierefreiheitsregeln", async ({ page }) => {

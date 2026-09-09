@@ -1264,9 +1264,13 @@ small {
   --bs-gutter-y: 0.42rem;
 }
 
-.bootstrap-app .animal-form-optional .accordion-button {
+.bootstrap-app .animal-form-optional summary {
   font-size: 0.92rem;
   font-weight: 700;
+}
+
+.bootstrap-app .animal-form-optional .accordion-item:not([open]) {
+  margin-bottom: 0.75rem;
 }
 
 .bootstrap-app .animal-form-optional .accordion-body {
