@@ -151,6 +151,11 @@ test("Tiere-Arbeitsansicht zeigt die Akte im Browser-Kontext", async ({ page }) 
   await addAction.click();
   await expect(page.locator("[data-drawer-body]")).toContainText("Was möchtest du eintragen?");
   await expect(page.locator("[data-drawer-body] label[for='event-kind-reminder']")).toHaveText("Erinnerung");
+  await page.locator("[data-drawer-body] label[for='event-kind-vaccination']").click();
+  const vaccinationPreset = page.getByLabel("Häufige Impfungen für Katze");
+  await expect(vaccinationPreset).toBeVisible();
+  await vaccinationPreset.selectOption("RCP (Katzenschnupfen und Katzenseuche)");
+  await expect(page.locator("#event-title")).toHaveValue("RCP (Katzenschnupfen und Katzenseuche)");
 });
 
 test("Dashboard bleibt auf Smartphone, Tablet und Desktop visuell stabil", async ({ page }, testInfo) => {

@@ -685,6 +685,7 @@ function initDrawerForms(scope = document) {
           initRequiredMarks();
           initAnimalStatusWorkflow(drawerBody);
           initEventFormBehavior(drawerBody);
+          initVaccinationPresets(drawerBody);
           initBulkSelection(drawerBody);
           return;
         }
@@ -796,6 +797,7 @@ async function openDrawer(urlLike) {
     initRequiredMarks();
     initAnimalStatusWorkflow(drawerBody);
     initEventFormBehavior(drawerBody);
+    initVaccinationPresets(drawerBody);
     initBulkSelection(drawerBody);
   } catch (error) {
     console.error("Drawer konnte nicht geladen werden", error);
@@ -956,10 +958,10 @@ function initProfileUploadAutoSubmit() {
 
 function initEventFormBehavior(scope = document) {
   scope.querySelectorAll("[data-event-form]").forEach((form) => {
-    if (form.dataset.bound === "1") {
+    if (form.dataset.eventBound === "1") {
       return;
     }
-    form.dataset.bound = "1";
+    form.dataset.eventBound = "1";
 
     const kindInputs = [...form.querySelectorAll("[data-event-kind-select]")];
     const dateWrap = form.querySelector("[data-event-date-wrap]");
@@ -974,6 +976,8 @@ function initEventFormBehavior(scope = document) {
     const vetInlineWrap = form.querySelector("[data-vet-inline-wrap]");
     const vaccinationCertificateWrap = form.querySelector("[data-vaccination-certificate-wrap]");
     const vaccinationCertificate = form.querySelector("[data-vaccination-certificate]");
+    const vaccinationPresetWrap = form.querySelector("[data-vaccination-preset-wrap]");
+    const vaccinationPreset = vaccinationPresetWrap?.querySelector("[data-vaccination-preset]");
 
     function updateEventForm() {
       const kind = kindInputs.find((input) => input.checked)?.value || "medication";
@@ -990,6 +994,12 @@ function initEventFormBehavior(scope = document) {
       if (vaccinationCertificate) {
         vaccinationCertificate.disabled = !isVaccination;
         if (!isVaccination) vaccinationCertificate.value = "";
+      }
+      if (vaccinationPresetWrap) {
+        vaccinationPresetWrap.hidden = !isVaccination;
+      }
+      if (vaccinationPreset) {
+        vaccinationPreset.disabled = !isVaccination;
       }
 
       if (dateWrap) {
@@ -1044,6 +1054,25 @@ function initEventFormBehavior(scope = document) {
     kindInputs.forEach((input) => input.addEventListener("change", updateEventForm));
     handledByVet?.addEventListener("change", updateEventForm);
     updateEventForm();
+  });
+}
+
+function initVaccinationPresets(scope = document) {
+  scope.querySelectorAll("[data-vaccination-preset]").forEach((select) => {
+    if (select.dataset.bound === "1") return;
+    select.dataset.bound = "1";
+    select.addEventListener("change", () => {
+      const form = select.closest("form");
+      const target = form?.querySelector(select.dataset.vaccinationTarget || "");
+      if (!(target instanceof HTMLInputElement)) return;
+      if (select.value === "__custom__") {
+        target.value = "";
+        target.focus();
+      } else if (select.value) {
+        target.value = select.value;
+      }
+      target.dispatchEvent(new Event("input", { bubbles: true }));
+    });
   });
 }
 
@@ -1585,6 +1614,7 @@ function initPage() {
   initAnimalStatusWorkflow();
   initProfileUploadAutoSubmit();
   initEventFormBehavior();
+  initVaccinationPresets();
   initBulkSelection();
   initGlobalSearchAutocomplete();
   initAnimalWorkspace();

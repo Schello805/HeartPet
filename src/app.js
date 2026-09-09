@@ -51,6 +51,7 @@ const { validateNewPassword } = require("./password-security");
 const { buildAnimalTimeline } = require("./animal-timeline");
 const { createAnimalRepository } = require("./animal-repository");
 const { buildCoreOperationalChecks, summarizeOperationalChecks } = require("./operational-health");
+const { getVaccinationSuggestionGroups, getVaccinationSuggestionsForSpecies } = require("./vaccination-suggestions");
 
 const app = express();
 const db = initDatabase();
@@ -1425,10 +1426,12 @@ app.get("/animals/vaccinations/bulk/new", requireAnimalPermission("canManageHeal
     params.push(speciesId);
   }
   sql += " ORDER BY species.name ASC, animals.name ASC";
+  const animals = db.prepare(sql).all(...params);
 
   res.render("pages/bulk-vaccination-drawer", {
     pageTitle: "Gruppenimpfung",
-    animals: db.prepare(sql).all(...params),
+    animals,
+    vaccinationSuggestionGroups: getVaccinationSuggestionGroups(animals.map((animal) => animal.species_name)),
     returnTo: getAnimalReturnTo(req, speciesId ? `/animals?species_id=${encodeURIComponent(speciesId)}` : "/animals"),
     today: dayjs().format("YYYY-MM-DD"),
   });
@@ -1554,6 +1557,7 @@ function renderAnimalEntryDrawer(req, res, { entryType, mode = "create", item = 
     veterinarians: db.prepare("SELECT * FROM veterinarians ORDER BY name ASC").all(),
     returnTo: safeLocalReturnPath(req.query.return_to, `/animals/${animal.id}`),
     initialEventKind: String(req.query.kind || "").trim(),
+    vaccinationSuggestions: getVaccinationSuggestionsForSpecies(animal.species_name),
   });
 }
 

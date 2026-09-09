@@ -20,9 +20,23 @@ process.env.HEARTPET_DISABLE_PWNED_PASSWORD_CHECK = "true";
 const { initDatabase, upsertSetting } = require("../src/db");
 const { createAnimalPdf } = require("../src/exporters");
 const { buildReminderActionToken, buildReminderEmailHtml, sendTelegramReminder, sendTestNtfy, processDueReminders } = require("../src/reminders");
+const { getVaccinationSuggestionGroups, getVaccinationSuggestionsForSpecies } = require("../src/vaccination-suggestions");
 const app = require("../src/app");
 const agent = request.agent(app);
 const db = initDatabase();
+
+test("Häufige Impfungen werden passend zur Tierart vorgeschlagen", () => {
+  assert.deepEqual(getVaccinationSuggestionsForSpecies("Hühner").suggestions, [
+    "Newcastle-Krankheit (ND)",
+    "Infektiöse Bronchitis (IB)",
+  ]);
+  assert.deepEqual(getVaccinationSuggestionsForSpecies("Katze").suggestions, [
+    "RCP (Katzenschnupfen und Katzenseuche)",
+    "Tollwut",
+  ]);
+  assert.deepEqual(getVaccinationSuggestionsForSpecies("Papagei").suggestions, []);
+  assert.deepEqual(getVaccinationSuggestionGroups(["Katze", "Katzen", "Huhn"]).map((group) => group.speciesName), ["Huhn", "Katze"]);
+});
 
 test("Kamera-Zugangsdaten werden als Basic-Auth-Header statt in der Fetch-URL verwendet", () => {
   const target = app.__test.createAuthenticatedFetchTarget("http://admin:p%40ss%21@192.168.1.80/video/mjpg.cgi");

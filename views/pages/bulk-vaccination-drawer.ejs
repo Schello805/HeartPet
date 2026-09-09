@@ -12,6 +12,23 @@
       <section class="card border bg-body form-section-card">
         <div class="card-body">
           <div class="row g-3">
+            <% if (vaccinationSuggestionGroups.length > 0) { %>
+              <div class="col-12">
+                <label class="form-label" for="bulk-vaccination-preset">Häufige Impfungen nach Tierart</label>
+                <select class="form-select" id="bulk-vaccination-preset" data-vaccination-preset data-vaccination-target="#bulk-vaccination-name">
+                  <option value="">Impfung auswählen</option>
+                  <% vaccinationSuggestionGroups.forEach((group) => { %>
+                    <optgroup label="<%= group.speciesName %>">
+                      <% group.suggestions.forEach((suggestion) => { %>
+                        <option value="<%= suggestion %>"><%= suggestion %></option>
+                      <% }); %>
+                    </optgroup>
+                  <% }); %>
+                  <option value="__custom__">Andere Impfung manuell eingeben</option>
+                </select>
+                <div class="form-text">Bitte nur Tiere auswählen, für die diese Impfung vorgesehen ist. Den Impfplan tierärztlich abstimmen.</div>
+              </div>
+            <% } %>
             <div class="col-12">
               <label class="form-label" for="bulk-vaccination-name">Impfstoff / Impfung</label>
               <input class="form-control" id="bulk-vaccination-name" name="name" type="text" required placeholder="z. B. Newcastle-Schluckimpfung" />

@@ -74,6 +74,7 @@ const locals = {
   related,
   reminderBuckets,
   microchipLinks: { checks: [], actions: [] },
+  vaccinationSuggestions: { speciesName: "Huhn", suggestions: ["Newcastle-Krankheit (ND)"] },
   editState: { type: "", id: null },
   documentFilter: { categoryId: "", fileType: "" },
   categories: db.prepare("SELECT * FROM document_categories ORDER BY name ASC").all(),
