@@ -142,6 +142,21 @@ test("Tiere-Arbeitsansicht zeigt die Akte im Browser-Kontext", async ({ page }) 
   await expect(workspaceTarget).toContainText("Was möchtest du tun?");
   await expect(workspaceTarget).toContainText("Weitere Details");
   await expect(workspaceTarget.getByRole("button", { name: "Tier mit allen Daten kopieren" })).toBeVisible();
+
+  await page.mouse.move(0, 0);
+  const actionHintStyles = await workspaceTarget.locator(".animal-quick-action-tile small").evaluateAll((hints) => (
+    hints.map((hint) => {
+      const style = getComputedStyle(hint);
+      return { color: style.color, fontSize: Number.parseFloat(style.fontSize) };
+    })
+  ));
+  expect(actionHintStyles[0].color).toBe("rgba(255, 255, 255, 0.96)");
+  expect(actionHintStyles[1].color).toBe("rgb(49, 91, 120)");
+  expect(actionHintStyles.every(({ fontSize }) => fontSize >= 11)).toBe(true);
+
+  const reminderAction = workspaceTarget.getByRole("link", { name: /Erinnerung anlegen/ });
+  await reminderAction.hover();
+  await expect(reminderAction.locator("small")).toHaveCSS("color", "rgba(255, 255, 255, 0.96)");
 });
 
 test("Dashboard bleibt auf Smartphone, Tablet und Desktop visuell stabil", async ({ page }, testInfo) => {
