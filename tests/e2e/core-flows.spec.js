@@ -520,6 +520,9 @@ test("Zusatzangaben lassen sich über die gesamte Titelzeile öffnen", async ({ 
   await summary.click();
   await expect(details).toHaveAttribute("open", "");
   await expect(page.locator("#animal-sex")).toBeVisible();
+  await expect(page.locator('#microchip-manufacturers option[value="Dechra"]')).toHaveCount(1);
+  await expect(page.locator("#animal-chip-registry")).toContainText("TASSO und FINDEFIX");
+  await expect(page.locator("#animal-chip-registry")).toContainText("Nicht registriert");
 });
 
 test("Kernseiten erfüllen grundlegende Barrierefreiheitsregeln", async ({ page }) => {

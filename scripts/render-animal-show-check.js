@@ -73,6 +73,7 @@ const locals = {
   animal,
   related,
   reminderBuckets,
+  microchipLinks: { checks: [], actions: [] },
   editState: { type: "", id: null },
   documentFilter: { categoryId: "", fileType: "" },
   categories: db.prepare("SELECT * FROM document_categories ORDER BY name ASC").all(),

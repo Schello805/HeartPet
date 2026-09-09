@@ -371,6 +371,7 @@ test("Datenbank-Migrationen werden protokolliert", () => {
   assert.ok(migrationIds.includes("003_user_invites"));
   assert.ok(migrationIds.includes("004_animal_status_context"));
   assert.ok(migrationIds.includes("006_user_access_tracking"));
+  assert.ok(migrationIds.includes("007_animal_microchip_details"));
 });
 
 test("Systemlog ist erreichbar (inkl. Alias)", async () => {
@@ -627,6 +628,9 @@ test("Import normalisiert unbekannte Statuswerte und schließt Erinnerungen bei 
       name: "Import Invalid",
       species_name: "Katze",
       status: "Irgendwas",
+      microchip_number: "276099200310213",
+      microchip_manufacturer: "Dechra",
+      microchip_registry: "TASSO",
     },
     related: {
       reminders: [],
@@ -638,8 +642,11 @@ test("Import normalisiert unbekannte Statuswerte und schließt Erinnerungen bei 
     .attach("import_file", Buffer.from(JSON.stringify(invalidStatusPayload), "utf8"), { filename: "invalid-status.json", contentType: "application/json" });
   assert.equal(invalidImport.status, 302);
 
-  const importedActive = db.prepare("SELECT status FROM animals WHERE name = ? ORDER BY id DESC LIMIT 1").get("Import Invalid");
+  const importedActive = db.prepare("SELECT status, microchip_number, microchip_manufacturer, microchip_registry FROM animals WHERE name = ? ORDER BY id DESC LIMIT 1").get("Import Invalid");
   assert.equal(importedActive?.status, "Aktiv");
+  assert.equal(importedActive?.microchip_number, "276099200310213");
+  assert.equal(importedActive?.microchip_manufacturer, "Dechra");
+  assert.equal(importedActive?.microchip_registry, "TASSO");
 
   const restingPayload = {
     animal: {
@@ -2081,6 +2088,9 @@ test("Tierseite zeigt Tierarzt-Kontakt und einen einfachen Haupteinstieg", async
     sex: "Weiblich",
     status: "Aktiv",
     veterinarian_id: vetId,
+    microchip_number: "276099200310213",
+    microchip_manufacturer: "Dechra",
+    microchip_registry: "TASSO",
   });
 
   const response = await agent.get("/animals/1");
@@ -2092,6 +2102,13 @@ test("Tierseite zeigt Tierarzt-Kontakt und einen einfachen Haupteinstieg", async
   assert.match(response.text, /Vorerkrankung/i);
   assert.doesNotMatch(response.text, /animal-hero-address/i);
   assert.match(response.text, /Musterweg 12/i);
+  assert.match(response.text, /276099200310213/);
+  assert.match(response.text, /Chip-Hersteller[\s\S]*Dechra/);
+  assert.match(response.text, /Haustierregister[\s\S]*TASSO/);
+  assert.match(response.text, /Bei TASSO prüfen/);
+  assert.match(response.text, /Bei FINDEFIX prüfen/);
+  assert.match(response.text, /Bei TASSO vermisst melden/);
+  assert.doesNotMatch(response.text, /Bei FINDEFIX vermisst melden/);
 });
 
 test("Tierseite zeigt die Timeline vor den Details und begrenzt sie zunächst auf zehn Einträge", async () => {

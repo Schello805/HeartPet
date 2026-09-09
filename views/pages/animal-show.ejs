@@ -516,9 +516,27 @@
           <div class="col-md-6"><div class="card border-0 bg-body h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Rasse</dt><dd class="mb-0 fw-semibold"><%= animal.breed || '-' %></dd></div></div></div>
           <div class="col-md-6"><div class="card border-0 bg-body h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Farbe</dt><dd class="mb-0 fw-semibold"><%= animal.color || '-' %></dd></div></div></div>
           <div class="col-md-6"><div class="card border-0 bg-body h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Geschlecht</dt><dd class="mb-0 fw-semibold"><%= animal.sex || '-' %></dd></div></div></div>
-          <div class="col-md-6"><div class="card border-0 bg-body h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Mikrochip</dt><dd class="mb-0 fw-semibold"><%= animal.microchip_number || '-' %></dd></div></div></div>
+          <div class="col-md-6"><div class="card border-0 bg-body h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Mikrochip</dt><dd class="mb-0 fw-semibold text-break"><%= animal.microchip_number || '-' %></dd></div></div></div>
+          <div class="col-md-6"><div class="card border-0 bg-body h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Chip-Hersteller</dt><dd class="mb-0 fw-semibold"><%= animal.microchip_manufacturer || '-' %></dd></div></div></div>
+          <div class="col-md-6"><div class="card border-0 bg-body h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Haustierregister</dt><dd class="mb-0 fw-semibold"><%= animal.microchip_registry || 'Unbekannt' %></dd></div></div></div>
           <div class="col-md-6"><div class="card border-0 bg-body h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Gewicht</dt><dd class="mb-0 fw-semibold"><%= animal.weight_kg || '-' %></dd></div></div></div>
         </dl>
+        <% if (microchipLinks.checks.length > 0) { %>
+          <aside class="microchip-links" aria-label="Mikrochip und Vermisstmeldung">
+            <div>
+              <strong>Chip-Registrierung prüfen</strong>
+              <span>Die Chipnummer auf der Zielseite eintragen.</span>
+            </div>
+            <div class="microchip-link-actions">
+              <% microchipLinks.checks.forEach((link) => { %>
+                <a class="btn btn-outline-primary btn-sm" href="<%= link.url %>" target="_blank" rel="noopener noreferrer"><%= link.label %></a>
+              <% }) %>
+              <% microchipLinks.nextSteps.forEach((link) => { %>
+                <a class="btn <%= link.urgent ? 'btn-outline-danger' : 'btn-outline-secondary' %> btn-sm" href="<%= link.url %>" target="_blank" rel="noopener noreferrer"><%= link.label %></a>
+              <% }) %>
+            </div>
+          </aside>
+        <% } %>
         <p class="small text-body-secondary mb-0"><%= animal.notes || 'Keine weiteren Notizen vorhanden.' %></p>
         </div>
       </div>

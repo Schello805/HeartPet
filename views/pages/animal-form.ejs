@@ -285,9 +285,27 @@
                   <label class="form-label" for="animal-weight">Gewicht in kg</label>
                   <input class="form-control" id="animal-weight" type="number" step="0.01" name="weight_kg" value="<%= animal?.weight_kg || '' %>" />
                 </div>
+                <div class="col-md-6">
+                  <label class="form-label" for="animal-chip">Mikrochip-Nummer</label>
+                  <input class="form-control" id="animal-chip" type="text" inputmode="numeric" name="microchip_number" value="<%= animal?.microchip_number || '' %>" autocomplete="off" />
+                  <div class="form-text">Üblicherweise 15 Ziffern, ohne Leerzeichen.</div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label" for="animal-chip-manufacturer">Chip-Hersteller</label>
+                  <input class="form-control" id="animal-chip-manufacturer" type="text" name="microchip_manufacturer" list="microchip-manufacturers" value="<%= animal?.microchip_manufacturer || '' %>" placeholder="z. B. Dechra" maxlength="120" />
+                  <datalist id="microchip-manufacturers">
+                    <% microchipManufacturerSuggestions.forEach((manufacturer) => { %><option value="<%= manufacturer %>"></option><% }) %>
+                  </datalist>
+                </div>
                 <div class="col-12">
-                  <label class="form-label" for="animal-chip">Mikrochip / Kennzeichen</label>
-                  <input class="form-control" id="animal-chip" type="text" name="microchip_number" value="<%= animal?.microchip_number || '' %>" />
+                  <label class="form-label" for="animal-chip-registry">Haustierregister</label>
+                  <select class="form-select" id="animal-chip-registry" name="microchip_registry">
+                    <option value="">Unbekannt / noch nicht angegeben</option>
+                    <% microchipRegistryOptions.forEach((registry) => { %>
+                      <option value="<%= registry %>" <%= animal?.microchip_registry === registry ? 'selected' : '' %>><%= registry %></option>
+                    <% }) %>
+                  </select>
+                  <div class="form-text">Der Hersteller registriert das Tier nicht automatisch. Für einen Fund müssen Chipnummer und Kontaktdaten bei TASSO oder FINDEFIX hinterlegt sein.</div>
                 </div>
                 <div class="col-12">
                   <label class="form-label" for="animal-vet">Tierarzt für dieses Tier</label>

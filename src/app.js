@@ -70,6 +70,8 @@ const loginAttempts = new Map();
 const passwordResetAttempts = new Map();
 const userPresenceWrites = new Map();
 const runtimeMetrics = { startedAt: Date.now(), requests: 0, errors: 0, totalDurationMs: 0, slowestDurationMs: 0, recent: [] };
+const microchipRegistryOptions = ["TASSO", "FINDEFIX", "TASSO und FINDEFIX", "Anderes Register", "Nicht registriert"];
+const microchipManufacturerSuggestions = ["Dechra", "Datamars", "MSD Animal Health", "Trovan", "Virbac"];
 
 app.set("view engine", "ejs");
 app.set("views", path.join(projectRoot, "views"));
@@ -1347,6 +1349,8 @@ app.get("/animals/new", requireAnimalEditor, (req, res) => {
     animal: null,
     species: db.prepare("SELECT * FROM species ORDER BY name ASC").all(),
     veterinarians: db.prepare("SELECT * FROM veterinarians ORDER BY name ASC").all(),
+    microchipRegistryOptions,
+    microchipManufacturerSuggestions,
     returnTo: getAnimalReturnTo(req, "/animals"),
   });
 });
@@ -1381,12 +1385,12 @@ app.post("/animals", requireAnimalEditor, (req, res) => {
 
   const result = db.prepare(`
     INSERT INTO animals (
-      name, species_id, sex, birth_date, intake_date, source, microchip_number,
+      name, species_id, sex, birth_date, intake_date, source, microchip_number, microchip_manufacturer, microchip_registry,
       status, color, breed, weight_kg, veterinarian_id, notes,
       status_changed_at, status_context_name, status_context_date, memorial_note, updated_at
     )
     VALUES (
-      @name, @species_id, @sex, @birth_date, @intake_date, @source, @microchip_number,
+      @name, @species_id, @sex, @birth_date, @intake_date, @source, @microchip_number, @microchip_manufacturer, @microchip_registry,
       @status, @color, @breed, @weight_kg, @veterinarian_id, @notes,
       @status_changed_at, @status_context_name, @status_context_date, @memorial_note, CURRENT_TIMESTAMP
     )
@@ -1648,6 +1652,8 @@ app.get("/animals/:id/edit", requireAnimalEditor, (req, res) => {
     animal,
     species: db.prepare("SELECT * FROM species ORDER BY name ASC").all(),
     veterinarians: db.prepare("SELECT * FROM veterinarians ORDER BY name ASC").all(),
+    microchipRegistryOptions,
+    microchipManufacturerSuggestions,
     returnTo: getAnimalReturnTo(req, `/animals/${req.params.id}`),
   });
 });
@@ -1705,6 +1711,8 @@ app.post("/animals/:id/update", requireAnimalEditor, (req, res) => {
         intake_date = @intake_date,
         source = @source,
         microchip_number = @microchip_number,
+        microchip_manufacturer = @microchip_manufacturer,
+        microchip_registry = @microchip_registry,
         status = @status,
         color = @color,
         breed = @breed,
@@ -4069,11 +4077,11 @@ app.post("/admin/import", requireAdmin, importUpload.single("import_file"), (req
 
     const insertAnimal = db.prepare(`
       INSERT INTO animals (
-        name, species_id, sex, birth_date, intake_date, source, microchip_number, status,
+        name, species_id, sex, birth_date, intake_date, source, microchip_number, microchip_manufacturer, microchip_registry, status,
         color, breed, weight_kg, veterinarian_id, notes,
         status_changed_at, status_context_name, status_context_date, memorial_note, updated_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     `);
 
     const result = insertAnimal.run(
@@ -4084,6 +4092,8 @@ app.post("/admin/import", requireAdmin, importUpload.single("import_file"), (req
       animalData.intake_date || null,
       animalData.source || "",
       animalData.microchip_number || "",
+      animalData.microchip_manufacturer || "",
+      normalizeMicrochipRegistry(animalData.microchip_registry),
       normalizeAnimalStatus(animalData.status),
       animalData.color || "",
       animalData.breed || "",
@@ -4598,6 +4608,7 @@ function buildAnimalDetailViewData(animalId, req) {
 
   return {
     animal,
+    microchipLinks: buildMicrochipLinks(animal),
     related: {
       ...related,
       documents: filterDocuments(related.documents, documentFilter),
@@ -4723,6 +4734,8 @@ function normalizeAnimalPayload(body) {
     intake_date: body.intake_date || null,
     source: body.source || "",
     microchip_number: body.microchip_number || "",
+    microchip_manufacturer: String(body.microchip_manufacturer || "").trim().slice(0, 120),
+    microchip_registry: normalizeMicrochipRegistry(body.microchip_registry),
     status: normalizeAnimalStatus(body.status),
     color: body.color || "",
     breed: body.breed || "",
@@ -4730,6 +4743,40 @@ function normalizeAnimalPayload(body) {
     veterinarian_id: selectedVeterinarianId || resolveDefaultVeterinarianId(speciesId),
     notes: body.notes || "",
   };
+}
+
+function normalizeMicrochipRegistry(value) {
+  const registry = String(value || "").trim();
+  return microchipRegistryOptions.includes(registry) ? registry : "";
+}
+
+function buildMicrochipLinks(animal) {
+  if (!String(animal?.microchip_number || "").trim()) {
+    return { checks: [], nextSteps: [] };
+  }
+
+  const checks = [
+    { label: "Bei TASSO prüfen", url: "https://www.tasso.net/Tierregister/Transponderabfrage" },
+    { label: "Bei FINDEFIX prüfen", url: "https://www.findefix.com/haustier-vermisst-gefunden/mikrochip-nummer-pruefen/" },
+  ];
+  const tassoMissing = { label: "Bei TASSO vermisst melden", url: "https://www.tasso.net/Tierregister/Tier-vermisst/Tier-vermisst-melden?fa=1", urgent: true };
+  const findefixMissing = { label: "Bei FINDEFIX vermisst melden", url: "https://www.findefix.com/haustier-vermisst-gefunden/haustier-vermisst-melden-suchplakat/", urgent: true };
+  const registry = normalizeMicrochipRegistry(animal.microchip_registry);
+
+  if (registry === "Nicht registriert") {
+    return {
+      checks,
+      nextSteps: [
+        { label: "Bei TASSO registrieren", url: "https://www.tasso.net/Tierregister/Tier-registrieren" },
+        { label: "Bei FINDEFIX registrieren", url: "https://www.findefix.com/haustier-online-registrieren/" },
+      ],
+    };
+  }
+
+  const nextSteps = [];
+  if (registry === "TASSO" || registry === "TASSO und FINDEFIX") nextSteps.push(tassoMissing);
+  if (registry === "FINDEFIX" || registry === "TASSO und FINDEFIX") nextSteps.push(findefixMissing);
+  return { checks, nextSteps };
 }
 
 function requiresAnimalStatusTransitionConfirmation(previousStatus, nextStatus) {

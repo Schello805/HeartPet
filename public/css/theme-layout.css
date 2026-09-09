@@ -1277,6 +1277,28 @@ small {
   padding: 0.9rem;
 }
 
+.bootstrap-app .microchip-links {
+  display: grid;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(47, 111, 237, 0.16);
+  border-radius: 0.7rem;
+  background: rgba(232, 244, 246, 0.72);
+}
+
+.bootstrap-app .microchip-links span {
+  display: block;
+  color: var(--text-dim);
+  font-size: 0.74rem;
+}
+
+.bootstrap-app .microchip-link-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
 .bootstrap-app.animals-page .animal-hero-card {
   padding: 0.55rem !important;
   gap: 0.45rem;
