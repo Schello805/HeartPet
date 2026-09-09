@@ -365,6 +365,9 @@ test("Kernseiten bleiben kompakt und kontrastreich", async ({ page }) => {
     for (const path of pagesToCheck) {
       await page.goto(path);
       await page.waitForLoadState("networkidle");
+      await page.evaluate(() => Promise.all(
+        document.body.getAnimations({ subtree: true }).map((animation) => animation.finished.catch(() => undefined)),
+      ));
 
       const result = await page.evaluate(() => {
         const parseRgb = (value) => {
@@ -414,6 +417,22 @@ test("Kernseiten bleiben kompakt und kontrastreich", async ({ page }) => {
           })
           .filter((item) => item.left < -2 || item.right > window.innerWidth + 2)
           .slice(0, 8);
+        const positionedSurfaces = Array.from(document.querySelectorAll(".offcanvas, .modal, [class*='offcanvas']"))
+          .map((element) => {
+            const rect = element.getBoundingClientRect();
+            const styles = window.getComputedStyle(element);
+            return {
+              tag: element.tagName.toLowerCase(),
+              id: element.id || "",
+              className: String(element.className || "").slice(0, 120),
+              display: styles.display,
+              visibility: styles.visibility,
+              transform: styles.transform,
+              left: Math.round(rect.left),
+              right: Math.round(rect.right),
+              width: Math.round(rect.width),
+            };
+          });
         const edgeTargets = Array.from(document.querySelectorAll([
           "button",
           "a.btn",
@@ -466,21 +485,55 @@ test("Kernseiten bleiben kompakt und kontrastreich", async ({ page }) => {
 
         return {
           overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+          viewportWidth: window.innerWidth,
+          documentClientWidth: document.documentElement.clientWidth,
+          documentScrollWidth: document.documentElement.scrollWidth,
           headerFontSize,
           undersizedHeadings,
           darkControls,
           wideElements,
+          positionedSurfaces,
           edgeTargets,
         };
       });
 
-      expect(result.overflowX, `${path} @ ${viewport.width}px hat horizontalen Overflow: ${JSON.stringify(result.wideElements)}`).toBeLessThanOrEqual(2);
+      expect(
+        result.overflowX,
+        `${path} @ ${viewport.width}px hat horizontalen Overflow: ${JSON.stringify({
+          viewportWidth: result.viewportWidth,
+          documentClientWidth: result.documentClientWidth,
+          documentScrollWidth: result.documentScrollWidth,
+          wideElements: result.wideElements,
+          positionedSurfaces: result.positionedSurfaces,
+        })}`,
+      ).toBeLessThanOrEqual(2);
       expect(result.headerFontSize, `${path} @ ${viewport.width}px hat einen zu großen Header`).toBeLessThanOrEqual(viewport.width < 768 ? 22 : 24);
       expect(result.undersizedHeadings, `${path} @ ${viewport.width}px hat Überschriften kleiner als Fließtext`).toEqual([]);
       expect(result.darkControls, `${path} @ ${viewport.width}px hat dunkle Formularfelder`).toEqual([]);
       expect(result.edgeTargets, `${path} @ ${viewport.width}px hat Elemente ohne ausreichenden Kartenabstand`).toEqual([]);
     }
   }
+});
+
+test("Drawer erzeugt geschlossen und nach dem Schließen keinen horizontalen Overflow", async ({ page }) => {
+  await ensureAuthenticated(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/animals/1");
+  await page.waitForLoadState("networkidle");
+
+  const horizontalOverflow = () => page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+
+  await expect.poll(horizontalOverflow).toBeLessThanOrEqual(2);
+
+  await page.locator(".animal-primary-actions .animal-quick-action-tile").first().click();
+  await expect(page.locator("#app-drawer")).toHaveClass(/show/);
+  await expect.poll(horizontalOverflow).toBeLessThanOrEqual(2);
+
+  await page.locator("#app-drawer [data-drawer-close]").first().click();
+  await expect(page.locator("#app-drawer")).not.toHaveClass(/show/);
+  await expect.poll(horizontalOverflow).toBeLessThanOrEqual(2);
 });
 
 test("Mobiler Seiteninhalt endet vollständig oberhalb der Navigation", async ({ page }) => {
