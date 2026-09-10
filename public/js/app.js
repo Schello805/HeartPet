@@ -748,16 +748,26 @@ function initBulkSelection(scope = document) {
 }
 
 async function openDrawer(urlLike) {
+  let targetUrl;
+  try {
+    targetUrl = new URL(urlLike, window.location.href);
+    if (targetUrl.origin !== window.location.origin) {
+      throw new Error("Drawer-Ziel liegt außerhalb von HeartPet.");
+    }
+  } catch (error) {
+    console.error("Ungültiges Drawer-Ziel", error);
+    return;
+  }
+
   const drawer = document.getElementById("app-drawer");
   const drawerBody = drawer?.querySelector("[data-drawer-body]");
   const drawerTitle = drawer?.querySelector("#drawer-title");
   if (!drawer || !drawerBody || !drawerTitle) {
-    window.location.href = urlLike;
+    window.location.assign(targetUrl.href);
     return;
   }
 
   try {
-    const targetUrl = new URL(urlLike, window.location.href);
     if (!targetUrl.searchParams.get("return_to")) {
       targetUrl.searchParams.set("return_to", `${window.location.pathname}${window.location.search}${window.location.hash}`);
     }
@@ -774,7 +784,7 @@ async function openDrawer(urlLike) {
     });
 
     if (!response.ok) {
-      window.location.href = targetUrl.toString();
+      window.location.assign(targetUrl.href);
       return;
     }
 
@@ -783,7 +793,7 @@ async function openDrawer(urlLike) {
     const doc = parser.parseFromString(html, "text/html");
     const fragment = doc.querySelector("[data-drawer-fragment]");
     if (!fragment) {
-      window.location.href = targetUrl.toString();
+      window.location.assign(targetUrl.href);
       return;
     }
 
@@ -801,7 +811,7 @@ async function openDrawer(urlLike) {
     initBulkSelection(drawerBody);
   } catch (error) {
     console.error("Drawer konnte nicht geladen werden", error);
-    window.location.href = urlLike;
+    window.location.assign(targetUrl.href);
   }
 }
 

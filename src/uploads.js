@@ -22,8 +22,7 @@ function createUploadMiddleware(projectRoot) {
       cb(null, targetDir);
     },
     filename: (req, file, cb) => {
-      const extension = allowedUploadTypes.get(normalizeMimeType(file.mimetype));
-      cb(null, `${crypto.randomUUID()}${extension || ".bin"}`);
+      cb(null, createStoredUploadName(file.mimetype));
     },
   });
 
@@ -32,6 +31,11 @@ function createUploadMiddleware(projectRoot) {
     limits: { fileSize: 20 * 1024 * 1024, files: 1, fields: 100 },
     fileFilter: (req, file, cb) => cb(null, allowedUploadTypes.has(normalizeMimeType(file.mimetype))),
   });
+}
+
+function createStoredUploadName(mimeType) {
+  const extension = allowedUploadTypes.get(normalizeMimeType(mimeType));
+  return `${crypto.randomUUID()}${extension || ".bin"}`;
 }
 
 function createImportUploadMiddleware() {
@@ -47,6 +51,7 @@ function normalizeMimeType(value) {
 }
 
 module.exports = {
+  createStoredUploadName,
   createImportUploadMiddleware,
   createUploadMiddleware,
   normalizeMimeType,

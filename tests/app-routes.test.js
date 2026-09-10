@@ -2842,12 +2842,14 @@ test("Browser-Antworten enthalten Sicherheitsheader und verraten Express nicht",
   assert.equal(response.headers["x-frame-options"], "DENY");
   assert.equal(response.headers["cross-origin-opener-policy"], "same-origin");
   assert.equal(response.headers["cross-origin-resource-policy"], "same-origin");
+  assert.ok(response.headers.ratelimit);
   assert.match(response.headers["content-security-policy"], /frame-ancestors 'none'/);
 });
 
 test("Technische Diagnosen maskieren Zugangsdaten und Tokens", () => {
   const text = app.__test.redactSensitiveText("http://admin:geheim@192.168.1.80/x?sid=ABC123&token=XYZ");
   assert.equal(text, "http://***:***@192.168.1.80/x?sid=***&token=***");
+  assert.equal(app.__test.redactSensitiveText("Fehler\nGefälschter Logeintrag"), "Fehler Gefälschter Logeintrag");
 });
 
 test("Schreibzugriffe aus einer fremden Browser-Origin werden abgelehnt", async () => {

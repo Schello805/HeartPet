@@ -4,13 +4,14 @@ const crypto = require("crypto");
 const { Readable } = require("stream");
 const { spawn } = require("child_process");
 const express = require("express");
+const { rateLimit } = require("express-rate-limit");
 const cron = require("node-cron");
 const bcrypt = require("bcryptjs");
 const dayjs = require("dayjs");
 
 const { initDatabase, getSettingsObject, upsertSetting } = require("./db");
 const { createSessionMiddleware } = require("./http-session");
-const { createImportUploadMiddleware, createUploadMiddleware } = require("./uploads");
+const { createImportUploadMiddleware, createStoredUploadName, createUploadMiddleware } = require("./uploads");
 const {
   buildPermissions,
   formatDate,
@@ -47,7 +48,7 @@ const {
   verifyReminderActionToken,
 } = require("./reminders");
 const { buildAnimalExportPayload, createAnimalPdf } = require("./exporters");
-const { validateNewPassword } = require("./password-security");
+const { PASSWORD_HASH_ROUNDS, validateNewPassword } = require("./password-security");
 const { buildAnimalTimeline } = require("./animal-timeline");
 const { createAnimalRepository } = require("./animal-repository");
 const { buildCoreOperationalChecks, summarizeOperationalChecks } = require("./operational-health");
@@ -118,6 +119,13 @@ app.use((req, res, next) => {
   }
   return next();
 });
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 2000,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: "Zu viele Anfragen. Bitte versuche es in einigen Minuten erneut.",
+}));
 app.use((req, res, next) => {
   if (req.method === "GET" && req.accepts("html")) {
     res.set("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -303,7 +311,7 @@ app.post("/setup", async (req, res) => {
         can_manage_feedings, can_manage_notes, can_manage_reminders
       )
       VALUES (?, ?, ?, 'admin', 0, 1, 1, 1, 1, 1, 1, 1)
-    `).run(adminName, adminEmail, bcrypt.hashSync(adminPassword, 10));
+    `).run(adminName, adminEmail, bcrypt.hashSync(adminPassword, PASSWORD_HASH_ROUNDS));
 
     const veterinarianResult = db.prepare(`
       INSERT INTO veterinarians (name, street, postal_code, city, country, email, phone, notes)
@@ -512,7 +520,7 @@ app.post("/password-reset", async (req, res) => {
   }
   db.transaction(() => {
     db.prepare("UPDATE users SET password_hash = ?, must_change_password = 0, session_version = session_version + 1 WHERE id = ?")
-      .run(bcrypt.hashSync(req.body.new_password, 10), reset.user_id);
+      .run(bcrypt.hashSync(req.body.new_password, PASSWORD_HASH_ROUNDS), reset.user_id);
     db.prepare("UPDATE password_reset_tokens SET used_at = CURRENT_TIMESTAMP WHERE id = ?").run(reset.id);
     db.prepare("UPDATE password_reset_tokens SET used_at = CURRENT_TIMESTAMP WHERE user_id = ? AND used_at IS NULL").run(reset.user_id);
   })();
@@ -634,7 +642,7 @@ app.post("/invite/accept", async (req, res) => {
 
   const tx = db.transaction(() => {
     db.prepare("UPDATE users SET password_hash = ?, must_change_password = 0, session_version = session_version + 1 WHERE id = ?")
-      .run(bcrypt.hashSync(req.body.new_password, 10), invite.user_id);
+      .run(bcrypt.hashSync(req.body.new_password, PASSWORD_HASH_ROUNDS), invite.user_id);
     db.prepare("UPDATE user_invites SET used_at = CURRENT_TIMESTAMP WHERE id = ?").run(invite.id);
     db.prepare("UPDATE user_invites SET used_at = CURRENT_TIMESTAMP WHERE user_id = ? AND id != ? AND used_at IS NULL")
       .run(invite.user_id, invite.id);
@@ -1171,7 +1179,7 @@ app.get("/coop/cameras/:index/status", async (req, res) => {
     if (!response.ok) {
       return res.status(502).json({ ok: false, error: `Kamera antwortet mit HTTP ${response.status}.` });
     }
-    if (!/^image\/(?:jpeg|jpg|png|webp)|multipart\/x-mixed-replace/i.test(contentType)) {
+    if (!/^(?:image\/(?:jpeg|jpg|png|webp)|multipart\/x-mixed-replace)/i.test(contentType)) {
       return res.status(502).json({ ok: false, error: `Kein Bildstream empfangen (${contentType || "Content-Type fehlt"}).` });
     }
     const cachedFrame = cameraFrameCache.get(Number.parseInt(req.params.index, 10)) || readCameraFrameCache(Number.parseInt(req.params.index, 10), camera.snapshotUrl);
@@ -3740,7 +3748,7 @@ app.post("/admin/users", requireAdmin, async (req, res) => {
   }
 
   const randomPassword = crypto.randomBytes(24).toString("hex");
-  const passwordHash = bcrypt.hashSync(randomPassword, 10);
+  const passwordHash = bcrypt.hashSync(randomPassword, PASSWORD_HASH_ROUNDS);
   const userPermissions = normalizeUserPermissions(role, req.body);
   const userResult = db.prepare(`
     INSERT INTO users (
@@ -4087,7 +4095,7 @@ app.post("/admin/password", async (req, res) => {
   }
 
   db.prepare("UPDATE users SET password_hash = ?, must_change_password = 0, session_version = session_version + 1 WHERE id = ?")
-    .run(bcrypt.hashSync(req.body.new_password, 10), currentUser.id);
+    .run(bcrypt.hashSync(req.body.new_password, PASSWORD_HASH_ROUNDS), currentUser.id);
 
   req.session.user.mustChangePassword = false;
   req.session.user.sessionVersion = Number(currentUser.session_version || 0) + 1;
@@ -4375,7 +4383,7 @@ app.use((req, res) => {
 
 app.use((error, req, res, next) => {
   if (res.headersSent) return next(error);
-  console.error(`[HeartPet][HTTP] ${req.method} ${req.path}: ${redactSensitiveText(error.message)}`);
+  console.error(`[HeartPet][HTTP] ${sanitizeLogText(req.method)} ${sanitizeLogText(req.path)}: ${redactSensitiveText(error.message)}`);
   if (error?.name === "MulterError" || /file type|unexpected field/i.test(String(error?.message || ""))) {
     setFlash(req, "error", error.code === "LIMIT_FILE_SIZE"
       ? "Die Datei ist zu groß. Erlaubt sind maximal 20 MB."
@@ -6501,10 +6509,14 @@ function createAuthenticatedFetchTarget(value) {
 }
 
 function redactSensitiveText(value) {
-  return String(value || "")
+  return sanitizeLogText(value)
     .replace(/(https?:\/\/)([^\s/@:]+):([^\s/@]+)@/gi, "$1***:***@")
     .replace(/([?&](?:sid|token|password|passwort)=)[^&\s]+/gi, "$1***")
     .replace(/("(?:password|token|sid)"\s*:\s*")[^"]+/gi, "$1***");
+}
+
+function sanitizeLogText(value) {
+  return String(value || "").replace(/[\r\n\u2028\u2029]+/g, " ");
 }
 
 function parseDigestChallenge(value) {
@@ -6877,8 +6889,7 @@ function restoreEmbeddedFile(embeddedFile) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 
   const originalName = embeddedFile.original_name || embeddedFile.stored_name || "datei";
-  const safeName = originalName.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const storedName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName}`;
+  const storedName = createStoredUploadName(embeddedFile.mime_type);
   const fullPath = path.join(uploadsDir, storedName);
   const buffer = Buffer.from(embeddedFile.content, "base64");
 

@@ -1,6 +1,7 @@
 const crypto = require("node:crypto");
 
 const PWNED_PASSWORDS_RANGE_URL = "https://api.pwnedpasswords.com/range";
+const PASSWORD_HASH_ROUNDS = 12;
 
 async function getPwnedPasswordCount(password, options = {}) {
   const value = String(password || "");
@@ -49,4 +50,4 @@ async function validateNewPassword(password, options = {}) {
   }
 }
 
-module.exports = { getPwnedPasswordCount, validateNewPassword };
+module.exports = { getPwnedPasswordCount, PASSWORD_HASH_ROUNDS, validateNewPassword };

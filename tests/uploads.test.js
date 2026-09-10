@@ -5,7 +5,7 @@ const os = require("node:os");
 const path = require("node:path");
 const express = require("express");
 const request = require("supertest");
-const { createUploadMiddleware, normalizeMimeType } = require("../src/uploads");
+const { createStoredUploadName, createUploadMiddleware, normalizeMimeType } = require("../src/uploads");
 
 test("Uploads erhalten eine serverseitig festgelegte, nicht ausführbare Dateiendung", async () => {
   const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), "heartpet-upload-"));
@@ -29,4 +29,5 @@ test("Uploads erhalten eine serverseitig festgelegte, nicht ausführbare Dateien
 
 test("MIME-Typen werden ohne optionale Parameter verglichen", () => {
   assert.equal(normalizeMimeType("Image/JPEG; charset=binary"), "image/jpeg");
+  assert.match(createStoredUploadName("text/html"), /^[0-9a-f-]+\.bin$/);
 });
