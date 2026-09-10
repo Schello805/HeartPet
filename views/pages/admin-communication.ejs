@@ -195,7 +195,7 @@
           </div>
           <div class="col-md-6">
             <label class="form-label" for="smtp_password">SMTP Passwort</label>
-            <input class="form-control" id="smtp_password" type="password" name="smtp_password" value="<%= settings.smtp_password || '' %>" />
+            <input class="form-control" id="smtp_password" type="password" name="smtp_password" value="" autocomplete="new-password" placeholder="<%= settings.smtp_password ? 'Gespeichert, leer lassen zum Beibehalten' : 'SMTP-Passwort eingeben' %>" />
           </div>
           <div class="col-md-6">
             <label class="form-label" for="smtp_from">Absenderadresse</label>
@@ -280,7 +280,7 @@
             <div class="row g-3">
               <div class="col-md-6">
                 <label class="form-label" for="telegram_bot_token">Telegram Bot Token</label>
-                <input class="form-control" id="telegram_bot_token" type="text" name="telegram_bot_token" value="<%= settings.telegram_bot_token || '' %>" />
+                <input class="form-control" id="telegram_bot_token" type="password" name="telegram_bot_token" value="" autocomplete="new-password" placeholder="<%= settings.telegram_bot_token ? 'Gespeichert, leer lassen zum Beibehalten' : 'Bot-Token eingeben' %>" />
               </div>
               <div class="col-md-6">
                 <label class="form-label" for="telegram_chat_id">Telegram Chat ID</label>
@@ -344,7 +344,7 @@
         </div>
         <div class="col-12">
           <label class="form-label" for="ntfy_access_token">Access-Token (optional)</label>
-          <input class="form-control" id="ntfy_access_token" name="ntfy_access_token" type="password" value="<%= settings.ntfy_access_token || '' %>" autocomplete="new-password" />
+          <input class="form-control" id="ntfy_access_token" name="ntfy_access_token" type="password" value="" autocomplete="new-password" placeholder="<%= settings.ntfy_access_token ? 'Gespeichert, leer lassen zum Beibehalten' : 'Access-Token eingeben' %>" />
           <div class="form-text">Für ntfy.sh genügt ein schwer zu erratendes Topic. Bei einem geschützten Topic oder eigenen Server zusätzlich den Access-Token eintragen.</div>
         </div>
       </div>

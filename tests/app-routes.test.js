@@ -2750,6 +2750,51 @@ test("Normales Speichern von E-Mail und Telegram ändert den Aktiv-Status nicht"
   assert.match(response.text, /Aktiviert/);
 });
 
+test("Gespeicherte Zugangsdaten werden nicht wieder im Adminformular ausgegeben", async () => {
+  const keys = ["smtp_password", "telegram_bot_token", "ntfy_access_token", "homematic_xmlapi_token"];
+  const previous = require("../src/db").getSettingsObject(db);
+  try {
+    upsertSetting(db, "smtp_password", "smtp-nicht-ausgeben");
+    upsertSetting(db, "telegram_bot_token", "telegram-nicht-ausgeben");
+    upsertSetting(db, "ntfy_access_token", "ntfy-nicht-ausgeben");
+    upsertSetting(db, "homematic_xmlapi_token", "ccu-nicht-ausgeben");
+
+    const communication = await agent.get("/admin/benachrichtigungen");
+    assert.equal(communication.status, 200);
+    assert.doesNotMatch(communication.text, /smtp-nicht-ausgeben|telegram-nicht-ausgeben|ntfy-nicht-ausgeben/);
+    const coop = await agent.get("/admin/stall");
+    assert.equal(coop.status, 200);
+    assert.doesNotMatch(coop.text, /ccu-nicht-ausgeben/);
+
+    await agent.post("/admin/settings").type("form").send({
+      _fields: keys.join(","),
+      smtp_password: "",
+      telegram_bot_token: "",
+      ntfy_access_token: "",
+      homematic_xmlapi_token: "",
+    });
+    const settings = require("../src/db").getSettingsObject(db);
+    assert.equal(settings.smtp_password, "smtp-nicht-ausgeben");
+    assert.equal(settings.telegram_bot_token, "telegram-nicht-ausgeben");
+    assert.equal(settings.ntfy_access_token, "ntfy-nicht-ausgeben");
+    assert.equal(settings.homematic_xmlapi_token, "ccu-nicht-ausgeben");
+  } finally {
+    keys.forEach((key) => upsertSetting(db, key, previous[key] || ""));
+  }
+});
+
+test("Externe Referer werden nicht als Weiterleitungsziel verwendet", () => {
+  const fakeRequest = {
+    protocol: "https",
+    get(name) {
+      if (name === "referer") return "https://angreifer.example/phishing";
+      if (name === "host") return "heartpet.de";
+      return "";
+    },
+  };
+  assert.equal(app.__test.safeRefererPath(fakeRequest, "/"), "/");
+});
+
 test("Benachrichtigungen zeigen den letzten erfolgreichen Test je Kanal an", async () => {
   db.prepare(`
     INSERT INTO notification_logs (channel, notification_type, recipient, subject, status, error_message, details, created_at)

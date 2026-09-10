@@ -1534,6 +1534,36 @@ body.bootstrap-app {
   background: rgba(247, 252, 252, 0.75);
 }
 
+.bootstrap-app .animal-subaccordion .empty-state-action {
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.75rem;
+  min-height: 7.5rem;
+  text-align: center;
+}
+
+.bootstrap-app .empty-state-plus {
+  display: inline-grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border: 1px solid rgba(38, 108, 235, 0.35);
+  border-radius: 50%;
+  background: linear-gradient(145deg, #2d72ed, #169e9b);
+  box-shadow: 0 0.45rem 1rem rgba(28, 103, 181, 0.2);
+  color: #fff;
+  font-size: 2.4rem;
+  font-weight: 400;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.bootstrap-app .empty-state-plus:hover,
+.bootstrap-app .empty-state-plus:focus-visible {
+  color: #fff;
+  transform: translateY(-1px);
+}
+
 .bootstrap-app .animal-record-accordion .accordion-summary-main,
 .bootstrap-app .animal-subaccordion .accordion-button {
   font-weight: 700;

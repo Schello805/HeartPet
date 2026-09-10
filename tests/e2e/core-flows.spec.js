@@ -577,6 +577,23 @@ test("Zusatzangaben lassen sich über die gesamte Titelzeile öffnen", async ({ 
   await expect(page.locator("#animal-chip-registry")).toContainText("Nicht registriert");
 });
 
+test("Leere Impfungen bieten einen Plus-Einstieg mit tierartspezifischer Auswahl", async ({ page }) => {
+  await ensureAuthenticated(page);
+  await page.goto("/animals/1");
+
+  await page.getByRole("button", { name: "Details anzeigen" }).click();
+  await page.evaluate(() => Promise.all(document.body.getAnimations().map((animation) => animation.finished)));
+  const addVaccination = page.getByRole("link", { name: "Impfung hinzufügen" });
+  await expect(addVaccination).toBeVisible();
+  await addVaccination.click();
+
+  const preset = page.getByLabel("Häufige Impfungen für Katze");
+  await expect(preset).toBeVisible();
+  await expect(preset).toContainText("RCP (Katzenschnupfen und Katzenseuche)");
+  await preset.selectOption({ label: "Tollwut" });
+  await expect(page.getByLabel("Bezeichnung")).toHaveValue("Tollwut");
+});
+
 test("Kernseiten erfüllen grundlegende Barrierefreiheitsregeln", async ({ page }) => {
   await ensureAuthenticated(page);
   await page.setViewportSize({ width: 390, height: 844 });

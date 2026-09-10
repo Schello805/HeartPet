@@ -183,7 +183,7 @@
                     </div>
                     <div class="col-12">
                       <label class="form-label" for="homematic_xmlapi_token">2. XML-API-Token (sid)</label>
-                      <input class="form-control font-monospace" id="homematic_xmlapi_token" name="homematic_xmlapi_token" value="<%= settings.homematic_xmlapi_token || '' %>" autocomplete="off" placeholder="zum Beispiel RdNQqjPaQbLSsslS" />
+                      <input class="form-control font-monospace" id="homematic_xmlapi_token" name="homematic_xmlapi_token" type="password" value="" autocomplete="new-password" placeholder="<%= settings.homematic_xmlapi_token ? 'Gespeichert, leer lassen zum Beibehalten' : 'zum Beispiel RdNQqjPaQbLSsslS' %>" />
                       <div class="form-text">XML-API 2.x verlangt für jeden Aufruf einen registrierten Token als Parameter <code>sid</code>. Die kurze <code>@…@</code>-SID aus der OpenCCU-WebUI ist eine andere, vorübergehende Sitzung und hier falsch.</div>
                     </div>
                     <div class="col-md-6"><label class="form-label" for="homematic_ccu_username">OpenCCU-Benutzername (optionaler Ausweichweg)</label><input class="form-control" id="homematic_ccu_username" name="homematic_ccu_username" value="<%= settings.homematic_ccu_username || '' %>" autocomplete="username" placeholder="bei XML-API-Token nicht nötig" /></div>

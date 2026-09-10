@@ -2564,7 +2564,7 @@ app.post("/reminders/:id/complete", requireAnimalPermission("canManageReminders"
     setFlash(req, "success", "Erinnerung als erledigt markiert.");
   }
   createAuditLog(req, "reminder.complete", { reminder_id: reminder.id, animal_id: reminder.animal_id }, { entityType: "reminder", entityId: reminder.id });
-  res.redirect(req.get("referer") || "/");
+  res.redirect(safeRefererPath(req, "/"));
 });
 
 app.post("/reminders/:id/reopen", requireAnimalPermission("canManageReminders"), (req, res) => {
@@ -2576,7 +2576,7 @@ app.post("/reminders/:id/reopen", requireAnimalPermission("canManageReminders"),
   const animal = findAnimal(reminder.animal_id);
   if (!animal || !isActiveAnimalStatus(animal.status)) {
     setFlash(req, "error", "Erinnerungen können nur bei aktiven Tieren wieder geöffnet werden.");
-    return res.redirect(req.get("referer") || "/");
+    return res.redirect(safeRefererPath(req, "/"));
   }
 
   db.prepare(`
@@ -2586,7 +2586,7 @@ app.post("/reminders/:id/reopen", requireAnimalPermission("canManageReminders"),
   `).run(req.params.id);
   createAuditLog(req, "reminder.reopen", { reminder_id: req.params.id }, { entityType: "reminder", entityId: req.params.id });
   setFlash(req, "success", "Erinnerung wieder geöffnet.");
-  res.redirect(req.get("referer") || "/");
+  res.redirect(safeRefererPath(req, "/"));
 });
 
 app.post("/animals/:id/documents", requireAnimalPermission("canManageDocuments"), upload.single("document"), (req, res) => {
@@ -3259,6 +3259,13 @@ app.post("/admin/settings", requireAdmin, upload.single("app_logo"), (req, res) 
     "daily_digest_enabled",
     "daily_digest_only_when_open",
   ]);
+  const secretKeys = new Set([
+    "smtp_password",
+    "telegram_bot_token",
+    "ntfy_access_token",
+    "homematic_xmlapi_token",
+    "homematic_ccu_password",
+  ]);
   const fields = String(req.body._fields || "")
     .split(",")
     .map((item) => item.trim())
@@ -3301,12 +3308,12 @@ app.post("/admin/settings", requireAdmin, upload.single("app_logo"), (req, res) 
   const ccuConnectionChanged = ["homematic_ccu_url", "homematic_xmlapi_token", "homematic_ccu_username", "homematic_ccu_password"].some((key) => {
     if (!fields.includes(key)) return false;
     const submitted = String(req.body[key] || "");
-    if (key === "homematic_ccu_password" && !submitted) return false;
+    if (secretKeys.has(key) && !submitted) return false;
     return normalizeSettingsInputValue(key, submitted) !== String(settingsBeforeSave[key] || "");
   });
 
   fields.forEach((key) => {
-    if (key === "homematic_ccu_password" && !String(req.body[key] || "")) {
+    if (secretKeys.has(key) && !String(req.body[key] || "")) {
       return;
     }
     if (booleanKeys.has(key)) {
@@ -4598,7 +4605,7 @@ function requireAnimalEditor(req, res, next) {
   const user = getCurrentUserRecord(req);
   if (!buildPermissions(user).canEditAnimals) {
     setFlash(req, "error", "Für diese Aktion fehlen die erforderlichen Rechte.");
-    return res.redirect(req.get("referer") || "/");
+    return res.redirect(safeRefererPath(req, "/"));
   }
   next();
 }
@@ -4608,7 +4615,7 @@ function requireAnimalPermission(permissionKey) {
     const user = getCurrentUserRecord(req);
     if (!buildPermissions(user)[permissionKey]) {
       setFlash(req, "error", "Für diese Aktion fehlen die erforderlichen Rechte.");
-      return res.redirect(req.get("referer") || "/");
+      return res.redirect(safeRefererPath(req, "/"));
     }
     next();
   };
@@ -7448,6 +7455,19 @@ function safeLocalReturnPath(value, fallback) {
   }
 }
 
+function safeRefererPath(req, fallback) {
+  const referer = String(req.get("referer") || "").trim();
+  if (!referer) return fallback;
+
+  try {
+    const url = new URL(referer, `${req.protocol}://${req.get("host")}`);
+    if (url.host !== req.get("host")) return fallback;
+    return safeLocalReturnPath(`${url.pathname}${url.search}${url.hash}`, fallback);
+  } catch {
+    return fallback;
+  }
+}
+
 function getAnimalReturnTo(req, fallback) {
   const queryTarget = safeLocalReturnPath(req.query.return_to, "");
   if (queryTarget) {
@@ -7581,6 +7601,7 @@ app.__test = {
   redactSensitiveText,
   getWeatherCodeMeta,
   isValidEmail,
+  safeRefererPath,
   resolveStoredFilePath: (storedName) => resolveStoredFilePath(uploadsDir, storedName),
 };
 

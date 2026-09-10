@@ -687,7 +687,10 @@
           <% }) %>
           </div>
           <% if (related.conditions.length === 0) { %>
-            <p class="empty-state">Noch keine Vorerkrankungen hinterlegt.</p>
+            <div class="empty-state empty-state-action">
+              <span>Noch keine Vorerkrankungen hinterlegt.</span>
+              <% if (canManageHealthNow) { %><a href="/animals/<%= animal.id %>/conditions/new" class="empty-state-plus" aria-label="Vorerkrankung hinzufügen" title="Vorerkrankung hinzufügen" data-drawer="animal-entry">+</a><% } %>
+            </div>
           <% } %>
           </div>
         </div>
@@ -755,7 +758,10 @@
           <% }) %>
           </div>
           <% if (related.medications.length === 0) { %>
-            <p class="empty-state">Noch keine Medikamente vorhanden.</p>
+            <div class="empty-state empty-state-action">
+              <span>Noch keine Medikamente vorhanden.</span>
+              <% if (canManageHealthNow) { %><a href="/animals/<%= animal.id %>/events/new?kind=medication" class="empty-state-plus" aria-label="Medikament hinzufügen" title="Medikament hinzufügen" data-drawer="animal-entry">+</a><% } %>
+            </div>
           <% } %>
           </div>
         </div>
@@ -825,7 +831,10 @@
           <% }) %>
           </div>
           <% if (related.vaccinations.length === 0) { %>
-            <p class="empty-state">Noch keine Impfungen vorhanden.</p>
+            <div class="empty-state empty-state-action">
+              <span>Noch keine Impfungen vorhanden.</span>
+              <% if (canManageHealthNow) { %><a href="/animals/<%= animal.id %>/events/new?kind=vaccination" class="empty-state-plus" aria-label="Impfung hinzufügen" title="Impfung hinzufügen" data-drawer="animal-entry">+</a><% } %>
+            </div>
           <% } %>
           </div>
         </div>
@@ -893,7 +902,10 @@
           <% }) %>
           </div>
           <% if ((related.appointments || []).length === 0) { %>
-            <p class="empty-state">Noch keine Arzttermine vorhanden.</p>
+            <div class="empty-state empty-state-action">
+              <span>Noch keine Arzttermine vorhanden.</span>
+              <% if (canManageHealthNow) { %><a href="/animals/<%= animal.id %>/events/new?kind=appointment" class="empty-state-plus" aria-label="Arzttermin hinzufügen" title="Arzttermin hinzufügen" data-drawer="animal-entry">+</a><% } %>
+            </div>
           <% } %>
           </div>
         </div>
@@ -976,7 +988,10 @@
             <form id="bulk-reminders-<%= animal.id %>" method="post" action="/animals/<%= animal.id %>/reminders/bulk" class="hidden-form" data-confirm="Ausgewählte Erinnerungen wirklich ändern?"></form>
           <% } %>
           <% if (freeReminders.length === 0) { %>
-            <p class="empty-state">Noch keine freien Erinnerungen vorhanden.</p>
+            <div class="empty-state empty-state-action">
+              <span>Noch keine freien Erinnerungen vorhanden.</span>
+              <% if (canManageRemindersNow) { %><a href="/animals/<%= animal.id %>/events/new?kind=reminder" class="empty-state-plus" aria-label="Erinnerung hinzufügen" title="Erinnerung hinzufügen" data-drawer="animal-entry">+</a><% } %>
+            </div>
           <% } %>
           </div>
         </div>
