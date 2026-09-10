@@ -89,9 +89,8 @@
                   <% } %>
                 </div>
               </div>
-              <% if (vaccinationSuggestionState.suggestions.length > 0) { %>
-                <div class="col-12" data-vaccination-preset-wrap hidden>
-                  <label class="form-label" for="event-vaccination-preset">Häufige Impfungen für <%= vaccinationSuggestionState.speciesName %></label>
+              <div class="col-12" data-vaccination-preset-wrap hidden>
+                  <label class="form-label" for="event-vaccination-preset"><%= vaccinationSuggestionState.suggestions.length > 0 ? `Häufige Impfungen für ${vaccinationSuggestionState.speciesName}` : 'Impfung auswählen' %></label>
                   <select class="form-select" id="event-vaccination-preset" data-vaccination-preset data-vaccination-target="#event-title" disabled>
                     <option value="">Impfung auswählen</option>
                     <% vaccinationSuggestionState.suggestions.forEach((suggestion) => { %>
@@ -99,9 +98,8 @@
                     <% }); %>
                     <option value="__custom__">Andere Impfung manuell eingeben</option>
                   </select>
-                  <div class="form-text">Auswahlhilfe, kein Impfplan. Bitte die passende Impfung tierärztlich abstimmen.</div>
-                </div>
-              <% } %>
+                  <div class="form-text"><%= vaccinationSuggestionState.suggestions.length > 0 ? 'Auswahlhilfe, kein Impfplan. Bitte die passende Impfung tierärztlich abstimmen.' : 'Für diese Tierart sind noch keine Standardimpfungen hinterlegt. Du kannst die Bezeichnung frei eingeben.' %></div>
+              </div>
               <div class="col-12">
                 <label class="form-label" for="event-title">Bezeichnung</label>
                 <input class="form-control" id="event-title" type="text" name="title" required placeholder="z. B. Wurmkur, Tollwut, Nachkontrolle" />

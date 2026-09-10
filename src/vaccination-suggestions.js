@@ -49,7 +49,9 @@ function normalizeSpeciesName(value) {
 }
 
 function getVaccinationSuggestionsForSpecies(speciesName) {
-  const canonicalName = speciesAliases[normalizeSpeciesName(speciesName)];
+  const normalizedName = normalizeSpeciesName(speciesName);
+  const canonicalName = speciesAliases[normalizedName]
+    || Object.entries(speciesAliases).find(([alias]) => normalizedName.includes(alias))?.[1];
   return canonicalName
     ? { speciesName: canonicalName, suggestions: [...suggestionsBySpecies[canonicalName]] }
     : { speciesName: String(speciesName || "Tier").trim() || "Tier", suggestions: [] };

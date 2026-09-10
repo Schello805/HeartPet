@@ -579,6 +579,7 @@ test("Zusatzangaben lassen sich über die gesamte Titelzeile öffnen", async ({ 
 
 test("Leere Impfungen bieten einen Plus-Einstieg mit tierartspezifischer Auswahl", async ({ page }) => {
   await ensureAuthenticated(page);
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/animals/1");
 
   await page.getByRole("button", { name: "Details anzeigen" }).click();

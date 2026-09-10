@@ -38,6 +38,17 @@ test("Häufige Impfungen werden passend zur Tierart vorgeschlagen", () => {
   assert.deepEqual(getVaccinationSuggestionGroups(["Katze", "Katzen", "Huhn"]).map((group) => group.speciesName), ["Huhn", "Katze"]);
 });
 
+test("Impfvorschläge erkennen zusammengesetzte Tierartnamen", () => {
+  assert.deepEqual(
+    getVaccinationSuggestionsForSpecies("Legehuhn").suggestions,
+    getVaccinationSuggestionsForSpecies("Huhn").suggestions,
+  );
+  assert.deepEqual(
+    getVaccinationSuggestionsForSpecies("Hauskatze").suggestions,
+    getVaccinationSuggestionsForSpecies("Katze").suggestions,
+  );
+});
+
 test("Kamera-Zugangsdaten werden als Basic-Auth-Header statt in der Fetch-URL verwendet", () => {
   const target = app.__test.createAuthenticatedFetchTarget("http://admin:p%40ss%21@192.168.1.80/video/mjpg.cgi");
   assert.equal(target.url, "http://192.168.1.80/video/mjpg.cgi");
