@@ -3,7 +3,12 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { resolveSessionSecret, shouldUseMemorySessionStore } = require("../src/http-session");
+const {
+  isUnsafeSessionSecret,
+  resolveSecureCookieSetting,
+  resolveSessionSecret,
+  shouldUseMemorySessionStore,
+} = require("../src/http-session");
 
 test("Session-Geheimnis wird installationsbezogen erzeugt und dauerhaft wiederverwendet", () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "heartpet-session-"));
@@ -27,4 +32,16 @@ test("Flüchtige Sessions sind ausschließlich im Testbetrieb erlaubt", () => {
   assert.equal(shouldUseMemorySessionStore({ HEARTPET_SESSION_STORE: "memory", NODE_ENV: "production" }), false);
   assert.equal(shouldUseMemorySessionStore({ HEARTPET_SESSION_STORE: "memory" }), false);
   assert.equal(shouldUseMemorySessionStore({ NODE_ENV: "test" }), false);
+});
+
+test("Unsichere konfigurierte Session-Geheimnisse werden nicht verwendet", () => {
+  assert.equal(isUnsafeSessionSecret("bitte-aendern"), true);
+  assert.equal(isUnsafeSessionSecret("kurz"), true);
+  assert.equal(isUnsafeSessionSecret("u6Qx9mP2rT7vW4yZ8bC3dF5gH1jK0nLs"), false);
+});
+
+test("Session-Cookies erkennen HTTPS automatisch und bleiben explizit konfigurierbar", () => {
+  assert.equal(resolveSecureCookieSetting({}), "auto");
+  assert.equal(resolveSecureCookieSetting({ HEARTPET_SECURE_COOKIE: "true" }), true);
+  assert.equal(resolveSecureCookieSetting({ HEARTPET_SECURE_COOKIE: "false" }), false);
 });

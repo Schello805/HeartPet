@@ -54,6 +54,7 @@ const { buildCoreOperationalChecks, summarizeOperationalChecks } = require("./op
 const { getVaccinationSuggestionGroups, getVaccinationSuggestionsForSpecies } = require("./vaccination-suggestions");
 
 const app = express();
+app.set("trust proxy", process.env.HEARTPET_TRUST_PROXY || "loopback");
 const db = initDatabase();
 const animalRepository = createAnimalRepository(db);
 const projectRoot = path.join(__dirname, "..");
@@ -101,6 +102,8 @@ app.use((req, res, next) => {
     "Referrer-Policy": "same-origin",
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
+    "Cross-Origin-Opener-Policy": "same-origin",
+    "Cross-Origin-Resource-Policy": "same-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
     "X-Robots-Tag": "noindex, nofollow, noarchive, nosnippet",
   });
@@ -108,6 +111,10 @@ app.use((req, res, next) => {
     let originHost = "";
     try { originHost = new URL(req.headers.origin).host; } catch {}
     if (!originHost || originHost !== req.get("host")) return res.status(403).send("Anfrage aus fremder Quelle abgelehnt.");
+  }
+  if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+    const fetchSite = String(req.get("Sec-Fetch-Site") || "").toLowerCase();
+    if (["cross-site", "none"].includes(fetchSite)) return res.status(403).send("Anfrage aus fremder Quelle abgelehnt.");
   }
   return next();
 });
@@ -346,6 +353,7 @@ app.post("/setup", async (req, res) => {
   });
 
   const result = setupTx();
+  await regenerateSession(req);
   req.session.user = {
     id: result.userId,
     name: adminName,
@@ -368,7 +376,7 @@ app.get("/login", (req, res) => {
   res.render("pages/login", { pageTitle: "Login", returnTo });
 });
 
-app.post("/login", (req, res) => {
+app.post("/login", async (req, res) => {
   const returnTo = safeLocalReturnPath(req.body.return_to || req.query.return_to, "");
   const email = String(req.body.email || "").trim().toLowerCase();
   const password = String(req.body.password || "");
@@ -402,6 +410,7 @@ app.post("/login", (req, res) => {
   db.prepare("UPDATE users SET last_login_at = CURRENT_TIMESTAMP, last_seen_at = CURRENT_TIMESTAMP, last_logout_at = NULL WHERE id = ?").run(user.id);
   userPresenceWrites.set(user.id, Date.now());
 
+  await regenerateSession(req);
   req.session.user = {
     id: user.id,
     name: user.name,
@@ -4602,6 +4611,12 @@ function getCurrentUserRecord(req) {
 
 function setFlash(req, type, message) {
   req.session.flash = { type, message };
+}
+
+function regenerateSession(req) {
+  return new Promise((resolve, reject) => {
+    req.session.regenerate((error) => error ? reject(error) : resolve());
+  });
 }
 
 function findAnimal(id) {

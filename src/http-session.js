@@ -49,11 +49,16 @@ class BetterSqliteSessionStore extends session.Store {
 
 function resolveSessionSecret(dataDir) {
   const configured = String(process.env.HEARTPET_SESSION_SECRET || "").trim();
-  if (configured) return configured;
+  if (configured && !isUnsafeSessionSecret(configured)) return configured;
   fs.mkdirSync(dataDir, { recursive: true, mode: 0o700 });
   const secretPath = path.join(dataDir, ".session-secret");
   if (!fs.existsSync(secretPath)) fs.writeFileSync(secretPath, crypto.randomBytes(48).toString("base64url"), { mode: 0o600 });
   return fs.readFileSync(secretPath, "utf8").trim();
+}
+
+function isUnsafeSessionSecret(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return normalized.length < 32 || /bitte|change|changeme|secret|passwort|password/.test(normalized);
 }
 
 function createSessionMiddleware(dataDir) {
@@ -71,12 +76,19 @@ function createSessionMiddleware(dataDir) {
       httpOnly: true,
       maxAge: sessionMaxAgeMs,
       sameSite: "lax",
-      secure: String(process.env.HEARTPET_SECURE_COOKIE || "").toLowerCase() === "true",
+      secure: resolveSecureCookieSetting(process.env),
     },
     store: useMemorySessionStore
       ? undefined
       : new BetterSqliteSessionStore(path.join(dataDir, "sessions.sqlite"), sessionMaxAgeMs),
   });
+}
+
+function resolveSecureCookieSetting(environment) {
+  const configured = String(environment.HEARTPET_SECURE_COOKIE || "").trim().toLowerCase();
+  if (configured === "true") return true;
+  if (configured === "false") return false;
+  return "auto";
 }
 
 function shouldUseMemorySessionStore(environment) {
@@ -87,6 +99,8 @@ function shouldUseMemorySessionStore(environment) {
 module.exports = {
   BetterSqliteSessionStore,
   createSessionMiddleware,
+  isUnsafeSessionSecret,
   resolveSessionSecret,
+  resolveSecureCookieSetting,
   shouldUseMemorySessionStore,
 };

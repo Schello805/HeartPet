@@ -13,7 +13,7 @@ RestartSec=5
 User=www-data
 Group=www-data
 Environment=PORT=3000
-Environment=HEARTPET_SESSION_SECRET=bitte-aendern
+# Ohne gesetzten Wert erzeugt HeartPet installationsbezogen ein sicheres Geheimnis.
 
 [Install]
 WantedBy=multi-user.target

@@ -356,6 +356,26 @@ test("Ersteinrichtung funktioniert", async () => {
   assert.deepEqual(speciesRows.map((item) => item.name), ["Katze"]);
 });
 
+test("Login erneuert die Session-ID", async () => {
+  const loginAgent = request.agent(app);
+  const failedLogin = await loginAgent.post("/login").type("form").send({
+    email: "admin@test.local",
+    password: "falsch",
+  });
+  const sessionBeforeLogin = failedLogin.headers["set-cookie"]?.find((value) => value.startsWith("heartpet.sid="));
+
+  const successfulLogin = await loginAgent.post("/login").type("form").send({
+    email: "admin@test.local",
+    password: "passwort123!",
+  });
+  const sessionAfterLogin = successfulLogin.headers["set-cookie"]?.find((value) => value.startsWith("heartpet.sid="));
+
+  assert.equal(successfulLogin.status, 302);
+  assert.ok(sessionBeforeLogin);
+  assert.ok(sessionAfterLogin);
+  assert.notEqual(sessionAfterLogin.split(";", 1)[0], sessionBeforeLogin.split(";", 1)[0]);
+});
+
 test("Einmalige Tierarten-Bereinigung entfernt ungenutzte Vorgaben und behält verwendete Arten", async () => {
   db.prepare("INSERT INTO species (name, notes) VALUES (?, ?)").run("Hund", "Soll entfernt werden");
   const parrotInsert = db.prepare("INSERT INTO species (name, notes) VALUES (?, ?)").run("Papagei", "Soll bleiben");
@@ -707,6 +727,19 @@ test("Auch die Hilfeseite bleibt vollständig von Suchmaschinen ausgeschlossen",
   assert.match(response.text, /<meta name="robots" content="noindex,nofollow,noarchive,nosnippet"\s*\/?>/i);
   assert.doesNotMatch(response.text, /rel="canonical"|property="og:|name="twitter:/i);
   assert.equal(response.headers["x-robots-tag"], "noindex, nofollow, noarchive, nosnippet");
+});
+
+test("Konfigurierbare Informationstexte werden nicht als HTML ausgeführt", async () => {
+  const originalContactText = db.prepare("SELECT value FROM settings WHERE key = ?").get("contact_text")?.value || "";
+  upsertSetting(db, "contact_text", '<script>alert("xss")</script>\nKontakt');
+  try {
+    const response = await agent.get("/kontakt");
+    assert.equal(response.status, 200);
+    assert.doesNotMatch(response.text, /<script>alert\("xss"\)<\/script>/);
+    assert.match(response.text, /&lt;script&gt;alert\(&#34;xss&#34;\)&lt;\/script&gt;<br \/>/);
+  } finally {
+    upsertSetting(db, "contact_text", originalContactText);
+  }
 });
 
 test("Interne Dashboard-Seite bleibt für Suchmaschinen auf noindex", async () => {
@@ -2807,6 +2840,8 @@ test("Browser-Antworten enthalten Sicherheitsheader und verraten Express nicht",
   assert.equal(response.headers["x-powered-by"], undefined);
   assert.equal(response.headers["x-content-type-options"], "nosniff");
   assert.equal(response.headers["x-frame-options"], "DENY");
+  assert.equal(response.headers["cross-origin-opener-policy"], "same-origin");
+  assert.equal(response.headers["cross-origin-resource-policy"], "same-origin");
   assert.match(response.headers["content-security-policy"], /frame-ancestors 'none'/);
 });
 
@@ -2818,4 +2853,7 @@ test("Technische Diagnosen maskieren Zugangsdaten und Tokens", () => {
 test("Schreibzugriffe aus einer fremden Browser-Origin werden abgelehnt", async () => {
   const response = await request(app).post("/logout").set("Origin", "https://fremde-seite.example");
   assert.equal(response.status, 403);
+
+  const fetchMetadataResponse = await request(app).post("/logout").set("Sec-Fetch-Site", "cross-site");
+  assert.equal(fetchMetadataResponse.status, 403);
 });

@@ -3,6 +3,9 @@ const nodemailer = require("nodemailer");
 const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
+const { resolveSessionSecret } = require("./http-session");
+
+let reminderActionSecret = "";
 
 async function processDueReminders(db, settings, hooks = {}) {
   const now = dayjs().format("YYYY-MM-DDTHH:mm");
@@ -1009,7 +1012,7 @@ function buildReminderActionUrl(appBaseUrl, reminder, action, value = "") {
 }
 
 function buildReminderActionToken(reminder, action, value = "") {
-  const secret = process.env.HEARTPET_SESSION_SECRET || "heartpet-session-secret";
+  const secret = getReminderActionSecret();
   const payload = [
     reminder.id,
     action,
@@ -1021,6 +1024,14 @@ function buildReminderActionToken(reminder, action, value = "") {
     reminder.source_id || "",
   ].join("|");
   return crypto.createHmac("sha256", secret).update(payload).digest("hex");
+}
+
+function getReminderActionSecret() {
+  if (!reminderActionSecret) {
+    const dataDir = path.resolve(process.env.HEARTPET_DATA_DIR || path.join(process.cwd(), "data"));
+    reminderActionSecret = resolveSessionSecret(dataDir);
+  }
+  return reminderActionSecret;
 }
 
 function verifyReminderActionToken(reminder, action, token, value = "") {

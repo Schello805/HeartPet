@@ -1,0 +1,32 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const express = require("express");
+const request = require("supertest");
+const { createUploadMiddleware, normalizeMimeType } = require("../src/uploads");
+
+test("Uploads erhalten eine serverseitig festgelegte, nicht ausführbare Dateiendung", async () => {
+  const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), "heartpet-upload-"));
+  const app = express();
+  const upload = createUploadMiddleware(projectRoot);
+  app.post("/upload", upload.single("document"), (req, res) => res.json({ filename: req.file?.filename }));
+
+  try {
+    const response = await request(app)
+      .post("/upload")
+      .attach("document", Buffer.from("<script>alert(1)</script>"), { filename: "angriff.html", contentType: "image/jpeg" });
+
+    assert.equal(response.status, 200);
+    assert.match(response.body.filename, /^[0-9a-f-]+\.jpg$/);
+    assert.doesNotMatch(response.body.filename, /angriff|\.html/i);
+    assert.equal(fs.existsSync(path.join(projectRoot, "data", "uploads", response.body.filename)), true);
+  } finally {
+    fs.rmSync(projectRoot, { recursive: true, force: true });
+  }
+});
+
+test("MIME-Typen werden ohne optionale Parameter verglichen", () => {
+  assert.equal(normalizeMimeType("Image/JPEG; charset=binary"), "image/jpeg");
+});

@@ -2,7 +2,7 @@
 
 <section class="card border-0 shadow-sm">
   <div class="card-body">
-    <div class="prose-block"><%- (content || '').replace(/\n/g, '<br />') %></div>
+    <div class="prose-block"><% String(content || '').split(/\r?\n/).forEach((line, index, lines) => { %><%= line %><% if (index < lines.length - 1) { %><br /><% } %><% }) %></div>
   </div>
 </section>
 
