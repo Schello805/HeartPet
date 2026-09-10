@@ -2947,7 +2947,11 @@ test("Browser-Antworten enthalten Sicherheitsheader und verraten Express nicht",
   assert.equal(response.headers["cross-origin-opener-policy"], "same-origin");
   assert.equal(response.headers["cross-origin-resource-policy"], "same-origin");
   assert.ok(response.headers.ratelimit);
-  assert.match(response.headers["content-security-policy"], /frame-ancestors 'none'/);
+  const contentSecurityPolicy = response.headers["content-security-policy"];
+  assert.match(contentSecurityPolicy, /frame-ancestors 'none'/);
+  assert.match(contentSecurityPolicy, /style-src[^;]*https:\/\/fonts\.googleapis\.com/);
+  assert.match(contentSecurityPolicy, /font-src[^;]*https:\/\/fonts\.gstatic\.com/);
+  assert.match(contentSecurityPolicy, /connect-src[^;]*https:\/\/cdn\.jsdelivr\.net/);
 });
 
 test("Technische Diagnosen maskieren Zugangsdaten und Tokens", () => {
