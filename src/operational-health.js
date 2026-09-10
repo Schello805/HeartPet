@@ -19,7 +19,15 @@ function summarizeOperationalChecks(checks) {
 
 function checkDatabase(db) {
   try {
-    return { name: "Datenbank", ok: Boolean(db.prepare("SELECT 1 AS ok").get()?.ok), critical: true, detail: "SQLite erreichbar" };
+    const requiredTables = ["animals", "settings", "users", "vaccination_presets"];
+    const availableTables = new Set(db.prepare(`
+      SELECT name FROM sqlite_master
+      WHERE type = 'table' AND name IN (${requiredTables.map(() => "?").join(", ")})
+    `).all(...requiredTables).map((row) => row.name));
+    const missingTables = requiredTables.filter((name) => !availableTables.has(name));
+    return missingTables.length === 0
+      ? { name: "Datenbank", ok: true, critical: true, detail: "SQLite und Pflichtschema erreichbar" }
+      : { name: "Datenbank", ok: false, critical: true, detail: `Pflichttabellen fehlen: ${missingTables.join(", ")}` };
   } catch {
     return { name: "Datenbank", ok: false, critical: true, detail: "SQLite nicht erreichbar" };
   }
