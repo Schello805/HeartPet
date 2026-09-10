@@ -8,6 +8,7 @@ const request = require("supertest");
 const dayjs = require("dayjs");
 const nodemailer = require("nodemailer");
 const bcrypt = require("bcryptjs");
+const Database = require("better-sqlite3");
 
 const tempDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "heartpet-test-"));
 process.env.HEARTPET_DATA_DIR = tempDataDir;
@@ -21,6 +22,7 @@ const { initDatabase, upsertSetting } = require("../src/db");
 const { createAnimalPdf } = require("../src/exporters");
 const { buildReminderActionToken, buildReminderEmailHtml, sendTelegramReminder, sendTestNtfy, processDueReminders } = require("../src/reminders");
 const { getVaccinationSuggestionGroups, getVaccinationSuggestionsForSpecies } = require("../src/vaccination-suggestions");
+const { runMigrations } = require("../src/migrations");
 const app = require("../src/app");
 const agent = request.agent(app);
 const db = initDatabase();
@@ -47,6 +49,13 @@ test("Impfvorschläge erkennen zusammengesetzte Tierartnamen", () => {
     getVaccinationSuggestionsForSpecies("Hauskatze").suggestions,
     getVaccinationSuggestionsForSpecies("Katze").suggestions,
   );
+});
+
+test("Impfvorschläge fallen bei einer leeren Stammdatenliste auf sichere Vorgaben zurück", () => {
+  assert.deepEqual(getVaccinationSuggestionsForSpecies("Katze", []).suggestions, [
+    "RCP (Katzenschnupfen und Katzenseuche)",
+    "Tollwut",
+  ]);
 });
 
 test("Kamera-Zugangsdaten werden als Basic-Auth-Header statt in der Fetch-URL verwendet", () => {
@@ -417,6 +426,24 @@ test("Datenbank-Migrationen werden protokolliert", () => {
   assert.ok(migrationIds.includes("004_animal_status_context"));
   assert.ok(migrationIds.includes("006_user_access_tracking"));
   assert.ok(migrationIds.includes("007_animal_microchip_details"));
+  assert.ok(migrationIds.includes("008_vaccination_presets"));
+  assert.ok(migrationIds.includes("009_repair_vaccination_presets"));
+  assert.ok(db.prepare("SELECT 1 FROM vaccination_presets WHERE species_name = ? AND name = ?").get(
+    "Katze",
+    "RCP (Katzenschnupfen und Katzenseuche)",
+  ));
+});
+
+test("Reparaturmigration stellt eine trotz Migrationsprotokoll fehlende Impfungstabelle wieder her", () => {
+  const repairDb = new Database(":memory:");
+  runMigrations(repairDb);
+  repairDb.exec("DROP TABLE vaccination_presets");
+  repairDb.prepare("DELETE FROM schema_migrations WHERE id = ?").run("009_repair_vaccination_presets");
+
+  runMigrations(repairDb);
+
+  assert.ok(repairDb.prepare("SELECT 1 FROM vaccination_presets WHERE species_name = ?").get("Katze"));
+  repairDb.close();
 });
 
 test("Systemlog ist erreichbar (inkl. Alias)", async () => {

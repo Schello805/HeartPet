@@ -59,7 +59,9 @@ function getVaccinationSuggestionsForSpecies(speciesName, configuredPresets = nu
           || presetSpecies.includes(normalizedName);
       })
       .map((item) => item.name);
-    return { speciesName: String(speciesName || "Tier").trim() || "Tier", suggestions: [...new Set(suggestions)] };
+    if (suggestions.length > 0) {
+      return { speciesName: String(speciesName || "Tier").trim() || "Tier", suggestions: [...new Set(suggestions)] };
+    }
   }
   const canonicalName = speciesAliases[normalizedName]
     || Object.entries(speciesAliases).find(([alias]) => normalizedName.includes(alias))?.[1];
