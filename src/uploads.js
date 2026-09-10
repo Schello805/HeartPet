@@ -14,10 +14,10 @@ const allowedUploadTypes = new Map([
   ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", ".docx"],
 ]);
 
-function createUploadMiddleware(projectRoot) {
+function createUploadMiddleware(dataDir) {
   const uploadStorage = multer.diskStorage({
     destination: (req, file, cb) => {
-      const targetDir = path.join(projectRoot, "data", "uploads");
+      const targetDir = path.join(dataDir, "uploads");
       fs.mkdirSync(targetDir, { recursive: true });
       cb(null, targetDir);
     },

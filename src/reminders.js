@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
 const { resolveSessionSecret } = require("./http-session");
+const { resolveStoredFilePath } = require("./storage-paths");
 
 let reminderActionSecret = "";
 
@@ -546,7 +547,9 @@ function getAppLogoFilePath(settings) {
   if (!storedName) {
     return path.join(__dirname, "..", "public", "images", "logo-heartpet.png");
   }
-  return path.join(process.cwd(), "data", "uploads", storedName);
+  const dataDir = path.resolve(process.env.HEARTPET_DATA_DIR || path.join(process.cwd(), "data"));
+  return resolveStoredFilePath(path.join(dataDir, "uploads"), storedName)
+    || path.join(__dirname, "..", "public", "images", "logo-heartpet.png");
 }
 
 function getAppLogoUrl(settings, appBaseUrl) {

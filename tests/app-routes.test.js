@@ -1592,7 +1592,7 @@ test("Tierfilter bleibt auch mit aktivem Filter zunächst geschlossen", async ()
 });
 
 test("Tier kann mit allen Akteneinträgen und Dateien kopiert werden", async () => {
-  const uploadsDir = path.join(__dirname, "..", "data", "uploads");
+  const uploadsDir = path.join(tempDataDir, "uploads");
   fs.mkdirSync(uploadsDir, { recursive: true });
   const sourceStoredName = `duplicate-source-${Date.now()}.txt`;
   fs.writeFileSync(path.join(uploadsDir, sourceStoredName), "HeartPet Kopiertest");
@@ -1686,7 +1686,7 @@ test("Gruppenimpfung wird mehreren aktiven Tieren gleichzeitig zugeordnet", asyn
 
   db.prepare("DELETE FROM reminders WHERE animal_id IN (?, ?)").run(firstAnimalId, secondAnimalId);
   db.prepare("DELETE FROM animals WHERE id IN (?, ?)").run(firstAnimalId, secondAnimalId);
-  fs.rmSync(path.join(__dirname, "..", "data", "uploads", vaccinations[0].certificate_stored_name), { force: true });
+  fs.rmSync(path.join(tempDataDir, "uploads", vaccinations[0].certificate_stored_name), { force: true });
 });
 
 test("Tiere-Arbeitsansicht öffnet ohne animal_id keine Akte automatisch", async () => {
@@ -2850,6 +2850,18 @@ test("Technische Diagnosen maskieren Zugangsdaten und Tokens", () => {
   const text = app.__test.redactSensitiveText("http://admin:geheim@192.168.1.80/x?sid=ABC123&token=XYZ");
   assert.equal(text, "http://***:***@192.168.1.80/x?sid=***&token=***");
   assert.equal(app.__test.redactSensitiveText("Fehler\nGefälschter Logeintrag"), "Fehler Gefälschter Logeintrag");
+});
+
+test("Gespeicherte Dateinamen bleiben im Upload-Verzeichnis", () => {
+  assert.equal(app.__test.resolveStoredFilePath("../heartpet.sqlite"), null);
+  assert.equal(app.__test.resolveStoredFilePath("unterordner/datei.pdf"), null);
+  assert.equal(app.__test.resolveStoredFilePath("datei.pdf"), path.join(tempDataDir, "uploads", "datei.pdf"));
+});
+
+test("E-Mail-Prüfung ist begrenzt und akzeptiert normale Adressen", () => {
+  assert.equal(app.__test.isValidEmail("tierarzt@example.de"), true);
+  assert.equal(app.__test.isValidEmail("ungueltig"), false);
+  assert.equal(app.__test.isValidEmail(`${"a".repeat(250)}@example.de`), false);
 });
 
 test("Schreibzugriffe aus einer fremden Browser-Origin werden abgelehnt", async () => {

@@ -52,7 +52,11 @@ function resolveSessionSecret(dataDir) {
   if (configured && !isUnsafeSessionSecret(configured)) return configured;
   fs.mkdirSync(dataDir, { recursive: true, mode: 0o700 });
   const secretPath = path.join(dataDir, ".session-secret");
-  if (!fs.existsSync(secretPath)) fs.writeFileSync(secretPath, crypto.randomBytes(48).toString("base64url"), { mode: 0o600 });
+  try {
+    fs.writeFileSync(secretPath, crypto.randomBytes(48).toString("base64url"), { flag: "wx", mode: 0o600 });
+  } catch (error) {
+    if (error.code !== "EEXIST") throw error;
+  }
   return fs.readFileSync(secretPath, "utf8").trim();
 }
 

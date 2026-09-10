@@ -53,6 +53,7 @@ const { buildAnimalTimeline } = require("./animal-timeline");
 const { createAnimalRepository } = require("./animal-repository");
 const { buildCoreOperationalChecks, summarizeOperationalChecks } = require("./operational-health");
 const { getVaccinationSuggestionGroups, getVaccinationSuggestionsForSpecies } = require("./vaccination-suggestions");
+const { resolveStoredFilePath } = require("./storage-paths");
 
 const app = express();
 app.set("trust proxy", process.env.HEARTPET_TRUST_PROXY || "loopback");
@@ -63,7 +64,8 @@ const revisionPath = path.join(projectRoot, "REVISION");
 const runtimeRevision = readAppRevision();
 const configuredDataDir = String(process.env.HEARTPET_DATA_DIR || "").trim();
 const dataDir = configuredDataDir ? path.resolve(configuredDataDir) : path.join(projectRoot, "data");
-const upload = createUploadMiddleware(projectRoot);
+const uploadsDir = path.join(dataDir, "uploads");
+const upload = createUploadMiddleware(dataDir);
 const importUpload = createImportUploadMiddleware();
 const weatherCache = new Map();
 const homematicSessionCache = new Map();
@@ -153,8 +155,9 @@ app.get("/favicon.ico", (req, res) => {
 app.get("/app-logo", (req, res) => {
   const storedName = String(getSettingsObject(db).app_logo_stored_name || "").trim();
   const fallback = path.join(projectRoot, "public", "images", "logo-heartpet.png");
-  if (!storedName || path.basename(storedName) !== storedName) return res.sendFile(fallback);
-  return res.sendFile(path.join(projectRoot, "data", "uploads", storedName), (error) => {
+  const logoPath = resolveStoredFilePath(uploadsDir, storedName);
+  if (!logoPath) return res.sendFile(fallback);
+  return res.sendFile(logoPath, (error) => {
     if (error && !res.headersSent) res.sendFile(fallback);
   });
 });
@@ -827,7 +830,7 @@ app.get("/reminders/:id/email-snooze", (req, res) => {
 });
 
 app.use(requireAuth);
-app.use("/media", express.static(path.join(projectRoot, "data", "uploads"), {
+app.use("/media", express.static(uploadsDir, {
   fallthrough: false,
   index: false,
   dotfiles: "deny",
@@ -1799,7 +1802,6 @@ app.post("/animals/:id/duplicate", requireAnimalEditor, (req, res) => {
     return renderNotFound(req, res, "Tier nicht gefunden.");
   }
 
-  const uploadsDir = path.join(projectRoot, "data", "uploads");
   const createdFiles = [];
 
   try {
@@ -1813,12 +1815,13 @@ app.post("/animals/:id/duplicate", requireAnimalEditor, (req, res) => {
     const fileCopies = new Map();
 
     for (const storedName of new Set(storedFileNames)) {
-      const sourcePath = path.join(uploadsDir, storedName);
+      const sourcePath = resolveStoredFilePath(uploadsDir, storedName);
+      if (!sourcePath) throw new Error("Ungültiger gespeicherter Dateiname.");
       if (!fs.existsSync(sourcePath)) {
         throw new Error(`Datei ${storedName} fehlt.`);
       }
       const copiedName = `${Date.now()}-${crypto.randomUUID()}${path.extname(storedName)}`;
-      fs.copyFileSync(sourcePath, path.join(uploadsDir, copiedName));
+      fs.copyFileSync(sourcePath, resolveStoredFilePath(uploadsDir, copiedName));
       createdFiles.push(copiedName);
       fileCopies.set(storedName, copiedName);
     }
@@ -1833,7 +1836,8 @@ app.post("/animals/:id/duplicate", requireAnimalEditor, (req, res) => {
     return res.redirect(`/animals?animal_id=${newAnimalId}`);
   } catch (error) {
     createdFiles.forEach((storedName) => {
-      const filePath = path.join(uploadsDir, storedName);
+      const filePath = resolveStoredFilePath(uploadsDir, storedName);
+      if (!filePath) return;
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     });
     console.error("[HeartPet] Tier konnte nicht kopiert werden:", error.message);
@@ -2643,8 +2647,8 @@ app.get("/animals/:animalId/documents/:entryId/update", requireAnimalPermission(
 app.post("/animals/:animalId/documents/:entryId/delete", requireAnimalPermission("canManageDocuments"), (req, res) => {
   const document = db.prepare("SELECT * FROM documents WHERE id = ? AND animal_id = ?").get(req.params.entryId, req.params.animalId);
   if (document) {
-    const fullPath = path.join(process.cwd(), "data", "uploads", document.stored_name);
-    if (fs.existsSync(fullPath)) {
+    const fullPath = resolveStoredFilePath(uploadsDir, document.stored_name);
+    if (fullPath && fs.existsSync(fullPath)) {
       fs.unlinkSync(fullPath);
     }
   }
@@ -2670,7 +2674,7 @@ app.post("/animals/:id/profile-image", requireAnimalPermission("canManageGallery
   }
 
   if (!String(req.file.mimetype || "").startsWith("image/")) {
-    fs.unlinkSync(req.file.path);
+    safeDeleteUploadedFile(req.file.filename);
     setFlash(req, "error", "Es können nur Bilddateien als Profilbild gespeichert werden.");
     return res.redirect(`/animals/${req.params.id}`);
   }
@@ -2726,7 +2730,7 @@ app.post("/animals/:id/images", requireAnimalPermission("canManageGallery"), upl
   }
 
   if (!String(req.file.mimetype || "").startsWith("image/")) {
-    fs.unlinkSync(req.file.path);
+    safeDeleteUploadedFile(req.file.filename);
     setFlash(req, "error", "Es können nur Bilddateien hochgeladen werden.");
     return res.redirect(`/animals/${req.params.id}/images/new?return_to=${encodeURIComponent(returnTo)}`);
   }
@@ -2758,8 +2762,8 @@ app.post("/animals/:animalId/images/:entryId/delete", requireAnimalPermission("c
     return renderNotFound(req, res, "Bild nicht gefunden.");
   }
 
-  const fullPath = path.join(process.cwd(), "data", "uploads", image.stored_name);
-  if (fs.existsSync(fullPath)) {
+  const fullPath = resolveStoredFilePath(uploadsDir, image.stored_name);
+  if (fullPath && fs.existsSync(fullPath)) {
     fs.unlinkSync(fullPath);
   }
 
@@ -2801,8 +2805,8 @@ app.get("/documents/:id/download", (req, res) => {
     return renderNotFound(req, res, "Dokument nicht gefunden.");
   }
 
-  const fullPath = path.join(process.cwd(), "data", "uploads", document.stored_name);
-  if (!fs.existsSync(fullPath)) {
+  const fullPath = resolveStoredFilePath(uploadsDir, document.stored_name);
+  if (!fullPath || !fs.existsSync(fullPath)) {
     return renderNotFound(req, res, "Datei wurde auf dem Server nicht gefunden.");
   }
 
@@ -2818,8 +2822,8 @@ app.get("/vaccinations/:id/certificate", (req, res) => {
   if (!vaccination?.certificate_stored_name) {
     return renderNotFound(req, res, "Impfnachweis nicht gefunden.");
   }
-  const fullPath = path.join(projectRoot, "data", "uploads", vaccination.certificate_stored_name);
-  if (!fs.existsSync(fullPath)) {
+  const fullPath = resolveStoredFilePath(uploadsDir, vaccination.certificate_stored_name);
+  if (!fullPath || !fs.existsSync(fullPath)) {
     return renderNotFound(req, res, "Datei wurde auf dem Server nicht gefunden.");
   }
   return res.download(fullPath, vaccination.certificate_original_name || "impfnachweis");
@@ -2832,7 +2836,7 @@ app.get("/animals/:id/export/json", (req, res) => {
   }
 
   const payload = buildAnimalExportPayload(animal, getAnimalRelatedData(req.params.id), {
-    uploadsDir: path.join(process.cwd(), "data", "uploads"),
+    uploadsDir,
     embedFiles: true,
   });
   res.setHeader("Content-Type", "application/json");
@@ -2849,7 +2853,7 @@ app.get("/animals/:id/export/pdf", async (req, res) => {
   try {
     await createAnimalPdf(res, animal, getAnimalRelatedData(req.params.id), {
       domain: getSettingsObject(db).app_domain || "HeartPet",
-      uploadsDir: path.join(process.cwd(), "data", "uploads"),
+      uploadsDir,
     });
   } catch (error) {
     console.error("[HeartPet] PDF-Export fehlgeschlagen:", error.message);
@@ -4959,13 +4963,24 @@ function validateVeterinarianAddress(payload) {
   if (payload.country && !/^[A-Za-zÄÖÜäöüß .'\-]{2,80}$/.test(payload.country)) {
     return "Land ist ungültig.";
   }
-  if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
+  if (payload.email && !isValidEmail(payload.email)) {
     return "E-Mail ist ungültig.";
   }
   if (payload.phone && !/^[+0-9()\/.\-\s]{6,30}$/.test(payload.phone)) {
     return "Telefon ist ungültig.";
   }
   return "";
+}
+
+function isValidEmail(value) {
+  const email = String(value || "").trim();
+  if (!email || email.length > 254 || /\s/.test(email)) return false;
+  const separator = email.lastIndexOf("@");
+  if (separator < 1 || separator === email.length - 1 || email.indexOf("@") !== separator) return false;
+  const local = email.slice(0, separator);
+  const domain = email.slice(separator + 1);
+  return local.length <= 64 && !local.startsWith(".") && !local.endsWith(".")
+    && domain.length <= 253 && domain.includes(".") && !domain.startsWith(".") && !domain.endsWith(".");
 }
 
 function getMissingRequiredCategories(categories, documents) {
@@ -6824,7 +6839,7 @@ function getAppLogoFilePath(settings) {
   if (!storedName) {
     return path.join(__dirname, "..", "public", "images", "logo-heartpet.png");
   }
-  return path.join(process.cwd(), "data", "uploads", storedName);
+  return resolveStoredFilePath(uploadsDir, storedName) || path.join(__dirname, "..", "public", "images", "logo-heartpet.png");
 }
 
 function safeDeleteUploadedFile(storedName, ignoreName = "") {
@@ -6833,8 +6848,8 @@ function safeDeleteUploadedFile(storedName, ignoreName = "") {
     return;
   }
 
-  const fullPath = path.join(process.cwd(), "data", "uploads", fileName);
-  if (fs.existsSync(fullPath)) {
+  const fullPath = resolveStoredFilePath(uploadsDir, fileName);
+  if (fullPath && fs.existsSync(fullPath)) {
     try {
       fs.unlinkSync(fullPath);
     } catch (error) {
@@ -6885,12 +6900,11 @@ function restoreEmbeddedFile(embeddedFile) {
     return null;
   }
 
-  const uploadsDir = path.join(process.cwd(), "data", "uploads");
   fs.mkdirSync(uploadsDir, { recursive: true });
 
   const originalName = embeddedFile.original_name || embeddedFile.stored_name || "datei";
   const storedName = createStoredUploadName(embeddedFile.mime_type);
-  const fullPath = path.join(uploadsDir, storedName);
+  const fullPath = resolveStoredFilePath(uploadsDir, storedName);
   const buffer = Buffer.from(embeddedFile.content, "base64");
 
   fs.writeFileSync(fullPath, buffer);
@@ -6918,8 +6932,8 @@ function deleteUploadedFileIfUnreferenced(storedName) {
     return;
   }
 
-  const fullPath = path.join(process.cwd(), "data", "uploads", storedName);
-  if (fs.existsSync(fullPath)) {
+  const fullPath = resolveStoredFilePath(uploadsDir, storedName);
+  if (fullPath && fs.existsSync(fullPath)) {
     fs.unlinkSync(fullPath);
   }
 }
@@ -7566,6 +7580,8 @@ app.__test = {
   buildCameraPlaceholderSvg,
   redactSensitiveText,
   getWeatherCodeMeta,
+  isValidEmail,
+  resolveStoredFilePath: (storedName) => resolveStoredFilePath(uploadsDir, storedName),
 };
 
 module.exports = app;

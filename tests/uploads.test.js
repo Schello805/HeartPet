@@ -8,9 +8,9 @@ const request = require("supertest");
 const { createStoredUploadName, createUploadMiddleware, normalizeMimeType } = require("../src/uploads");
 
 test("Uploads erhalten eine serverseitig festgelegte, nicht ausführbare Dateiendung", async () => {
-  const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), "heartpet-upload-"));
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "heartpet-upload-"));
   const app = express();
-  const upload = createUploadMiddleware(projectRoot);
+  const upload = createUploadMiddleware(dataDir);
   app.post("/upload", upload.single("document"), (req, res) => res.json({ filename: req.file?.filename }));
 
   try {
@@ -21,9 +21,9 @@ test("Uploads erhalten eine serverseitig festgelegte, nicht ausführbare Dateien
     assert.equal(response.status, 200);
     assert.match(response.body.filename, /^[0-9a-f-]+\.jpg$/);
     assert.doesNotMatch(response.body.filename, /angriff|\.html/i);
-    assert.equal(fs.existsSync(path.join(projectRoot, "data", "uploads", response.body.filename)), true);
+    assert.equal(fs.existsSync(path.join(dataDir, "uploads", response.body.filename)), true);
   } finally {
-    fs.rmSync(projectRoot, { recursive: true, force: true });
+    fs.rmSync(dataDir, { recursive: true, force: true });
   }
 });
 

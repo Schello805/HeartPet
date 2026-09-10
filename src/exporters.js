@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { resolveStoredFilePath } = require("./storage-paths");
 const PDFDocument = require("pdfkit");
 const QRCode = require("qrcode");
 
@@ -350,8 +351,8 @@ function resolveProfileImagePath(animal, uploadsDir) {
     return null;
   }
 
-  const fullPath = path.join(uploadsDir, animal.profile_image_stored_name);
-  if (!fs.existsSync(fullPath)) {
+  const fullPath = resolveStoredFilePath(uploadsDir, animal.profile_image_stored_name);
+  if (!fullPath || !fs.existsSync(fullPath)) {
     return null;
   }
 
@@ -419,8 +420,8 @@ function attachEmbeddedFile(item, uploadsDir) {
     return exported;
   }
 
-  const fullPath = path.join(uploadsDir, item.stored_name);
-  if (!fs.existsSync(fullPath)) {
+  const fullPath = resolveStoredFilePath(uploadsDir, item.stored_name);
+  if (!fullPath || !fs.existsSync(fullPath)) {
     return exported;
   }
 
