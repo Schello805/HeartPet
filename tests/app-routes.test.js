@@ -1162,6 +1162,27 @@ test("Stammdaten-Aktivitäten erscheinen im Audit-Log", async () => {
   assert.ok(auditActions.some((entry) => entry.action === "species.create"));
 });
 
+test("Standardimpfungen sind als Stammdaten vollständig verwaltbar", async () => {
+  const create = await agent.post("/admin/vaccination-presets").type("form").send({ species_name: "Katze", name: "FeLV" });
+  assert.ok([302, 303].includes(create.status));
+  const preset = db.prepare("SELECT * FROM vaccination_presets WHERE species_name = ? AND name = ?").get("Katze", "FeLV");
+  assert.ok(preset);
+
+  const masterdata = await agent.get("/admin/stammdaten");
+  assert.equal(masterdata.status, 200);
+  assert.match(masterdata.text, /FeLV/);
+
+  const update = await agent.post(`/admin/vaccination-presets/${preset.id}/update`).type("form").send({ species_name: "Katze", name: "FeLV (Leukose)" });
+  assert.ok([302, 303].includes(update.status));
+  assert.equal(db.prepare("SELECT name FROM vaccination_presets WHERE id = ?").get(preset.id).name, "FeLV (Leukose)");
+  const suggestions = getVaccinationSuggestionsForSpecies("Hauskatze", db.prepare("SELECT species_name, name FROM vaccination_presets").all());
+  assert.ok(suggestions.suggestions.includes("FeLV (Leukose)"));
+
+  const remove = await agent.post(`/admin/vaccination-presets/${preset.id}/delete`).type("form").send({});
+  assert.ok([302, 303].includes(remove.status));
+  assert.equal(db.prepare("SELECT 1 FROM vaccination_presets WHERE id = ?").get(preset.id), undefined);
+});
+
 test("Adressvalidierung für Tierarzt greift", async () => {
   const invalid = await agent.post("/admin/veterinarians").type("form").send({
     name: "Ungültig",

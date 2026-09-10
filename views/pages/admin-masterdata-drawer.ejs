@@ -2,6 +2,7 @@
   const isCategory = entityType === 'category';
   const isVeterinarian = entityType === 'veterinarian';
   const isSpecies = entityType === 'species';
+  const isVaccinationPreset = entityType === 'vaccinationPreset';
   const isEdit = Boolean(item);
 %>
 <section class="drawer-fragment card border-0 bg-body-tertiary" data-drawer-fragment="masterdata-form" data-drawer-title="<%= pageTitle %>">
@@ -133,6 +134,17 @@
             <button type="button" class="btn btn-outline-secondary" data-drawer-close>Abbrechen</button>
           </div>
         </div>
+      </form>
+    <% } %>
+
+    <% if (isVaccinationPreset) { %>
+      <form method="post" action="<%= isEdit ? `/admin/vaccination-presets/${item.id}/update` : '/admin/vaccination-presets' %>" class="vstack gap-4" data-drawer-form="masterdata">
+        <input type="hidden" name="return_to" value="<%= returnTo || '/admin/stammdaten' %>" />
+        <section class="card border bg-body"><div class="card-body"><div class="row g-3">
+          <div class="col-12"><label class="form-label" for="vaccination-preset-species">Tierart</label><input class="form-control" id="vaccination-preset-species" name="species_name" list="vaccination-preset-species-list" required value="<%= item?.species_name || '' %>" /><datalist id="vaccination-preset-species-list"><% species.forEach((entry) => { %><option value="<%= entry.name %>"><% }) %></datalist></div>
+          <div class="col-12"><label class="form-label" for="vaccination-preset-name">Impfung</label><input class="form-control" id="vaccination-preset-name" name="name" required value="<%= item?.name || '' %>" /></div>
+        </div></div></section>
+        <div class="d-flex flex-wrap gap-2 pt-2 border-top"><button type="submit" class="btn btn-success"><%= isEdit ? 'Standardimpfung speichern' : 'Standardimpfung anlegen' %></button><button type="button" class="btn btn-outline-secondary" data-drawer-close>Abbrechen</button></div>
       </form>
     <% } %>
   </div>

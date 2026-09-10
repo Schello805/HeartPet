@@ -6,6 +6,7 @@ const migrations = [
   require("./005_vaccination_certificates"),
   require("./006_user_access_tracking"),
   require("./007_animal_microchip_details"),
+  require("./008_vaccination_presets"),
 ];
 
 function ensureMigrationsTable(db) {

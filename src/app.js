@@ -1588,7 +1588,10 @@ function renderAnimalEntryDrawer(req, res, { entryType, mode = "create", item = 
     veterinarians: db.prepare("SELECT * FROM veterinarians ORDER BY name ASC").all(),
     returnTo: safeLocalReturnPath(req.query.return_to, `/animals/${animal.id}`),
     initialEventKind: String(req.query.kind || "").trim(),
-    vaccinationSuggestions: getVaccinationSuggestionsForSpecies(animal.species_name),
+    vaccinationSuggestions: getVaccinationSuggestionsForSpecies(
+      animal.species_name,
+      db.prepare("SELECT species_name, name FROM vaccination_presets ORDER BY species_name, name").all(),
+    ),
   });
 }
 
@@ -2927,6 +2930,7 @@ app.get("/admin/stammdaten", requireAdmin, (req, res) => {
     categoryId: Number(req.query.editCategory || 0) || null,
     speciesId: Number(req.query.editSpecies || 0) || null,
     veterinarianId: Number(req.query.editVeterinarian || 0) || null,
+    vaccinationPresetId: Number(req.query.editVaccinationPreset || 0) || null,
   };
   res.render("pages/admin-masterdata", viewData);
 });
@@ -3028,6 +3032,26 @@ app.get("/admin/species/:id/edit", requireAdmin, (req, res) => {
   });
 });
 
+app.get("/admin/vaccination-presets/new", requireAdmin, (req, res) => {
+  if (!isDrawerRequest(req)) return redirectDocumentDrawerRequest(req, res, "/admin/stammdaten");
+  res.render("pages/admin-masterdata-drawer", {
+    pageTitle: "Neue Standardimpfung", entityType: "vaccinationPreset", item: null,
+    veterinarians: [], species: db.prepare("SELECT * FROM species ORDER BY name").all(),
+    returnTo: safeLocalReturnPath(req.query.return_to, backTo(req, "/admin/stammdaten")),
+  });
+});
+
+app.get("/admin/vaccination-presets/:id/edit", requireAdmin, (req, res) => {
+  if (!isDrawerRequest(req)) return redirectDocumentDrawerRequest(req, res, "/admin/stammdaten");
+  const item = db.prepare("SELECT * FROM vaccination_presets WHERE id = ?").get(req.params.id);
+  if (!item) return renderNotFound(req, res, "Standardimpfung nicht gefunden.");
+  res.render("pages/admin-masterdata-drawer", {
+    pageTitle: "Standardimpfung bearbeiten", entityType: "vaccinationPreset", item,
+    veterinarians: [], species: db.prepare("SELECT * FROM species ORDER BY name").all(),
+    returnTo: safeLocalReturnPath(req.query.return_to, backTo(req, "/admin/stammdaten")),
+  });
+});
+
 app.get("/admin/categories/:id/update", requireAdmin, (req, res) => {
   setFlash(req, "error", "Bitte Änderungen über das Formular speichern.");
   redirectDocumentDrawerRequest(req, res, "/admin/stammdaten", `/admin/categories/${req.params.id}/edit`);
@@ -3041,6 +3065,11 @@ app.get("/admin/species/:id/update", requireAdmin, (req, res) => {
 app.get("/admin/veterinarians/:id/update", requireAdmin, (req, res) => {
   setFlash(req, "error", "Bitte Änderungen über das Formular speichern.");
   redirectDocumentDrawerRequest(req, res, "/admin/stammdaten", `/admin/veterinarians/${req.params.id}/edit`);
+});
+
+app.get("/admin/vaccination-presets/:id/update", requireAdmin, (req, res) => {
+  setFlash(req, "error", "Bitte Änderungen über das Formular speichern.");
+  redirectDocumentDrawerRequest(req, res, "/admin/stammdaten", `/admin/vaccination-presets/${req.params.id}/edit`);
 });
 
 app.get("/admin/benutzer", requireAdmin, (req, res) => {
@@ -3592,6 +3621,44 @@ app.post("/admin/species", requireAdmin, (req, res) => {
     setFlash(req, "error", "Tierart konnte nicht angelegt werden (Name ggf. bereits vorhanden).");
   }
   return redirectAfterPost(res, returnTo);
+});
+
+app.post("/admin/vaccination-presets", requireAdmin, (req, res) => {
+  const returnTo = safeLocalReturnPath(req.body.return_to, backTo(req, "/admin/stammdaten"));
+  const speciesName = String(req.body.species_name || "").trim();
+  const name = String(req.body.name || "").trim();
+  try {
+    if (!speciesName || !name) throw new Error("missing fields");
+    const result = db.prepare("INSERT INTO vaccination_presets (species_name, name) VALUES (?, ?)").run(speciesName, name);
+    createAuditLog(req, "vaccination_preset.create", { species_name: speciesName, name }, { entityType: "vaccination_preset", entityId: result.lastInsertRowid });
+    setFlash(req, "success", "Standardimpfung angelegt.");
+  } catch {
+    setFlash(req, "error", "Standardimpfung konnte nicht angelegt werden (Eintrag ggf. bereits vorhanden).");
+  }
+  return redirectAfterPost(res, returnTo);
+});
+
+app.post("/admin/vaccination-presets/:id/update", requireAdmin, (req, res) => {
+  const returnTo = safeLocalReturnPath(req.body.return_to, backTo(req, "/admin/stammdaten"));
+  const speciesName = String(req.body.species_name || "").trim();
+  const name = String(req.body.name || "").trim();
+  try {
+    if (!speciesName || !name) throw new Error("missing fields");
+    db.prepare("UPDATE vaccination_presets SET species_name = ?, name = ? WHERE id = ?").run(speciesName, name, req.params.id);
+    createAuditLog(req, "vaccination_preset.update", { species_name: speciesName, name }, { entityType: "vaccination_preset", entityId: req.params.id });
+    setFlash(req, "success", "Standardimpfung aktualisiert.");
+  } catch {
+    setFlash(req, "error", "Standardimpfung konnte nicht aktualisiert werden.");
+  }
+  return redirectAfterPost(res, returnTo);
+});
+
+app.post("/admin/vaccination-presets/:id/delete", requireAdmin, (req, res) => {
+  const item = db.prepare("SELECT * FROM vaccination_presets WHERE id = ?").get(req.params.id);
+  db.prepare("DELETE FROM vaccination_presets WHERE id = ?").run(req.params.id);
+  createAuditLog(req, "vaccination_preset.delete", { species_name: item?.species_name || "", name: item?.name || "" }, { entityType: "vaccination_preset", entityId: req.params.id });
+  setFlash(req, "success", "Standardimpfung entfernt.");
+  res.redirect(backTo(req, "/admin/stammdaten"));
 });
 
 app.post("/admin/species/:id/update", requireAdmin, (req, res) => {
@@ -7380,6 +7447,7 @@ function getAdminViewData(pageTitle, adminPath) {
       ORDER BY species.name ASC
     `).all(),
     veterinarians: db.prepare("SELECT * FROM veterinarians ORDER BY name ASC").all(),
+    vaccinationPresets: db.prepare("SELECT * FROM vaccination_presets ORDER BY species_name COLLATE NOCASE, name COLLATE NOCASE").all(),
     users: db.prepare(`
       SELECT
         id, name, email, role, must_change_password, created_at,

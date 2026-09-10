@@ -48,8 +48,19 @@ function normalizeSpeciesName(value) {
     .replaceAll("ß", "ss");
 }
 
-function getVaccinationSuggestionsForSpecies(speciesName) {
+function getVaccinationSuggestionsForSpecies(speciesName, configuredPresets = null) {
   const normalizedName = normalizeSpeciesName(speciesName);
+  if (Array.isArray(configuredPresets)) {
+    const suggestions = configuredPresets
+      .filter((item) => {
+        const presetSpecies = normalizeSpeciesName(item.species_name);
+        return presetSpecies === normalizedName
+          || normalizedName.includes(presetSpecies)
+          || presetSpecies.includes(normalizedName);
+      })
+      .map((item) => item.name);
+    return { speciesName: String(speciesName || "Tier").trim() || "Tier", suggestions: [...new Set(suggestions)] };
+  }
   const canonicalName = speciesAliases[normalizedName]
     || Object.entries(speciesAliases).find(([alias]) => normalizedName.includes(alias))?.[1];
   return canonicalName
