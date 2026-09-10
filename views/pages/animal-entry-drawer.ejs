@@ -10,6 +10,9 @@
   const isReminder = entryType === 'reminder';
   const isDocument = entryType === 'document';
   const isImage = entryType === 'image';
+  const vaccinationSuggestionState = typeof vaccinationSuggestions !== 'undefined'
+    ? vaccinationSuggestions
+    : { speciesName: animal.species_name || 'Tier', suggestions: [] };
   const defaultReturnTo = returnTo || `/animals/${animal.id}`;
   const availableEventKinds = [
     ...(permissions.canManageHealth ? ['medication', 'vaccination', 'appointment'] : []),
@@ -17,8 +20,9 @@
     ...(permissions.canManageFeedings ? ['feeding'] : []),
     ...(permissions.canManageNotes ? ['note'] : []),
   ];
-  const normalizedInitialEventKind = availableEventKinds.includes(initialEventKind)
-    ? initialEventKind
+  const requestedInitialEventKind = typeof initialEventKind !== 'undefined' ? initialEventKind : '';
+  const normalizedInitialEventKind = availableEventKinds.includes(requestedInitialEventKind)
+    ? requestedInitialEventKind
     : availableEventKinds[0];
 %>
 
@@ -85,12 +89,12 @@
                   <% } %>
                 </div>
               </div>
-              <% if (vaccinationSuggestions.suggestions.length > 0) { %>
+              <% if (vaccinationSuggestionState.suggestions.length > 0) { %>
                 <div class="col-12" data-vaccination-preset-wrap hidden>
-                  <label class="form-label" for="event-vaccination-preset">Häufige Impfungen für <%= vaccinationSuggestions.speciesName %></label>
+                  <label class="form-label" for="event-vaccination-preset">Häufige Impfungen für <%= vaccinationSuggestionState.speciesName %></label>
                   <select class="form-select" id="event-vaccination-preset" data-vaccination-preset data-vaccination-target="#event-title" disabled>
                     <option value="">Impfung auswählen</option>
-                    <% vaccinationSuggestions.suggestions.forEach((suggestion) => { %>
+                    <% vaccinationSuggestionState.suggestions.forEach((suggestion) => { %>
                       <option value="<%= suggestion %>"><%= suggestion %></option>
                     <% }); %>
                     <option value="__custom__">Andere Impfung manuell eingeben</option>
@@ -287,12 +291,12 @@
         <section class="card border bg-body">
           <div class="card-body">
             <div class="row g-3">
-              <% if (vaccinationSuggestions.suggestions.length > 0) { %>
+              <% if (vaccinationSuggestionState.suggestions.length > 0) { %>
                 <div class="col-12">
-                  <label class="form-label" for="vaccination-preset">Häufige Impfungen für <%= vaccinationSuggestions.speciesName %></label>
+                  <label class="form-label" for="vaccination-preset">Häufige Impfungen für <%= vaccinationSuggestionState.speciesName %></label>
                   <select class="form-select" id="vaccination-preset" data-vaccination-preset data-vaccination-target="#vaccination-name">
                     <option value="">Impfung auswählen</option>
-                    <% vaccinationSuggestions.suggestions.forEach((suggestion) => { %>
+                    <% vaccinationSuggestionState.suggestions.forEach((suggestion) => { %>
                       <option value="<%= suggestion %>"><%= suggestion %></option>
                     <% }); %>
                     <option value="__custom__">Andere Impfung manuell eingeben</option>

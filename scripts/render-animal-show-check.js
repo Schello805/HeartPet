@@ -142,6 +142,11 @@ async function renderAnimalShow() {
     const html = await ejs.renderFile(path.join(process.cwd(), "views", "pages", "animal-show.ejs"), locals);
     console.log("render-ok");
     console.log(html.slice(0, 600));
+
+    const previousRuntimeLocals = { ...locals };
+    delete previousRuntimeLocals.microchipLinks;
+    await ejs.renderFile(path.join(process.cwd(), "views", "pages", "animal-show.ejs"), previousRuntimeLocals);
+    console.log("previous-runtime-render-ok");
   } finally {
     db.close();
     fs.rmSync(temporaryDataDir, { recursive: true, force: true });

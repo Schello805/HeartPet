@@ -1,5 +1,7 @@
 <%- include('../partials/top', { pageTitle }) %>
 <%
+  const chipManufacturerOptions = typeof microchipManufacturerSuggestions !== 'undefined' ? microchipManufacturerSuggestions : [];
+  const chipRegistryOptions = typeof microchipRegistryOptions !== 'undefined' ? microchipRegistryOptions : [];
   const currentStatus = animal?.status || 'Aktiv';
   const statusWorkflow = {
     Aktiv: {
@@ -294,14 +296,14 @@
                   <label class="form-label" for="animal-chip-manufacturer">Chip-Hersteller</label>
                   <input class="form-control" id="animal-chip-manufacturer" type="text" name="microchip_manufacturer" list="microchip-manufacturers" value="<%= animal?.microchip_manufacturer || '' %>" placeholder="z. B. Dechra" maxlength="120" />
                   <datalist id="microchip-manufacturers">
-                    <% microchipManufacturerSuggestions.forEach((manufacturer) => { %><option value="<%= manufacturer %>"></option><% }) %>
+                    <% chipManufacturerOptions.forEach((manufacturer) => { %><option value="<%= manufacturer %>"></option><% }) %>
                   </datalist>
                 </div>
                 <div class="col-12">
                   <label class="form-label" for="animal-chip-registry">Haustierregister</label>
                   <select class="form-select" id="animal-chip-registry" name="microchip_registry">
                     <option value="">Unbekannt / noch nicht angegeben</option>
-                    <% microchipRegistryOptions.forEach((registry) => { %>
+                    <% chipRegistryOptions.forEach((registry) => { %>
                       <option value="<%= registry %>" <%= animal?.microchip_registry === registry ? 'selected' : '' %>><%= registry %></option>
                     <% }) %>
                   </select>

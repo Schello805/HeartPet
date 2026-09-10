@@ -411,10 +411,13 @@ test("Health-Checks liefern einen minimalen öffentlichen und geschützten Detai
   assert.equal(publicHealth.status, 200);
   assert.equal(publicHealth.body.ok, true);
   assert.equal(publicHealth.body.service, "heartpet");
+  assert.equal(publicHealth.body.restartRequired, false);
+  assert.equal(publicHealth.body.revision, publicHealth.body.availableRevision);
 
   const adminHealth = await agent.get("/admin/health");
   assert.equal(adminHealth.status, 200);
   assert.equal(adminHealth.body.ok, true);
+  assert.equal(adminHealth.body.restartRequired, false);
   assert.ok(Array.isArray(adminHealth.body.checks));
   assert.equal(typeof adminHealth.body.runtime.averageDurationMs, "number");
 });

@@ -58,6 +58,7 @@ const db = initDatabase();
 const animalRepository = createAnimalRepository(db);
 const projectRoot = path.join(__dirname, "..");
 const revisionPath = path.join(projectRoot, "REVISION");
+const runtimeRevision = readAppRevision();
 const configuredDataDir = String(process.env.HEARTPET_DATA_DIR || "").trim();
 const dataDir = configuredDataDir ? path.resolve(configuredDataDir) : path.join(projectRoot, "data");
 const upload = createUploadMiddleware(projectRoot);
@@ -151,7 +152,17 @@ app.get("/sitemap.xml", (req, res) => res.sendStatus(404));
 
 app.get("/health", (req, res) => {
   const summary = summarizeOperationalChecks(buildCoreOperationalChecks({ db, dataDir }));
-  return res.status(summary.ok ? 200 : 503).json({ ok: summary.ok, status: summary.status, service: "heartpet", revision: readAppRevision(), uptimeSeconds: Math.round(process.uptime()) });
+  const availableRevision = readAppRevision();
+  const restartRequired = availableRevision !== runtimeRevision;
+  return res.status(summary.ok && !restartRequired ? 200 : 503).json({
+    ok: summary.ok && !restartRequired,
+    status: restartRequired ? "restart_required" : summary.status,
+    service: "heartpet",
+    revision: runtimeRevision,
+    availableRevision,
+    restartRequired,
+    uptimeSeconds: Math.round(process.uptime()),
+  });
 });
 
 app.use(createSessionMiddleware(dataDir));
@@ -191,7 +202,7 @@ app.use((req, res, next) => {
   res.locals.appLogoUrl = getAppLogoUrl(res.locals.appSettings);
   res.locals.currentPath = req.path;
   res.locals.currentQuery = req.query || {};
-  res.locals.appRevision = readAppRevision();
+  res.locals.appRevision = runtimeRevision;
   res.locals.seoMeta = buildSeoMeta(req, res.locals.appSettings);
   res.locals.animalSpeciesMenu = listActiveSpecies();
   res.locals.formatDate = formatDate;
@@ -3165,7 +3176,16 @@ app.get("/admin/systemlog", requireAdmin, (req, res) => {
 app.get("/admin/health", requireAdmin, (req, res) => {
   const settings = getSettingsObject(db);
   const checks = buildOperationalHealthChecks(settings);
-  return res.json({ ...summarizeOperationalChecks(checks), revision: readAppRevision(), checkedAt: new Date().toISOString(), runtime: getRuntimeMetricsSnapshot(), checks });
+  const availableRevision = readAppRevision();
+  return res.json({
+    ...summarizeOperationalChecks(checks),
+    revision: runtimeRevision,
+    availableRevision,
+    restartRequired: availableRevision !== runtimeRevision,
+    checkedAt: new Date().toISOString(),
+    runtime: getRuntimeMetricsSnapshot(),
+    checks,
+  });
 });
 
 app.post("/admin/systemlog/diagnose", requireAdmin, async (req, res) => {
