@@ -31,7 +31,7 @@
     "qrcode": "^1.5.4"
   },
   "devDependencies": {
-    "@playwright/test": "^1.59.1",
+    "@playwright/test": "^1.63.0",
     "supertest": "^7.2.2"
   },
   "overrides": {
