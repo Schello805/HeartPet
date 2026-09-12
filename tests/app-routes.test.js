@@ -1852,6 +1852,7 @@ test("Dashboard zeigt dringende Erinnerungen nicht doppelt bei den nächsten Eri
   assert.ok(!upcomingSection?.[1]?.includes("Heute fällig"));
   assert.ok(upcomingSection?.[1]?.includes("Morgen fällig"));
   assert.ok(upcomingSection?.[1]?.includes("Als erledigt markieren"));
+  assert.doesNotMatch(response.text, /<span class="badge text-bg-warning">\d+ (?:überfällig|offen)<\/span>/);
 });
 
 test("Dashboard verlinkt die Tier-Karte auf die Tierübersicht und zeigt die eindeutige Tierzahl", async () => {

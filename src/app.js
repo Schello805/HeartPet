@@ -959,11 +959,12 @@ app.get("/", async (req, res) => {
       }
       return String(right.updated_at || "").localeCompare(String(left.updated_at || ""));
     })
-    .slice(0, 6)
     .map((animal) => ({
       ...animal,
-      dashboardAttentionReasons: buildDashboardAttentionReasons(animal),
-    }));
+      dashboardAttentionReasons: buildDashboardAttentionReasons(animal, { includeReminders: false }),
+    }))
+    .filter((animal) => animal.dashboardAttentionReasons.length > 0)
+    .slice(0, 6);
 
   const coopSettings = getSettingsObject(db);
   const weather = await readOutdoorWeather(coopSettings);
@@ -5283,13 +5284,13 @@ function attachAnimalWorkspaceMeta(animals) {
   });
 }
 
-function buildDashboardAttentionReasons(animal) {
+function buildDashboardAttentionReasons(animal, { includeReminders = true } = {}) {
   const reasons = [];
-  if (Number(animal.overdueReminderCount || 0) > 0) {
+  if (includeReminders && Number(animal.overdueReminderCount || 0) > 0) {
     reasons.push(`${animal.overdueReminderCount} überfällig`);
   }
   const openOnlyCount = Math.max(Number(animal.openReminderCount || 0) - Number(animal.overdueReminderCount || 0), 0);
-  if (openOnlyCount > 0) {
+  if (includeReminders && openOnlyCount > 0) {
     reasons.push(`${openOnlyCount} offen`);
   }
   if (!animal.veterinarian_name) {
