@@ -2380,3 +2380,48 @@ body.bootstrap-app {
 .bootstrap-app [data-dashboard-section].dashboard-section-is-hidden .dashboard-section-controls {
   border-style: dashed;
 }
+.bootstrap-app .masterdata-accordion {
+  overflow: hidden;
+}
+
+.bootstrap-app .masterdata-accordion-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.78rem 0.9rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.bootstrap-app .masterdata-accordion-summary::-webkit-details-marker {
+  display: none;
+}
+
+.bootstrap-app .masterdata-accordion-summary > span:first-child {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.bootstrap-app .masterdata-accordion-summary small {
+  color: var(--text-muted);
+}
+
+.bootstrap-app .masterdata-accordion-summary::after {
+  content: "+";
+  flex: 0 0 auto;
+  color: var(--bs-primary);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.bootstrap-app .masterdata-accordion[open] > .masterdata-accordion-summary {
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.bootstrap-app .masterdata-accordion[open] > .masterdata-accordion-summary::after {
+  content: "−";
+}

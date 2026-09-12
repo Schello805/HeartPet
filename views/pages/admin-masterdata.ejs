@@ -23,7 +23,11 @@
   </section>
 
   <% if (supportsVaccinationPresets) { %>
-  <section class="card border-0 bg-body-tertiary admin-section-card">
+  <details class="card border-0 bg-body-tertiary admin-section-card masterdata-accordion">
+    <summary class="masterdata-accordion-summary">
+      <span><strong>Standardimpfungen</strong><small>Auswahl passend zur Tierart</small></span>
+      <span class="badge text-bg-secondary"><%= vaccinationPresetsState.length %></span>
+    </summary>
     <div class="card-body vstack gap-3">
       <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
         <div><p class="eyebrow mb-1">Impfungen</p><h3 class="h5 mb-1">Standardimpfungen</h3><p class="text-body-secondary mb-0">Diese Auswahl erscheint beim Anlegen einer Impfung passend zur Tierart.</p></div>
@@ -33,10 +37,14 @@
         <% vaccinationPresetsState.forEach((preset) => { %><div class="col-lg-6 col-xl-4"><div class="card border bg-body h-100"><div class="card-body d-flex flex-column gap-3"><div><span class="badge text-bg-secondary mb-2"><%= preset.species_name %></span><strong class="d-block"><%= preset.name %></strong></div><div class="d-flex gap-2 mt-auto"><a href="/admin/vaccination-presets/<%= preset.id %>/edit" class="btn btn-outline-secondary btn-sm" data-drawer="masterdata-form">Bearbeiten</a><form method="post" action="/admin/vaccination-presets/<%= preset.id %>/delete" data-confirm="Standardimpfung wirklich löschen?"><button class="btn btn-outline-danger btn-sm" type="submit">Löschen</button></form></div></div></div></div><% }) %>
       </div>
     </div>
-  </section>
+  </details>
   <% } %>
 
-  <section class="card border-0 bg-body-tertiary admin-section-card">
+  <details class="card border-0 bg-body-tertiary admin-section-card masterdata-accordion">
+    <summary class="masterdata-accordion-summary">
+      <span><strong>Dokumentkategorien</strong><small>Unterlagen sauber einsortieren</small></span>
+      <span class="badge text-bg-secondary"><%= categories.length %></span>
+    </summary>
     <div class="card-body vstack gap-3">
       <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
         <div>
@@ -78,9 +86,13 @@
         </div>
       <% } %>
     </div>
-  </section>
+  </details>
 
-  <section class="card border-0 bg-body-tertiary admin-section-card">
+  <details class="card border-0 bg-body-tertiary admin-section-card masterdata-accordion">
+    <summary class="masterdata-accordion-summary">
+      <span><strong>Tierärzte</strong><small>Kontakte und Standardzuordnungen</small></span>
+      <span class="badge text-bg-secondary"><%= veterinarians.length %></span>
+    </summary>
     <div class="card-body vstack gap-3">
       <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
         <div>
@@ -133,9 +145,13 @@
         </div>
       <% } %>
     </div>
-  </section>
+  </details>
 
-  <section class="card border-0 bg-body-tertiary admin-section-card">
+  <details class="card border-0 bg-body-tertiary admin-section-card masterdata-accordion">
+    <summary class="masterdata-accordion-summary">
+      <span><strong>Tierarten</strong><small>Bestand und Standardtierärzte</small></span>
+      <span class="badge text-bg-secondary"><%= species.length %></span>
+    </summary>
     <div class="card-body vstack gap-3">
       <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
         <div>
@@ -177,7 +193,7 @@
         </div>
       <% } %>
     </div>
-  </section>
+  </details>
 </div>
 
 <%- include('../partials/bottom') %>

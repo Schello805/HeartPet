@@ -16,3 +16,5 @@ data/backups/*
 npm-debug.log*
 .env
 test-results/
+.releases/
+.runtime/

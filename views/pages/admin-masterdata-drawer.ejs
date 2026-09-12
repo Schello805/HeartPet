@@ -4,6 +4,22 @@
   const isSpecies = entityType === 'species';
   const isVaccinationPreset = entityType === 'vaccinationPreset';
   const isEdit = Boolean(item);
+  const legacyFieldConstraints = {
+    categoryName: { minlength: 2, maxlength: 80 },
+    speciesName: { minlength: 2, maxlength: 80 },
+    vaccinationName: { minlength: 2, maxlength: 120 },
+    veterinarianName: { minlength: 2, maxlength: 120 },
+    veterinarianStreet: { minlength: 3, maxlength: 120 },
+    veterinarianPostalCode: { minlength: 3, maxlength: 12 },
+    veterinarianCity: { minlength: 2, maxlength: 80 },
+    veterinarianCountry: { minlength: 2, maxlength: 80 },
+    veterinarianEmail: { maxlength: 254 },
+    veterinarianPhone: { minlength: 6, maxlength: 30 },
+    veterinarianNotes: { maxlength: 4000 },
+  };
+  const getFieldConstraints = typeof fieldConstraints === 'function'
+    ? fieldConstraints
+    : (name) => legacyFieldConstraints[name] || { minlength: 1, maxlength: 4000 };
 %>
 <section class="drawer-fragment card border-0 bg-body-tertiary" data-drawer-fragment="masterdata-form" data-drawer-title="<%= pageTitle %>">
   <div class="card-body">
@@ -21,7 +37,8 @@
             <div class="row g-3">
               <div class="col-12">
                 <label class="form-label" for="category-name">Name</label>
-                <input class="form-control" id="category-name" type="text" name="name" required value="<%= item?.name || '' %>" />
+                <% const categoryRules = getFieldConstraints('categoryName'); %>
+                <input class="form-control" id="category-name" type="text" name="name" required minlength="<%= categoryRules.minlength %>" maxlength="<%= categoryRules.maxlength %>" value="<%= item?.name || '' %>" />
               </div>
               <div class="col-12">
                 <div class="form-check">
@@ -54,35 +71,43 @@
             <div class="row g-3">
               <div class="col-12">
                 <label class="form-label" for="vet-name">Name</label>
-                <input class="form-control" id="vet-name" type="text" name="name" required value="<%= item?.name || '' %>" />
+                <% const nameRules = getFieldConstraints('veterinarianName'); %>
+                <input class="form-control" id="vet-name" type="text" name="name" required minlength="<%= nameRules.minlength %>" maxlength="<%= nameRules.maxlength %>" value="<%= item?.name || '' %>" />
               </div>
               <div class="col-12">
                 <label class="form-label" for="vet-street">Straße und Hausnummer</label>
-                <input class="form-control" id="vet-street" type="text" name="street" minlength="3" maxlength="120" value="<%= item?.street || '' %>" />
+                <% const streetRules = getFieldConstraints('veterinarianStreet'); %>
+                <input class="form-control" id="vet-street" type="text" name="street" minlength="<%= streetRules.minlength %>" maxlength="<%= streetRules.maxlength %>" value="<%= item?.street || '' %>" />
               </div>
               <div class="col-md-4">
                 <label class="form-label" for="vet-postal">PLZ</label>
-                <input class="form-control" id="vet-postal" type="text" name="postal_code" minlength="3" maxlength="12" value="<%= item?.postal_code || '' %>" />
+                <% const postalRules = getFieldConstraints('veterinarianPostalCode'); %>
+                <input class="form-control" id="vet-postal" type="text" name="postal_code" minlength="<%= postalRules.minlength %>" maxlength="<%= postalRules.maxlength %>" value="<%= item?.postal_code || '' %>" />
               </div>
               <div class="col-md-4">
                 <label class="form-label" for="vet-city">Ort</label>
-                <input class="form-control" id="vet-city" type="text" name="city" minlength="2" maxlength="80" value="<%= item?.city || '' %>" />
+                <% const cityRules = getFieldConstraints('veterinarianCity'); %>
+                <input class="form-control" id="vet-city" type="text" name="city" minlength="<%= cityRules.minlength %>" maxlength="<%= cityRules.maxlength %>" value="<%= item?.city || '' %>" />
               </div>
               <div class="col-md-4">
                 <label class="form-label" for="vet-country">Land</label>
-                <input class="form-control" id="vet-country" type="text" name="country" minlength="2" maxlength="80" value="<%= item?.country || '' %>" />
+                <% const countryRules = getFieldConstraints('veterinarianCountry'); %>
+                <input class="form-control" id="vet-country" type="text" name="country" minlength="<%= countryRules.minlength %>" maxlength="<%= countryRules.maxlength %>" value="<%= item?.country || '' %>" />
               </div>
               <div class="col-md-6">
                 <label class="form-label" for="vet-phone">Telefon</label>
-                <input class="form-control" id="vet-phone" type="tel" name="phone" minlength="6" maxlength="30" value="<%= item?.phone || '' %>" />
+                <% const phoneRules = getFieldConstraints('veterinarianPhone'); %>
+                <input class="form-control" id="vet-phone" type="tel" name="phone" minlength="<%= phoneRules.minlength %>" maxlength="<%= phoneRules.maxlength %>" value="<%= item?.phone || '' %>" />
               </div>
               <div class="col-md-6">
                 <label class="form-label" for="vet-email">E-Mail</label>
-                <input class="form-control" id="vet-email" type="email" name="email" maxlength="120" value="<%= item?.email || '' %>" />
+                <% const emailRules = getFieldConstraints('veterinarianEmail'); %>
+                <input class="form-control" id="vet-email" type="email" name="email" maxlength="<%= emailRules.maxlength %>" value="<%= item?.email || '' %>" />
               </div>
               <div class="col-12">
                 <label class="form-label" for="vet-notes">Notizen</label>
-                <textarea class="form-control" id="vet-notes" name="notes" rows="4"><%= item?.notes || '' %></textarea>
+                <% const notesRules = getFieldConstraints('veterinarianNotes'); %>
+                <textarea class="form-control" id="vet-notes" name="notes" rows="4" maxlength="<%= notesRules.maxlength %>"><%= item?.notes || '' %></textarea>
               </div>
             </div>
           </div>
@@ -109,7 +134,8 @@
             <div class="row g-3">
               <div class="col-12">
                 <label class="form-label" for="species-name">Tierart</label>
-                <input class="form-control" id="species-name" type="text" name="name" required value="<%= item?.name || '' %>" />
+                <% const speciesRules = getFieldConstraints('speciesName'); %>
+                <input class="form-control" id="species-name" type="text" name="name" required minlength="<%= speciesRules.minlength %>" maxlength="<%= speciesRules.maxlength %>" value="<%= item?.name || '' %>" />
               </div>
               <div class="col-12">
                 <label class="form-label" for="species-default-vet">Standard-Tierarzt</label>
@@ -141,8 +167,9 @@
       <form method="post" action="<%= isEdit ? `/admin/vaccination-presets/${item.id}/update` : '/admin/vaccination-presets' %>" class="vstack gap-4" data-drawer-form="masterdata">
         <input type="hidden" name="return_to" value="<%= returnTo || '/admin/stammdaten' %>" />
         <section class="card border bg-body"><div class="card-body"><div class="row g-3">
-          <div class="col-12"><label class="form-label" for="vaccination-preset-species">Tierart</label><input class="form-control" id="vaccination-preset-species" name="species_name" list="vaccination-preset-species-list" required value="<%= item?.species_name || '' %>" /><datalist id="vaccination-preset-species-list"><% species.forEach((entry) => { %><option value="<%= entry.name %>"><% }) %></datalist></div>
-          <div class="col-12"><label class="form-label" for="vaccination-preset-name">Impfung</label><input class="form-control" id="vaccination-preset-name" name="name" required value="<%= item?.name || '' %>" /></div>
+          <% const presetSpeciesRules = getFieldConstraints('speciesName'); const vaccinationRules = getFieldConstraints('vaccinationName'); %>
+          <div class="col-12"><label class="form-label" for="vaccination-preset-species">Tierart</label><input class="form-control" id="vaccination-preset-species" name="species_name" list="vaccination-preset-species-list" required minlength="<%= presetSpeciesRules.minlength %>" maxlength="<%= presetSpeciesRules.maxlength %>" value="<%= item?.species_name || '' %>" /><datalist id="vaccination-preset-species-list"><% species.forEach((entry) => { %><option value="<%= entry.name %>"><% }) %></datalist></div>
+          <div class="col-12"><label class="form-label" for="vaccination-preset-name">Impfung</label><input class="form-control" id="vaccination-preset-name" name="name" required minlength="<%= vaccinationRules.minlength %>" maxlength="<%= vaccinationRules.maxlength %>" value="<%= item?.name || '' %>" /></div>
         </div></div></section>
         <div class="d-flex flex-wrap gap-2 pt-2 border-top"><button type="submit" class="btn btn-success"><%= isEdit ? 'Standardimpfung speichern' : 'Standardimpfung anlegen' %></button><button type="button" class="btn btn-outline-secondary" data-drawer-close>Abbrechen</button></div>
       </form>

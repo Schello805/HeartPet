@@ -17,12 +17,15 @@ delete childEnv.npm_lifecycle_script;
 const syntaxFiles = ["src", "public/js", "scripts"]
   .flatMap((directory) => listJavaScriptFiles(path.join(appDir, directory)))
   .map((filePath) => path.relative(appDir, filePath));
+const shellFiles = listFilesByExtension(path.join(appDir, "scripts"), ".sh")
+  .map((filePath) => path.relative(appDir, filePath));
 
 const steps = [
   { label: "1/6 Tests", command: "npm", args: ["test"] },
   { label: "2/6 Browser-E2E", command: "npm", args: ["run", "test:e2e"] },
   { label: "3/6 Tierakten-Ansicht", command: "node", args: ["scripts/render-animal-show-check.js"] },
   { label: "4/6 Backup-Wiederherstellung", command: "node", args: ["scripts/check-backup-restore.js"] },
+  { label: "5/6 Shell-Syntax", command: "bash", args: ["-n", ...shellFiles] },
   ...syntaxFiles.map((filePath, index) => ({
     label: `Syntax ${index + 1}/${syntaxFiles.length}: ${filePath}`,
     command: "node",
@@ -35,6 +38,14 @@ function listJavaScriptFiles(directory) {
     const entryPath = path.join(directory, entry.name);
     if (entry.isDirectory()) return listJavaScriptFiles(entryPath);
     return entry.isFile() && entry.name.endsWith(".js") ? [entryPath] : [];
+  });
+}
+
+function listFilesByExtension(directory, extension) {
+  return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const entryPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) return listFilesByExtension(entryPath, extension);
+    return entry.isFile() && entry.name.endsWith(extension) ? [entryPath] : [];
   });
 }
 

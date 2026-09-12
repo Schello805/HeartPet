@@ -176,11 +176,13 @@ Das Skript:
 - erstellt zuerst ein Backup
 - prüft Git, Node.js und npm
 - holt den aktuellen Stand aus GitHub
-- installiert oder aktualisiert Abhängigkeiten
-- prüft den App-Load
-- startet HeartPet sauber neu
+- baut bei `systemd` ein unveränderliches Release mit eigenen Abhängigkeiten
+- prüft den App-Load vor der Aktivierung
+- schaltet den `current`-Symlink atomar auf das neue Release um
+- startet HeartPet verbindlich neu und prüft `/health` auf die erwartete Revision
+- aktiviert bei einem fehlgeschlagenen Start automatisch wieder das vorherige Release
 
-Wenn `heartpet.service` eingerichtet ist, wird der Dienst verwendet. Ohne `systemd` startet HeartPet automatisch im Hintergrund weiter, damit die Shell frei bleibt.
+Wenn `heartpet.service` eingerichtet ist, wird der atomare Release-Pfad verwendet. Daten und Uploads bleiben unabhängig vom Release dauerhaft im gemeinsamen `data`-Verzeichnis. Ohne `systemd` nutzt das Skript weiterhin die direkte Installation und startet HeartPet automatisch im Hintergrund, damit die Shell frei bleibt.
 
 Manuell geht es ebenfalls:
 

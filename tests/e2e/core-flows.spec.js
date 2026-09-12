@@ -295,7 +295,7 @@ test("Dashboard zeigt mobil nur einen Einstieg für ein neues Tier", async ({ pa
 test("Dokumentkategorie lässt sich im Bearbeiten-Dialog speichern", async ({ page }) => {
   await ensureAuthenticated(page);
   await page.goto("/admin/stammdaten");
-  await page.getByText("Dokumentkategorien", { exact: true }).click();
+  await page.locator("summary.masterdata-accordion-summary").filter({ hasText: "Dokumentkategorien" }).click();
 
   await page.locator('[aria-label="Dokumentkategorie bearbeiten"]').first().click();
   await expect(page.getByRole("button", { name: "Kategorie speichern" })).toBeVisible();

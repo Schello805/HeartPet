@@ -23,6 +23,7 @@ const { createAnimalPdf } = require("../src/exporters");
 const { buildReminderActionToken, buildReminderEmailHtml, sendTelegramReminder, sendTestNtfy, processDueReminders } = require("../src/reminders");
 const { getVaccinationSuggestionGroups, getVaccinationSuggestionsForSpecies } = require("../src/vaccination-suggestions");
 const { runMigrations } = require("../src/migrations");
+const { FIELD_SCHEMAS, htmlConstraints, validateText } = require("../src/validation");
 const app = require("../src/app");
 const agent = request.agent(app);
 const db = initDatabase();
@@ -1266,6 +1267,45 @@ test("Standardimpfungen sind als Stammdaten vollständig verwaltbar", async () =
   const remove = await agent.post(`/admin/vaccination-presets/${preset.id}/delete`).type("form").send({});
   assert.ok([302, 303].includes(remove.status));
   assert.equal(db.prepare("SELECT 1 FROM vaccination_presets WHERE id = ?").get(preset.id), undefined);
+});
+
+test("Stammdaten-Kategorien sind standardmäßig eingeklappte Akkordeons", async () => {
+  const page = await agent.get("/admin/stammdaten");
+  assert.equal(page.status, 200);
+  assert.equal((page.text.match(/<details class="[^"]*masterdata-accordion/g) || []).length, 4);
+  assert.equal((page.text.match(/<details class="[^"]*masterdata-accordion[^>]*\sopen(?:\s|>)/g) || []).length, 0);
+  for (const heading of ["Tierärzte", "Tierarten", "Standardimpfungen", "Dokumentkategorien"]) {
+    assert.match(page.text, new RegExp(`<summary[^>]*>[\\s\\S]*?${heading}`));
+  }
+});
+
+test("Formulare und Server verwenden dieselben Validierungsgrenzen", async () => {
+  assert.deepEqual(htmlConstraints("categoryName"), {
+    required: true,
+    minlength: FIELD_SCHEMAS.categoryName.minLength,
+    maxlength: FIELD_SCHEMAS.categoryName.maxLength,
+    type: "text",
+  });
+  assert.equal(validateText("X", FIELD_SCHEMAS.categoryName, "Name"), "Name ist zu kurz.");
+
+  const drawer = await agent.get("/admin/categories/new").set("X-Requested-With", "heartpet-drawer");
+  assert.equal(drawer.status, 200);
+  assert.match(drawer.text, /name="name" required minlength="2" maxlength="80"/);
+
+  const before = db.prepare("SELECT COUNT(*) AS count FROM document_categories").get().count;
+  const invalid = await agent.post("/admin/categories").type("form").send({ name: "X" });
+  assert.ok([302, 303].includes(invalid.status));
+  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM document_categories").get().count, before);
+});
+
+test("Deployment aktiviert Releases atomar und prüft die aktive Revision", () => {
+  const scriptPath = path.join(__dirname, "..", "scripts", "deploy-release.sh");
+  const script = fs.readFileSync(scriptPath, "utf8");
+  assert.match(script, /git -C "\$APP_DIR" archive HEAD/);
+  assert.match(script, /mv -Tf "\$next_link" "\$CURRENT_LINK"/);
+  assert.match(script, /run_systemctl restart heartpet && wait_for_revision/);
+  assert.match(script, /health\.revision === process\.env\.EXPECTED_REVISION/);
+  assert.match(script, /activate_release "\$PREVIOUS_TARGET"/);
 });
 
 test("Stammdaten-Template bleibt mit einem älteren Serverstand renderbar", () => {

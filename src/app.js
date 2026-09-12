@@ -54,6 +54,21 @@ const { createAnimalRepository } = require("./animal-repository");
 const { buildCoreOperationalChecks, summarizeOperationalChecks } = require("./operational-health");
 const { getVaccinationSuggestionGroups, getVaccinationSuggestionsForSpecies } = require("./vaccination-suggestions");
 const { resolveStoredFilePath } = require("./storage-paths");
+const {
+  FIELD_SCHEMAS,
+  htmlConstraints,
+  isValidEmail,
+  normalizeVeterinarianPayload,
+  validateText,
+  validateVeterinarian,
+} = require("./validation");
+const {
+  createHomematicSessionService,
+  getLoginRetryDelay: getHomematicLoginRetryDelay,
+  resolveRenewedSessionId: resolveRenewedHomematicSid,
+  shouldReplaceSessionAfterRenewError: shouldReplaceHomematicSessionAfterRenewError,
+} = require("./services/homematic-session");
+const { createMasterdataRouter } = require("./routes/masterdata");
 
 const app = express();
 app.set("trust proxy", process.env.HEARTPET_TRUST_PROXY || "loopback");
@@ -68,9 +83,6 @@ const uploadsDir = path.join(dataDir, "uploads");
 const upload = createUploadMiddleware(dataDir);
 const importUpload = createImportUploadMiddleware();
 const weatherCache = new Map();
-const homematicSessionCache = new Map();
-const homematicLoginPromises = new Map();
-const homematicLoginFailures = new Map();
 const cameraFrameCache = new Map();
 const cameraCacheDir = path.join(dataDir, "cache", "cameras");
 const loginAttempts = new Map();
@@ -79,6 +91,13 @@ const userPresenceWrites = new Map();
 const runtimeMetrics = { startedAt: Date.now(), requests: 0, errors: 0, totalDurationMs: 0, slowestDurationMs: 0, recent: [] };
 const microchipRegistryOptions = ["TASSO", "FINDEFIX", "TASSO und FINDEFIX", "Anderes Register", "Nicht registriert"];
 const microchipManufacturerSuggestions = ["Dechra", "Datamars", "MSD Animal Health", "Trovan", "Virbac"];
+const homematicSessionService = createHomematicSessionService({
+  callJsonRpc: callHomematicJsonRpc,
+  describeError: describeFetchError,
+  getApiUrl: getHomematicApiUrl,
+  persistSessionId: (sid) => upsertSetting(db, "homematic_ccu_session_id", sid),
+});
+const loginHomematicCcu = homematicSessionService.login;
 
 app.set("view engine", "ejs");
 app.set("views", path.join(projectRoot, "views"));
@@ -223,6 +242,7 @@ app.use((req, res, next) => {
   res.locals.currentQuery = req.query || {};
   res.locals.appRevision = runtimeRevision;
   res.locals.runtimeFeatures = { memorialNoteEditor: true, vaccinationPresets: true };
+  res.locals.fieldConstraints = htmlConstraints;
   res.locals.seoMeta = buildSeoMeta(req, res.locals.appSettings);
   res.locals.animalSpeciesMenu = listActiveSpecies();
   res.locals.formatDate = formatDate;
@@ -302,7 +322,7 @@ app.post("/setup", async (req, res) => {
   }
 
   const veterinarianPayload = normalizeVeterinarianPayload(req.body, "veterinarian_");
-  const addressError = validateVeterinarianAddress(veterinarianPayload);
+  const addressError = validateVeterinarian(veterinarianPayload, req.body.veterinarian_name);
   if (addressError) {
     setFlash(req, "error", addressError);
     return res.redirect("/setup");
@@ -2953,153 +2973,17 @@ app.get(/^\/.+\/benachrichtigungen$/, requireAdmin, (req, res) => {
   res.redirect("/admin/benachrichtigungen");
 });
 
-app.get("/admin/stammdaten", requireAdmin, (req, res) => {
-  const viewData = getAdminViewData("Stammdaten", "/admin/stammdaten");
-  viewData.masterEdit = {
-    categoryId: Number(req.query.editCategory || 0) || null,
-    speciesId: Number(req.query.editSpecies || 0) || null,
-    veterinarianId: Number(req.query.editVeterinarian || 0) || null,
-    vaccinationPresetId: Number(req.query.editVaccinationPreset || 0) || null,
-  };
-  res.render("pages/admin-masterdata", viewData);
-});
-
-["/admin/masterdata", "/admin/master-data"].forEach((aliasPath) => {
-  app.get(aliasPath, requireAdmin, (req, res) => {
-    const suffix = req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : "";
-    res.redirect(`/admin/stammdaten${suffix}`);
-  });
-});
-
-app.get("/admin/categories/new", requireAdmin, (req, res) => {
-  if (!isDrawerRequest(req)) {
-    return redirectDocumentDrawerRequest(req, res, "/admin/stammdaten");
-  }
-  res.render("pages/admin-masterdata-drawer", {
-    pageTitle: "Neue Dokumentkategorie",
-    entityType: "category",
-    item: null,
-    veterinarians: [],
-    returnTo: safeLocalReturnPath(req.query.return_to, backTo(req, "/admin/stammdaten")),
-  });
-});
-
-app.get("/admin/categories/:id/edit", requireAdmin, (req, res) => {
-  if (!isDrawerRequest(req)) {
-    return redirectDocumentDrawerRequest(req, res, "/admin/stammdaten");
-  }
-  const item = db.prepare("SELECT * FROM document_categories WHERE id = ?").get(req.params.id);
-  if (!item) {
-    return renderNotFound(req, res, "Dokumentkategorie nicht gefunden.");
-  }
-  res.render("pages/admin-masterdata-drawer", {
-    pageTitle: "Dokumentkategorie bearbeiten",
-    entityType: "category",
-    item,
-    veterinarians: [],
-    returnTo: safeLocalReturnPath(req.query.return_to, backTo(req, "/admin/stammdaten")),
-  });
-});
-
-app.get("/admin/veterinarians/new", requireAdmin, (req, res) => {
-  if (!isDrawerRequest(req)) {
-    return redirectDocumentDrawerRequest(req, res, "/admin/stammdaten");
-  }
-  res.render("pages/admin-masterdata-drawer", {
-    pageTitle: "Neuer Tierarzt",
-    entityType: "veterinarian",
-    item: null,
-    veterinarians: [],
-    returnTo: safeLocalReturnPath(req.query.return_to, backTo(req, "/admin/stammdaten")),
-  });
-});
-
-app.get("/admin/veterinarians/:id/edit", requireAdmin, (req, res) => {
-  if (!isDrawerRequest(req)) {
-    return redirectDocumentDrawerRequest(req, res, "/admin/stammdaten");
-  }
-  const item = db.prepare("SELECT * FROM veterinarians WHERE id = ?").get(req.params.id);
-  if (!item) {
-    return renderNotFound(req, res, "Tierarzt nicht gefunden.");
-  }
-  res.render("pages/admin-masterdata-drawer", {
-    pageTitle: "Tierarzt bearbeiten",
-    entityType: "veterinarian",
-    item,
-    veterinarians: [],
-    returnTo: safeLocalReturnPath(req.query.return_to, backTo(req, "/admin/stammdaten")),
-  });
-});
-
-app.get("/admin/species/new", requireAdmin, (req, res) => {
-  if (!isDrawerRequest(req)) {
-    return redirectDocumentDrawerRequest(req, res, "/admin/stammdaten");
-  }
-  res.render("pages/admin-masterdata-drawer", {
-    pageTitle: "Neue Tierart",
-    entityType: "species",
-    item: null,
-    veterinarians: db.prepare("SELECT * FROM veterinarians ORDER BY name ASC").all(),
-    returnTo: safeLocalReturnPath(req.query.return_to, backTo(req, "/admin/stammdaten")),
-  });
-});
-
-app.get("/admin/species/:id/edit", requireAdmin, (req, res) => {
-  if (!isDrawerRequest(req)) {
-    return redirectDocumentDrawerRequest(req, res, "/admin/stammdaten");
-  }
-  const item = db.prepare("SELECT * FROM species WHERE id = ?").get(req.params.id);
-  if (!item) {
-    return renderNotFound(req, res, "Tierart nicht gefunden.");
-  }
-  res.render("pages/admin-masterdata-drawer", {
-    pageTitle: "Tierart bearbeiten",
-    entityType: "species",
-    item,
-    veterinarians: db.prepare("SELECT * FROM veterinarians ORDER BY name ASC").all(),
-    returnTo: safeLocalReturnPath(req.query.return_to, backTo(req, "/admin/stammdaten")),
-  });
-});
-
-app.get("/admin/vaccination-presets/new", requireAdmin, (req, res) => {
-  if (!isDrawerRequest(req)) return redirectDocumentDrawerRequest(req, res, "/admin/stammdaten");
-  res.render("pages/admin-masterdata-drawer", {
-    pageTitle: "Neue Standardimpfung", entityType: "vaccinationPreset", item: null,
-    veterinarians: [], species: db.prepare("SELECT * FROM species ORDER BY name").all(),
-    returnTo: safeLocalReturnPath(req.query.return_to, backTo(req, "/admin/stammdaten")),
-  });
-});
-
-app.get("/admin/vaccination-presets/:id/edit", requireAdmin, (req, res) => {
-  if (!isDrawerRequest(req)) return redirectDocumentDrawerRequest(req, res, "/admin/stammdaten");
-  const item = db.prepare("SELECT * FROM vaccination_presets WHERE id = ?").get(req.params.id);
-  if (!item) return renderNotFound(req, res, "Standardimpfung nicht gefunden.");
-  res.render("pages/admin-masterdata-drawer", {
-    pageTitle: "Standardimpfung bearbeiten", entityType: "vaccinationPreset", item,
-    veterinarians: [], species: db.prepare("SELECT * FROM species ORDER BY name").all(),
-    returnTo: safeLocalReturnPath(req.query.return_to, backTo(req, "/admin/stammdaten")),
-  });
-});
-
-app.get("/admin/categories/:id/update", requireAdmin, (req, res) => {
-  setFlash(req, "error", "Bitte Änderungen über das Formular speichern.");
-  redirectDocumentDrawerRequest(req, res, "/admin/stammdaten", `/admin/categories/${req.params.id}/edit`);
-});
-
-app.get("/admin/species/:id/update", requireAdmin, (req, res) => {
-  setFlash(req, "error", "Bitte Änderungen über das Formular speichern.");
-  redirectDocumentDrawerRequest(req, res, "/admin/stammdaten", `/admin/species/${req.params.id}/edit`);
-});
-
-app.get("/admin/veterinarians/:id/update", requireAdmin, (req, res) => {
-  setFlash(req, "error", "Bitte Änderungen über das Formular speichern.");
-  redirectDocumentDrawerRequest(req, res, "/admin/stammdaten", `/admin/veterinarians/${req.params.id}/edit`);
-});
-
-app.get("/admin/vaccination-presets/:id/update", requireAdmin, (req, res) => {
-  setFlash(req, "error", "Bitte Änderungen über das Formular speichern.");
-  redirectDocumentDrawerRequest(req, res, "/admin/stammdaten", `/admin/vaccination-presets/${req.params.id}/edit`);
-});
+app.use("/admin", createMasterdataRouter({
+  backTo,
+  db,
+  getAdminViewData,
+  isDrawerRequest,
+  redirectDocumentDrawerRequest,
+  renderNotFound,
+  requireAdmin,
+  safeLocalReturnPath,
+  setFlash,
+}));
 
 app.get("/admin/benutzer", requireAdmin, (req, res) => {
   const viewData = getAdminViewData("Benutzer", "/admin/benutzer");
@@ -3383,9 +3267,7 @@ app.post("/admin/settings", requireAdmin, upload.single("app_logo"), (req, res) 
   });
 
   if (ccuConnectionChanged) {
-    homematicSessionCache.clear();
-    homematicLoginPromises.clear();
-    homematicLoginFailures.clear();
+    homematicSessionService.reset();
     upsertSetting(db, "homematic_ccu_session_id", "");
   }
 
@@ -3580,6 +3462,11 @@ app.post("/admin/test-ntfy", requireAdmin, async (req, res) => {
 app.post("/admin/categories", requireAdmin, (req, res) => {
   const body = req.body || {};
   const returnTo = safeLocalReturnPath(body.return_to, backTo(req, "/admin/stammdaten"));
+  const validationError = validateText(body.name, FIELD_SCHEMAS.categoryName, "Name");
+  if (validationError) {
+    setFlash(req, "error", validationError);
+    return redirectAfterPost(res, returnTo);
+  }
   try {
     const categoryName = String(body.name || "").trim();
     const result = db.prepare("INSERT INTO document_categories (name, is_required) VALUES (?, ?)")
@@ -3599,6 +3486,11 @@ app.post("/admin/categories", requireAdmin, (req, res) => {
 app.post("/admin/categories/:id/update", requireAdmin, (req, res) => {
   const body = req.body || {};
   const returnTo = safeLocalReturnPath(body.return_to, backTo(req, "/admin/stammdaten"));
+  const validationError = validateText(body.name, FIELD_SCHEMAS.categoryName, "Name");
+  if (validationError) {
+    setFlash(req, "error", validationError);
+    return redirectAfterPost(res, returnTo);
+  }
   try {
     const existingCategory = db.prepare("SELECT * FROM document_categories WHERE id = ?").get(req.params.id);
     db.prepare(`
@@ -3633,6 +3525,11 @@ app.post("/admin/categories/:id/delete", requireAdmin, (req, res) => {
 app.post("/admin/species", requireAdmin, (req, res) => {
   const body = req.body || {};
   const returnTo = safeLocalReturnPath(body.return_to, backTo(req, "/admin/stammdaten"));
+  const validationError = validateText(body.name, FIELD_SCHEMAS.speciesName, "Tierart");
+  if (validationError) {
+    setFlash(req, "error", validationError);
+    return redirectAfterPost(res, returnTo);
+  }
   try {
     const speciesName = String(body.name || "").trim();
     const result = db.prepare("INSERT INTO species (name, default_veterinarian_id, notes) VALUES (?, ?, ?)")
@@ -3657,6 +3554,12 @@ app.post("/admin/vaccination-presets", requireAdmin, (req, res) => {
   const returnTo = safeLocalReturnPath(req.body.return_to, backTo(req, "/admin/stammdaten"));
   const speciesName = String(req.body.species_name || "").trim();
   const name = String(req.body.name || "").trim();
+  const validationError = validateText(speciesName, FIELD_SCHEMAS.speciesName, "Tierart")
+    || validateText(name, FIELD_SCHEMAS.vaccinationName, "Impfung");
+  if (validationError) {
+    setFlash(req, "error", validationError);
+    return redirectAfterPost(res, returnTo);
+  }
   try {
     if (!speciesName || !name) throw new Error("missing fields");
     const result = db.prepare("INSERT INTO vaccination_presets (species_name, name) VALUES (?, ?)").run(speciesName, name);
@@ -3672,6 +3575,12 @@ app.post("/admin/vaccination-presets/:id/update", requireAdmin, (req, res) => {
   const returnTo = safeLocalReturnPath(req.body.return_to, backTo(req, "/admin/stammdaten"));
   const speciesName = String(req.body.species_name || "").trim();
   const name = String(req.body.name || "").trim();
+  const validationError = validateText(speciesName, FIELD_SCHEMAS.speciesName, "Tierart")
+    || validateText(name, FIELD_SCHEMAS.vaccinationName, "Impfung");
+  if (validationError) {
+    setFlash(req, "error", validationError);
+    return redirectAfterPost(res, returnTo);
+  }
   try {
     if (!speciesName || !name) throw new Error("missing fields");
     db.prepare("UPDATE vaccination_presets SET species_name = ?, name = ? WHERE id = ?").run(speciesName, name, req.params.id);
@@ -3694,6 +3603,11 @@ app.post("/admin/vaccination-presets/:id/delete", requireAdmin, (req, res) => {
 app.post("/admin/species/:id/update", requireAdmin, (req, res) => {
   const body = req.body || {};
   const returnTo = safeLocalReturnPath(body.return_to, backTo(req, "/admin/stammdaten"));
+  const validationError = validateText(body.name, FIELD_SCHEMAS.speciesName, "Tierart");
+  if (validationError) {
+    setFlash(req, "error", validationError);
+    return redirectAfterPost(res, returnTo);
+  }
   try {
     const existingSpecies = db.prepare("SELECT * FROM species WHERE id = ?").get(req.params.id);
     db.prepare(`
@@ -3733,7 +3647,7 @@ app.post("/admin/species/:id/delete", requireAdmin, (req, res) => {
 app.post("/admin/veterinarians", requireAdmin, (req, res) => {
   const payload = normalizeVeterinarianPayload(req.body);
   const returnTo = safeLocalReturnPath(req.body.return_to, backTo(req, "/admin/stammdaten"));
-  const addressError = validateVeterinarianAddress(payload);
+  const addressError = validateVeterinarian(payload, req.body.name);
   if (addressError) {
     setFlash(req, "error", addressError);
     return redirectAfterPost(res, returnTo);
@@ -3771,7 +3685,7 @@ app.post("/admin/veterinarians", requireAdmin, (req, res) => {
 app.post("/admin/veterinarians/:id/update", requireAdmin, (req, res) => {
   const payload = normalizeVeterinarianPayload(req.body);
   const returnTo = safeLocalReturnPath(req.body.return_to, backTo(req, "/admin/stammdaten"));
-  const addressError = validateVeterinarianAddress(payload);
+  const addressError = validateVeterinarian(payload, req.body.name);
   if (addressError) {
     setFlash(req, "error", addressError);
     return redirectAfterPost(res, returnTo);
@@ -5038,55 +4952,6 @@ function resolveDefaultVeterinarianId(speciesId) {
   return fallback || null;
 }
 
-function normalizeVeterinarianPayload(source, prefix = "") {
-  const get = (field) => String(source?.[`${prefix}${field}`] || "").trim();
-  return {
-    street: get("street"),
-    postal_code: get("postal_code"),
-    city: get("city"),
-    country: get("country"),
-    email: get("email"),
-    phone: get("phone"),
-    notes: get("notes"),
-  };
-}
-
-function validateVeterinarianAddress(payload) {
-  if (payload.street && payload.street.length < 3) {
-    return "Straße/Hausnummer ist zu kurz.";
-  }
-  if (payload.street && !/^[A-Za-zÄÖÜäöüß0-9 .,\-\/]{3,120}$/.test(payload.street)) {
-    return "Straße/Hausnummer enthält ungültige Zeichen.";
-  }
-  if (payload.postal_code && !/^[A-Za-z0-9 -]{3,12}$/.test(payload.postal_code)) {
-    return "PLZ ist ungültig.";
-  }
-  if (payload.city && !/^[A-Za-zÄÖÜäöüß0-9 .'\-]{2,80}$/.test(payload.city)) {
-    return "Ort ist ungültig.";
-  }
-  if (payload.country && !/^[A-Za-zÄÖÜäöüß .'\-]{2,80}$/.test(payload.country)) {
-    return "Land ist ungültig.";
-  }
-  if (payload.email && !isValidEmail(payload.email)) {
-    return "E-Mail ist ungültig.";
-  }
-  if (payload.phone && !/^[+0-9()\/.\-\s]{6,30}$/.test(payload.phone)) {
-    return "Telefon ist ungültig.";
-  }
-  return "";
-}
-
-function isValidEmail(value) {
-  const email = String(value || "").trim();
-  if (!email || email.length > 254 || /\s/.test(email)) return false;
-  const separator = email.lastIndexOf("@");
-  if (separator < 1 || separator === email.length - 1 || email.indexOf("@") !== separator) return false;
-  const local = email.slice(0, separator);
-  const domain = email.slice(separator + 1);
-  return local.length <= 64 && !local.startsWith(".") && !local.endsWith(".")
-    && domain.length <= 253 && domain.includes(".") && !domain.startsWith(".") && !domain.endsWith(".");
-}
-
 function getMissingRequiredCategories(categories, documents) {
   const presentCategoryIds = new Set(documents.map((item) => Number(item.category_id)).filter(Boolean));
   return categories.filter((category) => category.is_required && !presentCategoryIds.has(Number(category.id)));
@@ -6171,126 +6036,6 @@ function getHomematicApiUrl(settings) {
   url.pathname = "/api/homematic.cgi";
   url.search = "";
   return url.toString();
-}
-
-async function loginHomematicCcu(settings) {
-  const username = String(settings?.homematic_ccu_username || "").trim();
-  const apiUrl = getHomematicApiUrl(settings);
-  const cacheKey = `${apiUrl}|${username}`;
-  const recentFailure = homematicLoginFailures.get(cacheKey);
-  if (recentFailure && Date.now() - recentFailure.createdAt < (recentFailure.retryAfterMs || 5 * 60 * 1000)) return recentFailure.result;
-  homematicLoginFailures.delete(cacheKey);
-  const pendingLogin = homematicLoginPromises.get(cacheKey);
-  if (pendingLogin) return pendingLogin;
-
-  const loginPromise = loginHomematicCcuOnce(settings);
-  homematicLoginPromises.set(cacheKey, loginPromise);
-  try {
-    return await loginPromise;
-  } finally {
-    if (homematicLoginPromises.get(cacheKey) === loginPromise) homematicLoginPromises.delete(cacheKey);
-  }
-}
-
-async function loginHomematicCcuOnce(settings) {
-  const username = String(settings?.homematic_ccu_username || "").trim();
-  const password = String(settings?.homematic_ccu_password || "");
-  const apiUrl = getHomematicApiUrl(settings);
-  if (!apiUrl || !username) return { ok: false, sid: "", error: "Keine CCU-Zugangsdaten hinterlegt." };
-  const cacheKey = `${apiUrl}|${username}`;
-  const cached = homematicSessionCache.get(cacheKey);
-  if (cached && Date.now() - cached.createdAt < 20 * 60 * 1000) return { ok: true, sid: cached.sid, error: "" };
-  try {
-    const storedSid = String(cached?.sid || settings?.homematic_ccu_session_id || "").trim();
-    if (storedSid) {
-      try {
-        const renewed = await callHomematicJsonRpc(apiUrl, "Session.renew", { _session_id_: storedSid });
-        const renewedSid = resolveRenewedHomematicSid(renewed, storedSid);
-        if (!renewedSid) throw new Error("Die CCU hat die Verlängerung der Sitzung abgelehnt.");
-        homematicSessionCache.set(cacheKey, { sid: renewedSid, createdAt: Date.now() });
-        homematicLoginFailures.delete(cacheKey);
-        if (renewedSid !== storedSid) upsertSetting(db, "homematic_ccu_session_id", renewedSid);
-        return { ok: true, sid: renewedSid, error: "" };
-      } catch (error) {
-        console.warn(`[HeartPet][CCU][session-renew] Gespeicherte Sitzung konnte nicht erneuert werden: ${error.message}`);
-        if (!shouldReplaceHomematicSessionAfterRenewError(error)) {
-          const result = {
-            ok: false,
-            sid: "",
-            error: `Die bestehende CCU-Sitzung konnte nicht verlängert werden: ${describeFetchError(error)} HeartPet öffnet vorsorglich keine weitere Sitzung.`,
-          };
-          homematicLoginFailures.set(cacheKey, createHomematicLoginFailure(result, error));
-          return result;
-        }
-        upsertSetting(db, "homematic_ccu_session_id", "");
-      }
-    }
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 7000);
-    let response;
-    try {
-      response = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jsonrpc: "1.1", id: 1, method: "Session.login", params: { username, password } }),
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timeout);
-    }
-    if (!response.ok) {
-      const error = `CCU-Anmeldung antwortet mit HTTP ${response.status}.`;
-      console.error(`[HeartPet][CCU][login] ${error}`);
-      const result = { ok: false, sid: "", error };
-      homematicLoginFailures.set(cacheKey, createHomematicLoginFailure(result, error));
-      return result;
-    }
-    const payload = await response.json();
-    const sid = String(payload?.result?._session_id_ || payload?.result || "").trim();
-    if (!sid || payload?.error) {
-      const message = payload?.error?.message || "CCU-Benutzername oder Passwort wurde abgelehnt.";
-      const error = /invalid credentials|too many sessions/i.test(message)
-        ? "Die CCU-Anmeldung wurde abgelehnt. Die CCU meldet mehrdeutig: Zugangsdaten ungültig oder Sitzungslimit erreicht. HeartPet unternimmt 30 Minuten lang keinen weiteren Anmeldeversuch."
-        : message;
-      console.error(`[HeartPet][CCU][login] Anmeldung abgelehnt: ${error}`);
-      const result = { ok: false, sid: "", error };
-      homematicLoginFailures.set(cacheKey, createHomematicLoginFailure(result, message));
-      return result;
-    }
-    homematicSessionCache.set(cacheKey, { sid, createdAt: Date.now() });
-    homematicLoginFailures.delete(cacheKey);
-    upsertSetting(db, "homematic_ccu_session_id", sid);
-    return { ok: true, sid, error: "" };
-  } catch (error) {
-    const message = describeFetchError(error);
-    console.error(`[HeartPet][CCU][login] CCU nicht erreichbar: ${message}`);
-    const result = { ok: false, sid: "", error: message };
-    homematicLoginFailures.set(cacheKey, createHomematicLoginFailure(result, error));
-    return result;
-  }
-}
-
-function shouldReplaceHomematicSessionAfterRenewError(error) {
-  const message = String(error?.message || error || "");
-  return /session[^\n]*(?:invalid|expired|unknown)|(?:invalid|expired|unknown)[^\n]*session|verlängerung der sitzung abgelehnt/i.test(message);
-}
-
-function getHomematicLoginRetryDelay(error) {
-  const message = String(error?.message || error || "");
-  return /invalid credentials|too many sessions|sitzungslimit/i.test(message) ? 30 * 60 * 1000 : 5 * 60 * 1000;
-}
-
-function createHomematicLoginFailure(result, error) {
-  return { result, createdAt: Date.now(), retryAfterMs: getHomematicLoginRetryDelay(error) };
-}
-
-function resolveRenewedHomematicSid(result, existingSid) {
-  if (result === true) return String(existingSid || "").trim();
-  if (!result) return "";
-  if (typeof result === "object") return String(result._session_id_ || "").trim();
-  const value = String(result).trim();
-  if (/^false$/i.test(value)) return "";
-  return /^true$/i.test(value) ? String(existingSid || "").trim() : value;
 }
 
 async function callHomematicJsonRpc(apiUrl, method, params) {

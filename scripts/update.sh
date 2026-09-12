@@ -138,16 +138,18 @@ prepare_git_workspace
 echo "Hole aktuellen Stand aus GitHub"
 git pull --ff-only
 
-echo "Installiere oder aktualisiere Abhaengigkeiten"
-npm install
-
-echo "Pruefe App-Load"
-node -e "require('./src/app'); console.log('app-load-ok'); process.exit(0)"
-
-echo "Starte HeartPet neu"
-ensure_service_override
-"$APP_DIR/scripts/stop.sh" || true
-"$APP_DIR/scripts/start.sh"
+if service_exists; then
+  echo "Erzeuge und aktiviere ein atomisches Release"
+  "$APP_DIR/scripts/deploy-release.sh"
+else
+  echo "Installiere oder aktualisiere Abhaengigkeiten"
+  npm install
+  echo "Pruefe App-Load"
+  node -e "require('./src/app'); console.log('app-load-ok'); process.exit(0)"
+  echo "Starte HeartPet neu"
+  "$APP_DIR/scripts/stop.sh" || true
+  "$APP_DIR/scripts/start.sh"
+fi
 
 echo "HeartPet wurde aktualisiert."
 if [ "$AUTO_STASHED" -eq 1 ]; then
