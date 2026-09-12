@@ -3121,7 +3121,7 @@ app.use("/admin", createSystemlogRouter({
 
 app.get(/^\/.+\/(?:systemlog|system-log)$/, requireAdmin, (req, res) => res.redirect("/admin/systemlog"));
 
-app.post("/admin/settings", requireAdmin, upload.single("app_logo"), (req, res) => {
+app.post("/admin/settings", requireAdmin, upload.single("app_logo"), async (req, res) => {
   const booleanKeys = new Set([
     "smtp_secure",
     "reminder_email_enabled",
@@ -3197,8 +3197,7 @@ app.post("/admin/settings", requireAdmin, upload.single("app_logo"), (req, res) 
   });
 
   if (ccuConnectionChanged) {
-    homematicSessionService.reset();
-    upsertSetting(db, "homematic_ccu_session_id", "");
+    await homematicSessionService.reset(settingsBeforeSave);
   }
 
   if (req.file) {
@@ -4210,10 +4209,22 @@ if (require.main === module) {
     }
   });
 
-  app.listen(port, "0.0.0.0", () => {
+  const server = app.listen(port, "0.0.0.0", () => {
     console.log(`HeartPet läuft auf http://127.0.0.1:${port}`);
     console.log("Wenn dies eine neue Installation ist, starte mit /setup.");
   });
+  let shuttingDown = false;
+  const shutdown = async (signal) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`[HeartPet] ${signal}: Beende Dienst und CCU-Sitzung.`);
+    const forceExit = setTimeout(() => process.exit(1), 10000);
+    forceExit.unref();
+    await homematicSessionService.reset(getSettingsObject(db));
+    server.close(() => process.exit(0));
+  };
+  process.once("SIGTERM", () => void shutdown("SIGTERM"));
+  process.once("SIGINT", () => void shutdown("SIGINT"));
 }
 
 function requireAuth(req, res, next) {
@@ -6220,9 +6231,19 @@ function buildOperationalHealthChecks(settings) {
     const cached = cameraFrameCache.get(index) || readCameraFrameCache(index, camera.snapshotUrl);
     return cached?.createdAt && Date.now() - cached.createdAt < 5 * 60 * 1000;
   }).length;
+  const xmlApi = getHomematicXmlApiConfig(settings);
+  const ccuUsername = String(settings.homematic_ccu_username || "").trim();
+  const ccuReady = Boolean(xmlApi?.token || ccuUsername);
+  const ccuDetail = xmlApi?.token
+    ? "XML-API mit Zugriffstoken"
+    : ccuUsername
+      ? "JSON-RPC mit Benutzeranmeldung"
+      : xmlApi
+        ? "XML-API-Token oder Benutzername fehlt"
+        : "Nicht konfiguriert";
   return [
     ...buildCoreOperationalChecks({ db, dataDir }),
-    { name: "OpenCCU", ok: Boolean(getHomematicXmlApiConfig(settings)), detail: getHomematicXmlApiConfig(settings) ? "XML-API konfiguriert" : "Nicht konfiguriert" },
+    { name: "OpenCCU", ok: ccuReady, detail: ccuDetail },
     { name: "Kameras", ok: cameras.length === 0 || cachedCameras === cameras.length, detail: cameras.length ? `${cachedCameras}/${cameras.length} mit aktuellem Cache` : "Keine Kameras konfiguriert" },
     { name: "Wetter", ok: Boolean(settings.weather_latitude && settings.weather_longitude), detail: weatherCache.size ? "Cache aktiv" : "Noch kein Cachewert" },
     { name: "Benachrichtigungen", ok: isEmailConfigured(settings) || isTelegramConfigured(settings) || isNtfyConfigured(settings), detail: "Mindestens ein Kanal konfiguriert" },

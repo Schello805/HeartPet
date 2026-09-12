@@ -1,6 +1,6 @@
 function shouldReplaceSessionAfterRenewError(error) {
   const message = String(error?.message || error || "");
-  return /session[^\n]*(?:invalid|expired|unknown)|(?:invalid|expired|unknown)[^\n]*session|verlängerung der sitzung abgelehnt/i.test(message);
+  return /session[^\n]*(?:invalid|expired|unknown)|(?:invalid|expired|unknown)[^\n]*session|verlängerung der sitzung abgelehnt|authentifizierungstest|access denied|not authenticated|unauthorized|forbidden/i.test(message);
 }
 
 function getLoginRetryDelay(error) {
@@ -33,6 +33,25 @@ function createHomematicSessionService({
     failures.set(cacheKey, { result, createdAt: now(), retryAfterMs: getLoginRetryDelay(error) });
   };
 
+  async function validateSession(apiUrl, sid) {
+    const result = await callJsonRpc(apiUrl, "ReGa.runScript", {
+      _session_id_: sid,
+      script: 'WriteLine("heartpet-session-ok");',
+    });
+    if (!String(result || "").includes("heartpet-session-ok")) {
+      throw new Error("Die CCU-Sitzung hat den Authentifizierungstest nicht bestätigt.");
+    }
+  }
+
+  async function logoutSession(apiUrl, sid) {
+    if (!apiUrl || !sid) return;
+    try {
+      await callJsonRpc(apiUrl, "Session.logout", { _session_id_: sid });
+    } catch (error) {
+      console.warn(`[HeartPet][CCU][session-logout] Sitzung konnte nicht geschlossen werden: ${describeError(error)}`);
+    }
+  }
+
   async function loginOnce(settings) {
     const username = String(settings?.homematic_ccu_username || "").trim();
     const password = String(settings?.homematic_ccu_password || "");
@@ -49,6 +68,7 @@ function createHomematicSessionService({
           const renewed = await callJsonRpc(apiUrl, "Session.renew", { _session_id_: storedSid });
           const renewedSid = resolveRenewedSessionId(renewed, storedSid);
           if (!renewedSid) throw new Error("Die CCU hat die Verlängerung der Sitzung abgelehnt.");
+          await validateSession(apiUrl, renewedSid);
           sessions.set(cacheKey, { sid: renewedSid, createdAt: now() });
           failures.delete(cacheKey);
           if (renewedSid !== storedSid) persistSessionId(renewedSid);
@@ -64,6 +84,8 @@ function createHomematicSessionService({
             cacheFailure(cacheKey, result, error);
             return result;
           }
+          sessions.delete(cacheKey);
+          await logoutSession(apiUrl, storedSid);
           persistSessionId("");
         }
       }
@@ -125,10 +147,16 @@ function createHomematicSessionService({
     }
   }
 
-  function reset() {
+  async function reset(settings = {}) {
+    const apiUrl = getApiUrl(settings);
+    const storedSid = String(settings?.homematic_ccu_session_id || "").trim();
+    const sessionIds = new Set(storedSid ? [storedSid] : []);
+    for (const session of sessions.values()) if (session.sid) sessionIds.add(session.sid);
     sessions.clear();
     pendingLogins.clear();
     failures.clear();
+    await Promise.all(Array.from(sessionIds, (sid) => logoutSession(apiUrl, sid)));
+    persistSessionId("");
   }
 
   return { login, reset };
