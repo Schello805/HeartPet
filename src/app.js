@@ -926,7 +926,7 @@ app.get("/", async (req, res) => {
   `).all(
     dayjs().format("YYYY-MM-DDTHH:mm"),
     dayjs().endOf("day").format("YYYY-MM-DDTHH:mm"),
-    dayjs().add(3, "day").endOf("day").format("YYYY-MM-DDTHH:mm"),
+    dayjs().endOf("day").format("YYYY-MM-DDTHH:mm"),
     dayjs().format("YYYY-MM-DDTHH:mm"),
     dayjs().endOf("day").format("YYYY-MM-DDTHH:mm")
   );

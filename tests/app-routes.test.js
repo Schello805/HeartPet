@@ -1849,6 +1849,7 @@ test("Dashboard zeigt dringende Erinnerungen nicht doppelt bei den nächsten Eri
   const upcomingSection = response.text.match(/<article class="[^"]*" id="naechste-erinnerungen">([\s\S]*?)<\/article>/);
 
   assert.ok(urgentSection?.[1]?.includes("Heute fällig"));
+  assert.ok(!urgentSection?.[1]?.includes("Morgen fällig"));
   assert.ok(!upcomingSection?.[1]?.includes("Heute fällig"));
   assert.ok(upcomingSection?.[1]?.includes("Morgen fällig"));
   assert.ok(upcomingSection?.[1]?.includes("Als erledigt markieren"));
