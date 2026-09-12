@@ -2,6 +2,7 @@
 <% const sectionBasePath = sectionState.basePath || '/animals'; %>
 <% const selectedAnimalState = typeof selectedAnimal !== 'undefined' ? selectedAnimal : null; %>
 <% const selectedAnimalViewState = typeof selectedAnimalView !== 'undefined' ? selectedAnimalView : null; %>
+<% const cleanHistoryValue = (value) => String(value || '').replace(/^[\s"'„“‚‘’]+|[\s"'„“‚‘’]+$/g, '').trim(); %>
 <%- include('../partials/top', { pageTitle, pageClass: `animals-page animals-page--${sectionState.key}${selectedAnimalState ? ' animals-page--selected' : ''}` }) %>
 <% const hasAnimalFilters = Boolean(filters.search || filters.speciesId || (sectionState.allowStatusFilter && filters.status)); %>
 
@@ -107,6 +108,8 @@
           <div id="animals-list-collapse">
             <div class="animals-choice-list">
               <% animals.forEach((animal) => { %>
+                <% const historyContext = cleanHistoryValue(animal.status_context_name); %>
+                <% const historyMemorialNote = cleanHistoryValue(animal.memorial_note); %>
                 <% const rowParams = new URLSearchParams(); %>
                 <% if (filters.search) rowParams.set('q', filters.search); %>
                 <% if (filters.status) rowParams.set('status', filters.status); %>
@@ -139,11 +142,11 @@
                           <span aria-hidden="true">†</span>
                           Verstorben<%= animal.status_context_date ? ` · ${formatDate(animal.status_context_date)}` : '' %>
                         </span>
-                        <% if (animal.status_context_name) { %>
-                          <span class="animal-history-context text-truncate"><%= animal.status_context_name %></span>
+                        <% if (historyContext) { %>
+                          <span class="animal-history-context text-truncate"><%= historyContext %></span>
                         <% } %>
-                        <% if (animal.memorial_note) { %>
-                          <span class="animal-history-context text-truncate"><%= animal.memorial_note %></span>
+                        <% if (historyMemorialNote) { %>
+                          <span class="animal-history-context text-truncate"><%= historyMemorialNote %></span>
                         <% } %>
                       <% } else if (sectionState.key === 'history' && animal.statusSummary) { %>
                         <span class="badge text-bg-secondary-subtle border mt-1"><%= animal.statusSummary %></span>
