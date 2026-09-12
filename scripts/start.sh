@@ -2,31 +2,12 @@
 set -euo pipefail
 
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$APP_DIR/scripts/lib/systemd.sh"
 PORT="${PORT:-3000}"
 PID_FILE="$APP_DIR/data/heartpet.pid"
 LOG_DIR="$APP_DIR/data/logs"
 LOG_FILE="$LOG_DIR/heartpet.log"
 START_WAIT_SECONDS="${START_WAIT_SECONDS:-15}"
-
-run_systemctl() {
-  if [ "$(id -u)" -eq 0 ]; then
-    systemctl "$@"
-  else
-    sudo systemctl "$@"
-  fi
-}
-
-run_as_root() {
-  if [ "$(id -u)" -eq 0 ]; then
-    "$@"
-  else
-    sudo "$@"
-  fi
-}
-
-service_exists() {
-  command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files --type=service --no-legend 2>/dev/null | grep -q '^heartpet\.service'
-}
 
 ensure_service_override() {
   local npm_path current_working_dir current_exec_start current_user current_group target_user target_group override_tmp needs_override

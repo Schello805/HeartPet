@@ -1,6 +1,7 @@
 let softNavInitialized = false;
 let softNavInFlight = false;
 const viewStateStorageKey = "heartpet-view-state";
+const { applyGermanValidationMessages, resetCustomValidation } = window.HeartPetFormValidation;
 
 function saveCurrentViewState() {
   try {
@@ -1386,90 +1387,6 @@ function initAnimalWorkspace() {
       loadAnimalWorkspacePanel(link, { push: true });
     });
   });
-}
-
-function resetCustomValidation(form) {
-  form.querySelectorAll("input, select, textarea").forEach((field) => {
-    field.setCustomValidity("");
-  });
-}
-
-function validateDateRelations(form) {
-  const birthDate = form.querySelector('input[name="birth_date"], input[name="animal_birth_date"]');
-  const intakeDate = form.querySelector('input[name="intake_date"], input[name="animal_intake_date"]');
-  if (birthDate && intakeDate && birthDate.value && intakeDate.value && birthDate.value > intakeDate.value) {
-    intakeDate.setCustomValidity("Das Aufnahmedatum darf nicht vor dem Geburtsdatum liegen.");
-    return intakeDate;
-  }
-
-  const startDate = form.querySelector('input[name="start_date"]');
-  const endDate = form.querySelector('input[name="end_date"]');
-  if (startDate && endDate && startDate.value && endDate.value && startDate.value > endDate.value) {
-    endDate.setCustomValidity("Das Enddatum darf nicht vor dem Startdatum liegen.");
-    return endDate;
-  }
-
-  const vaccinationDate = form.querySelector('input[name="vaccination_date"]');
-  const nextDueDate = form.querySelector('input[name="next_due_date"]');
-  if (vaccinationDate && nextDueDate && vaccinationDate.value && nextDueDate.value && vaccinationDate.value > nextDueDate.value) {
-    nextDueDate.setCustomValidity("Die nächste Fälligkeit darf nicht vor dem Impfdatum liegen.");
-    return nextDueDate;
-  }
-
-  return null;
-}
-
-function validatePasswordConfirmation(form) {
-  const password = form.querySelector('input[name="new_password"]');
-  const confirmation = form.querySelector('input[name="new_password_confirm"]');
-  if (!password || !confirmation) {
-    return null;
-  }
-
-  if (password.value && confirmation.value && password.value !== confirmation.value) {
-    confirmation.setCustomValidity("Die neuen Passwörter stimmen nicht überein.");
-    return confirmation;
-  }
-
-  return null;
-}
-
-function applyGermanValidationMessages(form) {
-  const fields = form.querySelectorAll("input, select, textarea");
-  for (const field of fields) {
-    if (field.validity.valueMissing) {
-      field.setCustomValidity("Dieses Feld ist ein Pflichtfeld.");
-      return field;
-    }
-
-    if (field.validity.typeMismatch) {
-      field.setCustomValidity("Bitte gib einen gültigen Wert ein.");
-      return field;
-    }
-
-    if (field.validity.badInput) {
-      field.setCustomValidity("Bitte gib einen gültigen Wert ein.");
-      return field;
-    }
-  }
-
-  const passwordError = validatePasswordConfirmation(form);
-  if (passwordError) {
-    return passwordError;
-  }
-
-  const dateError = validateDateRelations(form);
-  if (dateError) {
-    return dateError;
-  }
-
-  const statusConfirm = form.querySelector("[data-status-confirm-input]");
-  if (statusConfirm?.required && !statusConfirm.checked) {
-    statusConfirm.setCustomValidity("Bitte bestätige den Statuswechsel.");
-    return statusConfirm;
-  }
-
-  return null;
 }
 
 function canSoftNavigate(url, anchor) {

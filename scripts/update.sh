@@ -2,6 +2,7 @@
 set -euo pipefail
 
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$APP_DIR/scripts/lib/systemd.sh"
 AUTO_STASHED=0
 AUTO_STASH_NAME=""
 
@@ -10,26 +11,6 @@ require_command() {
     echo "Fehlender Befehl: $1"
     exit 1
   fi
-}
-
-run_systemctl() {
-  if [ "$(id -u)" -eq 0 ]; then
-    systemctl "$@"
-  else
-    sudo systemctl "$@"
-  fi
-}
-
-run_as_root() {
-  if [ "$(id -u)" -eq 0 ]; then
-    "$@"
-  else
-    sudo "$@"
-  fi
-}
-
-service_exists() {
-  command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files --type=service --no-legend 2>/dev/null | grep -q '^heartpet\.service'
 }
 
 ensure_service_override() {

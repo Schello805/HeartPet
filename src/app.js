@@ -51,6 +51,7 @@ const { buildAnimalExportPayload, createAnimalPdf } = require("./exporters");
 const { PASSWORD_HASH_ROUNDS, validateNewPassword } = require("./password-security");
 const { buildAnimalTimeline } = require("./animal-timeline");
 const { createAnimalRepository } = require("./animal-repository");
+const { createSystemlogRepository } = require("./repositories/systemlog-repository");
 const { buildCoreOperationalChecks, summarizeOperationalChecks } = require("./operational-health");
 const { getVaccinationSuggestionGroups, getVaccinationSuggestionsForSpecies } = require("./vaccination-suggestions");
 const { resolveStoredFilePath } = require("./storage-paths");
@@ -69,11 +70,14 @@ const {
   shouldReplaceSessionAfterRenewError: shouldReplaceHomematicSessionAfterRenewError,
 } = require("./services/homematic-session");
 const { createMasterdataRouter } = require("./routes/masterdata");
+const { createSystemlogRouter } = require("./routes/systemlog");
+const { createErrorHandler } = require("./middleware/error-handler");
 
 const app = express();
 app.set("trust proxy", process.env.HEARTPET_TRUST_PROXY || "loopback");
 const db = initDatabase();
 const animalRepository = createAnimalRepository(db);
+const systemlogRepository = createSystemlogRepository(db);
 const projectRoot = path.join(__dirname, "..");
 const revisionPath = path.join(projectRoot, "REVISION");
 const runtimeRevision = readAppRevision();
@@ -3087,117 +3091,35 @@ app.get("/admin/imports", requireAdmin, (req, res) => {
   res.redirect(`/admin/import${suffix}`);
 });
 
-app.get("/admin/systemlog", requireAdmin, (req, res) => {
-  const level = String(req.query.level || "all").trim();
-  const whereLevel = level === "all" ? "" : "WHERE channel = ?";
-  const notificationLogs = db.prepare(`
-    SELECT *
-    FROM notification_logs
-    ${whereLevel}
-    ORDER BY created_at DESC
-    LIMIT 200
-  `).all(...(level === "all" ? [] : [level]));
+app.use("/admin", createSystemlogRouter({
+  buildOperationalHealthChecks,
+  captureCameraFrame,
+  createAuditLog,
+  formatAuditLogEntry,
+  getAdminViewData,
+  getHomematicClimateDatapointIds,
+  getInstanceTimeZone,
+  getRuntimeMetricsSnapshot,
+  getSettings: () => getSettingsObject(db),
+  isEmailConfigured,
+  isNtfyConfigured,
+  isTelegramConfigured,
+  parseCoopCameras,
+  readAppRevision,
+  readHomematicClimateFromCcu,
+  redactSensitiveText,
+  repository: systemlogRepository,
+  requireAdmin,
+  runtimeRevision,
+  setFlash,
+  summarizeOperationalChecks,
+}));
 
-  const auditLogs = db.prepare(`
-    SELECT *
-    FROM audit_logs
-    ORDER BY created_at DESC
-    LIMIT 200
-  `).all().map(formatAuditLogEntry);
-  const latestCcuLog = auditLogs.find((item) => String(item.action || "").startsWith("coop.")) || null;
-
-  const settings = getSettingsObject(db);
-  const overview = {
-    instanceTimezone: getInstanceTimeZone(),
-    activeAnimals: db.prepare("SELECT COUNT(*) AS count FROM animals WHERE status = 'Aktiv'").get().count,
-    openReminders: db.prepare(`
-      SELECT COUNT(*) AS count
-      FROM reminders
-      INNER JOIN animals ON animals.id = reminders.animal_id
-      WHERE reminders.completed_at IS NULL
-        AND animals.status = 'Aktiv'
-    `).get().count,
-    notificationErrors24h: db.prepare(`
-      SELECT COUNT(*) AS count
-      FROM notification_logs
-      WHERE status = 'error'
-        AND datetime(created_at) >= datetime('now', '-1 day')
-    `).get().count,
-    lastNotificationAt: db.prepare("SELECT created_at FROM notification_logs ORDER BY created_at DESC LIMIT 1").get()?.created_at || "",
-    emailReady: isEmailConfigured(settings),
-    telegramReady: isTelegramConfigured(settings),
-    ntfyReady: isNtfyConfigured(settings),
-    emailEnabled: settings.reminder_email_enabled === "true",
-    telegramEnabled: settings.reminder_telegram_enabled === "true",
-    ntfyEnabled: settings.reminder_ntfy_enabled === "true",
-    runtime: getRuntimeMetricsSnapshot(),
-    healthChecks: buildOperationalHealthChecks(settings),
-  };
-
-  res.render("pages/admin-systemlog", {
-    ...getAdminViewData("Systemlog", "/admin/systemlog"),
-    filters: { level },
-    notificationLogs,
-    auditLogs,
-    latestCcuLog,
-    overview,
-  });
+["/systemlog", "/system-log"].forEach((aliasPath) => {
+  app.get(aliasPath, requireAdmin, (req, res) => res.redirect("/admin/systemlog"));
 });
 
-app.get("/admin/health", requireAdmin, (req, res) => {
-  const settings = getSettingsObject(db);
-  const checks = buildOperationalHealthChecks(settings);
-  const availableRevision = readAppRevision();
-  return res.json({
-    ...summarizeOperationalChecks(checks),
-    revision: runtimeRevision,
-    availableRevision,
-    restartRequired: availableRevision !== runtimeRevision,
-    checkedAt: new Date().toISOString(),
-    runtime: getRuntimeMetricsSnapshot(),
-    checks,
-  });
-});
-
-app.post("/admin/systemlog/diagnose", requireAdmin, async (req, res) => {
-  const settings = getSettingsObject(db);
-  const results = [];
-  const run = async (name, callback) => {
-    const startedAt = Date.now();
-    try {
-      await callback();
-      results.push({ name, ok: true, durationMs: Date.now() - startedAt });
-    } catch (error) {
-      results.push({ name, ok: false, durationMs: Date.now() - startedAt, error: redactSensitiveText(error.message) });
-    }
-  };
-  await run("Datenbank", async () => db.prepare("SELECT 1").get());
-  if (getHomematicClimateDatapointIds(settings)) await run("OpenCCU Klima", async () => {
-    const climate = await readHomematicClimateFromCcu(settings);
-    if (climate.error) throw new Error(climate.error);
-  });
-  for (const camera of parseCoopCameras(settings.coop_camera_streams)) await run(`Kamera ${camera.name}`, async () => {
-    const frame = await captureCameraFrame({ ...camera, url: camera.snapshotUrl, protocol: camera.snapshotProtocol });
-    if (!frame?.length) throw new Error("Kein Kamerabild empfangen.");
-  });
-  const ok = results.every((item) => item.ok);
-  createAuditLog(req, ok ? "system.diagnostic" : "system.diagnostic_failed", { results }, { entityType: "system" });
-  setFlash(req, ok ? "success" : "error", ok ? "Gerätediagnose erfolgreich abgeschlossen." : `${results.filter((item) => !item.ok).length} Diagnose-Prüfung(en) sind fehlgeschlagen.`);
-  return res.redirect("/admin/systemlog");
-});
-
-["/systemlog", "/system-log", "/admin/system-log", "/admin/log"].forEach((aliasPath) => {
-  app.get(aliasPath, requireAdmin, (req, res) => {
-    res.redirect("/admin/systemlog");
-  });
-});
-
-app.get(/^\/.+\/systemlog$/, requireAdmin, (req, res) => {
-  res.redirect("/admin/systemlog");
-});
-app.get(/^\/.+\/system-log$/, requireAdmin, (req, res) => {
-  res.redirect("/admin/systemlog");
-});
+app.get(/^\/.+\/(?:systemlog|system-log)$/, requireAdmin, (req, res) => res.redirect("/admin/systemlog"));
 
 app.post("/admin/settings", requireAdmin, upload.single("app_logo"), (req, res) => {
   const booleanKeys = new Set([
@@ -4118,20 +4040,7 @@ app.use((req, res) => {
   renderNotFound(req, res, "Seite nicht gefunden.");
 });
 
-app.use((error, req, res, next) => {
-  if (res.headersSent) return next(error);
-  console.error(`[HeartPet][HTTP] ${sanitizeLogText(req.method)} ${sanitizeLogText(req.path)}: ${redactSensitiveText(error.message)}`);
-  if (error?.name === "MulterError" || /file type|unexpected field/i.test(String(error?.message || ""))) {
-    setFlash(req, "error", error.code === "LIMIT_FILE_SIZE"
-      ? "Die Datei ist zu groß. Erlaubt sind maximal 20 MB."
-      : "Datei konnte nicht hochgeladen werden. Bitte Dateityp und Größe prüfen.");
-    return res.redirect("/");
-  }
-  return res.status(500).render("pages/not-found", {
-    pageTitle: "Technischer Fehler",
-    message: "Die Anfrage konnte nicht verarbeitet werden.",
-  });
-});
+app.use(createErrorHandler({ redactSensitiveText, sanitizeLogText, setFlash }));
 
 async function maybeSendDailyDigest() {
   const settings = getSettingsObject(db);

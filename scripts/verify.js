@@ -21,11 +21,12 @@ const shellFiles = listFilesByExtension(path.join(appDir, "scripts"), ".sh")
   .map((filePath) => path.relative(appDir, filePath));
 
 const steps = [
-  { label: "1/6 Tests", command: "npm", args: ["test"] },
-  { label: "2/6 Browser-E2E", command: "npm", args: ["run", "test:e2e"] },
-  { label: "3/6 Tierakten-Ansicht", command: "node", args: ["scripts/render-animal-show-check.js"] },
-  { label: "4/6 Backup-Wiederherstellung", command: "node", args: ["scripts/check-backup-restore.js"] },
-  { label: "5/6 Shell-Syntax", command: "bash", args: ["-n", ...shellFiles] },
+  { label: "1/7 Qualitätsgrenzen", command: "npm", args: ["run", "check:quality"] },
+  { label: "2/7 Tests", command: "npm", args: ["test"] },
+  { label: "3/7 Browser-E2E", command: "npm", args: ["run", "test:e2e"] },
+  { label: "4/7 Tierakten-Ansicht", command: "node", args: ["scripts/render-animal-show-check.js"] },
+  { label: "5/7 Backup-Wiederherstellung", command: "node", args: ["scripts/check-backup-restore.js"] },
+  { label: "6/7 Shell-Syntax", command: "bash", args: ["-n", ...shellFiles] },
   ...syntaxFiles.map((filePath, index) => ({
     label: `Syntax ${index + 1}/${syntaxFiles.length}: ${filePath}`,
     command: "node",

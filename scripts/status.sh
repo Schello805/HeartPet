@@ -2,19 +2,8 @@
 set -euo pipefail
 
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$APP_DIR/scripts/lib/systemd.sh"
 PID_FILE="$APP_DIR/data/heartpet.pid"
-
-run_systemctl() {
-  if [ "$(id -u)" -eq 0 ]; then
-    systemctl "$@"
-  else
-    sudo systemctl "$@"
-  fi
-}
-
-service_exists() {
-  command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files --type=service --no-legend 2>/dev/null | grep -q '^heartpet\.service'
-}
 
 if service_exists; then
   run_systemctl status heartpet --no-pager

@@ -2,6 +2,7 @@
 set -euo pipefail
 
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$APP_DIR/scripts/lib/systemd.sh"
 RELEASE_ROOT="${HEARTPET_RELEASE_ROOT:-$APP_DIR/.releases}"
 CURRENT_LINK="${HEARTPET_CURRENT_LINK:-$APP_DIR/.runtime/current}"
 DATA_DIR="${HEARTPET_DATA_DIR:-$APP_DIR/data}"
@@ -10,14 +11,6 @@ REVISION="$(tr -d '[:space:]' < "$APP_DIR/REVISION")"
 RELEASE_ID="${REVISION}-$(git -C "$APP_DIR" rev-parse --short=12 HEAD)"
 RELEASE_DIR="$RELEASE_ROOT/$RELEASE_ID"
 PREVIOUS_TARGET="$(readlink "$CURRENT_LINK" 2>/dev/null || printf '%s' "$APP_DIR")"
-
-run_systemctl() {
-  if [ "$(id -u)" -eq 0 ]; then systemctl "$@"; else sudo systemctl "$@"; fi
-}
-
-run_as_root() {
-  if [ "$(id -u)" -eq 0 ]; then "$@"; else sudo "$@"; fi
-}
 
 write_service_override() {
   local npm_path override_tmp

@@ -513,11 +513,14 @@ test("Health-Checks liefern einen minimalen öffentlichen und geschützten Detai
 });
 
 test("Alle internen API- und Steuerungsrouten sind mit der vorgesehenen Methode registriert", () => {
-  const registered = new Set(
-    app.router.stack
-      .filter((layer) => layer.route && typeof layer.route.path === "string")
-      .flatMap((layer) => Object.keys(layer.route.methods).map((method) => `${method.toUpperCase()} ${layer.route.path}`))
-  );
+  const routeEntries = (stack, prefix = "") => stack.flatMap((layer) => {
+    if (layer.route && typeof layer.route.path === "string") {
+      return Object.keys(layer.route.methods).map((method) => `${method.toUpperCase()} ${prefix}${layer.route.path}`);
+    }
+    if (Array.isArray(layer.handle?.stack)) return routeEntries(layer.handle.stack, "/admin");
+    return [];
+  });
+  const registered = new Set(routeEntries(app.router.stack));
   const expected = [
     "GET /health",
     "GET /admin/health",
@@ -1313,6 +1316,22 @@ test("Deployment aktiviert Releases atomar und prüft die aktive Revision", () =
 test("Startskript aktiviert den systemd-Dienst dauerhaft", () => {
   const script = fs.readFileSync(path.join(__dirname, "..", "scripts", "start.sh"), "utf8");
   assert.match(script, /run_systemctl enable --now heartpet/);
+});
+
+test("Betriebsskripte verwenden die gemeinsame systemd-Bibliothek", () => {
+  for (const name of ["start.sh", "stop.sh", "status.sh", "logs.sh", "update.sh", "deploy-release.sh"]) {
+    const script = fs.readFileSync(path.join(__dirname, "..", "scripts", name), "utf8");
+    assert.match(script, /source "\$APP_DIR\/scripts\/lib\/systemd\.sh"/);
+    assert.doesNotMatch(script, /run_systemctl\(\)\s*\{/);
+  }
+});
+
+test("Systemlog-Router kapselt SQL im Repository", () => {
+  const router = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "systemlog.js"), "utf8");
+  const repository = fs.readFileSync(path.join(__dirname, "..", "src", "repositories", "systemlog-repository.js"), "utf8");
+  assert.doesNotMatch(router, /\bdb\.prepare\s*\(/);
+  assert.match(repository, /notification_logs/);
+  assert.match(repository, /audit_logs/);
 });
 
 test("Stammdaten-Template bleibt mit einem älteren Serverstand renderbar", () => {
