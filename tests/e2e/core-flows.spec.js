@@ -350,10 +350,16 @@ test("Kernseiten bleiben kompakt und kontrastreich", async ({ page }) => {
     "/",
     "/animals",
     "/animals/1",
+    "/animals/historie",
+    "/admin/allgemein",
+    "/admin/stall",
     "/admin/stammdaten",
     "/admin/benachrichtigungen",
     "/admin/import",
     "/admin/benutzer",
+    "/admin/systemlog",
+    "/help",
+    "/contact",
   ];
 
   for (const viewport of [
@@ -382,6 +388,8 @@ test("Kernseiten bleiben kompakt und kontrastreich", async ({ page }) => {
         };
 
         const pageHeader = document.querySelector(".page-header h1");
+        const content = document.querySelector(".main-content-inner");
+        const contentRect = content?.getBoundingClientRect();
         const headerFontSize = pageHeader ? Number.parseFloat(window.getComputedStyle(pageHeader).fontSize) : 0;
         const bodyFontSize = Number.parseFloat(window.getComputedStyle(document.body).fontSize);
         const undersizedHeadings = Array.from(document.querySelectorAll("h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6"))
@@ -489,6 +497,10 @@ test("Kernseiten bleiben kompakt und kontrastreich", async ({ page }) => {
           documentClientWidth: document.documentElement.clientWidth,
           documentScrollWidth: document.documentElement.scrollWidth,
           headerFontSize,
+          contentWidth: contentRect ? Math.round(contentRect.width) : 0,
+          contentCenterOffset: contentRect
+            ? Math.round(Math.abs((contentRect.left + contentRect.right) / 2 - window.innerWidth / 2))
+            : 0,
           undersizedHeadings,
           darkControls,
           wideElements,
@@ -508,6 +520,14 @@ test("Kernseiten bleiben kompakt und kontrastreich", async ({ page }) => {
         })}`,
       ).toBeLessThanOrEqual(2);
       expect(result.headerFontSize, `${path} @ ${viewport.width}px hat einen zu großen Header`).toBeLessThanOrEqual(viewport.width < 768 ? 22 : 24);
+      if (viewport.width >= 992) {
+        expect(result.contentWidth, `${path} @ ${viewport.width}px ist zu breit`).toBeLessThanOrEqual(1180);
+        const expectedCenter = 228 / 2;
+        expect(
+          Math.abs(result.contentCenterOffset - expectedCenter),
+          `${path} @ ${viewport.width}px ist im Inhaltsbereich nicht zentriert`,
+        ).toBeLessThanOrEqual(3);
+      }
       expect(result.undersizedHeadings, `${path} @ ${viewport.width}px hat Überschriften kleiner als Fließtext`).toEqual([]);
       expect(result.darkControls, `${path} @ ${viewport.width}px hat dunkle Formularfelder`).toEqual([]);
       expect(result.edgeTargets, `${path} @ ${viewport.width}px hat Elemente ohne ausreichenden Kartenabstand`).toEqual([]);

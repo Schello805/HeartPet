@@ -1008,9 +1008,13 @@ small {
   overflow-x: clip;
 }
 
+.bootstrap-app .page-header,
 .bootstrap-app .main-content-inner {
+  width: 100%;
   min-width: 0;
-  max-width: 100%;
+  max-width: 1180px;
+  margin-right: auto;
+  margin-left: auto;
 }
 
 /* Einheitlicher Kompaktheits-Rhythmus für Karten ohne eigene Layoutvariante. */
