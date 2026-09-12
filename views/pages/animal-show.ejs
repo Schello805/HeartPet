@@ -84,6 +84,33 @@
   ].filter(Boolean);
 %>
 
+<% if (lifecycle.inRestingPlace) { %>
+  <section class="card border-0 shadow-sm animal-memorial-card">
+    <div class="animal-memorial-portrait">
+      <% if (animal.profile_image_stored_name) { %>
+        <img src="/media/<%= animal.profile_image_stored_name %>" alt="Erinnerungsbild von <%= animal.name %>" />
+      <% } else { %>
+        <span aria-hidden="true"><%= getAnimalSpeciesIcon(animal.species_name) %></span>
+      <% } %>
+    </div>
+    <div class="animal-memorial-content">
+      <p class="eyebrow mb-1">In liebevoller Erinnerung</p>
+      <h2><%= animal.name %></h2>
+      <p class="animal-memorial-dates">
+        <%= animal.birth_date ? formatDate(animal.birth_date) : 'Geburtsdatum unbekannt' %>
+        <span aria-hidden="true">·</span>
+        † <%= animal.status_context_date ? formatDate(animal.status_context_date) : 'Abschiedsdatum unbekannt' %>
+      </p>
+      <p class="animal-memorial-species"><%= getAnimalSpeciesIcon(animal.species_name) %> <%= animal.species_name || 'Tier' %></p>
+      <% if (animal.memorial_note) { %>
+        <blockquote><%= animal.memorial_note %></blockquote>
+      <% } %>
+      <% if (animal.status_context_name) { %>
+        <p class="animal-memorial-place"><span>Ort / Zusammenhang</span><strong><%= animal.status_context_name %></strong></p>
+      <% } %>
+    </div>
+  </section>
+<% } else { %>
 <section class="card border-0 shadow-sm animal-hero-card">
   <div class="animal-hero-profile">
     <div class="profile-image-panel">
@@ -222,15 +249,18 @@
     </div>
   </section>
 <% } %>
+<% } %>
 
-<% if (permissions.canEditAnimals) { %>
+<% if (permissions.canEditAnimals && !lifecycle.inRestingPlace) { %>
   <form method="post" action="/animals/<%= animal.id %>/duplicate" id="animal-duplicate-<%= animal.id %>" class="hidden-form" data-confirm="Tier wirklich mit allen Stammdaten, Einträgen, Erinnerungen, Dokumenten und Bildern kopieren?"></form>
   <form method="post" action="/animals/<%= animal.id %>/delete" id="animal-delete-<%= animal.id %>" class="hidden-form" data-confirm="Tier wirklich endgültig löschen? Alle Einträge, Dokumente, Bilder und Erinnerungen werden gelöscht.">
     <input type="hidden" name="return_to" value="/animals" />
   </form>
 <% } %>
 
-<%- include('./animal-show/_current-status', { openReminderCount, reminderStatsState, focusFacts, nextFocusLabel }) %>
+<% if (!lifecycle.inRestingPlace) { %>
+  <%- include('./animal-show/_current-status', { openReminderCount, reminderStatsState, focusFacts, nextFocusLabel }) %>
+<% } %>
 
 <div class="row g-2 mb-3 animal-summary-layout animal-workflow-summary d-none">
   <div class="col-xl-6">
@@ -395,7 +425,7 @@
   </div>
 </div>
 
-<% if (hasVeterinarianContact) { %>
+<% if (hasVeterinarianContact && !lifecycle.inRestingPlace) { %>
   <div class="vet-contact-popover" data-vet-contact-popover="<%= animal.id %>" hidden>
     <div class="vet-contact-card" role="dialog" aria-modal="false" aria-label="Kontaktdaten Tierarzt">
       <div class="vet-contact-head">
@@ -485,8 +515,21 @@
   </div>
 </div>
 
+<% if (lifecycle.inRestingPlace) { %>
+  <section class="card border-0 shadow-sm mb-3 animal-details-entry animal-memorial-details-entry">
+    <div class="card-body p-3 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
+      <div>
+        <h3 class="h5 mb-1">Details</h3>
+        <p class="small text-body-secondary mb-0">Timeline, Stammdaten, Dokumente und Fotos der vollständigen Akte.</p>
+      </div>
+      <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#animalRecordDetails" aria-expanded="false" aria-controls="animalRecordDetails">Details anzeigen</button>
+    </div>
+  </section>
+  <div class="collapse" id="animalRecordDetails">
+<% } %>
 <%- include('./animal-show/_timeline', { animal, animalTimeline, formatDateTime }) %>
 
+<% if (!lifecycle.inRestingPlace) { %>
 <section class="card border-0 shadow-sm mb-3 animal-details-entry">
   <div class="card-body p-3 d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
     <div>
@@ -498,6 +541,7 @@
 </section>
 
 <div class="collapse" id="animalRecordDetails">
+<% } %>
 <section class="accordion animal-record-accordion" id="animalRecordAccordion">
   <section class="accordion-item" id="animal-stammdaten">
     <h2 class="accordion-header" id="animal-stammdaten-heading">

@@ -1867,6 +1867,24 @@ test("Verstorbene Tiere zeigen Kennzeichen und Abschiedsdatum direkt in der Hist
   db.prepare("DELETE FROM animals WHERE id = ?").run(animalId);
 });
 
+test("Verstorbene Tiere öffnen als Gedenkkarte mit eingeklappter vollständiger Akte", async () => {
+  const speciesId = db.prepare("SELECT id FROM species ORDER BY id ASC LIMIT 1").get()?.id;
+  const animalId = db.prepare(`
+    INSERT INTO animals (name, species_id, status, birth_date, status_context_date, status_context_name, memorial_note)
+    VALUES (?, ?, \'Verstorben\', ?, ?, ?, ?)
+  `).run("Sternentier", speciesId, "2020-03-04", "2026-09-12", "Zuhause", "Für immer unvergessen.").lastInsertRowid;
+
+  const page = await agent.get(`/animals/historie?animal_id=${animalId}`);
+  assert.equal(page.status, 200);
+  assert.match(page.text, /animal-memorial-card/);
+  assert.match(page.text, /In liebevoller Erinnerung/);
+  assert.match(page.text, /04\.03\.2020[\s\S]*†[\s\S]*12\.09\.2026/);
+  assert.doesNotMatch(page.text, new RegExp(`href="/animals/${animalId}/edit"`));
+  assert.doesNotMatch(page.text, new RegExp(`id="animal-duplicate-${animalId}"`));
+  assert.ok(page.text.indexOf('id="animalRecordDetails"') < page.text.indexOf('class="card border-0 shadow-sm mb-3 animal-timeline-overview"'));
+  db.prepare("DELETE FROM animals WHERE id = ?").run(animalId);
+});
+
 test("Historie behält Filter- und Listenaktionen im Historie-Bereich", async () => {
   const speciesId = db.prepare("SELECT species_id FROM animals WHERE id = 1").get()?.species_id;
   assert.ok(speciesId);
