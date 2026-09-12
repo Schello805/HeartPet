@@ -1311,6 +1311,10 @@ test("Deployment aktiviert Releases atomar und prüft die aktive Revision", () =
   assert.match(script, /run_systemctl enable heartpet/);
   assert.match(script, /journalctl -u heartpet\.service/);
   assert.match(script, /activate_release "\$PREVIOUS_TARGET"/);
+  assert.match(script, /User=\$target_user/);
+  assert.match(script, /Group=\$target_group/);
+  assert.match(script, /"\$CURRENT_LINK" == \/root\/\*/);
+  assert.match(script, /runuser -u "\$SERVICE_USER" -- test -x "\$CURRENT_LINK"/);
 });
 
 test("Startskript aktiviert den systemd-Dienst dauerhaft", () => {

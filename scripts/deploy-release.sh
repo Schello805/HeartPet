@@ -13,20 +13,43 @@ RELEASE_DIR="$RELEASE_ROOT/$RELEASE_ID"
 PREVIOUS_TARGET="$(readlink "$CURRENT_LINK" 2>/dev/null || printf '%s' "$APP_DIR")"
 
 write_service_override() {
-  local npm_path override_tmp
+  local npm_path current_user current_group target_user target_group override_tmp
   npm_path="$(command -v npm)"
+  current_user="$(run_systemctl show -p User --value heartpet 2>/dev/null || true)"
+  current_group="$(run_systemctl show -p Group --value heartpet 2>/dev/null || true)"
+  target_user="${current_user:-root}"
+  target_group="${current_group:-$target_user}"
+
+  # /root is intentionally not traversable by service accounts such as www-data.
+  if [[ "$CURRENT_LINK" == /root/* ]] && [ "$target_user" != "root" ]; then
+    target_user="root"
+    target_group="root"
+  fi
+
   override_tmp="$(mktemp)"
   cat > "$override_tmp" <<EOF
 [Service]
 WorkingDirectory=$CURRENT_LINK
 ExecStart=
 ExecStart=$npm_path start
+User=$target_user
+Group=$target_group
 Environment=HEARTPET_DATA_DIR=$DATA_DIR
 EOF
   run_as_root mkdir -p /etc/systemd/system/heartpet.service.d
   run_as_root cp "$override_tmp" /etc/systemd/system/heartpet.service.d/override.conf
   rm -f "$override_tmp"
   run_systemctl daemon-reload
+
+  SERVICE_USER="$target_user"
+}
+
+verify_service_access() {
+  if [ "$SERVICE_USER" != "root" ] && ! run_as_root runuser -u "$SERVICE_USER" -- test -x "$CURRENT_LINK"; then
+    echo "Fehler: Dienstbenutzer $SERVICE_USER darf $CURRENT_LINK nicht betreten."
+    echo "Installiere HeartPet unter /opt/HeartPet oder korrigiere User/Group der Unit."
+    return 1
+  fi
 }
 
 activate_release() {
@@ -73,6 +96,7 @@ HEARTPET_DATA_DIR="$TEMP_DATA" NODE_ENV=test HEARTPET_SESSION_STORE=memory HEART
 write_service_override
 run_systemctl enable heartpet
 activate_release "$RELEASE_DIR"
+verify_service_access
 if run_systemctl restart heartpet && wait_for_revision; then
   echo "HeartPet Revision $REVISION ist aktiv."
   find "$RELEASE_ROOT" -mindepth 1 -maxdepth 1 -type d ! -path "$RELEASE_DIR" -mtime +14 -exec rm -rf {} +
