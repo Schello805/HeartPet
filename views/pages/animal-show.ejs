@@ -82,6 +82,12 @@
   const primaryActions = [
     (canManageHealthNow || canManageRemindersNow || canManageFeedingsNow || canManageNotesNow) ? { label: 'Aktion hinzufügen', hint: 'Danach Medikament, Impfung, Termin, Erinnerung, Fütterung oder Notiz auswählen', href: `/animals/${animal.id}/events/new`, drawer: 'animal-entry', tone: 'primary' } : null,
   ].filter(Boolean);
+  const cleanMemorialValue = (value) => {
+    const text = String(value || '').trim();
+    return /^(?:["'”“„‘’]){1,2}$/.test(text) ? '' : text;
+  };
+  const memorialNote = cleanMemorialValue(animal.memorial_note);
+  const memorialPlace = cleanMemorialValue(animal.status_context_name);
 %>
 
 <% if (lifecycle.inRestingPlace) { %>
@@ -102,11 +108,22 @@
         † <%= animal.status_context_date ? formatDate(animal.status_context_date) : 'Abschiedsdatum unbekannt' %>
       </p>
       <p class="animal-memorial-species"><%= getAnimalSpeciesIcon(animal.species_name) %> <%= animal.species_name || 'Tier' %></p>
-      <% if (animal.memorial_note) { %>
-        <blockquote><%= animal.memorial_note %></blockquote>
+      <% if (memorialNote) { %>
+        <blockquote><%= memorialNote %></blockquote>
       <% } %>
-      <% if (animal.status_context_name) { %>
-        <p class="animal-memorial-place"><span>Ort / Zusammenhang</span><strong><%= animal.status_context_name %></strong></p>
+      <% if (memorialPlace) { %>
+        <p class="animal-memorial-place"><span>Ort / Zusammenhang</span><strong><%= memorialPlace %></strong></p>
+      <% } %>
+      <% if (permissions.canEditAnimals) { %>
+        <details class="animal-memorial-editor">
+          <summary><%= memorialNote ? 'Erinnerung bearbeiten' : 'Erinnerung hinzufügen' %></summary>
+          <form method="post" action="/animals/<%= animal.id %>/memorial-note">
+            <input type="hidden" name="return_to" value="<%= currentPath %>" />
+            <label class="form-label" for="memorial-note-<%= animal.id %>">Erinnerungstext</label>
+            <textarea class="form-control" id="memorial-note-<%= animal.id %>" name="memorial_note" rows="4" maxlength="2000" placeholder="Eine persönliche Erinnerung an <%= animal.name %>"><%= memorialNote %></textarea>
+            <button class="btn btn-primary btn-sm" type="submit">Erinnerung speichern</button>
+          </form>
+        </details>
       <% } %>
     </div>
   </section>

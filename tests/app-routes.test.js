@@ -1885,6 +1885,28 @@ test("Verstorbene Tiere öffnen als Gedenkkarte mit eingeklappter vollständiger
   db.prepare("DELETE FROM animals WHERE id = ?").run(animalId);
 });
 
+test("Gedenkerinnerungen lassen sich ändern und leere Platzhalter bleiben unsichtbar", async () => {
+  const speciesId = db.prepare("SELECT id FROM species ORDER BY id ASC LIMIT 1").get()?.id;
+  const animalId = db.prepare(`
+    INSERT INTO animals (name, species_id, status, status_context_date, status_context_name, memorial_note)
+    VALUES (?, ?, 'Verstorben', ?, ?, ?)
+  `).run("Erinnerungstest", speciesId, "2026-09-12", '""', '""').lastInsertRowid;
+
+  const emptyPage = await agent.get(`/animals/historie?animal_id=${animalId}`);
+  assert.equal(emptyPage.status, 200);
+  assert.doesNotMatch(emptyPage.text, /<blockquote>\s*["„“]+\s*<\/blockquote>/);
+  assert.doesNotMatch(emptyPage.text, /animal-memorial-place/);
+  assert.match(emptyPage.text, /Erinnerung hinzufügen/);
+
+  const update = await agent.post(`/animals/${animalId}/memorial-note`).type("form").send({
+    memorial_note: "Du bleibst unvergessen.",
+    return_to: `/animals/historie?animal_id=${animalId}`,
+  });
+  assert.equal(update.status, 302);
+  assert.equal(db.prepare("SELECT memorial_note FROM animals WHERE id = ?").get(animalId).memorial_note, "Du bleibst unvergessen.");
+  db.prepare("DELETE FROM animals WHERE id = ?").run(animalId);
+});
+
 test("Historie behält Filter- und Listenaktionen im Historie-Bereich", async () => {
   const speciesId = db.prepare("SELECT species_id FROM animals WHERE id = 1").get()?.species_id;
   assert.ok(speciesId);

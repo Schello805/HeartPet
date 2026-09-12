@@ -1803,6 +1803,29 @@ app.post("/animals/:id/update", requireAnimalEditor, (req, res) => {
   res.redirect(destination);
 });
 
+app.post("/animals/:id/memorial-note", requireAnimalEditor, (req, res) => {
+  const animal = findAnimal(req.params.id);
+  if (!animal) {
+    return renderNotFound(req, res, "Tier nicht gefunden.");
+  }
+  if (!getAnimalLifecycle(animal.status).inRestingPlace) {
+    setFlash(req, "error", "Eine Gedenkerinnerung ist nur bei verstorbenen Tieren verfügbar.");
+    return res.redirect(safeLocalReturnPath(req.body.return_to, `/animals/${req.params.id}`));
+  }
+
+  const submittedNote = String(req.body.memorial_note || "").trim();
+  const memorialNote = /^(?:["'”“„‘’]){1,2}$/.test(submittedNote) ? "" : submittedNote.slice(0, 2000);
+  db.prepare("UPDATE animals SET memorial_note = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(memorialNote, req.params.id);
+  createAuditLog(req, "animal.update", {
+    animal_id: req.params.id,
+    name: animal.name,
+    status: animal.status,
+    transition_details_updated: true,
+  }, { entityType: "animal", entityId: req.params.id });
+  setFlash(req, "success", memorialNote ? "Erinnerung wurde aktualisiert." : "Erinnerung wurde entfernt.");
+  res.redirect(safeLocalReturnPath(req.body.return_to, `/animals/historie?animal_id=${encodeURIComponent(req.params.id)}`));
+});
+
 app.post("/animals/:id/duplicate", requireAnimalEditor, (req, res) => {
   const animal = findAnimal(req.params.id);
   if (!animal) {
