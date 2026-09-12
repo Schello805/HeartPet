@@ -1897,6 +1897,7 @@ test("Gedenkerinnerungen lassen sich ändern und leere Platzhalter bleiben unsic
   assert.doesNotMatch(emptyPage.text, /<blockquote>\s*["„“]+\s*<\/blockquote>/);
   assert.doesNotMatch(emptyPage.text, /animal-memorial-place/);
   assert.match(emptyPage.text, /Erinnerung hinzufügen/);
+  assert.match(emptyPage.text, new RegExp(`action="/animals/${animalId}/memorial-note"`));
 
   const update = await agent.post(`/animals/${animalId}/memorial-note`).type("form").send({
     memorial_note: "Du bleibst unvergessen.",

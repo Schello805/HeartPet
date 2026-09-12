@@ -222,6 +222,7 @@ app.use((req, res, next) => {
   res.locals.currentPath = req.path;
   res.locals.currentQuery = req.query || {};
   res.locals.appRevision = runtimeRevision;
+  res.locals.runtimeFeatures = { memorialNoteEditor: true };
   res.locals.seoMeta = buildSeoMeta(req, res.locals.appSettings);
   res.locals.animalSpeciesMenu = listActiveSpecies();
   res.locals.formatDate = formatDate;

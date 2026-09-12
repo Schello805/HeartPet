@@ -114,7 +114,7 @@
       <% if (memorialPlace) { %>
         <p class="animal-memorial-place"><span>Ort / Zusammenhang</span><strong><%= memorialPlace %></strong></p>
       <% } %>
-      <% if (permissions.canEditAnimals) { %>
+      <% if (permissions.canEditAnimals && typeof runtimeFeatures !== 'undefined' && runtimeFeatures.memorialNoteEditor) { %>
         <details class="animal-memorial-editor">
           <summary><%= memorialNote ? 'Erinnerung bearbeiten' : 'Erinnerung hinzufügen' %></summary>
           <form method="post" action="/animals/<%= animal.id %>/memorial-note">
