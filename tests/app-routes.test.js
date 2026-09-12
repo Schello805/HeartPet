@@ -1217,6 +1217,13 @@ test("Standardimpfungen sind als Stammdaten vollständig verwaltbar", async () =
   assert.equal(db.prepare("SELECT 1 FROM vaccination_presets WHERE id = ?").get(preset.id), undefined);
 });
 
+test("Stammdaten-Template bleibt mit einem älteren Serverstand renderbar", () => {
+  const template = fs.readFileSync(path.join(__dirname, "..", "views", "pages", "admin-masterdata.ejs"), "utf8");
+  assert.match(template, /typeof vaccinationPresets !== 'undefined'/);
+  assert.doesNotMatch(template, /vaccinationPresets\.length/);
+  assert.doesNotMatch(template, /vaccinationPresets\.forEach/);
+});
+
 test("Adressvalidierung für Tierarzt greift", async () => {
   const invalid = await agent.post("/admin/veterinarians").type("form").send({
     name: "Ungültig",
