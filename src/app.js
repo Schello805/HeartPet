@@ -70,6 +70,7 @@ const importUpload = createImportUploadMiddleware();
 const weatherCache = new Map();
 const homematicSessionCache = new Map();
 const homematicLoginPromises = new Map();
+const homematicLoginFailures = new Map();
 const cameraFrameCache = new Map();
 const cameraCacheDir = path.join(dataDir, "cache", "cameras");
 const loginAttempts = new Map();
@@ -1796,7 +1797,10 @@ app.post("/animals/:id/update", requireAnimalEditor, (req, res) => {
   }
 
   setFlash(req, "success", successMessage);
-  res.redirect(returnTo);
+  const destination = statusChanged && !lifecycle.isActive && !returnTo.startsWith("/animals/historie")
+    ? `/animals/historie?animal_id=${encodeURIComponent(req.params.id)}`
+    : returnTo;
+  res.redirect(destination);
 });
 
 app.post("/animals/:id/duplicate", requireAnimalEditor, (req, res) => {
@@ -3356,6 +3360,7 @@ app.post("/admin/settings", requireAdmin, upload.single("app_logo"), (req, res) 
   if (ccuConnectionChanged) {
     homematicSessionCache.clear();
     homematicLoginPromises.clear();
+    homematicLoginFailures.clear();
     upsertSetting(db, "homematic_ccu_session_id", "");
   }
 
@@ -6147,6 +6152,9 @@ async function loginHomematicCcu(settings) {
   const username = String(settings?.homematic_ccu_username || "").trim();
   const apiUrl = getHomematicApiUrl(settings);
   const cacheKey = `${apiUrl}|${username}`;
+  const recentFailure = homematicLoginFailures.get(cacheKey);
+  if (recentFailure && Date.now() - recentFailure.createdAt < 5 * 60 * 1000) return recentFailure.result;
+  homematicLoginFailures.delete(cacheKey);
   const pendingLogin = homematicLoginPromises.get(cacheKey);
   if (pendingLogin) return pendingLogin;
 
@@ -6168,12 +6176,14 @@ async function loginHomematicCcuOnce(settings) {
   const cached = homematicSessionCache.get(cacheKey);
   if (cached && Date.now() - cached.createdAt < 20 * 60 * 1000) return { ok: true, sid: cached.sid, error: "" };
   try {
-    const storedSid = String(settings?.homematic_ccu_session_id || "").trim();
+    const storedSid = String(cached?.sid || settings?.homematic_ccu_session_id || "").trim();
     if (storedSid) {
       try {
         const renewed = await callHomematicJsonRpc(apiUrl, "Session.renew", { _session_id_: storedSid });
-        const renewedSid = String(renewed?._session_id_ || renewed || storedSid).trim();
+        const renewedSid = resolveRenewedHomematicSid(renewed, storedSid);
+        if (!renewedSid) throw new Error("Die CCU hat die Verlängerung der Sitzung abgelehnt.");
         homematicSessionCache.set(cacheKey, { sid: renewedSid, createdAt: Date.now() });
+        homematicLoginFailures.delete(cacheKey);
         if (renewedSid !== storedSid) upsertSetting(db, "homematic_ccu_session_id", renewedSid);
         return { ok: true, sid: renewedSid, error: "" };
       } catch (error) {
@@ -6197,7 +6207,9 @@ async function loginHomematicCcuOnce(settings) {
     if (!response.ok) {
       const error = `CCU-Anmeldung antwortet mit HTTP ${response.status}.`;
       console.error(`[HeartPet][CCU][login] ${error}`);
-      return { ok: false, sid: "", error };
+      const result = { ok: false, sid: "", error };
+      homematicLoginFailures.set(cacheKey, { result, createdAt: Date.now() });
+      return result;
     }
     const payload = await response.json();
     const sid = String(payload?.result?._session_id_ || payload?.result || "").trim();
@@ -6207,16 +6219,30 @@ async function loginHomematicCcuOnce(settings) {
         ? "Die CCU hat zu viele offene Sitzungen. Bitte etwa 30 Minuten warten oder die CCU neu starten. HeartPet verwendet danach dauerhaft nur noch eine Sitzung."
         : message;
       console.error(`[HeartPet][CCU][login] Anmeldung abgelehnt: ${error}`);
-      return { ok: false, sid: "", error };
+      const result = { ok: false, sid: "", error };
+      homematicLoginFailures.set(cacheKey, { result, createdAt: Date.now() });
+      return result;
     }
     homematicSessionCache.set(cacheKey, { sid, createdAt: Date.now() });
+    homematicLoginFailures.delete(cacheKey);
     upsertSetting(db, "homematic_ccu_session_id", sid);
     return { ok: true, sid, error: "" };
   } catch (error) {
     const message = describeFetchError(error);
     console.error(`[HeartPet][CCU][login] CCU nicht erreichbar: ${message}`);
-    return { ok: false, sid: "", error: message };
+    const result = { ok: false, sid: "", error: message };
+    homematicLoginFailures.set(cacheKey, { result, createdAt: Date.now() });
+    return result;
   }
+}
+
+function resolveRenewedHomematicSid(result, existingSid) {
+  if (result === true) return String(existingSid || "").trim();
+  if (!result) return "";
+  if (typeof result === "object") return String(result._session_id_ || "").trim();
+  const value = String(result).trim();
+  if (/^false$/i.test(value)) return "";
+  return /^true$/i.test(value) ? String(existingSid || "").trim() : value;
 }
 
 async function callHomematicJsonRpc(apiUrl, method, params) {
@@ -7661,6 +7687,7 @@ app.__test = {
   parseHomematicDatapoints,
   decodeHomematicXmlBuffer,
   getHomematicCommandResponseError,
+  resolveRenewedHomematicSid,
   findHomematicValue,
   parseHomematicTextValue,
   findHomematicXmlDatapoint,

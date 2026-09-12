@@ -58,6 +58,13 @@ test("Impfvorschläge fallen bei einer leeren Stammdatenliste auf sichere Vorgab
   ]);
 });
 
+test("CCU-Sitzungsverlängerung behält die bestehende ID bei boolescher Bestätigung", () => {
+  assert.equal(app.__test.resolveRenewedHomematicSid(true, "SESSION-123"), "SESSION-123");
+  assert.equal(app.__test.resolveRenewedHomematicSid("true", "SESSION-123"), "SESSION-123");
+  assert.equal(app.__test.resolveRenewedHomematicSid(false, "SESSION-123"), "");
+  assert.equal(app.__test.resolveRenewedHomematicSid({ _session_id_: "SESSION-456" }, "SESSION-123"), "SESSION-456");
+});
+
 test("Kamera-Zugangsdaten werden als Basic-Auth-Header statt in der Fetch-URL verwendet", () => {
   const target = app.__test.createAuthenticatedFetchTarget("http://admin:p%40ss%21@192.168.1.80/video/mjpg.cgi");
   assert.equal(target.url, "http://192.168.1.80/video/mjpg.cgi");
@@ -1916,6 +1923,28 @@ test("Beim Verschieben eines verstorbenen Tieres in die Historie werden offene E
   assert.ok(reminderStates.length >= 1);
   assert.ok(reminderStates.every((item) => item.completed_at));
   assert.ok(reminderStates.every((item) => ["closed", "archived"].includes(item.last_delivery_status)));
+});
+
+test("Verstorbene Tiere wechseln auch vom aktiven Rückweg direkt in die Historie", async () => {
+  const speciesId = db.prepare("SELECT id FROM species ORDER BY id ASC LIMIT 1").get()?.id;
+  const speciesName = db.prepare("SELECT name FROM species WHERE id = ?").get(speciesId)?.name || "Katze";
+  const animalId = db.prepare("INSERT INTO animals (name, species_id, status) VALUES (?, ?, ?)").run("Historienwechsel", speciesId, "Aktiv").lastInsertRowid;
+
+  const response = await agent.post(`/animals/${animalId}/update`).type("form").send({
+    name: "Historienwechsel",
+    species_name: speciesName,
+    status: "Verstorben",
+    status_context_date: "2026-09-12",
+    status_transition_confirmed: "true",
+    return_to: `/animals?animal_id=${animalId}`,
+  });
+
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.location, `/animals/historie?animal_id=${animalId}`);
+  assert.equal(db.prepare("SELECT status FROM animals WHERE id = ?").get(animalId)?.status, "Verstorben");
+  const historyPage = await agent.get(response.headers.location);
+  assert.equal(historyPage.status, 200);
+  assert.match(historyPage.text, /Historienwechsel/);
 });
 
 test("Beim Vermitteln oder Verkaufen bleiben offene Erinnerungen ohne Checkbox erhalten", async () => {
