@@ -6177,7 +6177,7 @@ async function loginHomematicCcu(settings) {
   const apiUrl = getHomematicApiUrl(settings);
   const cacheKey = `${apiUrl}|${username}`;
   const recentFailure = homematicLoginFailures.get(cacheKey);
-  if (recentFailure && Date.now() - recentFailure.createdAt < 5 * 60 * 1000) return recentFailure.result;
+  if (recentFailure && Date.now() - recentFailure.createdAt < (recentFailure.retryAfterMs || 5 * 60 * 1000)) return recentFailure.result;
   homematicLoginFailures.delete(cacheKey);
   const pendingLogin = homematicLoginPromises.get(cacheKey);
   if (pendingLogin) return pendingLogin;
@@ -6212,6 +6212,15 @@ async function loginHomematicCcuOnce(settings) {
         return { ok: true, sid: renewedSid, error: "" };
       } catch (error) {
         console.warn(`[HeartPet][CCU][session-renew] Gespeicherte Sitzung konnte nicht erneuert werden: ${error.message}`);
+        if (!shouldReplaceHomematicSessionAfterRenewError(error)) {
+          const result = {
+            ok: false,
+            sid: "",
+            error: `Die bestehende CCU-Sitzung konnte nicht verlängert werden: ${describeFetchError(error)} HeartPet öffnet vorsorglich keine weitere Sitzung.`,
+          };
+          homematicLoginFailures.set(cacheKey, createHomematicLoginFailure(result, error));
+          return result;
+        }
         upsertSetting(db, "homematic_ccu_session_id", "");
       }
     }
@@ -6232,19 +6241,19 @@ async function loginHomematicCcuOnce(settings) {
       const error = `CCU-Anmeldung antwortet mit HTTP ${response.status}.`;
       console.error(`[HeartPet][CCU][login] ${error}`);
       const result = { ok: false, sid: "", error };
-      homematicLoginFailures.set(cacheKey, { result, createdAt: Date.now() });
+      homematicLoginFailures.set(cacheKey, createHomematicLoginFailure(result, error));
       return result;
     }
     const payload = await response.json();
     const sid = String(payload?.result?._session_id_ || payload?.result || "").trim();
     if (!sid || payload?.error) {
       const message = payload?.error?.message || "CCU-Benutzername oder Passwort wurde abgelehnt.";
-      const error = /too many sessions/i.test(message)
-        ? "Die CCU hat zu viele offene Sitzungen. Bitte etwa 30 Minuten warten oder die CCU neu starten. HeartPet verwendet danach dauerhaft nur noch eine Sitzung."
+      const error = /invalid credentials|too many sessions/i.test(message)
+        ? "Die CCU-Anmeldung wurde abgelehnt. Die CCU meldet mehrdeutig: Zugangsdaten ungültig oder Sitzungslimit erreicht. HeartPet unternimmt 30 Minuten lang keinen weiteren Anmeldeversuch."
         : message;
       console.error(`[HeartPet][CCU][login] Anmeldung abgelehnt: ${error}`);
       const result = { ok: false, sid: "", error };
-      homematicLoginFailures.set(cacheKey, { result, createdAt: Date.now() });
+      homematicLoginFailures.set(cacheKey, createHomematicLoginFailure(result, message));
       return result;
     }
     homematicSessionCache.set(cacheKey, { sid, createdAt: Date.now() });
@@ -6255,9 +6264,23 @@ async function loginHomematicCcuOnce(settings) {
     const message = describeFetchError(error);
     console.error(`[HeartPet][CCU][login] CCU nicht erreichbar: ${message}`);
     const result = { ok: false, sid: "", error: message };
-    homematicLoginFailures.set(cacheKey, { result, createdAt: Date.now() });
+    homematicLoginFailures.set(cacheKey, createHomematicLoginFailure(result, error));
     return result;
   }
+}
+
+function shouldReplaceHomematicSessionAfterRenewError(error) {
+  const message = String(error?.message || error || "");
+  return /session[^\n]*(?:invalid|expired|unknown)|(?:invalid|expired|unknown)[^\n]*session|verlängerung der sitzung abgelehnt/i.test(message);
+}
+
+function getHomematicLoginRetryDelay(error) {
+  const message = String(error?.message || error || "");
+  return /invalid credentials|too many sessions|sitzungslimit/i.test(message) ? 30 * 60 * 1000 : 5 * 60 * 1000;
+}
+
+function createHomematicLoginFailure(result, error) {
+  return { result, createdAt: Date.now(), retryAfterMs: getHomematicLoginRetryDelay(error) };
 }
 
 function resolveRenewedHomematicSid(result, existingSid) {
@@ -7712,6 +7735,8 @@ app.__test = {
   decodeHomematicXmlBuffer,
   getHomematicCommandResponseError,
   resolveRenewedHomematicSid,
+  shouldReplaceHomematicSessionAfterRenewError,
+  getHomematicLoginRetryDelay,
   findHomematicValue,
   parseHomematicTextValue,
   findHomematicXmlDatapoint,

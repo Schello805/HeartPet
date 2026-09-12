@@ -65,6 +65,30 @@ test("CCU-Sitzungsverlängerung behält die bestehende ID bei boolescher Bestät
   assert.equal(app.__test.resolveRenewedHomematicSid({ _session_id_: "SESSION-456" }, "SESSION-123"), "SESSION-456");
 });
 
+test("CCU öffnet nach vorübergehenden Verlängerungsfehlern keine neue Sitzung", () => {
+  assert.equal(app.__test.shouldReplaceHomematicSessionAfterRenewError(new Error("CCU antwortet mit HTTP 503.")), false);
+  assert.equal(app.__test.shouldReplaceHomematicSessionAfterRenewError(new Error("This session is invalid")), true);
+  assert.equal(app.__test.shouldReplaceHomematicSessionAfterRenewError(new Error("Die CCU hat die Verlängerung der Sitzung abgelehnt.")), true);
+});
+
+test("Mehrdeutige CCU-Anmeldefehler sperren weitere Versuche für 30 Minuten", () => {
+  assert.equal(app.__test.getHomematicLoginRetryDelay("invalid credentials or too many sessions"), 30 * 60 * 1000);
+  assert.equal(app.__test.getHomematicLoginRetryDelay("Verbindung abgebrochen"), 5 * 60 * 1000);
+});
+
+test("Alle HTML-Pattern sind mit der aktuellen Browser-RegExp-Syntax gültig", () => {
+  const templatesDir = path.join(__dirname, "..", "views");
+  const templates = fs.readdirSync(path.join(templatesDir, "pages"))
+    .filter((name) => name.endsWith(".ejs"))
+    .map((name) => path.join(templatesDir, "pages", name));
+  for (const template of templates) {
+    const source = fs.readFileSync(template, "utf8");
+    for (const match of source.matchAll(/\bpattern="([^"]+)"/g)) {
+      assert.doesNotThrow(() => new RegExp(match[1], "v"), `${path.basename(template)}: pattern=${match[1]}`);
+    }
+  }
+});
+
 test("Kamera-Zugangsdaten werden als Basic-Auth-Header statt in der Fetch-URL verwendet", () => {
   const target = app.__test.createAuthenticatedFetchTarget("http://admin:p%40ss%21@192.168.1.80/video/mjpg.cgi");
   assert.equal(target.url, "http://192.168.1.80/video/mjpg.cgi");
