@@ -546,6 +546,41 @@ test("Kernseiten bleiben kompakt und kontrastreich", async ({ page }) => {
   }
 });
 
+test("Systemlog bleibt innerhalb jeder Desktop-Browserbreite", async ({ page }) => {
+  await ensureAuthenticated(page);
+
+  for (const width of [1024, 1280, 1536]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/admin/systemlog");
+    await page.waitForLoadState("networkidle");
+    const readBounds = () => page.evaluate(() => {
+      const main = document.querySelector(".app-main").getBoundingClientRect();
+      const content = document.querySelector(".main-content-inner").getBoundingClientRect();
+      const visibleTopLevel = Array.from(document.querySelectorAll(".main-content-inner > *"))
+        .filter((element) => {
+          const styles = getComputedStyle(element);
+          return styles.display !== "none" && styles.visibility !== "hidden";
+        })
+        .map((element) => element.getBoundingClientRect())
+        .filter((rect) => rect.width > 0 && rect.height > 0);
+      return {
+        viewport: window.innerWidth,
+        documentOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        mainRight: Math.round(main.right),
+        contentRight: Math.round(content.right),
+        childRight: Math.round(Math.max(content.right, ...visibleTopLevel.map((rect) => rect.right))),
+      };
+    });
+    await expect.poll(async () => (await readBounds()).childRight).toBeLessThanOrEqual(width + 1);
+    const bounds = await readBounds();
+
+    expect(bounds.documentOverflow, `${width}px: Dokument läuft horizontal über`).toBeLessThanOrEqual(2);
+    expect(bounds.mainRight, `${width}px: Hauptbereich läuft aus dem Browser`).toBeLessThanOrEqual(bounds.viewport + 1);
+    expect(bounds.contentRight, `${width}px: Inhaltsbereich läuft aus dem Hauptbereich`).toBeLessThanOrEqual(bounds.mainRight + 1);
+    expect(bounds.childRight, `${width}px: Systemlog-Oberfläche läuft aus dem Inhaltsbereich`).toBeLessThanOrEqual(bounds.contentRight + 1);
+  }
+});
+
 test("Drawer erzeugt geschlossen und nach dem Schließen keinen horizontalen Overflow", async ({ page }) => {
   await ensureAuthenticated(page);
   await page.setViewportSize({ width: 1440, height: 900 });

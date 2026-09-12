@@ -123,8 +123,8 @@ cd "$APP_DIR"
 
 if service_exists; then
   ensure_service_override
-  echo "Starte heartpet.service"
-  run_systemctl start heartpet
+  echo "Aktiviere und starte heartpet.service"
+  run_systemctl enable --now heartpet
   run_systemctl status heartpet --no-pager || true
 else
   if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then

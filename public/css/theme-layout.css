@@ -988,6 +988,15 @@ small {
   margin-left: var(--sidebar-width);
 }
 
+@media (min-width: 992px) {
+  .bootstrap-app .app-main {
+    flex: 0 0 calc(100% - var(--sidebar-width));
+    width: calc(100% - var(--sidebar-width));
+    max-width: calc(100% - var(--sidebar-width));
+    overflow-x: hidden;
+  }
+}
+
 @media (max-width: 991.98px) {
   .bootstrap-app .app-main {
     margin-left: 0;
@@ -1015,6 +1024,11 @@ small {
   max-width: 1180px;
   margin-right: auto;
   margin-left: auto;
+}
+
+.bootstrap-app .main-content-inner > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* Einheitlicher Kompaktheits-Rhythmus für Karten ohne eigene Layoutvariante. */

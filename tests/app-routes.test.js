@@ -1305,7 +1305,14 @@ test("Deployment aktiviert Releases atomar und prüft die aktive Revision", () =
   assert.match(script, /mv -Tf "\$next_link" "\$CURRENT_LINK"/);
   assert.match(script, /run_systemctl restart heartpet && wait_for_revision/);
   assert.match(script, /health\.revision === process\.env\.EXPECTED_REVISION/);
+  assert.match(script, /run_systemctl enable heartpet/);
+  assert.match(script, /journalctl -u heartpet\.service/);
   assert.match(script, /activate_release "\$PREVIOUS_TARGET"/);
+});
+
+test("Startskript aktiviert den systemd-Dienst dauerhaft", () => {
+  const script = fs.readFileSync(path.join(__dirname, "..", "scripts", "start.sh"), "utf8");
+  assert.match(script, /run_systemctl enable --now heartpet/);
 });
 
 test("Stammdaten-Template bleibt mit einem älteren Serverstand renderbar", () => {

@@ -60,6 +60,11 @@ wait_for_revision() {
   return 1
 }
 
+print_service_diagnostics() {
+  run_systemctl status heartpet --no-pager --full || true
+  run_as_root journalctl -u heartpet.service -n 80 --no-pager --output=short-iso || true
+}
+
 mkdir -p "$RELEASE_ROOT" "$DATA_DIR"
 if [ ! -d "$RELEASE_DIR" ]; then
   mkdir -p "$RELEASE_DIR"
@@ -73,6 +78,7 @@ HEARTPET_DATA_DIR="$TEMP_DATA" NODE_ENV=test HEARTPET_SESSION_STORE=memory HEART
   node -e "require('$RELEASE_DIR/src/app'); process.exit(0)"
 
 write_service_override
+run_systemctl enable heartpet
 activate_release "$RELEASE_DIR"
 if run_systemctl restart heartpet && wait_for_revision; then
   echo "HeartPet Revision $REVISION ist aktiv."
@@ -81,6 +87,10 @@ if run_systemctl restart heartpet && wait_for_revision; then
 fi
 
 echo "Deployment fehlgeschlagen. Stelle vorherige Version wieder her."
+print_service_diagnostics
 activate_release "$PREVIOUS_TARGET"
-run_systemctl restart heartpet || true
+if ! run_systemctl restart heartpet; then
+  echo "Fehler: Auch die vorherige HeartPet-Version konnte nicht gestartet werden."
+  print_service_diagnostics
+fi
 exit 1
