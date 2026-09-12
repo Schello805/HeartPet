@@ -116,7 +116,7 @@
                 <% rowParams.set('animal_id', String(animal.id)); %>
                 <a
                   href="<%= sectionBasePath %>?<%= rowParams.toString() %>#selected-animal"
-                  class="card border text-decoration-none animal-list-item <%= selectedAnimalState && String(selectedAnimalState.id) === String(animal.id) ? 'active' : '' %>"
+                  class="card border text-decoration-none animal-list-item <%= sectionState.key === 'history' ? 'animal-list-item--history' : '' %> <%= animal.status === 'Verstorben' ? 'animal-list-item--deceased' : '' %> <%= selectedAnimalState && String(selectedAnimalState.id) === String(animal.id) ? 'active' : '' %>"
                   data-animal-workspace-link="true"
                   data-no-soft-nav="true"
                   data-panel-url="/animals/<%= animal.id %>/workspace-panel?<%= rowParams.toString() %>"
@@ -134,6 +134,17 @@
                         <span class="badge text-bg-danger mt-1"><%= animal.overdueReminderCount %> überfällig</span>
                       <% } else if (animal.openReminderCount > 0) { %>
                         <span class="badge text-bg-warning mt-1"><%= animal.openReminderCount %> offen</span>
+                      <% } else if (sectionState.key === 'history' && animal.status === 'Verstorben') { %>
+                        <span class="animal-history-status animal-history-status--deceased mt-1">
+                          <span aria-hidden="true">†</span>
+                          Verstorben<%= animal.status_context_date ? ` · ${formatDate(animal.status_context_date)}` : '' %>
+                        </span>
+                        <% if (animal.status_context_name) { %>
+                          <span class="animal-history-context text-truncate"><%= animal.status_context_name %></span>
+                        <% } %>
+                        <% if (animal.memorial_note) { %>
+                          <span class="animal-history-context text-truncate"><%= animal.memorial_note %></span>
+                        <% } %>
                       <% } else if (sectionState.key === 'history' && animal.statusSummary) { %>
                         <span class="badge text-bg-secondary-subtle border mt-1"><%= animal.statusSummary %></span>
                       <% } %>

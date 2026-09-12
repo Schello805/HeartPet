@@ -1244,6 +1244,59 @@ small {
   font-size: 1.35rem;
 }
 
+.bootstrap-app.animals-page.animals-page--history .animals-choice-list {
+  grid-template-columns: 1fr;
+}
+
+.bootstrap-app.animals-page--history .animal-list-item--history .card-body {
+  min-height: 5.5rem;
+  padding: 0.75rem !important;
+}
+
+.bootstrap-app.animals-page--history .animal-list-item--history .animal-choice-thumb {
+  width: 4rem;
+  height: 4rem;
+  flex-basis: 4rem;
+}
+
+.bootstrap-app.animals-page .animal-history-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0.28rem 0.52rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.bootstrap-app.animals-page .animal-history-status--deceased {
+  color: #475569;
+  border: 1px solid rgba(71, 85, 105, 0.2);
+  background: rgba(241, 245, 249, 0.92);
+}
+
+.bootstrap-app.animals-page .animal-history-context {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+
+@media (min-width: 768px) {
+  .bootstrap-app.animals-page.animals-page--history .animals-choice-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1400px) {
+  .bootstrap-app.animals-page.animals-page--history .animals-choice-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 .bootstrap-app.animals-page .animal-choice-copy {
   flex: 1 1 auto;
   min-width: 0;

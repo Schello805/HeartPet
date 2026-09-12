@@ -1853,6 +1853,20 @@ test("Historie kann gezielt nach verstorbenen Tieren filtern", async () => {
   assert.match(filteredPage.text, /status=Verstorben/);
 });
 
+test("Verstorbene Tiere zeigen Kennzeichen und Abschiedsdatum direkt in der Historienkarte", async () => {
+  const speciesId = db.prepare("SELECT id FROM species ORDER BY id ASC LIMIT 1").get()?.id;
+  const animalId = db.prepare(`
+    INSERT INTO animals (name, species_id, status, status_context_date)
+    VALUES (?, ?, \'Verstorben\', ?)
+  `).run("Erinnerungstier", speciesId, "2026-09-12").lastInsertRowid;
+
+  const page = await agent.get(`/animals/historie?animal_id=${animalId}`);
+  assert.equal(page.status, 200);
+  assert.match(page.text, /animal-list-item--deceased/);
+  assert.match(page.text, /†[\s\S]*Verstorben[\s\S]*12\.09\.2026/);
+  db.prepare("DELETE FROM animals WHERE id = ?").run(animalId);
+});
+
 test("Historie behält Filter- und Listenaktionen im Historie-Bereich", async () => {
   const speciesId = db.prepare("SELECT species_id FROM animals WHERE id = 1").get()?.species_id;
   assert.ok(speciesId);
