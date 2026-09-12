@@ -487,6 +487,33 @@ test("Health-Checks liefern einen minimalen öffentlichen und geschützten Detai
   assert.equal(typeof adminHealth.body.runtime.averageDurationMs, "number");
 });
 
+test("Alle internen API- und Steuerungsrouten sind mit der vorgesehenen Methode registriert", () => {
+  const registered = new Set(
+    app.router.stack
+      .filter((layer) => layer.route && typeof layer.route.path === "string")
+      .flatMap((layer) => Object.keys(layer.route.methods).map((method) => `${method.toUpperCase()} ${layer.route.path}`))
+  );
+  const expected = [
+    "GET /health",
+    "GET /admin/health",
+    "GET /api/species/search",
+    "GET /api/reminders/pending",
+    "GET /animals/suggest",
+    "GET /admin/suggest",
+    "GET /coop/cameras/:index/status",
+    "GET /admin/coop/climate-status",
+    "GET /admin/coop/homematic-datapoints",
+    "POST /coop/door/open",
+    "POST /coop/door/close",
+    "POST /admin/coop/door-test/:direction",
+    "POST /admin/coop/camera-preview",
+    "POST /admin/systemlog/diagnose",
+    "POST /animals/:id/memorial-note",
+  ];
+
+  expected.forEach((route) => assert.ok(registered.has(route), `${route} ist nicht registriert`));
+});
+
 test("Such-Suggestions liefern Ergebnisse", async () => {
   const response = await agent.get("/api/search/suggest").query({ q: "min" });
   assert.equal(response.status, 200);
@@ -2384,18 +2411,23 @@ test("Wichtige Hauptseiten rendern ohne Template-Fehler", async () => {
   const routes = [
     "/",
     "/animals",
+    "/animals/historie",
     "/animals/1",
+    "/suche",
     "/admin/allgemein",
+    "/admin/stall",
+    "/admin/kommunikation",
     "/admin/benachrichtigungen",
     "/admin/stammdaten",
     "/admin/benutzer",
     "/admin/import",
     "/admin/systemlog",
     "/hilfe",
+    "/kontakt",
   ];
 
   for (const href of routes) {
-    const response = await agent.get(href);
+    const response = await agent.get(href).redirects(3);
     assertNoTemplateError(response, href);
   }
 });
