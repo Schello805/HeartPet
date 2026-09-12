@@ -327,6 +327,17 @@ test("Benachrichtigungs-Checkboxen sind mobil sichtbar aktivierbar", async ({ pa
   expect(checkedVisualState.accentColor).not.toBe("auto");
 });
 
+test("Anmeldebutton bleibt auch bei schmaler Login-Karte einzeilig", async ({ page }) => {
+  await page.setViewportSize({ width: 700, height: 760 });
+  await ensureAuthenticated(page);
+  await page.request.post(`${testBaseUrl}/logout`);
+  await page.goto("/login");
+  const button = page.getByRole("button", { name: "Anmelden" });
+  await expect(button).toBeVisible();
+  await expect(button).toHaveCSS("white-space", "nowrap");
+  await expect(button).toHaveText("Anmelden");
+});
+
 test("Checkbox-Labels sind visuell mittig ausgerichtet", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await ensureAuthenticated(page);
