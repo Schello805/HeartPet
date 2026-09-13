@@ -212,6 +212,7 @@ function initCameraSettings() {
         card.remove();
         serialize();
       });
+      card.querySelector("[data-camera-preview-load]")?.addEventListener("click", () => loadPreview(card));
       card.querySelector("[data-camera-move-up]").addEventListener("click", () => {
         const previous = card.previousElementSibling;
         if (previous) list.insertBefore(card, previous);
@@ -224,7 +225,6 @@ function initCameraSettings() {
       });
       list.appendChild(fragment);
       serialize();
-      if (snapshotUrl) loadPreview(card);
     };
 
     String(config.value || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean).forEach((line) => {
