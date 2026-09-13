@@ -60,10 +60,13 @@ test("Medizinische Tierdaten bleiben im Gesundheits-Router", () => {
 test("Angemeldete Erinnerungsaktionen bleiben im Erinnerungs-Router", () => {
   const appSource = fs.readFileSync(path.join(__dirname, "..", "src", "app.js"), "utf8");
   const router = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "animal-reminders.js"), "utf8");
+  const service = fs.readFileSync(path.join(__dirname, "..", "src", "services", "animal-reminders.js"), "utf8");
   assert.match(appSource, /app\.use\(createAnimalRemindersRouter/);
   assert.doesNotMatch(appSource, /app\.post\("\/(?:animals\/:id\/reminders|reminders\/:id\/(?:complete|reopen))"/);
   assert.match(router, /router\.post\("\/animals\/:id\/reminders"/);
   assert.match(router, /router\.post\("\/reminders\/:id\/complete"/);
+  assert.match(service, /function createAnimalReminderService/);
+  assert.doesNotMatch(appSource, /function syncVaccinationReminders/);
 });
 
 test("Setup und Anmeldung bleiben im Auth-Router", () => {
@@ -80,11 +83,14 @@ test("Stall-Endpunkte und Wetterlogik bleiben fachlich getrennt", () => {
   const appSource = fs.readFileSync(path.join(__dirname, "..", "src", "app.js"), "utf8");
   const router = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "coop.js"), "utf8");
   const weather = fs.readFileSync(path.join(__dirname, "..", "src", "services", "weather.js"), "utf8");
+  const camera = fs.readFileSync(path.join(__dirname, "..", "src", "services", "camera.js"), "utf8");
   assert.match(appSource, /app\.use\(createCoopRouter/);
   assert.doesNotMatch(appSource, /app\.(?:get|post)\("\/(?:coop\/(?:door|cameras)|admin\/coop\/(?:climate-status|homematic-datapoints|door-test))/);
   assert.match(router, /router\.post\("\/coop\/door\/open"/);
   assert.match(router, /router\.get\("\/admin\/coop\/climate-status"/);
   assert.match(weather, /function createWeatherService/);
+  assert.match(camera, /function createCameraService/);
+  assert.match(camera, /createCameraService\(\{ cameraCacheDir, normalizeConfiguredUrl, isCameraUrl, isRtspUrl \}\)/);
   assert.doesNotMatch(appSource, /async function readOutdoorWeather/);
+  assert.doesNotMatch(appSource, /function parseCoopCameraLines/);
 });
-
