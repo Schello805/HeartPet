@@ -61,4 +61,5 @@
   }
 
   window.HeartPetGlobalSearch = { init };
+  window.HeartPetFeatures?.register("global-search", init, { contexts: ["page"] });
 })();

@@ -152,16 +152,23 @@ test("Oeffentliche Erinnerungslinks und Reminder-Jobs bleiben in eigenen Modulen
   assert.match(delivery, /async function processDue/);
 });
 
-test("Browser-Skripte fuer Statuswechsel und Suche bleiben modular geladen", () => {
+test("Browser-Skripte fuer UI-Features bleiben modular geladen", () => {
   const appScript = fs.readFileSync(path.join(__dirname, "..", "public", "js", "app.js"), "utf8");
   const bottom = fs.readFileSync(path.join(__dirname, "..", "views", "partials", "bottom.ejs"), "utf8");
+  const features = fs.readFileSync(path.join(__dirname, "..", "public", "js", "features.js"), "utf8");
+  const drawer = fs.readFileSync(path.join(__dirname, "..", "public", "js", "drawer.js"), "utf8");
   const animalStatus = fs.readFileSync(path.join(__dirname, "..", "public", "js", "animal-status.js"), "utf8");
   const globalSearch = fs.readFileSync(path.join(__dirname, "..", "public", "js", "global-search.js"), "utf8");
 
+  assert.match(bottom, /features\.js/);
+  assert.match(bottom, /drawer\.js/);
   assert.match(bottom, /animal-status\.js/);
   assert.match(bottom, /global-search\.js/);
-  assert.match(appScript, /HeartPetAnimalStatus\?\.init/);
-  assert.match(appScript, /HeartPetGlobalSearch\?\.init/);
-  assert.match(animalStatus, /window\.HeartPetAnimalStatus/);
-  assert.match(globalSearch, /window\.HeartPetGlobalSearch/);
+  assert.match(features, /window\.HeartPetFeatures/);
+  assert.match(drawer, /window\.HeartPetDrawer/);
+  assert.match(appScript, /HeartPetFeatures\?\.init\(document, \{ context: "page" \}\)/);
+  assert.match(appScript, /HeartPetDrawer\?\.openFromQuery/);
+  assert.doesNotMatch(appScript, /function initDrawerForms/);
+  assert.match(animalStatus, /HeartPetFeatures\?\.register\("animal-status"/);
+  assert.match(globalSearch, /HeartPetFeatures\?\.register\("global-search"/);
 });

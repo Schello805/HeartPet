@@ -75,4 +75,5 @@
   }
 
   window.HeartPetAnimalStatus = { init };
+  window.HeartPetFeatures?.register("animal-status", init, { contexts: ["page", "fragment"] });
 })();

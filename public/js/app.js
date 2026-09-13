@@ -1,7 +1,10 @@
 let softNavInitialized = false;
 let softNavInFlight = false;
 const viewStateStorageKey = "heartpet-view-state";
-const { applyGermanValidationMessages, resetCustomValidation } = window.HeartPetFormValidation;
+const {
+  applyGermanValidationMessages = () => null,
+  resetCustomValidation = () => {},
+} = window.HeartPetFormValidation || {};
 
 function saveCurrentViewState() {
   try {
@@ -557,6 +560,8 @@ function mountToast({ type = "success", message = "", title = "" }) {
   bindToast(toast);
 }
 
+window.HeartPetToasts = { mount: mountToast };
+
 function bindToast(toast) {
   if (!toast || toast.dataset.bound === "1") {
     return;
@@ -628,81 +633,6 @@ function initVeterinarianContactPopover() {
   }
 }
 
-function initDrawerForms(scope = document) {
-  scope.querySelectorAll("form[data-drawer-form]").forEach((form) => {
-    if (form.dataset.bound === "1") {
-      return;
-    }
-
-    form.dataset.bound = "1";
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      resetCustomValidation(form);
-      const invalidField = applyGermanValidationMessages(form);
-      if (invalidField) {
-        invalidField.reportValidity();
-        return;
-      }
-
-      try {
-        const formData = new FormData(form);
-        const hasFileInput = form.querySelector('input[type="file"]');
-        const useMultipart = Boolean(hasFileInput);
-        const body = useMultipart ? formData : new URLSearchParams(formData);
-        const response = await fetch(form.action, {
-          method: form.method || "POST",
-          body,
-          headers: {
-            "X-Requested-With": "heartpet-drawer",
-          },
-          credentials: "same-origin",
-        });
-
-        const text = await response.text();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(text, "text/html");
-        const fragment = doc.querySelector("[data-drawer-fragment]");
-        const flash = doc.querySelector(".flash");
-        const drawerBody = document.querySelector("[data-drawer-body]");
-
-        if (fragment && drawerBody) {
-          drawerBody.innerHTML = "";
-          if (flash) {
-            const type = flash.classList.contains("flash-error") ? "error" : "success";
-            const message = flash.querySelector(".toast-message")?.textContent?.trim() || flash.textContent.trim();
-            const title = flash.querySelector(".toast-title")?.textContent?.trim() || "";
-            mountToast({ type, message, title });
-          }
-          drawerBody.appendChild(fragment.cloneNode(true));
-          const title = fragment.getAttribute("data-drawer-title") || doc.title || "Bearbeiten";
-          const drawerTitle = document.querySelector("#drawer-title");
-          if (drawerTitle) {
-            drawerTitle.textContent = title.replace(/\s+\|.*$/, "");
-          }
-          initDrawerNavigation();
-          initDrawerForms(drawerBody);
-          initVeterinarianContactPopover();
-          initSpeciesAutocomplete();
-          initRequiredMarks();
-          window.HeartPetAnimalStatus?.init(drawerBody);
-          initEventFormBehavior(drawerBody);
-          initVaccinationPresets(drawerBody);
-          initBulkSelection(drawerBody);
-          return;
-        }
-
-        closeDrawer();
-        const targetUrl = new URL(response.url || window.location.href, window.location.href);
-        navigateTo(targetUrl, { push: targetUrl.toString() !== window.location.href, scrollTop: false });
-      } catch (error) {
-        console.error("Drawer-Formular konnte nicht gespeichert werden", error);
-        form.dataset.bound = "fallback";
-        HTMLFormElement.prototype.submit.call(form);
-      }
-    });
-  });
-}
-
 function initBulkSelection(scope = document) {
   scope.querySelectorAll("[data-bulk-selection]").forEach((container) => {
     const selectAll = container.querySelector("[data-bulk-select-all]");
@@ -746,141 +676,6 @@ function initBulkSelection(scope = document) {
     animalInputs.forEach((input) => input.addEventListener("change", updateSelectAll));
     updateSelectAll();
   });
-}
-
-async function openDrawer(urlLike) {
-  let targetUrl;
-  try {
-    targetUrl = new URL(urlLike, window.location.href);
-    if (targetUrl.origin !== window.location.origin) {
-      throw new Error("Drawer-Ziel liegt außerhalb von HeartPet.");
-    }
-  } catch (error) {
-    console.error("Ungültiges Drawer-Ziel", error);
-    return;
-  }
-
-  const drawer = document.getElementById("app-drawer");
-  const drawerBody = drawer?.querySelector("[data-drawer-body]");
-  const drawerTitle = drawer?.querySelector("#drawer-title");
-  if (!drawer || !drawerBody || !drawerTitle) {
-    window.location.assign(targetUrl.href);
-    return;
-  }
-
-  try {
-    if (!targetUrl.searchParams.get("return_to")) {
-      targetUrl.searchParams.set("return_to", `${window.location.pathname}${window.location.search}${window.location.hash}`);
-    }
-
-    const offcanvas = window.bootstrap?.Offcanvas?.getOrCreateInstance(drawer);
-    offcanvas?.show();
-    drawerBody.innerHTML = '<div class="panel"><p class="empty-state">Lade Formular ...</p></div>';
-
-    const response = await fetch(targetUrl.toString(), {
-      headers: {
-        "X-Requested-With": "heartpet-drawer",
-      },
-      credentials: "same-origin",
-    });
-
-    if (!response.ok) {
-      window.location.assign(targetUrl.href);
-      return;
-    }
-
-    const html = await response.text();
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, "text/html");
-    const fragment = doc.querySelector("[data-drawer-fragment]");
-    if (!fragment) {
-      window.location.assign(targetUrl.href);
-      return;
-    }
-
-    drawerBody.innerHTML = "";
-    drawerBody.appendChild(fragment.cloneNode(true));
-    drawerTitle.textContent = fragment.getAttribute("data-drawer-title") || "Bearbeiten";
-    initDrawerNavigation();
-    initDrawerForms(drawerBody);
-    initVeterinarianContactPopover();
-    initSpeciesAutocomplete();
-    initRequiredMarks();
-    window.HeartPetAnimalStatus?.init(drawerBody);
-    initEventFormBehavior(drawerBody);
-    initVaccinationPresets(drawerBody);
-    initBulkSelection(drawerBody);
-  } catch (error) {
-    console.error("Drawer konnte nicht geladen werden", error);
-    window.location.assign(targetUrl.href);
-  }
-}
-
-function closeDrawer() {
-  const drawer = document.getElementById("app-drawer");
-  const drawerBody = drawer?.querySelector("[data-drawer-body]");
-  if (!drawer || !drawerBody) {
-    return;
-  }
-
-  const offcanvas = window.bootstrap?.Offcanvas?.getOrCreateInstance(drawer);
-  offcanvas?.hide();
-}
-
-function initDrawerNavigation() {
-  document.querySelectorAll("a[data-drawer]").forEach((anchor) => {
-    if (anchor.dataset.bound === "1") {
-      return;
-    }
-    anchor.dataset.bound = "1";
-    anchor.dataset.noSoftNav = "true";
-    anchor.addEventListener("click", (event) => {
-      event.preventDefault();
-      openDrawer(anchor.href);
-    });
-  });
-
-  document.querySelectorAll("[data-drawer-close]").forEach((button) => {
-    if (button.dataset.bound === "1") {
-      return;
-    }
-    button.dataset.bound = "1";
-    button.addEventListener("click", () => closeDrawer());
-  });
-
-  if (!document.body.dataset.drawerEscBound) {
-    document.body.dataset.drawerEscBound = "1";
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") {
-        closeDrawer();
-      }
-    });
-  }
-
-  const drawer = document.getElementById("app-drawer");
-  if (drawer && drawer.dataset.hiddenBound !== "1") {
-    drawer.dataset.hiddenBound = "1";
-    drawer.addEventListener("hidden.bs.offcanvas", () => {
-      const drawerBody = drawer.querySelector("[data-drawer-body]");
-      if (drawerBody) {
-        drawerBody.innerHTML = "";
-      }
-    });
-  }
-}
-
-function initAutoDrawerOpen() {
-  const url = new URL(window.location.href);
-  const drawerPath = url.searchParams.get("drawer");
-  if (!drawerPath || document.body.dataset.autoDrawerHandled === drawerPath) {
-    return;
-  }
-
-  document.body.dataset.autoDrawerHandled = drawerPath;
-  url.searchParams.delete("drawer");
-  const cleaned = `${url.pathname}${url.search}${url.hash}`;
-  window.history.replaceState({}, "", cleaned);
-  openDrawer(drawerPath);
 }
 
 function initSpeciesAutocomplete() {
@@ -1286,6 +1081,8 @@ async function navigateTo(url, options = {}) {
   }
 }
 
+window.HeartPetNavigation = { navigateTo };
+
 function initSoftNavigation() {
   if (softNavInitialized) {
     return;
@@ -1334,6 +1131,22 @@ function initTimelineToggles() {
   });
 }
 
+window.HeartPetFeatures?.register("veterinarian-contact", initVeterinarianContactPopover, { contexts: ["page", "fragment"] });
+window.HeartPetFeatures?.register("species-autocomplete", initSpeciesAutocomplete, { contexts: ["page", "fragment"] });
+window.HeartPetFeatures?.register("required-marks", initRequiredMarks, { contexts: ["page", "fragment"] });
+window.HeartPetFeatures?.register("event-form", initEventFormBehavior, { contexts: ["page", "fragment"] });
+window.HeartPetFeatures?.register("vaccination-presets", initVaccinationPresets, { contexts: ["page", "fragment"] });
+window.HeartPetFeatures?.register("bulk-selection", initBulkSelection, { contexts: ["page", "fragment"] });
+window.HeartPetFeatures?.register("profile-upload", initProfileUploadAutoSubmit, { contexts: ["page"] });
+window.HeartPetFeatures?.register("animal-workspace", initAnimalWorkspace, { contexts: ["page"] });
+window.HeartPetFeatures?.register("camera-diagnostics", initCameraDiagnostics, { contexts: ["page"] });
+window.HeartPetFeatures?.register("dashboard-customizer", () => window.HeartPetDashboardCustomizer?.init(), { contexts: ["page"] });
+window.HeartPetFeatures?.register("timeline-toggles", initTimelineToggles, { contexts: ["page"] });
+window.HeartPetFeatures?.register("camera-settings", initCameraSettings, { contexts: ["page"] });
+window.HeartPetFeatures?.register("homematic-door-discovery", initHomematicDoorDiscovery, { contexts: ["page"] });
+window.HeartPetFeatures?.register("climate-status", initClimateStatus, { contexts: ["page"] });
+window.HeartPetFeatures?.register("pending-reminders", loadPendingReminders, { contexts: ["page"] });
+
 function initPage() {
   try {
     sessionStorage.setItem("heartpet-nav-loaded", "1");
@@ -1342,26 +1155,9 @@ function initPage() {
   initSoftNavigation();
   initMobileNavToggle();
   initToasts();
-  initVeterinarianContactPopover();
-  initDrawerNavigation();
-  initAutoDrawerOpen();
-  initDrawerForms();
-  initSpeciesAutocomplete();
-  initRequiredMarks();
-  window.HeartPetAnimalStatus?.init();
-  initProfileUploadAutoSubmit();
-  initEventFormBehavior();
-  initVaccinationPresets();
-  initBulkSelection();
-  window.HeartPetGlobalSearch?.init();
-  initAnimalWorkspace();
-  initCameraDiagnostics();
-  window.HeartPetDashboardCustomizer?.init();
-  initTimelineToggles();
-  initCameraSettings();
-  initHomematicDoorDiscovery();
-  initClimateStatus();
-  loadPendingReminders();
+  window.HeartPetDrawer?.init();
+  window.HeartPetFeatures?.init(document, { context: "page" });
+  window.HeartPetDrawer?.openFromQuery();
   openHashTargetDetails();
   restoreCurrentViewState();
 }
