@@ -4,7 +4,6 @@ const crypto = require("crypto");
 const express = require("express");
 const { rateLimit } = require("express-rate-limit");
 const cron = require("node-cron");
-const bcrypt = require("bcryptjs");
 const dayjs = require("dayjs");
 
 const { initDatabase, getSettingsObject, upsertSetting } = require("./db");
@@ -71,9 +70,16 @@ const { createAnimalWorkspaceService } = require("./services/animal-workspace");
 const { createAnimalsRouter } = require("./routes/animals");
 const { createAnimalRecordsRouter } = require("./routes/animal-records");
 const { createAnimalMediaRouter } = require("./routes/animal-media");
+const { createAnimalDownloadsRouter } = require("./routes/animal-downloads");
 const { createAnimalHealthRouter } = require("./routes/animal-health");
+const { createAnimalEntriesRouter } = require("./routes/animal-entries");
 const { createAnimalRemindersRouter } = require("./routes/animal-reminders");
 const { createAuthRouter } = require("./routes/auth");
+const { createAdminPagesRouter } = require("./routes/admin-pages");
+const { createAdminUserPagesRouter } = require("./routes/admin-user-pages");
+const { createAdminSettingsRouter } = require("./routes/admin-settings");
+const { createAdminUsersRouter } = require("./routes/admin-users");
+const { createAdminImportRouter } = require("./routes/admin-import");
 const { createCoopRouter } = require("./routes/coop");
 const { createWeatherService, getWeatherCodeMeta } = require("./services/weather");
 const { createCameraService } = require("./services/camera");
@@ -139,6 +145,7 @@ const {
   applyCompletionSideEffects,
   createSupplementalEventReminders,
   deleteGeneratedReminders,
+  getNotificationChannelDefaults,
   resyncAllGeneratedReminders,
   syncAppointmentReminders,
   syncMedicationReminders,
@@ -786,412 +793,30 @@ app.get("/admin/systemlog/systemlog", requireAdmin, (req, res) => {
 });
 
 
-function renderAnimalEntryDrawer(req, res, { entryType, mode = "create", item = null }) {
-  const animal = findAnimal(req.params.id || req.params.animalId);
-  if (!animal) {
-    return renderNotFound(req, res, "Tier nicht gefunden.");
-  }
-
-  if (!isDrawerRequest(req)) {
-    return redirectDocumentDrawerRequest(req, res, getAnimalReturnTo(req, `/animals/${animal.id}`));
-  }
-
-  const titleMap = {
-    event: "Ereignis erstellen",
-    condition: mode === "edit" ? "Vorerkrankung bearbeiten" : "Vorerkrankung anlegen",
-    feeding: mode === "edit" ? "Fütterung bearbeiten" : "Fütterung anlegen",
-    note: mode === "edit" ? "Protokoll bearbeiten" : "Protokoll anlegen",
-    medication: "Medikament bearbeiten",
-    vaccination: "Impfung bearbeiten",
-    appointment: "Arzttermin bearbeiten",
-    reminder: "Erinnerung bearbeiten",
-    document: mode === "edit" ? "Dokument bearbeiten" : "Dokument hochladen",
-    image: "Foto hochladen",
-  };
-
-  res.render("pages/animal-entry-drawer", {
-    pageTitle: titleMap[entryType] || "Eintrag bearbeiten",
-    animal,
-    entryType,
-    mode,
-    item,
-    permissions: buildPermissions(getCurrentUserRecord(req)),
-    categories: db.prepare("SELECT * FROM document_categories ORDER BY name ASC").all(),
-    veterinarians: db.prepare("SELECT * FROM veterinarians ORDER BY name ASC").all(),
-    returnTo: safeLocalReturnPath(req.query.return_to, `/animals/${animal.id}`),
-    initialEventKind: String(req.query.kind || "").trim(),
-    vaccinationSuggestions: getVaccinationSuggestionsForSpecies(
-      animal.species_name,
-      db.prepare("SELECT species_name, name FROM vaccination_presets ORDER BY species_name, name").all(),
-    ),
-  });
-}
-
-app.get("/animals/:id/events/new", (req, res) => {
-  const permissions = buildPermissions(getCurrentUserRecord(req));
-  if (!permissions.canManageHealth && !permissions.canManageReminders && !permissions.canManageFeedings && !permissions.canManageNotes) {
-    setFlash(req, "error", "Für neue Ereignisse fehlen die erforderlichen Rechte.");
-    return res.redirect(safeLocalReturnPath(req.query.return_to, `/animals/${req.params.id}`));
-  }
-
-  return renderAnimalEntryDrawer(req, res, { entryType: "event" });
-});
-
-app.get("/animals/:id/conditions/new", requireAnimalPermission("canManageHealth"), (req, res) => renderAnimalEntryDrawer(req, res, { entryType: "condition" }));
-app.get("/animals/:animalId/conditions/:entryId/edit", requireAnimalPermission("canManageHealth"), (req, res) => {
-  const item = db.prepare("SELECT * FROM animal_conditions WHERE id = ? AND animal_id = ?").get(req.params.entryId, req.params.animalId);
-  if (!item) {
-    return renderNotFound(req, res, "Vorerkrankung nicht gefunden.");
-  }
-  return renderAnimalEntryDrawer(req, res, { entryType: "condition", mode: "edit", item });
-});
-
-app.get("/animals/:id/feedings/new", requireAnimalPermission("canManageFeedings"), (req, res) => renderAnimalEntryDrawer(req, res, { entryType: "feeding" }));
-app.get("/animals/:animalId/feedings/:entryId/edit", requireAnimalPermission("canManageFeedings"), (req, res) => {
-  const item = db.prepare("SELECT * FROM animal_feedings WHERE id = ? AND animal_id = ?").get(req.params.entryId, req.params.animalId);
-  if (!item) {
-    return renderNotFound(req, res, "Fütterung nicht gefunden.");
-  }
-  return renderAnimalEntryDrawer(req, res, { entryType: "feeding", mode: "edit", item });
-});
-
-app.get("/animals/:id/notes/new", requireAnimalPermission("canManageNotes"), (req, res) => renderAnimalEntryDrawer(req, res, { entryType: "note" }));
-app.get("/animals/:animalId/notes/:entryId/edit", requireAnimalPermission("canManageNotes"), (req, res) => {
-  const item = db.prepare("SELECT * FROM animal_notes WHERE id = ? AND animal_id = ?").get(req.params.entryId, req.params.animalId);
-  if (!item) {
-    return renderNotFound(req, res, "Protokolleintrag nicht gefunden.");
-  }
-  return renderAnimalEntryDrawer(req, res, { entryType: "note", mode: "edit", item });
-});
-
-app.get("/animals/:animalId/medications/:entryId/edit", requireAnimalPermission("canManageHealth"), (req, res) => {
-  const item = db.prepare("SELECT * FROM animal_medications WHERE id = ? AND animal_id = ?").get(req.params.entryId, req.params.animalId);
-  if (!item) {
-    return renderNotFound(req, res, "Medikament nicht gefunden.");
-  }
-  return renderAnimalEntryDrawer(req, res, { entryType: "medication", mode: "edit", item });
-});
-
-app.get("/animals/:animalId/vaccinations/:entryId/edit", requireAnimalPermission("canManageHealth"), (req, res) => {
-  const item = db.prepare("SELECT * FROM animal_vaccinations WHERE id = ? AND animal_id = ?").get(req.params.entryId, req.params.animalId);
-  if (!item) {
-    return renderNotFound(req, res, "Impfung nicht gefunden.");
-  }
-  return renderAnimalEntryDrawer(req, res, { entryType: "vaccination", mode: "edit", item });
-});
-
-app.get("/animals/:animalId/appointments/:entryId/edit", requireAnimalPermission("canManageHealth"), (req, res) => {
-  const item = db.prepare("SELECT * FROM animal_appointments WHERE id = ? AND animal_id = ?").get(req.params.entryId, req.params.animalId);
-  if (!item) {
-    return renderNotFound(req, res, "Arzttermin nicht gefunden.");
-  }
-  return renderAnimalEntryDrawer(req, res, { entryType: "appointment", mode: "edit", item });
-});
-
-app.get("/animals/:animalId/reminders/:entryId/edit", requireAnimalPermission("canManageReminders"), (req, res) => {
-  const item = db.prepare("SELECT * FROM reminders WHERE id = ? AND animal_id = ?").get(req.params.entryId, req.params.animalId);
-  if (!item) {
-    return renderNotFound(req, res, "Erinnerung nicht gefunden.");
-  }
-  return renderAnimalEntryDrawer(req, res, { entryType: "reminder", mode: "edit", item });
-});
-
-app.get("/animals/:id/documents/new", requireAnimalPermission("canManageDocuments"), (req, res) => renderAnimalEntryDrawer(req, res, { entryType: "document" }));
-app.get("/animals/:animalId/documents/:entryId/edit", requireAnimalPermission("canManageDocuments"), (req, res) => {
-  const item = db.prepare("SELECT * FROM documents WHERE id = ? AND animal_id = ?").get(req.params.entryId, req.params.animalId);
-  if (!item) {
-    return renderNotFound(req, res, "Dokument nicht gefunden.");
-  }
-  return renderAnimalEntryDrawer(req, res, { entryType: "document", mode: "edit", item });
-});
-
-app.get("/animals/:id/images/new", requireAnimalPermission("canManageGallery"), (req, res) => renderAnimalEntryDrawer(req, res, { entryType: "image" }));
-
-
-app.post("/animals/:id/events", upload.single("vaccination_certificate"), (req, res) => {
-  const user = req.session.user ? db.prepare("SELECT * FROM users WHERE id = ?").get(req.session.user.id) : null;
-  const permissions = buildPermissions(user);
-  const eventKind = String(req.body.event_kind || "").trim();
-  const title = String(req.body.title || "").trim();
-  const notes = appendVeterinarianNote(req.body.notes, req.body.handled_by_veterinarian, req.body.veterinarian_id);
-  const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.id}`);
-  const certificateError = getVaccinationCertificateError(req.file);
-  if (certificateError) {
-    discardUploadedFile(req.file);
-    setFlash(req, "error", certificateError);
-    return res.redirect(`/animals/${req.params.id}/events/new?return_to=${encodeURIComponent(returnTo)}`);
-  }
-
-  if (!["medication", "vaccination", "appointment", "reminder", "feeding", "note"].includes(eventKind)) {
-    discardUploadedFile(req.file);
-    setFlash(req, "error", "Bitte wähle einen gültigen Ereignistyp aus.");
-    return res.redirect(`/animals/${req.params.id}/events/new?return_to=${encodeURIComponent(returnTo)}`);
-  }
-
-  if (!title) {
-    discardUploadedFile(req.file);
-    setFlash(req, "error", "Bitte gib eine Bezeichnung für das Ereignis an.");
-    return res.redirect(`/animals/${req.params.id}/events/new?return_to=${encodeURIComponent(returnTo)}`);
-  }
-
-  if (req.body.handled_by_veterinarian && !req.body.veterinarian_id) {
-    discardUploadedFile(req.file);
-    setFlash(req, "error", "Bitte wähle einen Tierarzt aus.");
-    return res.redirect(`/animals/${req.params.id}/events/new?return_to=${encodeURIComponent(returnTo)}`);
-  }
-
-  if (eventKind === "reminder" && !permissions.canManageReminders) {
-    discardUploadedFile(req.file);
-    setFlash(req, "error", "Für freie Erinnerungen fehlen die erforderlichen Rechte.");
-    return res.redirect(`/animals/${req.params.id}`);
-  }
-
-  if (eventKind === "feeding" && !permissions.canManageFeedings) {
-    discardUploadedFile(req.file);
-    setFlash(req, "error", "Für Fütterungseinträge fehlen die erforderlichen Rechte.");
-    return res.redirect(`/animals/${req.params.id}`);
-  }
-
-  if (eventKind === "note" && !permissions.canManageNotes) {
-    discardUploadedFile(req.file);
-    setFlash(req, "error", "Für Notizen fehlen die erforderlichen Rechte.");
-    return res.redirect(`/animals/${req.params.id}`);
-  }
-
-  if (["medication", "vaccination", "appointment"].includes(eventKind) && !permissions.canManageHealth) {
-    discardUploadedFile(req.file);
-    setFlash(req, "error", "Für medizinische Ereignisse fehlen die erforderlichen Rechte.");
-    return res.redirect(`/animals/${req.params.id}`);
-  }
-
-  try {
-    if (eventKind !== "vaccination") {
-      discardUploadedFile(req.file);
-      req.file = null;
-    }
-    if (eventKind === "feeding") {
-      db.prepare("INSERT INTO animal_feedings (animal_id, label, time_of_day, food, amount, notes) VALUES (?, ?, ?, ?, ?, ?)")
-        .run(req.params.id, title, String(req.body.event_time || "").trim(), "", "", notes);
-      setFlash(req, "success", "Fütterung gespeichert.");
-      return res.redirect(returnTo);
-    }
-
-    if (eventKind === "note") {
-      db.prepare("INSERT INTO animal_notes (animal_id, title, content) VALUES (?, ?, ?)")
-        .run(req.params.id, title, notes || title);
-      setFlash(req, "success", "Notiz gespeichert.");
-      return res.redirect(returnTo);
-    }
-
-    if (eventKind === "medication") {
-      const startDate = String(req.body.event_date || "").trim();
-      if (!startDate) {
-        throw new Error("Bitte gib ein Datum für das Medikament an.");
-      }
-
-      const result = db.prepare(`
-        INSERT INTO animal_medications (animal_id, name, dosage, schedule, start_date, end_date, reminder_enabled, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        req.params.id,
-        title,
-        "",
-        "",
-        startDate,
-        null,
-        req.body.create_reminder ? 1 : 0,
-        notes
-      );
-      syncMedicationReminders(req.params.id, result.lastInsertRowid);
-      setFlash(req, "success", "Medikament gespeichert.");
-      return res.redirect(returnTo);
-    }
-
-    if (eventKind === "vaccination") {
-      const eventDate = String(req.body.event_date || "").trim();
-      if (!eventDate) {
-        throw new Error("Bitte gib ein Datum für die Impfung an.");
-      }
-      const isFuture = dayjs(eventDate).isAfter(dayjs(), "day");
-
-      const result = db.prepare(`
-        INSERT INTO animal_vaccinations (
-          animal_id, name, vaccination_date, next_due_date, reminder_enabled, notes,
-          certificate_original_name, certificate_stored_name, certificate_mime_type, certificate_file_size
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        req.params.id,
-        title,
-        isFuture ? null : eventDate,
-        isFuture ? eventDate : null,
-        req.body.create_reminder ? 1 : 0,
-        notes,
-        req.file?.originalname || null,
-        req.file?.filename || null,
-        req.file?.mimetype || null,
-        req.file?.size || null
-      );
-      syncVaccinationReminders(req.params.id, result.lastInsertRowid);
-      setFlash(req, "success", "Impfung gespeichert.");
-      return res.redirect(returnTo);
-    }
-
-    if (eventKind === "appointment") {
-      const appointmentAt = combineDateAndTime(req.body.event_date, req.body.event_time, "09:00");
-      if (!appointmentAt) {
-        throw new Error("Bitte gib Datum und Uhrzeit für den Arzttermin an.");
-      }
-
-      const result = db.prepare(`
-        INSERT INTO animal_appointments (animal_id, title, appointment_at, location_mode, location_text, veterinarian_id, reminder_enabled, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        req.params.id,
-        title,
-        appointmentAt,
-        req.body.handled_by_veterinarian ? "praxis" : "praxis",
-        "",
-        req.body.handled_by_veterinarian ? (req.body.veterinarian_id || null) : null,
-        req.body.create_reminder ? 1 : 0,
-        notes
-      );
-      syncAppointmentReminders(req.params.id, result.lastInsertRowid);
-      setFlash(req, "success", "Arzttermin gespeichert.");
-      return res.redirect(returnTo);
-    }
-
-    const dueAt = combineDateAndTime(req.body.event_date, req.body.event_time, "09:00");
-    if (!dueAt) {
-      throw new Error("Bitte gib Datum und Uhrzeit für die freie Erinnerung an.");
-    }
-
-    const reminderChannels = getNotificationChannelDefaults();
-    db.prepare(`
-      INSERT INTO reminders (
-        animal_id, title, reminder_type, due_at, channel_email, channel_telegram, repeat_interval_days, notes,
-        last_delivery_status, last_delivery_error
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      req.params.id,
-      title,
-      "Allgemein",
-      dueAt,
-      reminderChannels.channelEmail,
-      reminderChannels.channelTelegram,
-      0,
-      notes,
-      "pending",
-      ""
-    );
-    setFlash(req, "success", "Freie Erinnerung gespeichert.");
-    return res.redirect(returnTo);
-  } catch (error) {
-    discardUploadedFile(req.file);
-    setFlash(req, "error", error.message || "Das Ereignis konnte nicht gespeichert werden.");
-    return res.redirect(`/animals/${req.params.id}/events/new?return_to=${encodeURIComponent(returnTo)}`);
-  }
-});
-
-
-app.post("/animals/:id/feedings", requireAnimalPermission("canManageFeedings"), (req, res) => {
-  const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.id}`);
-  db.prepare(`
-    INSERT INTO animal_feedings (animal_id, label, time_of_day, food, amount, notes)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(
-    req.params.id,
-    req.body.label,
-    req.body.time_of_day || "",
-    req.body.food || "",
-    req.body.amount || "",
-    req.body.notes || ""
-  );
-  setFlash(req, "success", "Fütterungsplan gespeichert.");
-  res.redirect(returnTo);
-});
-
-app.post("/animals/:animalId/feedings/:entryId/update", requireAnimalPermission("canManageFeedings"), (req, res) => {
-  const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.animalId}`);
-  db.prepare(`
-    UPDATE animal_feedings
-    SET label = ?, time_of_day = ?, food = ?, amount = ?, notes = ?
-    WHERE id = ? AND animal_id = ?
-  `).run(
-    req.body.label,
-    req.body.time_of_day || "",
-    req.body.food || "",
-    req.body.amount || "",
-    req.body.notes || "",
-    req.params.entryId,
-    req.params.animalId
-  );
-  setFlash(req, "success", "Fütterungsplan aktualisiert.");
-  res.redirect(returnTo);
-});
-
-app.get("/animals/:animalId/feedings/:entryId/update", requireAnimalPermission("canManageFeedings"), (req, res) => {
-  setFlash(req, "error", "Bitte Änderungen über das Formular speichern.");
-  redirectDocumentDrawerRequest(
-    req,
-    res,
-    getAnimalReturnTo(req, `/animals/${req.params.animalId}`),
-    `/animals/${req.params.animalId}/feedings/${req.params.entryId}/edit`
-  );
-});
-
-app.post("/animals/:animalId/feedings/:entryId/delete", requireAnimalPermission("canManageFeedings"), (req, res) => {
-  db.prepare("DELETE FROM animal_feedings WHERE id = ? AND animal_id = ?").run(req.params.entryId, req.params.animalId);
-  setFlash(req, "success", "Fütterungsplan gelöscht.");
-  res.redirect(`/animals/${req.params.animalId}`);
-});
-
-app.post("/animals/:id/notes", requireAnimalPermission("canManageNotes"), (req, res) => {
-  const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.id}`);
-  db.prepare("INSERT INTO animal_notes (animal_id, title, content) VALUES (?, ?, ?)")
-    .run(req.params.id, req.body.title, req.body.content);
-  createAuditLog(req, "animal.note_create", {
-    animal_id: req.params.id,
-    title: String(req.body.title || "").trim(),
-  }, { entityType: "animal", entityId: req.params.id });
-  setFlash(req, "success", "Protokolleintrag gespeichert.");
-  res.redirect(returnTo);
-});
-
-app.post("/animals/:animalId/notes/:entryId/update", requireAnimalPermission("canManageNotes"), (req, res) => {
-  const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.animalId}`);
-  db.prepare(`
-    UPDATE animal_notes
-    SET title = ?, content = ?
-    WHERE id = ? AND animal_id = ?
-  `).run(req.body.title, req.body.content, req.params.entryId, req.params.animalId);
-  createAuditLog(req, "animal.note_update", {
-    animal_id: req.params.animalId,
-    title: String(req.body.title || "").trim(),
-  }, { entityType: "animal", entityId: req.params.animalId });
-  setFlash(req, "success", "Protokolleintrag aktualisiert.");
-  res.redirect(returnTo);
-});
-
-app.get("/animals/:animalId/notes/:entryId/update", requireAnimalPermission("canManageNotes"), (req, res) => {
-  setFlash(req, "error", "Bitte Änderungen über das Formular speichern.");
-  redirectDocumentDrawerRequest(
-    req,
-    res,
-    getAnimalReturnTo(req, `/animals/${req.params.animalId}`),
-    `/animals/${req.params.animalId}/notes/${req.params.entryId}/edit`
-  );
-});
-
-app.post("/animals/:animalId/notes/:entryId/delete", requireAnimalPermission("canManageNotes"), (req, res) => {
-  db.prepare("DELETE FROM animal_notes WHERE id = ? AND animal_id = ?").run(req.params.entryId, req.params.animalId);
-  createAuditLog(req, "animal.note_delete", {
-    animal_id: req.params.animalId,
-    note_id: req.params.entryId,
-  }, { entityType: "animal", entityId: req.params.animalId });
-  setFlash(req, "success", "Protokolleintrag gelöscht.");
-  res.redirect(`/animals/${req.params.animalId}`);
-});
+app.use(createAnimalEntriesRouter({
+  appendVeterinarianNote,
+  buildPermissions,
+  combineDateAndTime,
+  createAuditLog,
+  db,
+  discardUploadedFile,
+  findAnimal,
+  getAnimalReturnTo,
+  getCurrentUserRecord,
+  getNotificationChannelDefaults,
+  getVaccinationCertificateError,
+  getVaccinationSuggestionsForSpecies,
+  isDrawerRequest,
+  redirectDocumentDrawerRequest,
+  renderNotFound,
+  requireAnimalPermission,
+  safeLocalReturnPath,
+  setFlash,
+  syncAppointmentReminders,
+  syncMedicationReminders,
+  syncVaccinationReminders,
+  upload,
+}));
 
 app.use(createAnimalRemindersRouter({
   db, requireAnimalPermission, safeLocalReturnPath, parsePositiveInteger, setFlash,
@@ -1215,127 +840,27 @@ app.use(createAnimalMediaRouter({
   deleteUploadedFileIfUnreferenced,
 }));
 
-app.get("/documents/:id/download", (req, res) => {
-  const document = db.prepare("SELECT * FROM documents WHERE id = ?").get(req.params.id);
-  if (!document) {
-    return renderNotFound(req, res, "Dokument nicht gefunden.");
-  }
+app.use(createAnimalDownloadsRouter({
+  buildAnimalExportPayload,
+  createAnimalPdf,
+  db,
+  findAnimal,
+  getAnimalRelatedData,
+  getSettingsObject,
+  renderNotFound,
+  resolveStoredFilePath,
+  setFlash,
+  uploadsDir,
+}));
 
-  const fullPath = resolveStoredFilePath(uploadsDir, document.stored_name);
-  if (!fullPath || !fs.existsSync(fullPath)) {
-    return renderNotFound(req, res, "Datei wurde auf dem Server nicht gefunden.");
-  }
-
-  res.download(fullPath, document.original_name);
-});
-
-app.get("/vaccinations/:id/certificate", (req, res) => {
-  const vaccination = db.prepare(`
-    SELECT certificate_original_name, certificate_stored_name
-    FROM animal_vaccinations
-    WHERE id = ?
-  `).get(req.params.id);
-  if (!vaccination?.certificate_stored_name) {
-    return renderNotFound(req, res, "Impfnachweis nicht gefunden.");
-  }
-  const fullPath = resolveStoredFilePath(uploadsDir, vaccination.certificate_stored_name);
-  if (!fullPath || !fs.existsSync(fullPath)) {
-    return renderNotFound(req, res, "Datei wurde auf dem Server nicht gefunden.");
-  }
-  return res.download(fullPath, vaccination.certificate_original_name || "impfnachweis");
-});
-
-app.get("/animals/:id/export/json", (req, res) => {
-  const animal = findAnimal(req.params.id);
-  if (!animal) {
-    return renderNotFound(req, res, "Tier nicht gefunden.");
-  }
-
-  const payload = buildAnimalExportPayload(animal, getAnimalRelatedData(req.params.id), {
-    uploadsDir,
-    embedFiles: true,
-  });
-  res.setHeader("Content-Type", "application/json");
-  res.setHeader("Content-Disposition", `attachment; filename="heartpet-tier-${animal.id}.json"`);
-  res.send(JSON.stringify(payload, null, 2));
-});
-
-app.get("/animals/:id/export/pdf", async (req, res) => {
-  const animal = findAnimal(req.params.id);
-  if (!animal) {
-    return renderNotFound(req, res, "Tier nicht gefunden.");
-  }
-
-  try {
-    await createAnimalPdf(res, animal, getAnimalRelatedData(req.params.id), {
-      domain: getSettingsObject(db).app_domain || "HeartPet",
-      uploadsDir,
-    });
-  } catch (error) {
-    console.error("[HeartPet] PDF-Export fehlgeschlagen:", error.message);
-    if (!res.headersSent) {
-      setFlash(req, "error", "Der PDF-Export konnte nicht erstellt werden.");
-      return res.redirect(`/animals/${req.params.id}`);
-    }
-  }
-});
-
-app.get("/admin", requireAdmin, (req, res) => {
-  res.redirect("/admin/allgemein");
-});
-
-app.get("/admin/allgemein", requireAdmin, (req, res) => {
-  res.render("pages/admin-general", getAdminViewData("Allgemein", "/admin/allgemein"));
-});
-
-app.get("/admin/stall", requireAdmin, (req, res) => {
-  res.render("pages/admin-general", getAdminViewData("Stall", "/admin/stall"));
-});
-
-app.post("/admin/coop/camera-preview", requireAdmin, async (req, res) => {
-  const url = normalizeConfiguredUrl(req.body.url);
-  if (!isCameraUrl(url)) {
-    return res.status(400).send("Bitte eine vollständige HTTP-, HTTPS- oder RTSP-URL eingeben.");
-  }
-
-  try {
-    const buffer = await captureCameraFrame({
-      name: "Vorschau",
-      url,
-      protocol: isRtspUrl(url) ? "rtsp" : "http",
-    });
-    res.set("Content-Type", "image/jpeg");
-    res.set("Cache-Control", "no-store");
-    return res.send(buffer);
-  } catch (error) {
-    console.error(`[HeartPet] Kamera-Vorschau fehlgeschlagen: ${error.message}`);
-    return res.status(502).send(error.message);
-  }
-});
-
-["/admin/general", "/admin/settings"].forEach((aliasPath) => {
-  app.get(aliasPath, requireAdmin, (req, res) => {
-    const suffix = req.originalUrl.includes("?") ? req.originalUrl.slice(req.originalUrl.indexOf("?")) : "";
-    res.redirect(`/admin/allgemein${suffix}`);
-  });
-});
-
-app.get("/admin/kommunikation", requireAdmin, (req, res) => {
-  res.redirect("/admin/benachrichtigungen");
-});
-
-app.get("/admin/benachrichtigungen", requireAdmin, (req, res) => {
-  res.render("pages/admin-communication", getAdminViewData("Benachrichtigungen", "/admin/benachrichtigungen"));
-});
-
-["/benachrichtigungen", "/admin/notifications", "/notifications"].forEach((aliasPath) => {
-  app.get(aliasPath, requireAdmin, (req, res) => {
-    res.redirect("/admin/benachrichtigungen");
-  });
-});
-app.get(/^\/.+\/benachrichtigungen$/, requireAdmin, (req, res) => {
-  res.redirect("/admin/benachrichtigungen");
-});
+app.use(createAdminPagesRouter({
+  captureCameraFrame,
+  getAdminViewData,
+  isCameraUrl,
+  isRtspUrl,
+  normalizeConfiguredUrl,
+  requireAdmin,
+}));
 
 app.use("/admin", createMasterdataRouter({
   backTo,
@@ -1357,99 +882,17 @@ app.use("/admin", createMasterdataRouter({
   validateVeterinarian,
 }));
 
-app.get("/admin/benutzer", requireAdmin, (req, res) => {
-  const viewData = getAdminViewData("Benutzer", "/admin/benutzer");
-  viewData.selfUser = db.prepare(`
-    SELECT id, name, email, role, must_change_password, last_login_at, last_seen_at, last_logout_at,
-      CASE
-        WHEN last_seen_at IS NOT NULL
-          AND datetime(last_seen_at) >= datetime('now', '-5 minutes')
-          AND (last_logout_at IS NULL OR datetime(last_seen_at) > datetime(last_logout_at))
-        THEN 1 ELSE 0
-      END AS is_online
-    FROM users
-    WHERE id = ?
-  `).get(req.session.user.id);
-  viewData.users = (viewData.users || []).filter((user) => String(user.id) !== String(req.session.user.id));
-  res.render("pages/admin-users", viewData);
-});
-
-["/admin/users", "/admin/user-management"].forEach((aliasPath) => {
-  app.get(aliasPath, requireAdmin, (req, res) => {
-    const suffix = req.originalUrl.includes("?") ? req.originalUrl.slice(req.originalUrl.indexOf("?")) : "";
-    res.redirect(`/admin/benutzer${suffix}`);
-  });
-});
-
-app.get("/admin/users/new", requireAdmin, (req, res) => {
-  if (!isDrawerRequest(req)) {
-    return redirectDocumentDrawerRequest(req, res, "/admin/benutzer");
-  }
-  res.render("pages/admin-user-drawer", {
-    pageTitle: "Benutzer anlegen",
-    mode: "create",
-    item: null,
-    returnTo: safeLocalReturnPath(req.query.return_to, backTo(req, "/admin/benutzer")),
-  });
-});
-
-app.get("/admin/benutzer/neu", requireAdmin, (req, res) => {
-  const query = new URLSearchParams();
-  const returnTo = safeLocalReturnPath(req.query.return_to, "");
-  if (returnTo) {
-    query.set("return_to", returnTo);
-  }
-  const suffix = query.toString() ? `?${query.toString()}` : "";
-  res.redirect(`/admin/users/new${suffix}`);
-});
-
-app.get("/admin/users/:id/edit", requireAdmin, (req, res) => {
-  if (!isDrawerRequest(req)) {
-    return redirectDocumentDrawerRequest(req, res, "/admin/benutzer");
-  }
-  const item = db.prepare(`
-    SELECT
-      id, name, email, role, must_change_password,
-      can_edit_animals, can_manage_documents, can_manage_gallery, can_manage_health,
-      can_manage_feedings, can_manage_notes, can_manage_reminders
-    FROM users
-    WHERE id = ?
-  `).get(req.params.id);
-  if (!item) {
-    return renderNotFound(req, res, "Benutzer nicht gefunden.");
-  }
-
-  if (String(req.session.user.id) === String(req.params.id)) {
-    setFlash(req, "error", "Deinen eigenen Admin-Account verwaltest du im Profilbereich.");
-    return res.redirect("/admin/benutzer");
-  }
-
-  res.render("pages/admin-user-drawer", {
-    pageTitle: "Benutzer bearbeiten",
-    mode: "edit",
-    item,
-    returnTo: safeLocalReturnPath(req.query.return_to, backTo(req, "/admin/benutzer")),
-  });
-});
-
-app.get("/admin/users/:id/update", requireAdmin, (req, res) => {
-  setFlash(req, "error", "Bitte Änderungen über das Formular speichern.");
-  redirectDocumentDrawerRequest(req, res, "/admin/benutzer", `/admin/users/${req.params.id}/edit`);
-});
-
-app.get("/admin/users/:id/save", requireAdmin, (req, res) => {
-  setFlash(req, "error", "Bitte Änderungen über das Formular speichern.");
-  redirectDocumentDrawerRequest(req, res, "/admin/benutzer", `/admin/users/${req.params.id}/edit`);
-});
-
-app.get("/admin/import", requireAdmin, (req, res) => {
-  res.render("pages/admin-import", getAdminViewData("Import", "/admin/import"));
-});
-
-app.get("/admin/imports", requireAdmin, (req, res) => {
-  const suffix = req.originalUrl.includes("?") ? req.originalUrl.slice(req.originalUrl.indexOf("?")) : "";
-  res.redirect(`/admin/import${suffix}`);
-});
+app.use(createAdminUserPagesRouter({
+  backTo,
+  db,
+  getAdminViewData,
+  isDrawerRequest,
+  redirectDocumentDrawerRequest,
+  renderNotFound,
+  requireAdmin,
+  safeLocalReturnPath,
+  setFlash,
+}));
 
 app.use("/admin", createSystemlogRouter({
   buildOperationalHealthChecks,
@@ -1481,835 +924,61 @@ app.use("/admin", createSystemlogRouter({
 
 app.get(/^\/.+\/(?:systemlog|system-log)$/, requireAdmin, (req, res) => res.redirect("/admin/systemlog"));
 
-app.post("/admin/settings", requireAdmin, upload.single("app_logo"), async (req, res) => {
-  const booleanKeys = new Set([
-    "smtp_secure",
-    "reminder_email_enabled",
-    "reminder_telegram_enabled",
-    "reminder_ntfy_enabled",
-    "browser_notifications_enabled",
-    "daily_digest_enabled",
-    "daily_digest_only_when_open",
-  ]);
-  const secretKeys = new Set([
-    "smtp_password",
-    "telegram_bot_token",
-    "ntfy_access_token",
-    "homematic_xmlapi_token",
-    "homematic_ccu_password",
-  ]);
-  const fields = String(req.body._fields || "")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-  const urlSettingKeys = new Set([
-    "homematic_ccu_url",
-    "homematic_door_open_url",
-    "homematic_door_close_url",
-    "homematic_climate_url",
-    "homematic_temperature_url",
-    "homematic_humidity_url",
-  ]);
-  const invalidUrlField = fields.find((key) => {
-    if (!urlSettingKeys.has(key)) return false;
-    const value = String(req.body[key] || "").trim();
-    return value && !isHttpUrl(value);
-  });
-  const invalidCamera = fields.includes("coop_camera_streams")
-    ? parseCoopCameraLines(req.body.coop_camera_streams).find((camera) => !camera.valid)
-    : null;
-  const invalidDoorDatapoint = ["homematic_door_open_datapoint_id", "homematic_door_close_datapoint_id", "homematic_door_command_datapoint_id"].find((key) =>
-    fields.includes(key) && String(req.body[key] || "").trim() && !/^\d+$/.test(String(req.body[key]).trim())
-  );
-  const invalidDoorValue = ["homematic_door_open_value", "homematic_door_close_value"].find((key) =>
-    fields.includes(key) && !/^-?\d+(?:[.,]\d+)?$/.test(String(req.body[key] || "").trim())
-  );
-  if (invalidUrlField || invalidCamera || invalidDoorDatapoint || invalidDoorValue) {
-    setFlash(req, "error", invalidCamera
-      ? `Ungültige Kamera-URL in der Zeile „${invalidCamera.source}“.`
-      : invalidDoorDatapoint
-        ? "Der Tür-Datenpunkt muss eine numerische ISE-ID sein."
-        : invalidDoorValue
-          ? "Öffnungs- und Schließwert müssen Zahlen sein."
-          : "Bitte für Homematic eine vollständige HTTP- oder HTTPS-URL eingeben.");
-    return res.redirect(backTo(req, "/admin/allgemein"));
-  }
-
-  const settingsBeforeSave = getSettingsObject(db);
-  const ccuConnectionChanged = ["homematic_ccu_url", "homematic_xmlapi_token", "homematic_ccu_username", "homematic_ccu_password"].some((key) => {
-    if (!fields.includes(key)) return false;
-    const submitted = String(req.body[key] || "");
-    if (secretKeys.has(key) && !submitted) return false;
-    return normalizeSettingsInputValue(key, submitted) !== String(settingsBeforeSave[key] || "");
-  });
-
-  fields.forEach((key) => {
-    if (secretKeys.has(key) && !String(req.body[key] || "")) {
-      return;
-    }
-    if (booleanKeys.has(key)) {
-      upsertSetting(db, key, parseBooleanSettingValue(req.body[key]) ? "true" : "false");
-      return;
-    }
-
-    upsertSetting(db, key, normalizeSettingsInputValue(key, req.body[key]));
-  });
-
-  if (ccuConnectionChanged) {
-    await homematicSessionService.reset(settingsBeforeSave);
-  }
-
-  if (req.file) {
-    if (!String(req.file.mimetype || "").startsWith("image/")) {
-      safeDeleteUploadedFile(req.file.filename);
-      setFlash(req, "error", "Bitte lade für das App-Logo eine Bilddatei hoch.");
-      return res.redirect(backTo(req, "/admin/allgemein"));
-    }
-
-    const currentSettings = getSettingsObject(db);
-    const previousLogo = String(currentSettings.app_logo_stored_name || "").trim();
-    upsertSetting(db, "app_logo_stored_name", req.file.filename);
-    safeDeleteUploadedFile(previousLogo, req.file.filename);
-  }
-
-  if (fields.some((key) =>
-    key.endsWith("_reminder_lead_days") ||
-    key.endsWith("_reminder_repeat_count") ||
-    key === "reminder_email_enabled" ||
-    key === "reminder_telegram_enabled"
-    || key === "reminder_ntfy_enabled"
-  )) {
-    resyncAllGeneratedReminders();
-  }
-
-  if (fields.length === 1 && fields[0] === "reminder_email_enabled") {
-    setFlash(req, "success", parseBooleanSettingValue(req.body.reminder_email_enabled)
-      ? "E-Mail-Benachrichtigungen wurden aktiviert."
-      : "E-Mail-Benachrichtigungen wurden deaktiviert.");
-  } else if (fields.length === 1 && fields[0] === "reminder_telegram_enabled") {
-    setFlash(req, "success", parseBooleanSettingValue(req.body.reminder_telegram_enabled)
-      ? "Telegram-Benachrichtigungen wurden aktiviert."
-      : "Telegram-Benachrichtigungen wurden deaktiviert.");
-  } else if (fields.length === 1 && fields[0] === "reminder_ntfy_enabled") {
-    setFlash(req, "success", parseBooleanSettingValue(req.body.reminder_ntfy_enabled)
-      ? "ntfy-Benachrichtigungen wurden aktiviert."
-      : "ntfy-Benachrichtigungen wurden deaktiviert.");
-  } else {
-    setFlash(req, "success", "Einstellungen gespeichert.");
-  }
-  res.redirect(backTo(req, "/admin/allgemein"));
-});
-
-app.post("/admin/test-email", requireAdmin, async (req, res) => {
-  try {
-    await sendTestEmail(getSettingsObject(db));
-    createNotificationLog({
-      userId: req.session.user?.id,
-      channel: "email",
-      type: "test",
-      recipient: getSettingsObject(db).notification_email_to || getSettingsObject(db).smtp_user || "",
-      subject: "SMTP-Testmail",
-      status: "sent",
-      details: { source: "admin.test-email" },
-    });
-    setFlash(req, "success", "SMTP-Testmail wurde versendet.");
-  } catch (error) {
-    createNotificationLog({
-      userId: req.session.user?.id,
-      channel: "email",
-      type: "test",
-      recipient: getSettingsObject(db).notification_email_to || getSettingsObject(db).smtp_user || "",
-      subject: "SMTP-Testmail",
-      status: "error",
-      error: error.message,
-      details: { source: "admin.test-email" },
-    });
-    setFlash(req, "error", `SMTP-Test fehlgeschlagen: ${error.message}`);
-  }
-
-  res.redirect("/admin/benachrichtigungen");
-});
-
-async function handleSmtpConnectionTest(req, res) {
-  try {
-    await verifySmtpConnection(getSettingsObject(db));
-    createNotificationLog({
-      userId: req.session.user?.id,
-      channel: "email",
-      type: "smtp_connection_check",
-      recipient: getSettingsObject(db).smtp_host || "",
-      subject: "SMTP-Verbindung prüfen",
-      status: "sent",
-      details: {},
-    });
-    setFlash(req, "success", "SMTP-Verbindung erfolgreich geprüft.");
-  } catch (error) {
-    createNotificationLog({
-      userId: req.session.user?.id,
-      channel: "email",
-      type: "smtp_connection_check",
-      recipient: getSettingsObject(db).smtp_host || "",
-      subject: "SMTP-Verbindung prüfen",
-      status: "error",
-      error: error.message,
-      details: {},
-    });
-    setFlash(req, "error", `SMTP-Verbindung fehlgeschlagen: ${error.message}`);
-  }
-  res.redirect("/admin/benachrichtigungen");
-}
-
-[
-  "/admin/test-smtp-connection",
-  "/test-smtp-connection",
-  "/admin/benachrichtigungen/test-smtp-connection",
-].forEach((path) => {
-  app.post(path, requireAdmin, handleSmtpConnectionTest);
-});
-
-app.get("/admin/test-smtp-connection", requireAdmin, (req, res) => {
-  setFlash(req, "error", "SMTP-Test bitte über den Button im Bereich Benachrichtigungen starten.");
-  res.redirect("/admin/benachrichtigungen");
-});
-app.get("/test-smtp-connection", requireAdmin, (req, res) => {
-  setFlash(req, "error", "SMTP-Test bitte über den Button im Bereich Benachrichtigungen starten.");
-  res.redirect("/admin/benachrichtigungen");
-});
-app.get("/admin/benachrichtigungen/test-smtp-connection", requireAdmin, (req, res) => {
-  setFlash(req, "error", "SMTP-Test bitte über den Button im Bereich Benachrichtigungen starten.");
-  res.redirect("/admin/benachrichtigungen");
-});
-app.all(/^\/.*test-smtp-connection.*$/, requireAdmin, async (req, res) => {
-  if (req.method === "POST") {
-    return handleSmtpConnectionTest(req, res);
-  }
-  setFlash(req, "error", "SMTP-Test bitte über den Button im Bereich Benachrichtigungen starten.");
-  return res.redirect("/admin/benachrichtigungen");
-});
-
-app.post("/admin/test-telegram", requireAdmin, async (req, res) => {
-  try {
-    await sendTestTelegram(getSettingsObject(db));
-    createNotificationLog({
-      userId: req.session.user?.id,
-      channel: "telegram",
-      type: "test",
-      recipient: getSettingsObject(db).telegram_chat_id || "",
-      subject: "Telegram-Testnachricht",
-      status: "sent",
-      details: { source: "admin.test-telegram" },
-    });
-    setFlash(req, "success", "Telegram-Testnachricht wurde versendet.");
-  } catch (error) {
-    createNotificationLog({
-      userId: req.session.user?.id,
-      channel: "telegram",
-      type: "test",
-      recipient: getSettingsObject(db).telegram_chat_id || "",
-      subject: "Telegram-Testnachricht",
-      status: "error",
-      error: error.message,
-      details: { source: "admin.test-telegram" },
-    });
-    setFlash(req, "error", `Telegram-Test fehlgeschlagen: ${error.message}`);
-  }
-
-  res.redirect("/admin/benachrichtigungen");
-});
-
-app.post("/admin/test-ntfy", requireAdmin, async (req, res) => {
-  const settings = getSettingsObject(db);
-  try {
-    await sendTestNtfy(settings);
-    createNotificationLog({
-      userId: req.session.user?.id,
-      channel: "ntfy",
-      type: "test",
-      recipient: settings.ntfy_topic || "",
-      subject: "ntfy-Testnachricht",
-      status: "sent",
-      details: { source: "admin.test-ntfy" },
-    });
-    setFlash(req, "success", "ntfy-Testnachricht wurde versendet.");
-  } catch (error) {
-    createNotificationLog({
-      userId: req.session.user?.id,
-      channel: "ntfy",
-      type: "test",
-      recipient: settings.ntfy_topic || "",
-      subject: "ntfy-Testnachricht",
-      status: "error",
-      error: error.message,
-      details: { source: "admin.test-ntfy" },
-    });
-    setFlash(req, "error", `ntfy-Test fehlgeschlagen: ${error.message}`);
-  }
-  res.redirect("/admin/benachrichtigungen");
-});
-
-app.post("/admin/users", requireAdmin, async (req, res) => {
-  const returnTo = safeLocalReturnPath(req.body.return_to, backTo(req, "/admin/benutzer"));
-  const name = String(req.body.name || "").trim();
-  const email = String(req.body.email || "").trim().toLowerCase();
-  const role = String(req.body.role || "viewer");
-
-  if (!name || !email) {
-    setFlash(req, "error", "Name und E-Mail sind Pflichtfelder.");
-    return redirectAfterPost(res, returnTo);
-  }
-
-  const duplicate = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
-  if (duplicate) {
-    setFlash(req, "error", "Diese E-Mail-Adresse wird bereits verwendet.");
-    return redirectAfterPost(res, returnTo);
-  }
-
-  const randomPassword = crypto.randomBytes(24).toString("hex");
-  const passwordHash = bcrypt.hashSync(randomPassword, PASSWORD_HASH_ROUNDS);
-  const userPermissions = normalizeUserPermissions(role, req.body);
-  const userResult = db.prepare(`
-    INSERT INTO users (
-      name, email, password_hash, role, must_change_password,
-      can_edit_animals, can_manage_documents, can_manage_gallery, can_manage_health,
-      can_manage_feedings, can_manage_notes, can_manage_reminders
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    name,
-    email,
-    passwordHash,
-    role,
-    1,
-    userPermissions.can_edit_animals,
-    userPermissions.can_manage_documents,
-    userPermissions.can_manage_gallery,
-    userPermissions.can_manage_health,
-    userPermissions.can_manage_feedings,
-    userPermissions.can_manage_notes,
-    userPermissions.can_manage_reminders
-  );
-  createAuditLog(req, "user.create", { target_user_id: userResult.lastInsertRowid, role, email }, { entityType: "user", entityId: userResult.lastInsertRowid });
-
-  await notifyAdminsAboutCreatedUser(req, {
-    id: userResult.lastInsertRowid,
-    name,
-    email,
-    role,
-  });
-
-  if (req.body.send_invite_email) {
-    try {
-      await sendInviteEmailForUser(req, {
-        id: userResult.lastInsertRowid,
-        name,
-        email,
-        role,
-      });
-      setFlash(req, "success", `Benutzer angelegt und Einladungs-Mail an ${email} versendet.`);
-      return redirectAfterPost(res, returnTo);
-    } catch (error) {
-      console.error("[HeartPet] Einladungs-Mail fehlgeschlagen:", error.message);
-      setFlash(req, "error", `Benutzer angelegt, Einladungs-Mail an ${email} fehlgeschlagen: ${error.message}`);
-      return redirectAfterPost(res, returnTo);
-    }
-  }
-
-  setFlash(req, "success", "Benutzer angelegt.");
-  return redirectAfterPost(res, returnTo);
-});
-
-app.post("/admin/users/:id/resend-invite", requireAdmin, async (req, res) => {
-  const returnTo = safeLocalReturnPath(req.body.return_to, backTo(req, "/admin/benutzer"));
-  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.params.id);
-  if (!user) {
-    return renderNotFound(req, res, "Benutzer nicht gefunden.");
-  }
-
-  if (String(req.session.user.id) === String(req.params.id)) {
-    setFlash(req, "error", "Für dein eigenes Konto ist hier keine Einladungs-Mail vorgesehen.");
-    return redirectAfterPost(res, returnTo);
-  }
-
-  if (!user.must_change_password) {
-    setFlash(req, "error", "Für diesen Nutzer ist aktuell keine offene Einladung mehr nötig.");
-    return redirectAfterPost(res, returnTo);
-  }
-
-  try {
-    await sendInviteEmailForUser(req, user, {
-      auditSuccessAction: "user.invite_email_resent",
-      auditFailureAction: "user.invite_email_resend_failed",
-    });
-    setFlash(req, "success", `Einladungs-Mail an ${user.email} erneut versendet.`);
-  } catch (error) {
-    console.error("[HeartPet] Erneuter Einladungs-Versand fehlgeschlagen:", error.message);
-    setFlash(req, "error", `Einladungs-Mail an ${user.email} fehlgeschlagen: ${error.message}`);
-  }
-
-  return redirectAfterPost(res, returnTo);
-});
-
-app.post("/admin/users/:id/permissions", requireAdmin, (req, res) => {
-  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.params.id);
-  if (!user) {
-    return renderNotFound(req, res, "Benutzer nicht gefunden.");
-  }
-
-  if (String(req.session.user.id) === String(req.params.id)) {
-    setFlash(req, "error", "Deinen eigenen Admin-Account verwaltest du im Profilbereich.");
-    return res.redirect("/admin/benutzer");
-  }
-
-  const userPermissions = normalizeUserPermissions(req.body.role, req.body);
-  db.prepare(`
-    UPDATE users
-    SET role = ?,
-        can_edit_animals = ?,
-        can_manage_documents = ?,
-        can_manage_gallery = ?,
-        can_manage_health = ?,
-        can_manage_feedings = ?,
-        can_manage_notes = ?,
-        can_manage_reminders = ?
-    WHERE id = ?
-  `).run(
-    req.body.role || user.role,
-    userPermissions.can_edit_animals,
-    userPermissions.can_manage_documents,
-    userPermissions.can_manage_gallery,
-    userPermissions.can_manage_health,
-    userPermissions.can_manage_feedings,
-    userPermissions.can_manage_notes,
-    userPermissions.can_manage_reminders,
-    req.params.id
-  );
-  createAuditLog(req, "user.permissions_update", { target_user_id: req.params.id, role: req.body.role || user.role }, { entityType: "user", entityId: req.params.id });
-
-  setFlash(req, "success", "Benutzerrechte aktualisiert.");
-  res.redirect("/admin/benutzer");
-});
-
-app.post("/admin/users/:id/update", requireAdmin, async (req, res) => {
-  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.params.id);
-  if (!user) {
-    return renderNotFound(req, res, "Benutzer nicht gefunden.");
-  }
-
-  if (String(req.session.user.id) === String(req.params.id)) {
-    setFlash(req, "error", "Deinen eigenen Admin-Account verwaltest du im Profilbereich.");
-    return res.redirect("/admin/benutzer");
-  }
-
-  const name = (req.body.name || "").trim();
-  const email = (req.body.email || "").trim().toLowerCase();
-  const emailChanged = email !== String(user.email || "").trim().toLowerCase();
-
-  if (!name || !email) {
-    setFlash(req, "error", "Name und E-Mail sind Pflichtfelder.");
-    return res.redirect("/admin/benutzer");
-  }
-
-  if (emailChanged) {
-    const duplicate = db.prepare("SELECT id FROM users WHERE email = ? AND id != ?").get(email, req.params.id);
-    if (duplicate) {
-      setFlash(req, "error", "Diese E-Mail-Adresse wird bereits verwendet.");
-      return res.redirect("/admin/benutzer");
-    }
-  }
-
-  db.prepare("UPDATE users SET name = ? WHERE id = ?").run(name, req.params.id);
-
-  if (emailChanged) {
-    try {
-      await requestEmailChangeConfirmation({
-        userId: user.id,
-        requestedByUserId: req.session.user.id,
-        newEmail: email,
-        displayName: name,
-      });
-      createAuditLog(req, "user.email_change_requested", { target_user_id: req.params.id, new_email: email }, { entityType: "user", entityId: req.params.id });
-      setFlash(req, "success", `Name gespeichert. E-Mail-Änderung wurde an ${email} zur Bestätigung versendet.`);
-    } catch (error) {
-      setFlash(req, "error", `Name gespeichert, E-Mail-Änderung fehlgeschlagen: ${error.message}`);
-    }
-    return res.redirect("/admin/benutzer");
-  }
-
-  setFlash(req, "success", "Benutzerdaten aktualisiert.");
-  createAuditLog(req, "user.profile_update", { target_user_id: req.params.id, name }, { entityType: "user", entityId: req.params.id });
-  res.redirect("/admin/benutzer");
-});
-
-app.post("/admin/users/:id/save", requireAdmin, async (req, res) => {
-  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.params.id);
-  if (!user) {
-    return renderNotFound(req, res, "Benutzer nicht gefunden.");
-  }
-
-  if (String(req.session.user.id) === String(req.params.id)) {
-    setFlash(req, "error", "Deinen eigenen Admin-Account verwaltest du im Profilbereich.");
-    return res.redirect("/admin/benutzer");
-  }
-
-  const returnTo = safeLocalReturnPath(req.body.return_to, "/admin/benutzer");
-  const name = String(req.body.name || "").trim();
-  const email = String(req.body.email || "").trim().toLowerCase();
-  const nextRole = String(req.body.role || user.role || "viewer");
-
-  if (!name || !email) {
-    setFlash(req, "error", "Name und E-Mail sind Pflichtfelder.");
-    return redirectAfterPost(res, returnTo);
-  }
-
-  const emailChanged = email !== String(user.email || "").trim().toLowerCase();
-  if (emailChanged) {
-    const duplicate = db.prepare("SELECT id FROM users WHERE email = ? AND id != ?").get(email, req.params.id);
-    if (duplicate) {
-      setFlash(req, "error", "Diese E-Mail-Adresse wird bereits verwendet.");
-      return redirectAfterPost(res, returnTo);
-    }
-  }
-
-  const userPermissions = normalizeUserPermissions(nextRole, req.body);
-  db.prepare(`
-    UPDATE users
-    SET name = ?,
-        role = ?,
-        can_edit_animals = ?,
-        can_manage_documents = ?,
-        can_manage_gallery = ?,
-        can_manage_health = ?,
-        can_manage_feedings = ?,
-        can_manage_notes = ?,
-        can_manage_reminders = ?
-    WHERE id = ?
-  `).run(
-    name,
-    nextRole,
-    userPermissions.can_edit_animals,
-    userPermissions.can_manage_documents,
-    userPermissions.can_manage_gallery,
-    userPermissions.can_manage_health,
-    userPermissions.can_manage_feedings,
-    userPermissions.can_manage_notes,
-    userPermissions.can_manage_reminders,
-    req.params.id
-  );
-
-  if (emailChanged) {
-    try {
-      await requestEmailChangeConfirmation({
-        userId: user.id,
-        requestedByUserId: req.session.user.id,
-        newEmail: email,
-        displayName: name,
-      });
-      createAuditLog(req, "user.email_change_requested", { target_user_id: req.params.id, new_email: email, role: nextRole }, { entityType: "user", entityId: req.params.id });
-      setFlash(req, "success", `Benutzer gespeichert. E-Mail-Änderung wurde an ${email} zur Bestätigung versendet.`);
-      return redirectAfterPost(res, returnTo);
-    } catch (error) {
-      setFlash(req, "error", `Benutzer gespeichert, E-Mail-Änderung fehlgeschlagen: ${error.message}`);
-      return redirectAfterPost(res, returnTo);
-    }
-  }
-
-  createAuditLog(req, "user.full_update", { target_user_id: req.params.id, role: nextRole, name }, { entityType: "user", entityId: req.params.id });
-  setFlash(req, "success", "Benutzer gespeichert.");
-  return redirectAfterPost(res, returnTo);
-});
-
-app.post("/admin/users/:id/delete", requireAdmin, (req, res) => {
-  const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.params.id);
-  if (!user) {
-    return renderNotFound(req, res, "Benutzer nicht gefunden.");
-  }
-
-  if (String(req.session.user.id) === String(req.params.id)) {
-    setFlash(req, "error", "Dein eigenes Konto kann hier nicht gelöscht werden.");
-    return res.redirect("/admin/benutzer");
-  }
-
-  if (user.role === "admin") {
-    const adminCount = db.prepare("SELECT COUNT(*) AS count FROM users WHERE role = 'admin'").get().count;
-    if (Number(adminCount) <= 1) {
-      setFlash(req, "error", "Der letzte Admin kann nicht gelöscht werden.");
-      return res.redirect("/admin/benutzer");
-    }
-  }
-
-  db.prepare("DELETE FROM users WHERE id = ?").run(req.params.id);
-  createAuditLog(req, "user.delete", { target_user_id: req.params.id, email: user.email }, { entityType: "user", entityId: req.params.id });
-  setFlash(req, "success", "Benutzer gelöscht.");
-  res.redirect("/admin/benutzer");
-});
-
-app.post("/admin/profile", requireAdmin, async (req, res) => {
-  if (!req.session.user) {
-    return res.redirect("/login");
-  }
-
-  const name = (req.body.name || "").trim();
-  const email = (req.body.email || "").trim().toLowerCase();
-  const currentUser = db.prepare("SELECT * FROM users WHERE id = ?").get(req.session.user.id);
-  const emailChanged = email !== String(currentUser?.email || "").trim().toLowerCase();
-
-  if (!name || !email) {
-    setFlash(req, "error", "Name und E-Mail sind Pflichtfelder.");
-    return res.redirect("/admin/benutzer");
-  }
-
-  if (emailChanged) {
-    const duplicate = db.prepare("SELECT id FROM users WHERE email = ? AND id != ?").get(email, req.session.user.id);
-    if (duplicate) {
-      setFlash(req, "error", "Diese E-Mail-Adresse wird bereits verwendet.");
-      return res.redirect("/admin/benutzer");
-    }
-  }
-
-  db.prepare("UPDATE users SET name = ? WHERE id = ?").run(name, req.session.user.id);
-  req.session.user.name = name;
-
-  if (emailChanged) {
-    try {
-      await requestEmailChangeConfirmation({
-        userId: req.session.user.id,
-        requestedByUserId: req.session.user.id,
-        newEmail: email,
-        displayName: name,
-      });
-      createAuditLog(req, "self.email_change_requested", { user_id: req.session.user.id, new_email: email }, { entityType: "user", entityId: req.session.user.id });
-      setFlash(req, "success", `Profil gespeichert. E-Mail-Änderung wurde an ${email} zur Bestätigung versendet.`);
-    } catch (error) {
-      setFlash(req, "error", `Profil gespeichert, E-Mail-Änderung fehlgeschlagen: ${error.message}`);
-    }
-    return res.redirect("/admin/benutzer");
-  }
-
-  setFlash(req, "success", "Profil aktualisiert.");
-  createAuditLog(req, "self.profile_update", { user_id: req.session.user.id, name }, { entityType: "user", entityId: req.session.user.id });
-  res.redirect("/admin/benutzer");
-});
-
-app.post("/admin/password", async (req, res) => {
-  if (!req.session.user) {
-    return res.redirect("/login");
-  }
-
-  if (String(req.body.new_password || "") !== String(req.body.new_password_confirm || "")) {
-    setFlash(req, "error", "Die neuen Passwörter stimmen nicht überein.");
-    return res.redirect("/admin/benutzer");
-  }
-  const passwordError = await validateNewPassword(req.body.new_password);
-  if (passwordError) {
-    setFlash(req, "error", passwordError);
-    return res.redirect("/admin/benutzer");
-  }
-
-  const currentUser = db.prepare("SELECT * FROM users WHERE id = ?").get(req.session.user.id);
-  if (!currentUser || !bcrypt.compareSync(req.body.current_password, currentUser.password_hash)) {
-    setFlash(req, "error", "Aktuelles Passwort ist nicht korrekt.");
-    return res.redirect("/admin/benutzer");
-  }
-
-  db.prepare("UPDATE users SET password_hash = ?, must_change_password = 0, session_version = session_version + 1 WHERE id = ?")
-    .run(bcrypt.hashSync(req.body.new_password, PASSWORD_HASH_ROUNDS), currentUser.id);
-
-  req.session.user.mustChangePassword = false;
-  req.session.user.sessionVersion = Number(currentUser.session_version || 0) + 1;
-  createAuditLog(req, "self.password_change", { user_id: currentUser.id }, { entityType: "user", entityId: currentUser.id });
-  setFlash(req, "success", "Passwort wurde aktualisiert.");
-  res.redirect("/admin/benutzer");
-});
-
-app.post("/admin/import", requireAdmin, importUpload.single("import_file"), (req, res) => {
-  if (!req.file) {
-    setFlash(req, "error", "Bitte eine HeartPet JSON-Datei auswählen.");
-    return res.redirect("/admin/import");
-  }
-
-  try {
-    const payload = JSON.parse(req.file.buffer.toString("utf8"));
-    const animalData = payload.animal || {};
-    const related = payload.related || {};
-    const species = ensureSpeciesExists(animalData.species_name || "Unbekannt");
-
-    const insertAnimal = db.prepare(`
-      INSERT INTO animals (
-        name, species_id, sex, birth_date, intake_date, source, microchip_number, microchip_manufacturer, microchip_registry, status,
-        color, breed, weight_kg, veterinarian_id, notes,
-        status_changed_at, status_context_name, status_context_date, memorial_note, updated_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-    `);
-
-    const result = insertAnimal.run(
-      animalData.name || "Importiertes Tier",
-      species?.id || null,
-      animalData.sex || "",
-      animalData.birth_date || null,
-      animalData.intake_date || null,
-      animalData.source || "",
-      animalData.microchip_number || "",
-      animalData.microchip_manufacturer || "",
-      normalizeMicrochipRegistry(animalData.microchip_registry),
-      normalizeAnimalStatus(animalData.status),
-      animalData.color || "",
-      animalData.breed || "",
-      animalData.weight_kg || null,
-      null,
-      animalData.notes || "",
-      animalData.status_changed_at || null,
-      animalData.status_context_name || "",
-      animalData.status_context_date || "",
-      animalData.memorial_note || ""
-    );
-
-    const animalId = result.lastInsertRowid;
-    const tx = db.transaction(() => {
-      const importedMedicationIds = [];
-      const importedVaccinationIds = [];
-      const importedAppointmentIds = [];
-      (related.conditions || []).forEach((item) => {
-        db.prepare("INSERT INTO animal_conditions (animal_id, title, details) VALUES (?, ?, ?)")
-          .run(animalId, item.title, item.details || "");
-      });
-      (related.medications || []).forEach((item) => {
-        const inserted = db.prepare(`
-          INSERT INTO animal_medications (animal_id, name, dosage, schedule, start_date, end_date, reminder_enabled, notes)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
-          animalId,
-          item.name,
-          item.dosage || "",
-          item.schedule || "",
-          item.start_date || null,
-          item.end_date || null,
-          item.reminder_enabled ? 1 : 0,
-          item.notes || ""
-        );
-        importedMedicationIds.push(inserted.lastInsertRowid);
-      });
-      (related.vaccinations || []).forEach((item) => {
-        const inserted = db.prepare(`
-          INSERT INTO animal_vaccinations (animal_id, name, vaccination_date, next_due_date, reminder_enabled, notes)
-          VALUES (?, ?, ?, ?, ?, ?)
-        `).run(
-          animalId,
-          item.name,
-          item.vaccination_date || null,
-          item.next_due_date || null,
-          item.reminder_enabled ? 1 : 0,
-          item.notes || ""
-        );
-        importedVaccinationIds.push(inserted.lastInsertRowid);
-      });
-      (related.appointments || []).forEach((item) => {
-        const inserted = db.prepare(`
-          INSERT INTO animal_appointments (animal_id, title, appointment_at, location_mode, location_text, veterinarian_id, reminder_enabled, notes)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
-          animalId,
-          item.title,
-          item.appointment_at,
-          item.location_mode || "praxis",
-          item.location_text || "",
-          null,
-          item.reminder_enabled ? 1 : 0,
-          item.notes || ""
-        );
-        importedAppointmentIds.push(inserted.lastInsertRowid);
-      });
-      (related.feedings || []).forEach((item) => {
-        db.prepare(`
-          INSERT INTO animal_feedings (animal_id, label, time_of_day, food, amount, notes)
-          VALUES (?, ?, ?, ?, ?, ?)
-        `).run(animalId, item.label, item.time_of_day || "", item.food || "", item.amount || "", item.notes || "");
-      });
-      (related.notes || []).forEach((item) => {
-        db.prepare("INSERT INTO animal_notes (animal_id, title, content) VALUES (?, ?, ?)")
-          .run(animalId, item.title, item.content || "");
-      });
-      (related.documents || []).forEach((item) => {
-        const storedFile = restoreEmbeddedFile(item.embedded_file);
-        if (!storedFile) {
-          return;
-        }
-
-        db.prepare(`
-          INSERT INTO documents (animal_id, category_id, title, original_name, stored_name, mime_type, file_size)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-        `).run(
-          animalId,
-          resolveImportedCategoryId(item.category_name || item.category_id),
-          item.title || storedFile.original_name,
-          storedFile.original_name,
-          storedFile.stored_name,
-          storedFile.mime_type || "",
-          storedFile.file_size || 0
-        );
-      });
-      (related.images || []).forEach((item) => {
-        const storedFile = restoreEmbeddedFile(item.embedded_file);
-        if (!storedFile) {
-          return;
-        }
-
-        db.prepare(`
-          INSERT INTO animal_images (animal_id, title, original_name, stored_name, mime_type, file_size)
-          VALUES (?, ?, ?, ?, ?, ?)
-        `).run(
-          animalId,
-          item.title || "",
-          storedFile.original_name,
-          storedFile.stored_name,
-          storedFile.mime_type || "",
-          storedFile.file_size || 0
-        );
-      });
-      (related.reminders || []).filter((item) => !item.source_kind).forEach((item) => {
-        db.prepare(`
-          INSERT INTO reminders (
-            animal_id, title, reminder_type, due_at, channel_email, channel_telegram, repeat_interval_days, notes,
-            completed_at, last_notified_at, last_delivery_status, last_delivery_error, source_kind, source_id, source_index
-          )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
-          animalId,
-          item.title,
-          item.reminder_type || "Allgemein",
-          item.due_at,
-          item.channel_email || 0,
-          item.channel_telegram || 0,
-          item.repeat_interval_days || 0,
-          item.notes || "",
-          item.completed_at || null,
-          item.last_notified_at || null,
-          item.last_delivery_status || "pending",
-          item.last_delivery_error || "",
-          null,
-          null,
-          item.source_index || 0
-        );
-      });
-
-      importedMedicationIds.forEach((id) => syncMedicationReminders(animalId, id));
-      importedVaccinationIds.forEach((id) => syncVaccinationReminders(animalId, id));
-      importedAppointmentIds.forEach((id) => syncAppointmentReminders(animalId, id));
-
-      if (!isActiveAnimalStatus(animalData.status)) {
-        closeOpenRemindersForAnimal(animalId);
-      }
-    });
-
-    tx();
-    setFlash(req, "success", "HeartPet Export erfolgreich importiert.");
-  } catch (error) {
-    setFlash(req, "error", `Import fehlgeschlagen: ${error.message}`);
-  }
-
-  res.redirect("/admin/import");
-});
+app.use(createAdminSettingsRouter({
+  backTo,
+  createNotificationLog,
+  db,
+  getSettingsObject,
+  homematicSessionService,
+  isHttpUrl,
+  normalizeSettingsInputValue,
+  parseBooleanSettingValue,
+  parseCoopCameraLines,
+  requireAdmin,
+  resyncAllGeneratedReminders,
+  safeDeleteUploadedFile,
+  sendTestEmail,
+  sendTestNtfy,
+  sendTestTelegram,
+  setFlash,
+  upload,
+  upsertSetting,
+  verifySmtpConnection,
+}));
+
+app.use(createAdminUsersRouter({
+  PASSWORD_HASH_ROUNDS,
+  backTo,
+  createAuditLog,
+  db,
+  normalizeUserPermissions,
+  notifyAdminsAboutCreatedUser,
+  redirectAfterPost,
+  renderNotFound,
+  requestEmailChangeConfirmation,
+  requireAdmin,
+  safeLocalReturnPath,
+  sendInviteEmailForUser,
+  setFlash,
+  validateNewPassword,
+}));
+
+app.use(createAdminImportRouter({
+  closeOpenRemindersForAnimal,
+  db,
+  ensureSpeciesExists,
+  importUpload,
+  isActiveAnimalStatus,
+  normalizeAnimalStatus,
+  normalizeMicrochipRegistry,
+  requireAdmin,
+  resolveImportedCategoryId,
+  restoreEmbeddedFile,
+  setFlash,
+  syncAppointmentReminders,
+  syncMedicationReminders,
+  syncVaccinationReminders,
+}));
 
 app.get("/hilfe", (req, res) => {
   res.render("pages/help", { pageTitle: "Hilfe" });

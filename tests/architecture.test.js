@@ -57,6 +57,18 @@ test("Medizinische Tierdaten bleiben im Gesundheits-Router", () => {
   assert.match(router, /router\.post\("\/animals\/vaccinations\/bulk"/);
 });
 
+test("Tier-Einträge und Downloads bleiben in eigenen Routern", () => {
+  const appSource = fs.readFileSync(path.join(__dirname, "..", "src", "app.js"), "utf8");
+  const entries = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "animal-entries.js"), "utf8");
+  const downloads = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "animal-downloads.js"), "utf8");
+  assert.match(appSource, /app\.use\(createAnimalEntriesRouter/);
+  assert.match(appSource, /app\.use\(createAnimalDownloadsRouter/);
+  assert.doesNotMatch(appSource, /app\.(?:get|post)\("\/animals\/:.*\/(?:events|feedings|notes|export)/);
+  assert.doesNotMatch(appSource, /app\.get\("\/(?:documents\/:id\/download|vaccinations\/:id\/certificate)"/);
+  assert.match(entries, /router\.post\("\/animals\/:id\/events"/);
+  assert.match(downloads, /router\.get\("\/animals\/:id\/export\/pdf"/);
+});
+
 test("Angemeldete Erinnerungsaktionen bleiben im Erinnerungs-Router", () => {
   const appSource = fs.readFileSync(path.join(__dirname, "..", "src", "app.js"), "utf8");
   const router = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "animal-reminders.js"), "utf8");
@@ -77,6 +89,19 @@ test("Setup und Anmeldung bleiben im Auth-Router", () => {
   assert.match(router, /router\.post\("\/login"/);
   assert.match(router, /router\.post\("\/password-reset"/);
   assert.match(router, /router\.post\("\/invite\/accept"/);
+});
+
+test("Adminseiten, Einstellungen, Benutzer und Import bleiben fachlich getrennt", () => {
+  const appSource = fs.readFileSync(path.join(__dirname, "..", "src", "app.js"), "utf8");
+  const routeNames = ["admin-pages", "admin-user-pages", "admin-settings", "admin-users", "admin-import"];
+  routeNames.forEach((name) => {
+    const route = fs.readFileSync(path.join(__dirname, "..", "src", "routes", `${name}.js`), "utf8");
+    assert.match(route, /function createAdmin/);
+  });
+  assert.doesNotMatch(appSource, /app\.(?:get|post)\("\/admin\/(?:allgemein|stall|benutzer|settings|users|import)/);
+  assert.match(appSource, /app\.use\(createAdminSettingsRouter/);
+  assert.match(appSource, /app\.use\(createAdminUsersRouter/);
+  assert.match(appSource, /app\.use\(createAdminImportRouter/);
 });
 
 test("Stall-Endpunkte und Wetterlogik bleiben fachlich getrennt", () => {

@@ -2360,7 +2360,7 @@ test("Erfolgreiche Änderungen werden zusätzlich zentral im Audit-Log erfasst",
   assert.match(entry.details, /ntfy_topic/);
 });
 
-test("Gemeinsamer Eintragsweg speichert Fütterung und Notiz", async () => {
+test("Gemeinsamer Eintragsweg speichert Fütterung, Notiz und Erinnerung", async () => {
   const animalId = db.prepare("SELECT id FROM animals WHERE status = 'Aktiv' ORDER BY id ASC LIMIT 1").get()?.id;
   assert.ok(animalId);
 
@@ -2383,6 +2383,17 @@ test("Gemeinsamer Eintragsweg speichert Fütterung und Notiz", async () => {
   assert.equal(noteResponse.status, 302);
   const note = db.prepare("SELECT content FROM animal_notes WHERE animal_id = ? AND title = ?").get(animalId, "Beobachtung");
   assert.equal(note?.content, "Heute besonders aktiv");
+
+  const reminderResponse = await agent.post(`/animals/${animalId}/events`).type("form").send({
+    event_kind: "reminder",
+    title: "Kontrolle",
+    event_date: dayjs().add(2, "day").format("YYYY-MM-DD"),
+    event_time: "09:30",
+    notes: "Allgemeiner Kontrolltermin",
+    return_to: `/animals/${animalId}`,
+  });
+  assert.equal(reminderResponse.status, 302);
+  assert.ok(db.prepare("SELECT id FROM reminders WHERE animal_id = ? AND title = ?").get(animalId, "Kontrolle"));
 });
 
 test("Tierseite zeigt Tierarzt-Kontakt und einen einfachen Haupteinstieg", async () => {

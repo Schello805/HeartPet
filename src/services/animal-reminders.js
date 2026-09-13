@@ -240,6 +240,7 @@ function createAnimalReminderService({ db, getSettingsObject, parsePositiveInteg
     applyCompletionSideEffects,
     createSupplementalEventReminders,
     deleteGeneratedReminders,
+    getNotificationChannelDefaults,
     resyncAllGeneratedReminders,
     syncAppointmentReminders,
     syncMedicationReminders,
