@@ -1355,6 +1355,17 @@ test("Tierübersicht und Tierdetail bleiben im fachlichen Router und Service", (
   assert.match(service, /function buildDetailView\(/);
 });
 
+test("Tier-Stammdaten und Statuswechsel bleiben im fachlichen Router", () => {
+  const appSource = fs.readFileSync(path.join(__dirname, "..", "src", "app.js"), "utf8");
+  const router = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "animal-records.js"), "utf8");
+  assert.match(appSource, /app\.use\("\/animals", createAnimalRecordsRouter/);
+  assert.doesNotMatch(appSource, /app\.(?:get|post)\("\/animals\/(?:new|:id\/(?:edit|update|memorial-note|duplicate|delete))"/);
+  assert.match(router, /router\.post\("\/:id\/update"/);
+  assert.match(router, /router\.post\("\/:id\/memorial-note"/);
+  assert.match(router, /router\.post\("\/:id\/duplicate"/);
+  assert.match(router, /router\.post\("\/:id\/delete"/);
+});
+
 test("Stammdaten-Template bleibt mit einem älteren Serverstand renderbar", () => {
   const template = fs.readFileSync(path.join(__dirname, "..", "views", "pages", "admin-masterdata.ejs"), "utf8");
   assert.match(template, /typeof vaccinationPresets !== 'undefined'/);
