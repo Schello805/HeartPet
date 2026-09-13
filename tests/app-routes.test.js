@@ -517,7 +517,9 @@ test("Alle internen API- und Steuerungsrouten sind mit der vorgesehenen Methode 
     if (layer.route && typeof layer.route.path === "string") {
       return Object.keys(layer.route.methods).map((method) => `${method.toUpperCase()} ${prefix}${layer.route.path}`);
     }
-    if (Array.isArray(layer.handle?.stack)) return routeEntries(layer.handle.stack, "/admin");
+    if (Array.isArray(layer.handle?.stack)) {
+      return routeEntries(layer.handle.stack, layer.handle.heartpetMountPath || "/admin");
+    }
     return [];
   });
   const registered = new Set(routeEntries(app.router.stack));
@@ -1336,6 +1338,21 @@ test("Systemlog-Router kapselt SQL im Repository", () => {
   assert.doesNotMatch(router, /\bdb\.prepare\s*\(/);
   assert.match(repository, /notification_logs/);
   assert.match(repository, /audit_logs/);
+});
+
+test("Tierübersicht und Tierdetail bleiben im fachlichen Router und Service", () => {
+  const appSource = fs.readFileSync(path.join(__dirname, "..", "src", "app.js"), "utf8");
+  const router = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "animals.js"), "utf8");
+  const service = fs.readFileSync(path.join(__dirname, "..", "src", "services", "animal-workspace.js"), "utf8");
+  assert.match(appSource, /app\.use\("\/animals", createAnimalsRouter/);
+  assert.doesNotMatch(appSource, /app\.get\("\/animals"\s*,/);
+  assert.doesNotMatch(appSource, /app\.get\("\/animals\/historie"\s*,/);
+  assert.doesNotMatch(appSource, /app\.get\("\/animals\/:id"\s*,/);
+  assert.match(router, /router\.get\("\/historie"/);
+  assert.match(router, /router\.get\(\/\^\\\/\(\\d\+\)\$\//);
+  assert.doesNotMatch(router, /\bdb\.prepare\s*\(/);
+  assert.match(service, /function buildWorkspace\(/);
+  assert.match(service, /function buildDetailView\(/);
 });
 
 test("Stammdaten-Template bleibt mit einem älteren Serverstand renderbar", () => {

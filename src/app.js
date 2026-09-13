@@ -69,6 +69,8 @@ const {
   resolveRenewedSessionId: resolveRenewedHomematicSid,
   shouldReplaceSessionAfterRenewError: shouldReplaceHomematicSessionAfterRenewError,
 } = require("./services/homematic-session");
+const { createAnimalWorkspaceService } = require("./services/animal-workspace");
+const { createAnimalsRouter } = require("./routes/animals");
 const { createMasterdataRouter } = require("./routes/masterdata");
 const { createSystemlogRouter } = require("./routes/systemlog");
 const { createErrorHandler } = require("./middleware/error-handler");
@@ -102,6 +104,24 @@ const homematicSessionService = createHomematicSessionService({
   persistSessionId: (sid) => upsertSetting(db, "homematic_ccu_session_id", sid),
 });
 const loginHomematicCcu = homematicSessionService.login;
+const animalWorkspace = createAnimalWorkspaceService({
+  db,
+  animalRepository,
+  attachAnimalWorkspaceMeta,
+  attachNextTermData,
+  buildAnimalTimeline,
+  buildMicrochipLinks,
+  buildReminderSourceMap,
+  filterDocuments,
+  getAnimalActivityEntries,
+  getAnimalSectionConfig,
+  getMissingRequiredCategories,
+  isAnimalProfileIncomplete,
+  listActiveSpecies,
+  sortAnimals,
+  splitReminders,
+  summarizeReminderState,
+});
 
 app.set("view engine", "ejs");
 app.set("views", path.join(projectRoot, "views"));
@@ -1294,110 +1314,18 @@ app.post("/admin/coop/door-test/:direction", requireAdmin, async (req, res) => {
   }
 });
 
-app.get("/animals/historie", (req, res) => {
-  renderAnimalsWorkspace(req, res, "history");
-});
-
-app.get("/animals/history", (req, res) => {
-  res.redirect("/animals/historie");
-});
-
-app.get("/animals/ruhestaette", (req, res) => {
-  res.redirect("/animals/historie?status=Verstorben");
-});
-
-app.get("/animals/ruhestatte", (req, res) => {
-  res.redirect("/animals/historie?status=Verstorben");
-});
-
 app.get("/suche", (req, res) => {
   const q = String(req.query.q || "").trim();
   return res.redirect(q ? `/?q=${encodeURIComponent(q)}` : "/");
 });
 
-app.get("/animals", (req, res) => {
-  renderAnimalsWorkspace(req, res, "active");
-});
-
-function renderAnimalsWorkspace(req, res, section = "active") {
-  const sectionConfig = getAnimalSectionConfig(section);
-  const search = (req.query.q || "").trim();
-  const requestedStatus = (req.query.status || "").trim();
-  const speciesId = (req.query.species_id || "").trim();
-  const sort = (req.query.sort || "name_asc").trim();
-  const selectedAnimalId = (req.query.animal_id || "").trim();
-  const page = Math.max(Number.parseInt(req.query.page || "1", 10) || 1, 1);
-  const pageSize = 25;
-  const allowedStatuses = sectionConfig.allowedStatuses;
-  const status = sectionConfig.allowStatusFilter && allowedStatuses.includes(requestedStatus)
-    ? requestedStatus
-    : sectionConfig.defaultStatus;
-
-  let sql = `
-    SELECT
-      animals.*,
-      species.name AS species_name,
-      COALESCE(veterinarians.name, species_vet.name) AS veterinarian_name
-    FROM animals
-    LEFT JOIN species ON species.id = animals.species_id
-    LEFT JOIN veterinarians ON veterinarians.id = animals.veterinarian_id
-    LEFT JOIN veterinarians AS species_vet ON species_vet.id = species.default_veterinarian_id
-    WHERE 1 = 1
-  `;
-  const params = [];
-
-  if (search) {
-    sql += ` AND (animals.name LIKE ? OR animals.source LIKE ? OR animals.breed LIKE ?)`;
-    params.push(`%${search}%`, `%${search}%`, `%${search}%`);
-  }
-
-  if (status) {
-    sql += ` AND animals.status = ?`;
-    params.push(status);
-  } else if (allowedStatuses.length) {
-    const placeholders = allowedStatuses.map(() => "?").join(", ");
-    sql += ` AND animals.status IN (${placeholders})`;
-    params.push(...allowedStatuses);
-  }
-
-  if (speciesId) {
-    sql += ` AND animals.species_id = ?`;
-    params.push(speciesId);
-  }
-  const allAnimals = db.prepare(sql).all(...params);
-  const animalsWithNextTerm = attachAnimalWorkspaceMeta(attachNextTermData(allAnimals));
-  const sortedAnimals = sortAnimals(animalsWithNextTerm, sort);
-  const totalCount = sortedAnimals.length;
-  const totalPages = Math.max(Math.ceil(totalCount / pageSize), 1);
-  const currentPage = Math.min(page, totalPages);
-  const startIndex = (currentPage - 1) * pageSize;
-  const animals = sortedAnimals.slice(startIndex, startIndex + pageSize);
-  const selectedAnimal = selectedAnimalId
-    ? animals.find((item) => String(item.id) === String(selectedAnimalId)) || sortedAnimals.find((item) => String(item.id) === String(selectedAnimalId)) || null
-    : null;
-
-  res.render("pages/animals-index", {
-    pageTitle: sectionConfig.pageTitle,
-    animals,
-    selectedAnimal,
-    selectedAnimalView: selectedAnimal ? buildAnimalDetailViewData(selectedAnimal.id, req) : null,
-    filters: { search, status, speciesId, sort },
-    animalSection: sectionConfig,
-    speciesOptions: listActiveSpecies(),
-    pagination: {
-      currentPage,
-      totalPages,
-      totalCount,
-      pageSize,
-    },
-  });
-}
-
-app.get("/animals/suggest", renderSearchSuggestions);
 app.get("/admin/suggest", renderSearchSuggestions);
-app.get("/animals/systemlog", requireAdmin, (req, res) => {
-  res.redirect("/admin/systemlog");
-});
+app.use("/animals", createAnimalsRouter({
+  animalWorkspace,
+  renderNotFound,
+  renderSearchSuggestions,
+  requireAdmin,
+}));
 app.get("/admin/systemlog/systemlog", requireAdmin, (req, res) => {
   res.redirect("/admin/systemlog");
 });
@@ -1554,31 +1482,6 @@ app.post("/animals/vaccinations/bulk", requireAnimalPermission("canManageHealth"
   }, { entityType: "vaccination", entityId: createdVaccinations[0]?.vaccinationId || null });
   setFlash(req, "success", `Impfung wurde für ${eligibleAnimals.length} Tiere eingetragen.`);
   return res.redirect(returnTo);
-});
-
-app.get("/animals/:id", (req, res) => {
-  const animalView = buildAnimalDetailViewData(req.params.id, req);
-  if (!animalView) {
-    return renderNotFound(req, res, "Tier nicht gefunden.");
-  }
-
-  res.render("pages/animal-show", {
-    pageTitle: animalView.animal.name,
-    ...animalView,
-  });
-});
-
-app.get("/animals/:id/workspace-panel", (req, res) => {
-  const animalView = buildAnimalDetailViewData(req.params.id, req);
-  if (!animalView) {
-    return renderNotFound(req, res, "Tier nicht gefunden.");
-  }
-
-  const selectedAnimal = attachAnimalWorkspaceMeta(attachNextTermData([animalView.animal]))[0] || animalView.animal;
-  res.render("pages/animal-workspace-detail", {
-    selectedAnimal,
-    selectedAnimalView: animalView,
-  });
 });
 
 function renderAnimalEntryDrawer(req, res, { entryType, mode = "create", item = null }) {
@@ -4290,51 +4193,6 @@ function findAnimal(id) {
 
 function getAnimalRelatedData(animalId) {
   return animalRepository.getRelated(animalId);
-}
-
-function buildAnimalDetailViewData(animalId, req) {
-  const animal = findAnimal(animalId);
-  if (!animal) {
-    return null;
-  }
-
-  const related = getAnimalRelatedData(animalId);
-  const categories = db.prepare("SELECT * FROM document_categories ORDER BY name ASC").all();
-  const missingRequiredCategories = getMissingRequiredCategories(categories, related.documents);
-  const documentFilter = {
-    categoryId: req.query.documentCategory || "",
-    fileType: req.query.documentType || "",
-  };
-  const editState = {
-    type: req.query.editType || "",
-    id: req.query.editId ? Number(req.query.editId) : null,
-  };
-
-  return {
-    animal,
-    microchipLinks: buildMicrochipLinks(animal),
-    related: {
-      ...related,
-      documents: filterDocuments(related.documents, documentFilter),
-    },
-    reminderBuckets: splitReminders(related.reminders),
-    sourceReminderMap: buildReminderSourceMap(related.reminders),
-    manualReminders: (related.reminders || []).filter((item) => !item.source_kind),
-    reminderStats: summarizeReminderState(related.reminders || []),
-    editState,
-    categories,
-    documentFilter,
-    missingRequiredCategories,
-    workflowSummary: {
-      missingRequiredCategories,
-      isProfileIncomplete: isAnimalProfileIncomplete(animal),
-      hasVeterinarian: Boolean(animal.veterinarian_name || animal.species_veterinarian_name),
-    },
-    timeline: buildAnimalTimeline(related),
-    activityLog: getAnimalActivityEntries(animalId),
-    species: db.prepare("SELECT * FROM species ORDER BY name ASC").all(),
-    veterinarians: db.prepare("SELECT * FROM veterinarians ORDER BY name ASC").all(),
-  };
 }
 
 function buildGlobalSearchResults(rawQuery) {
