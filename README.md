@@ -78,6 +78,8 @@ Erst danach wird die normale Oberfläche freigeschaltet.
 HeartPet liest derzeit folgende Umgebungsvariablen:
 
 - `PORT`
+- `HEARTPET_HOST` (optional, Standard: `0.0.0.0` fuer Zugriff im Heimnetz; `127.0.0.1` fuer nur lokal)
+- `HEARTPET_APP_URL` (optional, Basis-URL fuer Links in E-Mails/Erinnerungen, falls keine Domain in den Einstellungen gesetzt ist)
 - `HEARTPET_SESSION_SECRET`
 - `HEARTPET_SESSION_DAYS` (optional, Standard: `30`)
 - `HEARTPET_SESSION_STORE` (optional; `memory` wird aus Sicherheitsgründen ausschließlich mit `NODE_ENV=test` verwendet)
@@ -93,6 +95,13 @@ Wenn du HeartPet per `systemd` startest, kannst du die Werte direkt über `Envir
 - Exporte: `data/exports`
 - Sessions: `data/sessions.sqlite`
 - Backups: `data/backups`
+
+Tier-Profilbilder und Galeriebilder werden beim Upload automatisch auf WebP verkleinert. Bereits vorhandene Tierbilder kannst du erst prüfen und danach gezielt optimieren:
+
+```bash
+npm run images:audit
+npm run images:optimize
+```
 
 ## Reverse Proxy / SSL
 

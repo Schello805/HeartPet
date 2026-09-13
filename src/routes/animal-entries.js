@@ -2,7 +2,6 @@ const express = require("express");
 const dayjs = require("dayjs");
 
 function createAnimalEntriesRouter({
-  appendVeterinarianNote,
   buildPermissions,
   combineDateAndTime,
   createAuditLog,
@@ -11,21 +10,25 @@ function createAnimalEntriesRouter({
   findAnimal,
   getAnimalReturnTo,
   getCurrentUserRecord,
-  getNotificationChannelDefaults,
   getVaccinationCertificateError,
   getVaccinationSuggestionsForSpecies,
   isDrawerRequest,
   redirectDocumentDrawerRequest,
   renderNotFound,
   requireAnimalPermission,
+  reminders,
   safeLocalReturnPath,
   setFlash,
-  syncAppointmentReminders,
-  syncMedicationReminders,
-  syncVaccinationReminders,
   upload,
 }) {
   const router = express.Router();
+  const {
+    appendVeterinarianNote,
+    getNotificationChannelDefaults,
+    syncAppointmentReminders,
+    syncMedicationReminders,
+    syncVaccinationReminders,
+  } = reminders;
 
   function renderAnimalEntryDrawer(req, res, { entryType, mode = "create", item = null }) {
     const animal = findAnimal(req.params.id || req.params.animalId);

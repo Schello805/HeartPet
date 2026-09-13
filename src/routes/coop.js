@@ -2,18 +2,17 @@ const { Readable } = require("stream");
 const express = require("express");
 
 function createCoopRouter({
-  db, getSettingsObject, getHomematicDoorCommand, executeHomematicDoorDirection,
-  createAuditLog, parseHomematicStateChange, setFlash, parseCoopCameras, streamRtspCamera,
+  db, getSettingsObject, homematic,
+  createAuditLog, setFlash, parseCoopCameras, streamRtspCamera,
   fetchCameraStream, redactSensitiveText, cameraFrameCache, readCameraFrameCache,
   captureCameraFrame, writeCameraFrameCache, describeFetchError, buildCameraPlaceholderSvg,
-  checkRtspCamera, requireAdmin, readHomematicClimateFromCcu, getHomematicClimateDatapointIds,
-  buildHomematicXmlApiUrl, fetchWithTimeout, decodeHomematicXmlBuffer, parseHomematicDatapoints,
+  checkRtspCamera, requireAdmin,
 }) {
   const router = express.Router();
 
   router.post("/coop/door/open", async (req, res) => {
     const settings = getSettingsObject(db);
-    const command = getHomematicDoorCommand(settings, true);
+    const command = homematic.getDoorCommand(settings, true);
     console.info(`[HeartPet][CCU][door-open] Bedienung durch Benutzer ${req.user?.id || "unbekannt"} angefordert.`);
     if (!command) {
       setFlash(req, "error", "Für die Stalltür ist noch kein gültiger Homematic-Befehl hinterlegt.");
@@ -21,7 +20,7 @@ function createCoopRouter({
     }
   
     try {
-      const result = await executeHomematicDoorDirection(settings, true);
+      const result = await homematic.executeDoorDirection(settings, true);
       createAuditLog(req, "coop.door_open", result, { entityType: "coop" });
       if (result.sensorConfigured && !result.sensorConfirmed) {
         setFlash(req, "error", "Der Öffnungsbefehl wurde von der CCU angenommen, der Türsensor hat die offene Endlage aber nicht bestätigt.");
@@ -34,7 +33,7 @@ function createCoopRouter({
       console.error(`[HeartPet][CCU][door-open] Fehlgeschlagen: ${error.message}`);
       createAuditLog(req, "coop.door_open_failed", {
         error: error.message,
-        state_change: parseHomematicStateChange(command),
+        state_change: homematic.parseStateChange(command),
       }, { entityType: "coop" });
       setFlash(req, "error", `Die Stalltür konnte nicht geöffnet werden: ${error.message}`);
     }
@@ -43,7 +42,7 @@ function createCoopRouter({
   
   router.post("/coop/door/close", async (req, res) => {
     const settings = getSettingsObject(db);
-    const command = getHomematicDoorCommand(settings, false);
+    const command = homematic.getDoorCommand(settings, false);
     console.info(`[HeartPet][CCU][door-close] Bedienung durch Benutzer ${req.user?.id || "unbekannt"} angefordert.`);
     if (!command) {
       setFlash(req, "error", "Für das Schließen der Stalltür ist noch kein gültiger Homematic-Befehl hinterlegt.");
@@ -51,7 +50,7 @@ function createCoopRouter({
     }
   
     try {
-      const result = await executeHomematicDoorDirection(settings, false);
+      const result = await homematic.executeDoorDirection(settings, false);
       createAuditLog(req, "coop.door_close", result, { entityType: "coop" });
       if (result.sensorConfigured && !result.sensorConfirmed) {
         setFlash(req, "error", "Der Schließbefehl wurde von der CCU angenommen, der Türsensor hat die geschlossene Endlage aber nicht bestätigt.");
@@ -64,7 +63,7 @@ function createCoopRouter({
       console.error(`[HeartPet][CCU][door-close] Fehlgeschlagen: ${error.message}`);
       createAuditLog(req, "coop.door_close_failed", {
         error: error.message,
-        state_change: parseHomematicStateChange(command),
+        state_change: homematic.parseStateChange(command),
       }, { entityType: "coop" });
       setFlash(req, "error", `Die Stalltür konnte nicht geschlossen werden: ${error.message}`);
     }
@@ -192,12 +191,12 @@ function createCoopRouter({
   
   router.get("/admin/coop/climate-status", requireAdmin, async (req, res) => {
     const settings = getSettingsObject(db);
-    const climate = await readHomematicClimateFromCcu(settings);
+    const climate = await homematic.readClimate(settings);
     if (climate.error) {
       createAuditLog(req, "coop.climate_check_failed", {
         stage: climate.stage,
         error: climate.error,
-        datapoints: getHomematicClimateDatapointIds(settings),
+        datapoints: homematic.getClimateDatapointIds(settings),
       }, { entityType: "coop" });
       return res.status(502).json({
         ok: false,
@@ -221,14 +220,8 @@ function createCoopRouter({
   
   router.get("/admin/coop/homematic-datapoints", requireAdmin, async (req, res) => {
     const settings = getSettingsObject(db);
-    const url = buildHomematicXmlApiUrl(settings, "statelist.cgi");
-    if (!url) return res.status(400).json({ ok: false, error: "Bitte zuerst XML-API-Adresse und Token speichern." });
     try {
-      const response = await fetchWithTimeout(url, 15000);
-      if (!response.ok) throw new Error(`XML-API antwortet mit HTTP ${response.status}.`);
-      const xml = decodeHomematicXmlBuffer(await response.arrayBuffer(), response.headers.get("content-type"));
-      if (/<not_authenticated\b/i.test(xml)) throw new Error("XML-API-Token ist ungültig oder fehlt.");
-      const datapoints = parseHomematicDatapoints(xml);
+      const datapoints = await homematic.discoverDatapoints(settings);
       console.info(`[HeartPet][CCU][discovery] ${datapoints.length} Datenpunkte geladen.`);
       return res.json({ ok: true, datapoints });
     } catch (error) {
@@ -241,10 +234,10 @@ function createCoopRouter({
     const open = req.params.direction === "open";
     if (!open && req.params.direction !== "close") return res.status(404).json({ ok: false, error: "Unbekannte Türrichtung." });
     const settings = getSettingsObject(db);
-    const command = getHomematicDoorCommand(settings, open);
+    const command = homematic.getDoorCommand(settings, open);
     if (!command) return res.status(400).json({ ok: false, error: "Tür-Datenpunkt und Schaltwerte zuerst speichern." });
     try {
-      const result = await executeHomematicDoorDirection(settings, open);
+      const result = await homematic.executeDoorDirection(settings, open);
       createAuditLog(req, open ? "coop.door_open_test" : "coop.door_close_test", result, { entityType: "coop" });
       return res.json({
         ok: true,

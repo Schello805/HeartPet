@@ -4,7 +4,7 @@ const express = require("express");
 function createAnimalMediaRouter({
   db, uploadsDir, upload, requireAnimalPermission, safeLocalReturnPath, setFlash,
   createAuditLog, resolveStoredFilePath, safeDeleteUploadedFile, findAnimal,
-  renderNotFound, deleteUploadedFileIfUnreferenced,
+  renderNotFound, deleteUploadedFileIfUnreferenced, optimizeAnimalImageUpload,
 }) {
   const router = express.Router();
 
@@ -81,7 +81,7 @@ function createAnimalMediaRouter({
     res.redirect(`/animals/${req.params.animalId}`);
   });
   
-  router.post("/animals/:id/profile-image", requireAnimalPermission("canManageGallery"), upload.single("profile_image"), (req, res) => {
+  router.post("/animals/:id/profile-image", requireAnimalPermission("canManageGallery"), upload.single("profile_image"), async (req, res) => {
     const animal = findAnimal(req.params.id);
     if (!animal) {
       return renderNotFound(req, res, "Tier nicht gefunden.");
@@ -96,6 +96,11 @@ function createAnimalMediaRouter({
       safeDeleteUploadedFile(req.file.filename);
       setFlash(req, "error", "Es können nur Bilddateien als Profilbild gespeichert werden.");
       return res.redirect(`/animals/${req.params.id}`);
+    }
+
+    const imageOptimization = await optimizeAnimalImageUpload(req.file);
+    if (imageOptimization.error) {
+      console.warn("[HeartPet] Profilbild konnte nicht optimiert werden:", imageOptimization.error.message);
     }
   
     db.prepare(`
@@ -141,7 +146,7 @@ function createAnimalMediaRouter({
     res.redirect(`/animals/${req.params.id}`);
   });
   
-  router.post("/animals/:id/images", requireAnimalPermission("canManageGallery"), upload.single("image"), (req, res) => {
+  router.post("/animals/:id/images", requireAnimalPermission("canManageGallery"), upload.single("image"), async (req, res) => {
     const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.id}`);
     if (!req.file) {
       setFlash(req, "error", "Bitte ein Bild auswählen.");
@@ -152,6 +157,11 @@ function createAnimalMediaRouter({
       safeDeleteUploadedFile(req.file.filename);
       setFlash(req, "error", "Es können nur Bilddateien hochgeladen werden.");
       return res.redirect(`/animals/${req.params.id}/images/new?return_to=${encodeURIComponent(returnTo)}`);
+    }
+
+    const imageOptimization = await optimizeAnimalImageUpload(req.file);
+    if (imageOptimization.error) {
+      console.warn("[HeartPet] Galeriebild konnte nicht optimiert werden:", imageOptimization.error.message);
     }
   
     const result = db.prepare(`

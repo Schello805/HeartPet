@@ -1,6 +1,6 @@
 const express = require("express");
 
-function createAnimalsRouter({ animalWorkspace, renderNotFound, renderSearchSuggestions, requireAdmin }) {
+function createAnimalsRouter({ animalWorkspace, renderNotFound, requireAdmin }) {
   const router = express.Router();
 
   router.get("/historie", (req, res) => res.render("pages/animals-index", animalWorkspace.buildWorkspace(req, "history")));
@@ -8,7 +8,6 @@ function createAnimalsRouter({ animalWorkspace, renderNotFound, renderSearchSugg
   router.get("/ruhestaette", (req, res) => res.redirect("/animals/historie?status=Verstorben"));
   router.get("/ruhestatte", (req, res) => res.redirect("/animals/historie?status=Verstorben"));
   router.get("/", (req, res) => res.render("pages/animals-index", animalWorkspace.buildWorkspace(req, "active")));
-  router.get("/suggest", renderSearchSuggestions);
   router.get("/systemlog", requireAdmin, (req, res) => res.redirect("/admin/systemlog"));
   router.get(/^\/(\d+)\/workspace-panel$/, (req, res) => {
     const animalId = req.params[0];

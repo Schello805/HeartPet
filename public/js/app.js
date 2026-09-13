@@ -684,7 +684,7 @@ function initDrawerForms(scope = document) {
           initVeterinarianContactPopover();
           initSpeciesAutocomplete();
           initRequiredMarks();
-          initAnimalStatusWorkflow(drawerBody);
+          window.HeartPetAnimalStatus?.init(drawerBody);
           initEventFormBehavior(drawerBody);
           initVaccinationPresets(drawerBody);
           initBulkSelection(drawerBody);
@@ -806,7 +806,7 @@ async function openDrawer(urlLike) {
     initVeterinarianContactPopover();
     initSpeciesAutocomplete();
     initRequiredMarks();
-    initAnimalStatusWorkflow(drawerBody);
+    window.HeartPetAnimalStatus?.init(drawerBody);
     initEventFormBehavior(drawerBody);
     initVaccinationPresets(drawerBody);
     initBulkSelection(drawerBody);
@@ -872,11 +872,11 @@ function initDrawerNavigation() {
 function initAutoDrawerOpen() {
   const url = new URL(window.location.href);
   const drawerPath = url.searchParams.get("drawer");
-  if (!drawerPath || document.body.dataset.autoDrawerHandled === "1") {
+  if (!drawerPath || document.body.dataset.autoDrawerHandled === drawerPath) {
     return;
   }
 
-  document.body.dataset.autoDrawerHandled = "1";
+  document.body.dataset.autoDrawerHandled = drawerPath;
   url.searchParams.delete("drawer");
   const cleaned = `${url.pathname}${url.search}${url.hash}`;
   window.history.replaceState({}, "", cleaned);
@@ -1083,196 +1083,6 @@ function initVaccinationPresets(scope = document) {
         target.value = select.value;
       }
       target.dispatchEvent(new Event("input", { bubbles: true }));
-    });
-  });
-}
-
-function initAnimalStatusWorkflow(scope = document) {
-  scope.querySelectorAll("[data-status-workflow]").forEach((workflow) => {
-    if (workflow.dataset.bound === "1") {
-      return;
-    }
-    workflow.dataset.bound = "1";
-
-    const form = workflow.closest("form");
-    const statusSelect = form?.querySelector("[data-animal-status-select]");
-    const chip = workflow.querySelector("[data-status-workflow-chip]");
-    const confirmWrap = workflow.querySelector("[data-status-confirm-wrap]");
-    const confirmInput = workflow.querySelector("[data-status-confirm-input]");
-    const confirmLabel = workflow.querySelector("[data-status-confirm-label]");
-    const remindersWrap = workflow.querySelector("[data-status-reminders-wrap]");
-    const remindersInput = workflow.querySelector("[data-status-reminders-input]");
-    const detailWrap = workflow.querySelector("[data-status-detail-wrap]");
-    const originalStatus = String(workflow.getAttribute("data-original-status") || "Aktiv").trim();
-    const confirmLabels = {
-      Vermittelt: "Ich bestätige, dass dieses Tier als vermittelt in die Historie wechseln soll.",
-      Verkauft: "Ich bestätige, dass dieses Tier als verkauft in die Historie wechseln soll.",
-      Verstorben: "Ich bestätige, dass dieses Tier als verstorben in die Historie wechseln soll.",
-    };
-    const chipTones = {
-      Aktiv: "status-success",
-      Vermittelt: "status-warning",
-      Verkauft: "status-warning",
-      Verstorben: "status-muted",
-    };
-    const detailRequirements = {
-      Vermittelt: { nameRequired: true, dateRequired: true },
-      Verkauft: { nameRequired: true, dateRequired: true },
-      Verstorben: { nameRequired: false, dateRequired: true },
-    };
-
-    const updateStatusWorkflow = () => {
-      const selectedStatus = String(statusSelect?.value || "Aktiv").trim();
-      const requiresConfirmation = originalStatus === "Aktiv" && selectedStatus !== "Aktiv";
-
-      workflow.querySelectorAll("[data-status-panel]").forEach((panel) => {
-        panel.classList.toggle("d-none", panel.getAttribute("data-status-panel") !== selectedStatus);
-      });
-
-      if (chip) {
-        chip.textContent = selectedStatus;
-        chip.classList.remove("status-success", "status-warning", "status-muted");
-        chip.classList.add(chipTones[selectedStatus] || "status-muted");
-      }
-
-      if (confirmWrap) {
-        confirmWrap.classList.toggle("d-none", !requiresConfirmation);
-      }
-
-      if (confirmInput) {
-        confirmInput.required = requiresConfirmation;
-        if (!requiresConfirmation) {
-          confirmInput.checked = false;
-          confirmInput.setCustomValidity("");
-        }
-      }
-
-      if (confirmLabel) {
-        confirmLabel.textContent = confirmLabels[selectedStatus] || "";
-      }
-
-      const canChooseReminderClosure = requiresConfirmation && ["Vermittelt", "Verkauft"].includes(selectedStatus);
-      if (remindersWrap) {
-        remindersWrap.classList.toggle("d-none", !canChooseReminderClosure);
-      }
-      if (remindersInput && !canChooseReminderClosure) {
-        remindersInput.checked = false;
-      }
-
-      if (detailWrap) {
-        const showDetails = selectedStatus !== "Aktiv";
-        detailWrap.classList.toggle("d-none", !showDetails);
-        detailWrap.querySelectorAll("[data-status-detail-panel]").forEach((panel) => {
-          const panelStatus = panel.getAttribute("data-status-detail-panel");
-          const active = panelStatus === selectedStatus;
-          panel.classList.toggle("d-none", !active);
-          const requirements = detailRequirements[selectedStatus] || { nameRequired: false, dateRequired: false };
-          const nameInput = panel.querySelector("[data-status-detail-name]");
-          const dateInput = panel.querySelector("[data-status-detail-date]");
-          if (nameInput) {
-            nameInput.required = active && requirements.nameRequired;
-          }
-          if (dateInput) {
-            dateInput.required = active && requirements.dateRequired;
-          }
-        });
-      }
-    };
-
-    statusSelect?.addEventListener("change", updateStatusWorkflow);
-    updateStatusWorkflow();
-  });
-}
-
-function initGlobalSearchAutocomplete() {
-  document.querySelectorAll("[data-global-search-autocomplete='true']").forEach((input) => {
-    if (input.dataset.bound === "1") {
-      return;
-    }
-    input.dataset.bound = "1";
-
-    const field = input.closest(".search-autocomplete-field") || input.parentElement;
-    if (!field) {
-      return;
-    }
-
-    let list = field.querySelector(".global-search-suggest");
-    if (!list) {
-      list = document.createElement("div");
-      list.className = "global-search-suggest";
-      field.appendChild(list);
-    }
-
-    let timer = null;
-    let latestQuery = "";
-
-    const escapeHtml = (value) =>
-      String(value || "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;");
-
-    const hide = () => {
-      list.innerHTML = "";
-      list.classList.remove("visible");
-    };
-
-    input.addEventListener("input", () => {
-      window.clearTimeout(timer);
-      const query = input.value.trim();
-      latestQuery = query;
-      if (query.length < 2) {
-        hide();
-        return;
-      }
-
-      timer = window.setTimeout(async () => {
-        try {
-          const response = await fetch(`/api/search/suggest?q=${encodeURIComponent(query)}`);
-          if (!response.ok) {
-            hide();
-            return;
-          }
-          const payload = await response.json();
-          if (latestQuery !== query) {
-            return;
-          }
-          if (!Array.isArray(payload.results) || payload.results.length === 0) {
-            hide();
-            return;
-          }
-
-          list.innerHTML = payload.results
-            .map((item) => `
-              <a class="global-search-suggest-item" href="${escapeHtml(item.href)}">
-                <strong>${escapeHtml(item.title)}</strong>
-                <span>${escapeHtml(item.kind)} | ${escapeHtml(item.subtitle || "-")}</span>
-              </a>
-            `)
-            .join("");
-          list.classList.add("visible");
-        } catch (error) {
-          console.error("Globale Suche konnte nicht geladen werden", error);
-          hide();
-        }
-      }, 140);
-    });
-
-    input.addEventListener("blur", () => {
-      window.setTimeout(() => {
-        if (!list.matches(":hover")) {
-          hide();
-        }
-      }, 120);
-    });
-
-    input.addEventListener("focus", () => {
-      const hasValue = input.value.trim().length >= 2;
-      const hasItems = list.children.length > 0;
-      if (hasValue && hasItems) {
-        list.classList.add("visible");
-      }
     });
   });
 }
@@ -1538,12 +1348,12 @@ function initPage() {
   initDrawerForms();
   initSpeciesAutocomplete();
   initRequiredMarks();
-  initAnimalStatusWorkflow();
+  window.HeartPetAnimalStatus?.init();
   initProfileUploadAutoSubmit();
   initEventFormBehavior();
   initVaccinationPresets();
   initBulkSelection();
-  initGlobalSearchAutocomplete();
+  window.HeartPetGlobalSearch?.init();
   initAnimalWorkspace();
   initCameraDiagnostics();
   window.HeartPetDashboardCustomizer?.init();

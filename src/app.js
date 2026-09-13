@@ -3,7 +3,6 @@ const path = require("path");
 const crypto = require("crypto");
 const express = require("express");
 const { rateLimit } = require("express-rate-limit");
-const cron = require("node-cron");
 const dayjs = require("dayjs");
 
 const { initDatabase, getSettingsObject, upsertSetting } = require("./db");
@@ -25,6 +24,9 @@ const {
 } = require("./view-helpers");
 const {
   processDueReminders,
+  sendEmailReminder,
+  sendTelegramReminder,
+  sendNtfyReminder,
   sendDailyDigestEmail,
   sendDailyDigestTelegram,
   sendDailyDigestNtfy,
@@ -49,6 +51,7 @@ const { PASSWORD_HASH_ROUNDS, validateNewPassword } = require("./password-securi
 const { buildAnimalTimeline } = require("./animal-timeline");
 const { createAnimalRepository } = require("./animal-repository");
 const { createSystemlogRepository } = require("./repositories/systemlog-repository");
+const { createReminderRepository } = require("./repositories/reminder-repository");
 const { buildCoreOperationalChecks, summarizeOperationalChecks } = require("./operational-health");
 const { getVaccinationSuggestionGroups, getVaccinationSuggestionsForSpecies } = require("./vaccination-suggestions");
 const { resolveStoredFilePath } = require("./storage-paths");
@@ -66,7 +69,32 @@ const {
   resolveRenewedSessionId: resolveRenewedHomematicSid,
   shouldReplaceSessionAfterRenewError: shouldReplaceHomematicSessionAfterRenewError,
 } = require("./services/homematic-session");
+const { createHomematicService } = require("./services/homematic");
+const {
+  buildHomematicClimateUrl,
+  buildHomematicCommandUrl,
+  buildHomematicXmlApiUrl,
+  callHomematicJsonRpc,
+  decodeHomematicXmlBuffer,
+  findHomematicValue,
+  findHomematicXmlDatapoint,
+  getHomematicApiUrl,
+  getHomematicCommandResponseError,
+  getHomematicDoorCommand,
+  getHomematicDoorCommandSequence,
+  isCameraUrl,
+  isHttpUrl,
+  isRtspUrl,
+  normalizeConfiguredUrl,
+  normalizeHomematicXmlApiToken,
+  parseHomematicDatapoints,
+  parseHomematicStateChange,
+  parseHomematicTextValue,
+  parseWritableHomematicDatapoints,
+} = require("./services/homematic-utils");
 const { createAnimalWorkspaceService } = require("./services/animal-workspace");
+const { createDashboardService } = require("./services/dashboard");
+const { createSearchService } = require("./services/search");
 const { createAnimalsRouter } = require("./routes/animals");
 const { createAnimalRecordsRouter } = require("./routes/animal-records");
 const { createAnimalMediaRouter } = require("./routes/animal-media");
@@ -75,6 +103,9 @@ const { createAnimalHealthRouter } = require("./routes/animal-health");
 const { createAnimalEntriesRouter } = require("./routes/animal-entries");
 const { createAnimalRemindersRouter } = require("./routes/animal-reminders");
 const { createAuthRouter } = require("./routes/auth");
+const { createDashboardRouter } = require("./routes/dashboard");
+const { createReminderActionsRouter } = require("./routes/reminder-actions");
+const { createReminderApiRouter } = require("./routes/reminder-api");
 const { createAdminPagesRouter } = require("./routes/admin-pages");
 const { createAdminUserPagesRouter } = require("./routes/admin-user-pages");
 const { createAdminSettingsRouter } = require("./routes/admin-settings");
@@ -87,12 +118,17 @@ const { createAnimalReminderService } = require("./services/animal-reminders");
 const { createMasterdataRouter } = require("./routes/masterdata");
 const { createSystemlogRouter } = require("./routes/systemlog");
 const { createErrorHandler } = require("./middleware/error-handler");
+const { createReminderScheduler } = require("./services/reminder-scheduler");
+const { createNotificationChannels } = require("./services/notification-channels");
+const { optimizeAnimalImageUpload } = require("./services/image-optimizer");
+const { getDefaultAppBaseUrl, listLocalAccessUrls, resolveBindHost } = require("./runtime/network");
 
 const app = express();
 app.set("trust proxy", process.env.HEARTPET_TRUST_PROXY || "loopback");
 const db = initDatabase();
 const animalRepository = createAnimalRepository(db);
 const systemlogRepository = createSystemlogRepository(db);
+const reminderRepository = createReminderRepository(db);
 const projectRoot = path.join(__dirname, "..");
 const revisionPath = path.join(projectRoot, "REVISION");
 const runtimeRevision = readAppRevision();
@@ -134,40 +170,66 @@ const homematicSessionService = createHomematicSessionService({
   persistSessionId: (sid) => upsertSetting(db, "homematic_ccu_session_id", sid),
 });
 const loginHomematicCcu = homematicSessionService.login;
+const homematic = createHomematicService({
+  callJsonRpc: callHomematicJsonRpc,
+  describeFetchError,
+  fetchWithTimeout,
+  login: loginHomematicCcu,
+});
 const { readOutdoorWeather } = createWeatherService({
   cache: weatherCache,
   fetchWithTimeout,
   describeFetchError,
   getTimeZone: getInstanceTimeZone,
 });
+const animalReminders = createAnimalReminderService({ db, getSettingsObject, parsePositiveInteger });
 const {
-  appendVeterinarianNote,
   applyCompletionSideEffects,
-  createSupplementalEventReminders,
-  deleteGeneratedReminders,
-  getNotificationChannelDefaults,
   resyncAllGeneratedReminders,
   syncAppointmentReminders,
   syncMedicationReminders,
   syncVaccinationReminders,
-} = createAnimalReminderService({ db, getSettingsObject, parsePositiveInteger });
+} = animalReminders;
 const animalWorkspace = createAnimalWorkspaceService({
   db,
   animalRepository,
-  attachAnimalWorkspaceMeta,
-  attachNextTermData,
   buildAnimalTimeline,
-  buildMicrochipLinks,
-  buildReminderSourceMap,
-  filterDocuments,
+  formatDate,
+  formatDateTime,
   getAnimalActivityEntries,
-  getAnimalSectionConfig,
-  getMissingRequiredCategories,
-  isAnimalProfileIncomplete,
-  listActiveSpecies,
-  sortAnimals,
-  splitReminders,
+  getAnimalLifecycle,
   summarizeReminderState,
+});
+const searchService = createSearchService({ db, formatDateTime });
+const dashboardService = createDashboardService({
+  db,
+  animalWorkspace,
+  getSettings: () => getSettingsObject(db),
+  homematic,
+  parseCameras: parseCoopCameras,
+  readWeather: readOutdoorWeather,
+  search: searchService.search,
+});
+const notificationChannels = createNotificationChannels({
+  isEmailEnabled,
+  isTelegramEnabled,
+  isNtfyEnabled,
+  sendEmailReminder,
+  sendTelegramReminder,
+  sendNtfyReminder,
+  sendDailyDigestEmail,
+  sendDailyDigestTelegram,
+  sendDailyDigestNtfy,
+});
+const reminderScheduler = createReminderScheduler({
+  db,
+  getSettings: () => getSettingsObject(db),
+  upsertSetting,
+  formatDateTime,
+  processDueReminders,
+  createNotificationLog,
+  repository: reminderRepository,
+  notifications: notificationChannels,
 });
 
 app.set("view engine", "ejs");
@@ -315,7 +377,7 @@ app.use((req, res, next) => {
   res.locals.runtimeFeatures = { memorialNoteEditor: true, vaccinationPresets: true };
   res.locals.fieldConstraints = htmlConstraints;
   res.locals.seoMeta = buildSeoMeta(req, res.locals.appSettings);
-  res.locals.animalSpeciesMenu = listActiveSpecies();
+  res.locals.animalSpeciesMenu = animalWorkspace.listActiveSpecies();
   res.locals.formatDate = formatDate;
   res.locals.formatDateTime = formatDateTime;
   res.locals.getAnimalAge = getAnimalAge;
@@ -363,177 +425,15 @@ app.use(createAuthRouter({
   sendPasswordResetEmail, createNotificationLog, createAuditLog,
 }));
 
-app.get("/reminders/:id/email-complete", (req, res) => {
-  const reminder = db.prepare(`
-    SELECT reminders.*, animals.status AS animal_status
-    FROM reminders
-    LEFT JOIN animals ON animals.id = reminders.animal_id
-    WHERE reminders.id = ?
-  `).get(req.params.id);
-  const settings = getSettingsObject(db);
-  const appBaseUrl = resolveAppBaseUrl(settings);
-  const dashboardUrl = `${appBaseUrl}/`;
-
-  if (!reminder) {
-    return res.render("pages/reminder-email-result", {
-      pageTitle: "Erinnerung nicht gefunden",
-      success: false,
-      title: "Erinnerung nicht gefunden",
-      message: "Diese Erinnerungs-Mail gehört nicht mehr zu einer vorhandenen Erinnerung oder wurde bereits gelöscht.",
-      nextUrl: dashboardUrl,
-      nextLabel: "Zum Dashboard",
-      assetBaseUrl: appBaseUrl,
-    });
-  }
-
-  if (!verifyReminderActionToken(reminder, "complete", req.query.token)) {
-    return res.render("pages/reminder-email-result", {
-      pageTitle: "Link ungültig",
-      success: false,
-      title: "Link ungültig",
-      message: "Der Bestätigungslink ist ungültig oder wurde verändert. Bitte öffne die Tierakte und markiere die Erinnerung dort.",
-      nextUrl: dashboardUrl,
-      nextLabel: "Zum Dashboard",
-      assetBaseUrl: appBaseUrl,
-    });
-  }
-
-  if (reminder.animal_id && !isActiveAnimalStatus(reminder.animal_status)) {
-    return res.render("pages/reminder-email-result", {
-      pageTitle: "Tier nicht mehr aktiv",
-      success: false,
-      title: "Tier nicht mehr aktiv",
-      message: "Diese Erinnerung gehört zu einem Tier, das nicht mehr im aktiven Bestand ist. Es werden dafür keine Erinnerungen mehr versendet.",
-      nextUrl: dashboardUrl,
-      nextLabel: "Zum Dashboard",
-      assetBaseUrl: appBaseUrl,
-    });
-  }
-
-  if (reminder.completed_at) {
-    return res.render("pages/reminder-email-result", {
-      pageTitle: "Bereits erledigt",
-      success: true,
-      title: "Erinnerung bereits erledigt",
-      message: "Diese Erinnerung war bereits als erledigt markiert. Du musst nichts weiter tun.",
-      nextUrl: dashboardUrl,
-      nextLabel: "Zum Dashboard",
-      assetBaseUrl: appBaseUrl,
-    });
-  }
-
-  applyCompletionSideEffects(reminder);
-
-  let successMessage = "Die Erinnerung wurde als erledigt markiert.";
-  if (Number(reminder.repeat_interval_days || 0) > 0) {
-    db.prepare(`
-      UPDATE reminders
-      SET due_at = ?, completed_at = NULL, last_notified_at = NULL, last_delivery_status = 'pending', last_delivery_error = ''
-      WHERE id = ?
-    `).run(dayjs(reminder.due_at).add(Number(reminder.repeat_interval_days), "day").format("YYYY-MM-DDTHH:mm"), reminder.id);
-    successMessage = "Die wiederkehrende Erinnerung wurde bestätigt und neu terminiert.";
-  } else {
-    db.prepare("UPDATE reminders SET completed_at = CURRENT_TIMESTAMP WHERE id = ?").run(reminder.id);
-  }
-
-  createAuditLog(req, "reminder.email_complete", { reminder_id: reminder.id, animal_id: reminder.animal_id }, { entityType: "reminder", entityId: reminder.id });
-
-  return res.render("pages/reminder-email-result", {
-    pageTitle: "Erinnerung bestätigt",
-    success: true,
-    title: "Erinnerung bestätigt",
-    message: successMessage,
-    nextUrl: reminder.animal_id ? `${appBaseUrl}/animals/${reminder.animal_id}` : dashboardUrl,
-    nextLabel: reminder.animal_id ? "Zur Tierakte" : "Zum Dashboard",
-    assetBaseUrl: appBaseUrl,
-  });
-});
-
-app.get("/reminders/:id/email-snooze", (req, res) => {
-  const reminder = db.prepare(`
-    SELECT reminders.*, animals.status AS animal_status
-    FROM reminders
-    LEFT JOIN animals ON animals.id = reminders.animal_id
-    WHERE reminders.id = ?
-  `).get(req.params.id);
-  const settings = getSettingsObject(db);
-  const appBaseUrl = resolveAppBaseUrl(settings);
-  const dashboardUrl = `${appBaseUrl}/`;
-  const allowedMinutes = new Set(["60", "360", "1440", "4320"]);
-  const value = String(req.query.value || "").trim();
-
-  if (!reminder) {
-    return res.render("pages/reminder-email-result", {
-      pageTitle: "Erinnerung nicht gefunden",
-      success: false,
-      title: "Erinnerung nicht gefunden",
-      message: "Diese Erinnerungs-Mail gehört nicht mehr zu einer vorhandenen Erinnerung oder wurde bereits gelöscht.",
-      nextUrl: dashboardUrl,
-      nextLabel: "Zum Dashboard",
-      assetBaseUrl: appBaseUrl,
-    });
-  }
-
-  if (!allowedMinutes.has(value)) {
-    return res.render("pages/reminder-email-result", {
-      pageTitle: "Link ungültig",
-      success: false,
-      title: "Link ungültig",
-      message: "Die gewünschte Zurückstellung ist ungültig. Bitte öffne die Erinnerung direkt in HeartPet.",
-      nextUrl: reminder.animal_id ? `${appBaseUrl}/animals/${reminder.animal_id}` : dashboardUrl,
-      nextLabel: reminder.animal_id ? "Zur Tierakte" : "Zum Dashboard",
-      assetBaseUrl: appBaseUrl,
-    });
-  }
-
-  if (!verifyReminderActionToken(reminder, "snooze", req.query.token, value)) {
-    return res.render("pages/reminder-email-result", {
-      pageTitle: "Link ungültig",
-      success: false,
-      title: "Link ungültig",
-      message: "Der Zurückstellen-Link ist ungültig oder wurde verändert. Bitte öffne die Erinnerung direkt in HeartPet.",
-      nextUrl: reminder.animal_id ? `${appBaseUrl}/animals/${reminder.animal_id}` : dashboardUrl,
-      nextLabel: reminder.animal_id ? "Zur Tierakte" : "Zum Dashboard",
-      assetBaseUrl: appBaseUrl,
-    });
-  }
-
-  if (reminder.animal_id && !isActiveAnimalStatus(reminder.animal_status)) {
-    return res.render("pages/reminder-email-result", {
-      pageTitle: "Tier nicht mehr aktiv",
-      success: false,
-      title: "Tier nicht mehr aktiv",
-      message: "Diese Erinnerung gehört zu einem Tier, das nicht mehr im aktiven Bestand ist. Zurückstellen ist deshalb nicht mehr möglich.",
-      nextUrl: dashboardUrl,
-      nextLabel: "Zum Dashboard",
-      assetBaseUrl: appBaseUrl,
-    });
-  }
-
-  const minutes = Number(value);
-  const nextDueAt = dayjs().add(minutes, "minute");
-  db.prepare(`
-    UPDATE reminders
-    SET due_at = ?, completed_at = NULL, last_notified_at = NULL, last_delivery_status = 'pending', last_delivery_error = ''
-    WHERE id = ?
-  `).run(nextDueAt.format("YYYY-MM-DDTHH:mm"), reminder.id);
-
-  createAuditLog(req, "reminder.email_snooze", {
-    reminder_id: reminder.id,
-    animal_id: reminder.animal_id,
-    minutes,
-  }, { entityType: "reminder", entityId: reminder.id });
-
-  return res.render("pages/reminder-email-result", {
-    pageTitle: "Erinnerung zurückgestellt",
-    success: true,
-    title: "Erinnerung zurückgestellt",
-    message: `Die Erinnerung wurde bis ${nextDueAt.format("DD.MM.YYYY HH:mm")} zurückgestellt.`,
-    nextUrl: reminder.animal_id ? `${appBaseUrl}/animals/${reminder.animal_id}` : dashboardUrl,
-    nextLabel: reminder.animal_id ? "Zur Tierakte" : "Zum Dashboard",
-    assetBaseUrl: appBaseUrl,
-  });
-});
+app.use(createReminderActionsRouter({
+  db,
+  getSettings: () => getSettingsObject(db),
+  resolveAppBaseUrl,
+  verifyActionToken: verifyReminderActionToken,
+  isActiveAnimalStatus,
+  applyCompletionSideEffects,
+  createAuditLog,
+}));
 
 app.use(requireAuth);
 app.use("/media", express.static(uploadsDir, {
@@ -557,188 +457,17 @@ app.use((req, res, next) => {
   return next();
 });
 
-app.get("/", async (req, res) => {
-  const q = String(req.query.q || "").trim();
-  const searchable = q.length >= 2;
-  const searchResults = searchable ? buildGlobalSearchResults(q) : [];
-
-  const stats = {
-    animalCount: db.prepare("SELECT COUNT(DISTINCT id) AS count FROM animals WHERE status = 'Aktiv'").get().count,
-    documentCount: db.prepare("SELECT COUNT(*) AS count FROM documents").get().count,
-    openReminderCount: db.prepare(`
-      SELECT COUNT(*) AS count
-      FROM reminders
-      INNER JOIN animals ON animals.id = reminders.animal_id
-      WHERE reminders.completed_at IS NULL
-        AND animals.status = 'Aktiv'
-    `).get().count,
-    dueReminderCount: db
-      .prepare(`
-        SELECT COUNT(*) AS count
-        FROM reminders
-        INNER JOIN animals ON animals.id = reminders.animal_id
-        WHERE reminders.completed_at IS NULL
-          AND REPLACE(reminders.due_at, ' ', 'T') <= ?
-          AND animals.status = 'Aktiv'
-      `)
-      .get(dayjs().format("YYYY-MM-DDTHH:mm")).count,
-  };
-
-  const speciesCounts = db.prepare(`
-    SELECT
-      COALESCE(species.name, 'Ohne Tierart') AS name,
-      species.id AS species_id,
-      COUNT(animals.id) AS count
-    FROM animals
-    LEFT JOIN species ON species.id = animals.species_id
-    WHERE animals.status = 'Aktiv'
-    GROUP BY species.id, species.name
-    ORDER BY species.name COLLATE NOCASE ASC
-  `).all();
-
-  const upcomingReminders = db.prepare(`
-    SELECT reminders.*, animals.name AS animal_name
-    FROM reminders
-    LEFT JOIN animals ON animals.id = reminders.animal_id
-    WHERE reminders.completed_at IS NULL
-      AND animals.status = 'Aktiv'
-      AND REPLACE(reminders.due_at, ' ', 'T') > ?
-    ORDER BY REPLACE(reminders.due_at, ' ', 'T') ASC
-    LIMIT 10
-  `).all(dayjs().endOf("day").format("YYYY-MM-DDTHH:mm"));
-
-  const urgentReminders = db.prepare(`
-    SELECT reminders.*, animals.name AS animal_name,
-      CASE
-        WHEN REPLACE(reminders.due_at, ' ', 'T') < ? THEN 'overdue'
-        WHEN REPLACE(reminders.due_at, ' ', 'T') <= ? THEN 'today'
-        ELSE 'upcoming'
-      END AS urgency
-    FROM reminders
-    LEFT JOIN animals ON animals.id = reminders.animal_id
-    WHERE reminders.completed_at IS NULL
-      AND animals.status = 'Aktiv'
-      AND REPLACE(reminders.due_at, ' ', 'T') <= ?
-    ORDER BY
-      CASE
-        WHEN REPLACE(reminders.due_at, ' ', 'T') < ? THEN 0
-        WHEN REPLACE(reminders.due_at, ' ', 'T') <= ? THEN 1
-        ELSE 2
-      END,
-      REPLACE(reminders.due_at, ' ', 'T') ASC
-    LIMIT 12
-  `).all(
-    dayjs().format("YYYY-MM-DDTHH:mm"),
-    dayjs().endOf("day").format("YYYY-MM-DDTHH:mm"),
-    dayjs().endOf("day").format("YYYY-MM-DDTHH:mm"),
-    dayjs().format("YYYY-MM-DDTHH:mm"),
-    dayjs().endOf("day").format("YYYY-MM-DDTHH:mm")
-  );
-
-  const attentionAnimals = attachAnimalWorkspaceMeta(attachNextTermData(db.prepare(`
-    SELECT
-      animals.*,
-      species.name AS species_name,
-      COALESCE(veterinarians.name, species_vet.name) AS veterinarian_name
-    FROM animals
-    LEFT JOIN species ON species.id = animals.species_id
-    LEFT JOIN veterinarians ON veterinarians.id = animals.veterinarian_id
-    LEFT JOIN veterinarians AS species_vet ON species_vet.id = species.default_veterinarian_id
-    WHERE animals.status = 'Aktiv'
-    ORDER BY datetime(animals.updated_at) DESC, animals.id DESC
-    LIMIT 10
-  `).all()))
-    .filter((animal) =>
-      animal.overdueReminderCount > 0 ||
-      animal.openReminderCount > 0 ||
-      !animal.veterinarian_name ||
-      animal.isProfileIncomplete
-    )
-    .sort((left, right) => {
-      if (left.overdueReminderCount !== right.overdueReminderCount) {
-        return right.overdueReminderCount - left.overdueReminderCount;
-      }
-      if (left.openReminderCount !== right.openReminderCount) {
-        return right.openReminderCount - left.openReminderCount;
-      }
-      return String(right.updated_at || "").localeCompare(String(left.updated_at || ""));
-    })
-    .map((animal) => ({
-      ...animal,
-      dashboardAttentionReasons: buildDashboardAttentionReasons(animal, { includeReminders: false }),
-    }))
-    .filter((animal) => animal.dashboardAttentionReasons.length > 0)
-    .slice(0, 6);
-
-  const coopSettings = getSettingsObject(db);
-  const weather = await readOutdoorWeather(coopSettings);
-  const coopCameras = parseCoopCameras(coopSettings.coop_camera_streams);
-  const doorSensorId = String(coopSettings.homematic_door_sensor_datapoint_id || "").trim();
-  const doorSensorConfigured = /^\d+$/.test(doorSensorId);
-  const doorLevelId = String(coopSettings.homematic_door_level_datapoint_id || "").trim();
-  const doorLevelConfigured = /^\d+$/.test(doorLevelId);
-  const [climate, doorSensorValue, doorLevelValue] = await Promise.all([
-    readHomematicClimateFromCcu(coopSettings),
-    doorSensorConfigured ? readHomematicXmlApiDatapoint(coopSettings, doorSensorId) : Promise.resolve(null),
-    doorLevelConfigured ? readHomematicXmlApiDatapoint(coopSettings, doorLevelId) : Promise.resolve(null),
-  ]);
-  const { temperature, humidity } = climate;
-  const climateConfigured = Boolean(getHomematicClimateDatapointIds(coopSettings));
-  const sensorTrueMeansOpen = coopSettings.homematic_door_sensor_true_state !== "closed";
-  const doorIsOpen = doorSensorValue === null ? null : (Boolean(doorSensorValue) === sensorTrueMeansOpen);
-  const rawDoorLevel = Number(doorLevelValue);
-  const doorOpenPercent = doorLevelValue === null || !Number.isFinite(rawDoorLevel)
-    ? null
-    : Math.round(Math.max(0, Math.min(100, rawDoorLevel > 1 ? rawDoorLevel : rawDoorLevel * 100)));
-  const coopRetrievedAt = new Date().toISOString();
-
-  res.render("pages/dashboard", {
-    pageTitle: "Dashboard",
-    search: { q, searchable },
-    searchResults,
-    stats,
-    speciesCounts,
-    upcomingReminders,
-    urgentReminders,
-    attentionAnimals,
-    weather,
-    coop: {
-      cameras: coopCameras,
-      temperature,
-      humidity,
-      climateError: climate?.error || "",
-      retrievedAt: coopRetrievedAt,
-      temperatureConfigured: climateConfigured,
-      humidityConfigured: climateConfigured,
-      doorConfigured: Boolean(getHomematicDoorCommand(coopSettings, true)),
-      doorCloseConfigured: Boolean(getHomematicDoorCommand(coopSettings, false)),
-      doorSensorConfigured,
-      doorIsOpen,
-      doorLevelConfigured,
-      doorOpenPercent,
-    },
-  });
-});
+app.use(createDashboardRouter({ dashboard: dashboardService, search: searchService }));
 
 app.use(createCoopRouter({
-  db, getSettingsObject, getHomematicDoorCommand, executeHomematicDoorDirection, createAuditLog,
-  parseHomematicStateChange, setFlash, parseCoopCameras, streamRtspCamera, fetchCameraStream,
+  db, getSettingsObject, homematic, createAuditLog, setFlash, parseCoopCameras, streamRtspCamera, fetchCameraStream,
   redactSensitiveText, cameraFrameCache, readCameraFrameCache, captureCameraFrame, writeCameraFrameCache,
-  describeFetchError, buildCameraPlaceholderSvg, checkRtspCamera, requireAdmin, readHomematicClimateFromCcu,
-  getHomematicClimateDatapointIds, buildHomematicXmlApiUrl, fetchWithTimeout, decodeHomematicXmlBuffer,
-  parseHomematicDatapoints,
+  describeFetchError, buildCameraPlaceholderSvg, checkRtspCamera, requireAdmin,
 }));
 
-app.get("/suche", (req, res) => {
-  const q = String(req.query.q || "").trim();
-  return res.redirect(q ? `/?q=${encodeURIComponent(q)}` : "/");
-});
-
-app.get("/admin/suggest", renderSearchSuggestions);
 app.use("/animals", createAnimalsRouter({
   animalWorkspace,
   renderNotFound,
-  renderSearchSuggestions,
   requireAdmin,
 }));
 app.use("/animals", createAnimalRecordsRouter({
@@ -779,13 +508,10 @@ app.use(createAnimalHealthRouter({
   getVaccinationCertificateError,
   discardUploadedFile,
   setFlash,
-  syncMedicationReminders,
-  syncVaccinationReminders,
-  syncAppointmentReminders,
+  reminders: animalReminders,
   createAuditLog,
   redirectDocumentDrawerRequest,
   renderNotFound,
-  deleteGeneratedReminders,
   deleteUploadedFileIfUnreferenced,
 }));
 app.get("/admin/systemlog/systemlog", requireAdmin, (req, res) => {
@@ -794,7 +520,6 @@ app.get("/admin/systemlog/systemlog", requireAdmin, (req, res) => {
 
 
 app.use(createAnimalEntriesRouter({
-  appendVeterinarianNote,
   buildPermissions,
   combineDateAndTime,
   createAuditLog,
@@ -803,24 +528,21 @@ app.use(createAnimalEntriesRouter({
   findAnimal,
   getAnimalReturnTo,
   getCurrentUserRecord,
-  getNotificationChannelDefaults,
   getVaccinationCertificateError,
   getVaccinationSuggestionsForSpecies,
   isDrawerRequest,
   redirectDocumentDrawerRequest,
   renderNotFound,
   requireAnimalPermission,
+  reminders: animalReminders,
   safeLocalReturnPath,
   setFlash,
-  syncAppointmentReminders,
-  syncMedicationReminders,
-  syncVaccinationReminders,
   upload,
 }));
 
 app.use(createAnimalRemindersRouter({
   db, requireAnimalPermission, safeLocalReturnPath, parsePositiveInteger, setFlash,
-  createAuditLog, applyCompletionSideEffects, findAnimal, isActiveAnimalStatus,
+  createAuditLog, reminders: animalReminders, findAnimal, isActiveAnimalStatus,
   renderNotFound, safeRefererPath, getAnimalReturnTo, redirectDocumentDrawerRequest,
 }));
 
@@ -838,6 +560,7 @@ app.use(createAnimalMediaRouter({
   findAnimal,
   renderNotFound,
   deleteUploadedFileIfUnreferenced,
+  optimizeAnimalImageUpload,
 }));
 
 app.use(createAnimalDownloadsRouter({
@@ -900,7 +623,7 @@ app.use("/admin", createSystemlogRouter({
   createAuditLog,
   formatAuditLogEntry,
   getAdminViewData,
-  getHomematicClimateDatapointIds,
+  homematic,
   getInstanceTimeZone,
   getRuntimeMetricsSnapshot,
   getSettings: () => getSettingsObject(db),
@@ -909,7 +632,6 @@ app.use("/admin", createSystemlogRouter({
   isTelegramConfigured,
   parseCoopCameras,
   readAppRevision,
-  readHomematicClimateFromCcu,
   redactSensitiveText,
   repository: systemlogRepository,
   requireAdmin,
@@ -988,81 +710,7 @@ app.get("/kontakt", (req, res) => {
   renderInfoPage(res, "Kontakt", getSettingsObject(db).contact_text);
 });
 
-app.get("/api/species/search", (req, res) => {
-  const query = String(req.query.q || "").trim();
-  if (query.length < 2) {
-    return res.json({ results: [] });
-  }
-
-  const lowered = query.toLowerCase();
-  const rows = db.prepare("SELECT name FROM species ORDER BY name ASC").all();
-  const ranked = rows
-    .map((item) => item.name)
-    .filter((name) => name.toLowerCase().includes(lowered))
-    .sort((left, right) => {
-      const leftLower = left.toLowerCase();
-      const rightLower = right.toLowerCase();
-      const leftStarts = leftLower.startsWith(lowered) ? 0 : 1;
-      const rightStarts = rightLower.startsWith(lowered) ? 0 : 1;
-      if (leftStarts !== rightStarts) {
-        return leftStarts - rightStarts;
-      }
-      return left.localeCompare(right, "de");
-    })
-    .slice(0, 12);
-
-  res.json({ results: ranked });
-});
-
-function renderSearchSuggestions(req, res) {
-  const q = String(req.query.q || "").trim();
-  if (q.length < 2) {
-    return res.json({ results: [] });
-  }
-
-  const suggestions = buildGlobalSearchResults(q)
-    .slice(0, 12)
-    .map((item) => ({
-      kind: item.kind,
-      title: item.title,
-      subtitle: item.subtitle,
-      href: item.href,
-      when: item.when || "",
-    }));
-
-  res.json({ results: suggestions });
-}
-
-["/api/search/suggest", "/api/suggest", "/search/suggest", "/suggest"].forEach((suggestPath) => {
-  app.get(suggestPath, renderSearchSuggestions);
-});
-
-app.get(/^\/.+\/suggest$/, renderSearchSuggestions);
-
-app.get("/api/reminders/pending", (req, res) => {
-  const now = dayjs().format("YYYY-MM-DDTHH:mm");
-  const count = db.prepare(`
-    SELECT COUNT(*) AS count
-    FROM reminders
-    INNER JOIN animals ON animals.id = reminders.animal_id
-    WHERE reminders.completed_at IS NULL
-      AND REPLACE(reminders.due_at, ' ', 'T') <= ?
-      AND animals.status = 'Aktiv'
-  `).get(now).count;
-
-  const rows = db.prepare(`
-    SELECT reminders.id, reminders.title, reminders.due_at, reminders.animal_id, animals.name AS animal_name
-    FROM reminders
-    INNER JOIN animals ON animals.id = reminders.animal_id
-    WHERE reminders.completed_at IS NULL
-      AND REPLACE(reminders.due_at, ' ', 'T') <= ?
-      AND animals.status = 'Aktiv'
-    ORDER BY REPLACE(reminders.due_at, ' ', 'T') ASC
-    LIMIT 5
-  `).all(now);
-
-  res.json({ count, reminders: rows });
-});
+app.use(createReminderApiRouter({ repository: reminderRepository }));
 
 app.use((req, res) => {
   renderNotFound(req, res, "Seite nicht gefunden.");
@@ -1070,176 +718,16 @@ app.use((req, res) => {
 
 app.use(createErrorHandler({ redactSensitiveText, sanitizeLogText, setFlash }));
 
-async function maybeSendDailyDigest() {
-  const settings = getSettingsObject(db);
-  if (settings.daily_digest_enabled !== "true") {
-    return;
-  }
-
-  const timeRaw = String(settings.daily_digest_time || "07:30").trim();
-  const [hourRaw, minuteRaw] = timeRaw.split(":");
-  const parsedHour = Number.parseInt(hourRaw, 10);
-  const parsedMinute = Number.parseInt(minuteRaw, 10);
-  const hour = Math.max(0, Math.min(23, Number.isFinite(parsedHour) ? parsedHour : 7));
-  const minute = Math.max(0, Math.min(59, Number.isFinite(parsedMinute) ? parsedMinute : 30));
-  const now = dayjs();
-  const today = now.format("YYYY-MM-DD");
-  const sendAt = dayjs(`${today}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`);
-  const lastDigestDate = String(settings.last_daily_digest_date || "").trim();
-
-  if (lastDigestDate === today || now.isBefore(sendAt)) {
-    return;
-  }
-
-  const overdueCount = db.prepare(`
-    SELECT COUNT(*) AS count
-    FROM reminders
-    INNER JOIN animals ON animals.id = reminders.animal_id
-    WHERE reminders.completed_at IS NULL
-      AND REPLACE(reminders.due_at, ' ', 'T') < ?
-      AND animals.status = 'Aktiv'
-  `).get(now.format("YYYY-MM-DDTHH:mm")).count;
-  const todayCount = db.prepare(`
-    SELECT COUNT(*) AS count
-    FROM reminders
-    INNER JOIN animals ON animals.id = reminders.animal_id
-    WHERE reminders.completed_at IS NULL
-      AND REPLACE(reminders.due_at, ' ', 'T') >= ?
-      AND REPLACE(reminders.due_at, ' ', 'T') <= ?
-      AND animals.status = 'Aktiv'
-  `).get(`${today}T00:00`, `${today}T23:59`).count;
-  const nextDaysCount = db.prepare(`
-    SELECT COUNT(*) AS count
-    FROM reminders
-    INNER JOIN animals ON animals.id = reminders.animal_id
-    WHERE reminders.completed_at IS NULL
-      AND REPLACE(reminders.due_at, ' ', 'T') > ?
-      AND REPLACE(reminders.due_at, ' ', 'T') <= ?
-      AND animals.status = 'Aktiv'
-  `).get(`${today}T23:59`, now.add(3, "day").format("YYYY-MM-DDTHH:mm")).count;
-
-  if (settings.daily_digest_only_when_open === "true" && overdueCount + todayCount + nextDaysCount === 0) {
-    upsertSetting(db, "last_daily_digest_date", today);
-    createNotificationLog({
-      userId: null,
-      channel: "system",
-      type: "daily_digest",
-      recipient: "",
-      subject: "Tageszusammenfassung",
-      status: "skipped",
-      details: { reason: "no_open_reminders" },
-    });
-    return;
-  }
-
-  const rows = db.prepare(`
-    SELECT reminders.*, animals.name AS animal_name
-    FROM reminders
-    INNER JOIN animals ON animals.id = reminders.animal_id
-    WHERE reminders.completed_at IS NULL
-      AND REPLACE(reminders.due_at, ' ', 'T') <= ?
-      AND animals.status = 'Aktiv'
-    ORDER BY REPLACE(reminders.due_at, ' ', 'T') ASC
-    LIMIT 20
-  `).all(now.add(3, "day").format("YYYY-MM-DDTHH:mm"))
-    .map((item) => ({
-      ...item,
-      dueLabel: formatDateTime(item.due_at),
-    }));
-
-  const payload = {
-    generatedAt: formatDateTime(now.format("YYYY-MM-DDTHH:mm")),
-    counts: {
-      overdue: overdueCount,
-      today: todayCount,
-      nextDays: nextDaysCount,
-    },
-    rows,
-  };
-
-  const deliveries = [];
-  try {
-    if (isEmailEnabled(settings)) {
-      await sendDailyDigestEmail(settings, payload);
-      deliveries.push({
-        channel: "email",
-        status: "sent",
-        recipient: settings.notification_email_to || settings.smtp_user || "",
-      });
-    }
-    if (isTelegramEnabled(settings)) {
-      await sendDailyDigestTelegram(settings, payload);
-      deliveries.push({
-        channel: "telegram",
-        status: "sent",
-        recipient: settings.telegram_chat_id || "",
-      });
-    }
-    if (isNtfyEnabled(settings)) {
-      await sendDailyDigestNtfy(settings, payload);
-      deliveries.push({
-        channel: "ntfy",
-        status: "sent",
-        recipient: settings.ntfy_topic || "",
-      });
-    }
-
-    if (!deliveries.length) {
-      deliveries.push({ channel: "system", status: "skipped", recipient: "" });
-    }
-  } catch (error) {
-    deliveries.push({
-      channel: "system",
-      status: "error",
-      recipient: "",
-      error: error.message,
-    });
-  }
-
-  deliveries.forEach((entry) => {
-    createNotificationLog({
-      userId: null,
-      channel: entry.channel,
-      type: "daily_digest",
-      recipient: entry.recipient,
-      subject: "Tageszusammenfassung",
-      status: entry.status,
-      error: entry.error || "",
-      details: payload.counts,
-    });
-  });
-  upsertSetting(db, "last_daily_digest_date", today);
-}
-
 const port = Number(process.env.PORT || 3000);
+const bindHost = resolveBindHost(process.env.HEARTPET_HOST);
 if (require.main === module) {
-  cron.schedule("*/10 * * * *", async () => {
-    try {
-      await processDueReminders(db, getSettingsObject(db), {
-        onNotification: (entry) => {
-          createNotificationLog({
-            userId: null,
-            channel: entry.channel,
-            type: entry.type,
-            recipient: entry.recipient || "",
-            subject: entry.subject || "",
-            status: entry.status,
-            error: entry.error || "",
-            details: {
-              reminder_id: entry.reminder?.id || null,
-              animal_id: entry.reminder?.animal_id || null,
-            },
-          });
-        },
-      });
-      await maybeSendDailyDigest();
-    } catch (error) {
-      console.error("[HeartPet] Fehler im Erinnerungsdienst:", error.message);
-    }
-  });
+  reminderScheduler.start();
 
-  const server = app.listen(port, "0.0.0.0", () => {
-    console.log(`HeartPet läuft auf http://127.0.0.1:${port}`);
+  const server = app.listen(port, bindHost, () => {
+    console.log("HeartPet läuft auf:");
+    for (const url of listLocalAccessUrls({ port, bindHost })) {
+      console.log(`- ${url}`);
+    }
     console.log("Wenn dies eine neue Installation ist, starte mit /setup.");
   });
   let shuttingDown = false;
@@ -1321,94 +809,6 @@ function getAnimalRelatedData(animalId) {
   return animalRepository.getRelated(animalId);
 }
 
-function buildGlobalSearchResults(rawQuery) {
-  const q = String(rawQuery || "").trim();
-  if (q.length < 2) {
-    return [];
-  }
-
-  const query = `%${q}%`;
-  const results = [];
-
-  const animals = db.prepare(`
-    SELECT animals.id, animals.name, animals.status, species.name AS species_name
-    FROM animals
-    LEFT JOIN species ON species.id = animals.species_id
-    WHERE animals.name LIKE ? OR animals.breed LIKE ? OR animals.source LIKE ? OR species.name LIKE ?
-    ORDER BY animals.name COLLATE NOCASE ASC
-    LIMIT 20
-  `).all(query, query, query, query);
-
-  animals.forEach((item) => {
-    results.push({
-      kind: "Tier",
-      title: item.name,
-      subtitle: `${item.species_name || "-"} | ${item.status || "-"}`,
-      href: `/animals/${item.id}`,
-      when: "",
-    });
-  });
-
-  const documents = db.prepare(`
-    SELECT documents.id, documents.title, documents.uploaded_at, animals.id AS animal_id, animals.name AS animal_name, document_categories.name AS category_name
-    FROM documents
-    LEFT JOIN animals ON animals.id = documents.animal_id
-    LEFT JOIN document_categories ON document_categories.id = documents.category_id
-    WHERE documents.title LIKE ? OR documents.original_name LIKE ? OR document_categories.name LIKE ?
-    ORDER BY documents.uploaded_at DESC
-    LIMIT 20
-  `).all(query, query, query);
-
-  documents.forEach((item) => {
-    results.push({
-      kind: "Dokument",
-      title: item.title,
-      subtitle: `${item.animal_name || "Ohne Tier"} | ${item.category_name || "Ohne Kategorie"}`,
-      href: item.animal_id ? `/animals/${item.animal_id}` : "/animals",
-      when: formatDateTime(item.uploaded_at),
-    });
-  });
-
-  const events = db.prepare(`
-    SELECT reminders.id, reminders.title, reminders.reminder_type AS kind, reminders.due_at AS at, reminders.completed_at, animals.id AS animal_id, animals.name AS animal_name
-    FROM reminders
-    LEFT JOIN animals ON animals.id = reminders.animal_id
-    WHERE reminders.title LIKE ? OR reminders.reminder_type LIKE ? OR reminders.notes LIKE ?
-    ORDER BY reminders.due_at DESC
-    LIMIT 30
-  `).all(query, query, query);
-
-  events.forEach((item) => {
-    results.push({
-      kind: item.completed_at ? "Ereignis (erledigt)" : "Ereignis",
-      title: item.title,
-      subtitle: `${item.animal_name || "Ohne Tier"} | ${item.kind || "Erinnerung"}`,
-      href: item.animal_id ? `/animals/${item.animal_id}` : "/",
-      when: formatDateTime(item.at),
-    });
-  });
-
-  return results.slice(0, 60);
-}
-
-function splitReminders(reminders) {
-  const now = dayjs();
-  return reminders.reduce(
-    (acc, reminder) => {
-      const dueAt = String(reminder.due_at || "").replace(" ", "T");
-      if (reminder.completed_at) {
-        acc.done.push(reminder);
-      } else if (dueAt && dayjs(dueAt).isBefore(now)) {
-        acc.overdue.push(reminder);
-      } else {
-        acc.open.push(reminder);
-      }
-      return acc;
-    },
-    { overdue: [], open: [], done: [] }
-  );
-}
-
 function normalizeAnimalPayload(body) {
   const speciesName = String(body.species_name || "").trim();
   const speciesId = speciesName ? ensureSpeciesExists(speciesName).id : null;
@@ -1436,35 +836,6 @@ function normalizeAnimalPayload(body) {
 function normalizeMicrochipRegistry(value) {
   const registry = String(value || "").trim();
   return microchipRegistryOptions.includes(registry) ? registry : "";
-}
-
-function buildMicrochipLinks(animal) {
-  if (!String(animal?.microchip_number || "").trim()) {
-    return { checks: [], nextSteps: [] };
-  }
-
-  const checks = [
-    { label: "Bei TASSO prüfen", url: "https://www.tasso.net/Tierregister/Transponderabfrage" },
-    { label: "Bei FINDEFIX prüfen", url: "https://www.findefix.com/haustier-vermisst-gefunden/mikrochip-nummer-pruefen/" },
-  ];
-  const tassoMissing = { label: "Bei TASSO vermisst melden", url: "https://www.tasso.net/Tierregister/Tier-vermisst/Tier-vermisst-melden?fa=1", urgent: true };
-  const findefixMissing = { label: "Bei FINDEFIX vermisst melden", url: "https://www.findefix.com/haustier-vermisst-gefunden/haustier-vermisst-melden-suchplakat/", urgent: true };
-  const registry = normalizeMicrochipRegistry(animal.microchip_registry);
-
-  if (registry === "Nicht registriert") {
-    return {
-      checks,
-      nextSteps: [
-        { label: "Bei TASSO registrieren", url: "https://www.tasso.net/Tierregister/Tier-registrieren" },
-        { label: "Bei FINDEFIX registrieren", url: "https://www.findefix.com/haustier-online-registrieren/" },
-      ],
-    };
-  }
-
-  const nextSteps = [];
-  if (registry === "TASSO" || registry === "TASSO und FINDEFIX") nextSteps.push(tassoMissing);
-  if (registry === "FINDEFIX" || registry === "TASSO und FINDEFIX") nextSteps.push(findefixMissing);
-  return { checks, nextSteps };
 }
 
 function requiresAnimalStatusTransitionConfirmation(previousStatus, nextStatus) {
@@ -1572,76 +943,6 @@ function resolveDefaultVeterinarianId(speciesId) {
   return fallback || null;
 }
 
-function getMissingRequiredCategories(categories, documents) {
-  const presentCategoryIds = new Set(documents.map((item) => Number(item.category_id)).filter(Boolean));
-  return categories.filter((category) => category.is_required && !presentCategoryIds.has(Number(category.id)));
-}
-
-function buildAnimalDocumentHealthMap(animalIds) {
-  const normalizedIds = (animalIds || []).map((id) => Number(id)).filter(Boolean);
-  if (!normalizedIds.length) {
-    return new Map();
-  }
-
-  const requiredCategories = db.prepare("SELECT id, name FROM document_categories WHERE is_required = 1 ORDER BY name ASC").all();
-  const map = new Map(normalizedIds.map((id) => [id, {
-    missingRequiredCategories: [],
-    missingRequiredDocumentCount: 0,
-  }]));
-
-  if (!requiredCategories.length) {
-    return map;
-  }
-
-  const placeholders = normalizedIds.map(() => "?").join(", ");
-  const documents = db.prepare(`
-    SELECT animal_id, category_id
-    FROM documents
-    WHERE animal_id IN (${placeholders})
-  `).all(...normalizedIds);
-
-  const presentByAnimal = new Map(normalizedIds.map((id) => [id, new Set()]));
-  documents.forEach((item) => {
-    const animalId = Number(item.animal_id);
-    if (presentByAnimal.has(animalId) && item.category_id) {
-      presentByAnimal.get(animalId).add(Number(item.category_id));
-    }
-  });
-
-  normalizedIds.forEach((animalId) => {
-    const present = presentByAnimal.get(animalId) || new Set();
-    const missing = requiredCategories.filter((category) => !present.has(Number(category.id)));
-    map.set(animalId, {
-      missingRequiredCategories: missing.map((item) => item.name),
-      missingRequiredDocumentCount: missing.length,
-    });
-  });
-
-  return map;
-}
-
-function filterDocuments(documents, filters) {
-  return documents.filter((item) => {
-    if (filters.categoryId && String(item.category_id || "") !== String(filters.categoryId)) {
-      return false;
-    }
-
-    if (filters.fileType === "images" && !String(item.mime_type || "").startsWith("image/")) {
-      return false;
-    }
-
-    if (filters.fileType === "files" && String(item.mime_type || "").startsWith("image/")) {
-      return false;
-    }
-
-    return true;
-  });
-}
-
-function isAnimalProfileIncomplete(animal) {
-  return !animal.birth_date || !animal.intake_date;
-}
-
 function parsePositiveInteger(value) {
   const parsed = Number.parseInt(String(value || "").trim(), 10);
   if (!Number.isFinite(parsed) || parsed < 0) {
@@ -1660,46 +961,6 @@ function combineDateAndTime(dateValue, timeValue, defaultTime = "09:00") {
   return `${date}T${time}`;
 }
 
-function listActiveSpecies() {
-  return db.prepare(`
-    SELECT species.id, species.name, COUNT(animals.id) AS animal_count
-    FROM species
-    INNER JOIN animals ON animals.species_id = species.id
-    WHERE animals.status = 'Aktiv'
-    GROUP BY species.id, species.name
-    ORDER BY species.name COLLATE NOCASE ASC
-  `).all();
-}
-
-function getAnimalSectionConfig(section) {
-  const sectionMap = {
-    active: {
-      key: "active",
-      basePath: "/animals",
-      pageTitle: "Meine Tiere",
-      workspaceTitle: "Meine Tiere",
-      workspaceIntro: "Hier findest du alle Tiere aus deinem aktuellen Bestand.",
-      totalLabel: "Tiere",
-      allowedStatuses: ["Aktiv"],
-      defaultStatus: "Aktiv",
-      allowStatusFilter: false,
-    },
-    history: {
-      key: "history",
-      basePath: "/animals/historie",
-      pageTitle: "Historie",
-      workspaceTitle: "Historie",
-      workspaceIntro: "Hier findest du vermittelte, verkaufte und verstorbene Tiere als Bestandsverlauf.",
-      totalLabel: "historische Tiere",
-      allowedStatuses: ["Vermittelt", "Verkauft", "Verstorben"],
-      defaultStatus: "",
-      allowStatusFilter: true,
-    },
-  };
-
-  return sectionMap[section] || sectionMap.active;
-}
-
 function closeOpenRemindersForAnimal(animalId) {
   db.prepare(`
     UPDATE reminders
@@ -1713,241 +974,6 @@ function closeOpenRemindersForAnimal(animalId) {
       AND completed_at IS NULL
   `).run(animalId);
 }
-
-function attachNextTermData(animals) {
-  if (!animals.length) {
-    return [];
-  }
-
-  const lookup = buildNextTermLookup(animals.map((animal) => animal.id));
-  return animals.map((animal) => ({
-    ...animal,
-    next_term: lookup.get(animal.id) || null,
-  }));
-}
-
-function attachAnimalWorkspaceMeta(animals) {
-  if (!animals.length) {
-    return [];
-  }
-
-  const animalIds = animals.map((animal) => Number(animal.id)).filter(Boolean);
-  const documentHealthMap = buildAnimalDocumentHealthMap(animalIds);
-  const placeholders = animalIds.map(() => "?").join(", ");
-  const reminderStats = db.prepare(`
-    SELECT
-      animal_id,
-      SUM(CASE WHEN completed_at IS NULL THEN 1 ELSE 0 END) AS open_count,
-      SUM(CASE WHEN completed_at IS NULL AND REPLACE(due_at, ' ', 'T') < ? THEN 1 ELSE 0 END) AS overdue_count
-    FROM reminders
-    WHERE animal_id IN (${placeholders})
-    GROUP BY animal_id
-  `).all(dayjs().format("YYYY-MM-DDTHH:mm"), ...animalIds);
-  const reminderMap = new Map(reminderStats.map((row) => [Number(row.animal_id), row]));
-
-  return animals.map((animal) => {
-    const lifecycle = getAnimalLifecycle(animal.status);
-    const reminderRow = reminderMap.get(Number(animal.id));
-    const documentHealth = documentHealthMap.get(Number(animal.id)) || {
-      missingRequiredCategories: [],
-      missingRequiredDocumentCount: 0,
-    };
-    return {
-      ...animal,
-      lifecycle,
-      openReminderCount: Number(reminderRow?.open_count || 0),
-      overdueReminderCount: Number(reminderRow?.overdue_count || 0),
-      missingRequiredCategories: documentHealth.missingRequiredCategories,
-      missingRequiredDocumentCount: documentHealth.missingRequiredDocumentCount,
-      isProfileIncomplete: isAnimalProfileIncomplete(animal),
-      statusSummary: buildAnimalTransitionSummary(animal.status, {
-        status_context_name: animal.status_context_name || "",
-        status_context_date: animal.status_context_date || "",
-        memorial_note: animal.memorial_note || "",
-      }),
-    };
-  });
-}
-
-function buildDashboardAttentionReasons(animal, { includeReminders = true } = {}) {
-  const reasons = [];
-  if (includeReminders && Number(animal.overdueReminderCount || 0) > 0) {
-    reasons.push(`${animal.overdueReminderCount} überfällig`);
-  }
-  const openOnlyCount = Math.max(Number(animal.openReminderCount || 0) - Number(animal.overdueReminderCount || 0), 0);
-  if (includeReminders && openOnlyCount > 0) {
-    reasons.push(`${openOnlyCount} offen`);
-  }
-  if (!animal.veterinarian_name) {
-    reasons.push("Tierarzt fehlt");
-  }
-  if (!animal.birth_date) {
-    reasons.push("Geburtsdatum fehlt");
-  }
-  if (!animal.intake_date) {
-    reasons.push("Aufnahmedatum fehlt");
-  }
-  return reasons;
-}
-
-function buildNextTermLookup(animalIds) {
-  const now = dayjs();
-  const today = now.format("YYYY-MM-DD");
-  const placeholders = animalIds.map(() => "?").join(", ");
-  const map = new Map(animalIds.map((id) => [Number(id), []]));
-
-  const pushEvent = (animalId, event) => {
-    if (!map.has(Number(animalId))) {
-      map.set(Number(animalId), []);
-    }
-    map.get(Number(animalId)).push(event);
-  };
-
-  db.prepare(`
-    SELECT id, animal_id, title, appointment_at
-    FROM animal_appointments
-    WHERE animal_id IN (${placeholders}) AND appointment_at >= ?
-  `).all(...animalIds, now.format("YYYY-MM-DDTHH:mm")).forEach((item) => {
-    pushEvent(item.animal_id, {
-      type: "Arzttermin",
-      label: item.title || "Arzttermin",
-      at: item.appointment_at,
-      sortAt: item.appointment_at,
-    });
-  });
-
-  db.prepare(`
-    SELECT id, animal_id, name, next_due_date
-    FROM animal_vaccinations
-    WHERE animal_id IN (${placeholders}) AND next_due_date IS NOT NULL AND next_due_date >= ?
-  `).all(...animalIds, today).forEach((item) => {
-    pushEvent(item.animal_id, {
-      type: "Impfung",
-      label: item.name || "Impfung",
-      at: item.next_due_date,
-      sortAt: `${item.next_due_date}T09:00`,
-    });
-  });
-
-  db.prepare(`
-    SELECT id, animal_id, name, start_date, end_date
-    FROM animal_medications
-    WHERE animal_id IN (${placeholders})
-  `).all(...animalIds).forEach((item) => {
-    const candidates = [item.start_date, item.end_date].filter((value) => value && value >= today).sort();
-    if (!candidates.length) {
-      return;
-    }
-    pushEvent(item.animal_id, {
-      type: "Medikament",
-      label: item.name || "Medikament",
-      at: candidates[0],
-      sortAt: `${candidates[0]}T08:00`,
-    });
-  });
-
-  db.prepare(`
-    SELECT id, animal_id, label, time_of_day
-    FROM animal_feedings
-    WHERE animal_id IN (${placeholders}) AND time_of_day IS NOT NULL AND time_of_day != ''
-  `).all(...animalIds).forEach((item) => {
-    const todayCandidate = dayjs(`${today}T${item.time_of_day}`);
-    const sortAt = todayCandidate.isAfter(now) ? todayCandidate : todayCandidate.add(1, "day");
-    pushEvent(item.animal_id, {
-      type: "Fütterung",
-      label: item.label || "Fütterung",
-      at: sortAt.format("YYYY-MM-DDTHH:mm"),
-      sortAt: sortAt.format("YYYY-MM-DDTHH:mm"),
-    });
-  });
-
-  db.prepare(`
-    SELECT id, animal_id, title, due_at, reminder_type
-    FROM reminders
-    WHERE animal_id IN (${placeholders})
-      AND completed_at IS NULL
-      AND due_at >= ?
-      AND source_kind IS NULL
-  `).all(...animalIds, now.format("YYYY-MM-DDTHH:mm")).forEach((item) => {
-    pushEvent(item.animal_id, {
-      type: item.reminder_type || "Erinnerung",
-      label: item.title || "Erinnerung",
-      at: item.due_at,
-      sortAt: item.due_at,
-    });
-  });
-
-  const nextMap = new Map();
-  map.forEach((events, animalId) => {
-    const nextEvent = events
-      .sort((a, b) => String(a.sortAt).localeCompare(String(b.sortAt)))
-      .find(Boolean);
-    if (nextEvent) {
-      nextMap.set(animalId, {
-        ...nextEvent,
-        displayLabel: formatUpcomingEvent(nextEvent.at),
-      });
-    }
-  });
-  return nextMap;
-}
-
-function sortAnimals(animals, sort) {
-  const collator = new Intl.Collator("de", { sensitivity: "base" });
-  const sorted = [...animals];
-  sorted.sort((left, right) => {
-    switch (sort) {
-      case "name_desc":
-        return collator.compare(right.name || "", left.name || "");
-      case "intake_desc":
-        return compareDates(right.intake_date, left.intake_date) || collator.compare(left.name || "", right.name || "");
-      case "intake_asc":
-        return compareDates(left.intake_date, right.intake_date) || collator.compare(left.name || "", right.name || "");
-      case "created_desc":
-        return compareDates(right.created_at, left.created_at) || collator.compare(left.name || "", right.name || "");
-      case "status_asc":
-        return collator.compare(left.status || "", right.status || "") || collator.compare(left.name || "", right.name || "");
-      case "next_term_asc":
-        return compareDates(left.next_term?.sortAt, right.next_term?.sortAt, true) || collator.compare(left.name || "", right.name || "");
-      case "name_asc":
-      default:
-        return collator.compare(left.name || "", right.name || "");
-    }
-  });
-  return sorted;
-}
-
-function compareDates(a, b, nullsLast = false) {
-  if (!a && !b) {
-    return 0;
-  }
-  if (!a) {
-    return nullsLast ? 1 : -1;
-  }
-  if (!b) {
-    return nullsLast ? -1 : 1;
-  }
-  return String(a).localeCompare(String(b));
-}
-
-function formatUpcomingEvent(value) {
-  if (!value) {
-    return "-";
-  }
-  return String(value).includes("T") ? formatDateTime(value) : formatDate(value);
-}
-
-function buildReminderSourceMap(reminders) {
-  return (reminders || []).reduce((acc, item) => {
-    const key = item.source_kind && item.source_id ? `${item.source_kind}:${item.source_id}` : "manual";
-    if (!acc[key]) {
-      acc[key] = [];
-    }
-    acc[key].push(item);
-    return acc;
-  }, {});
-}
-
 
 async function sendInviteEmailForUser(req, user, options = {}) {
   const userId = user?.id;
@@ -2108,400 +1134,6 @@ function parseBooleanSettingValue(value) {
   return value === true || value === "true" || value === "1" || value === "on";
 }
 
-function isHttpUrl(value) {
-  try {
-    const url = new URL(String(value || "").trim());
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
-function isRtspUrl(value) {
-  try {
-    return new URL(String(value || "").trim()).protocol === "rtsp:";
-  } catch {
-    return false;
-  }
-}
-
-function isCameraUrl(value) {
-  return isHttpUrl(value) || isRtspUrl(value);
-}
-
-function normalizeConfiguredUrl(value) {
-  const input = String(value || "").trim().replace(/\\([_?&=])/g, "$1");
-  if (isHttpUrl(input)) return input;
-  const match = input.match(/https?:\/\/[^\s\])]+/i);
-  return match && isHttpUrl(match[0]) ? match[0] : input;
-}
-
-function buildHomematicClimateUrl(value, token) {
-  const normalizedUrl = normalizeConfiguredUrl(value);
-  if (!isHttpUrl(normalizedUrl)) return normalizedUrl;
-  const url = new URL(normalizedUrl);
-  const normalizedToken = String(token || "").trim();
-  if (normalizedToken && !url.searchParams.has("sid")) {
-    url.searchParams.set("sid", normalizedToken);
-  }
-  // XML-API's Tcl CGI splits list parameters before URL decoding them.
-  return url.toString().replace(/%2C/gi, ",");
-}
-
-function buildHomematicCommandUrl(value, token) {
-  const normalizedUrl = normalizeConfiguredUrl(value);
-  if (!isHttpUrl(normalizedUrl)) return normalizedUrl;
-  const url = new URL(normalizedUrl);
-  const normalizedToken = String(token || "").trim();
-  const currentSid = String(url.searchParams.get("sid") || "").trim();
-  const sidIsPlaceholder = !currentSid || /^(?:@.*@|\[.*\]|.*DEINE.*)$/i.test(currentSid);
-  if (normalizedToken && sidIsPlaceholder) url.searchParams.set("sid", normalizedToken);
-
-  if (/\/statechange\.cgi$/i.test(url.pathname) && !url.searchParams.has("new_value") && url.searchParams.has("value")) {
-    url.searchParams.set("new_value", url.searchParams.get("value"));
-    url.searchParams.delete("value");
-  }
-  return url.toString();
-}
-
-function parseHomematicStateChange(value) {
-  const normalizedUrl = normalizeConfiguredUrl(value);
-  if (!isHttpUrl(normalizedUrl)) return null;
-  const url = new URL(normalizedUrl);
-  const iseId = String(url.searchParams.get("ise_id") || "").trim();
-  const newValue = String(url.searchParams.get("new_value") || url.searchParams.get("value") || "").trim();
-  if (!/^\d+$/.test(iseId) || !/^-?\d+(?:\.\d+)?$/.test(newValue)) return null;
-  return { iseId, newValue };
-}
-
-function getHomematicDoorCommand(settings, open) {
-  const directionalKey = open ? "homematic_door_open_datapoint_id" : "homematic_door_close_datapoint_id";
-  const datapointId = String(settings?.[directionalKey] || settings?.homematic_door_command_datapoint_id || "").trim();
-  const configuredValue = String((open ? settings?.homematic_door_open_value : settings?.homematic_door_close_value) || "").trim();
-  const defaultValue = open ? "0.0" : "1.0";
-  const value = configuredValue || defaultValue;
-  if (/^\d+$/.test(datapointId) && /^-?\d+(?:[.,]\d+)?$/.test(value)) {
-    const config = getHomematicXmlApiConfig(settings);
-    if (!config) return "";
-    const url = new URL(config.url.origin);
-    url.pathname = `${config.basePath}statechange.cgi`;
-    url.searchParams.set("ise_id", datapointId);
-    url.searchParams.set("new_value", value.replace(",", "."));
-    return url.toString();
-  }
-  return normalizeConfiguredUrl(open ? settings?.homematic_door_open_url : settings?.homematic_door_close_url);
-}
-
-function getHomematicDoorCommandSequence(settings, open) {
-  const targetCommand = getHomematicDoorCommand(settings, open);
-  const oppositeCommand = getHomematicDoorCommand(settings, !open);
-  const targetState = parseHomematicStateChange(targetCommand);
-  const oppositeState = parseHomematicStateChange(oppositeCommand);
-  if (!targetState || !oppositeState || targetState.iseId === oppositeState.iseId) return [targetCommand].filter(Boolean);
-
-  const usesDirectionalLevels = Number(targetState.newValue) === 1 && Number(oppositeState.newValue) === 1;
-  if (!usesDirectionalLevels) return [targetCommand].filter(Boolean);
-
-  const resetUrl = new URL(oppositeCommand);
-  resetUrl.searchParams.set("new_value", "0.0");
-  return [resetUrl.toString(), targetCommand];
-}
-
-async function executeHomematicDoorDirection(settings, open) {
-  const commands = getHomematicDoorCommandSequence(settings, open);
-  if (!commands.length) throw new Error("Für diese Richtung ist kein gültiger Homematic-Befehl hinterlegt.");
-  if (commands.length > 1) {
-    const resetState = parseHomematicStateChange(commands[0]);
-    console.info(`[HeartPet][CCU][door-direction] Setze Gegenkanal ${resetState?.iseId || "unbekannt"} vor dem ${open ? "Öffnen" : "Schließen"} zurück.`);
-    await executeHomematicCommand(settings, commands[0]);
-    await new Promise((resolve) => setTimeout(resolve, 300));
-  }
-  return executeHomematicCommand(settings, commands.at(-1), { expectedDoorOpen: open });
-}
-
-function parseWritableHomematicDatapoints(xml) {
-  return parseHomematicDatapoints(xml).filter((datapoint) => datapoint.writable);
-}
-
-function parseHomematicDatapoints(xml) {
-  const readAttributes = (tag) => Object.fromEntries(Array.from(String(tag).matchAll(/([\w:-]+)=["']([^"']*)["']/g), (match) => [match[1], match[2]]));
-  const results = [];
-  for (const deviceMatch of String(xml || "").matchAll(/<device\b([^>]*)>([\s\S]*?)<\/device>/gi)) {
-    const device = readAttributes(deviceMatch[1]);
-    for (const channelMatch of deviceMatch[2].matchAll(/<channel\b([^>]*)>([\s\S]*?)<\/channel>/gi)) {
-      const channel = readAttributes(channelMatch[1]);
-      for (const datapointMatch of channelMatch[2].matchAll(/<datapoint\b([^>]*)\/?\s*>/gi)) {
-        const datapoint = readAttributes(datapointMatch[1]);
-        const operations = Number.parseInt(datapoint.operations || "0", 10);
-        if (!/^\d+$/.test(datapoint.ise_id || "")) continue;
-        results.push({
-          id: datapoint.ise_id,
-          device: device.name || "Unbenanntes Gerät",
-          channel: channel.name || "Unbenannter Kanal",
-          name: datapoint.name || datapoint.type || "Datenpunkt",
-          type: datapoint.type || "",
-          value: datapoint.value || "",
-          writable: (operations & 2) === 2,
-        });
-      }
-    }
-  }
-  return results.sort((left, right) => `${left.device} ${left.channel} ${left.type}`.localeCompare(`${right.device} ${right.channel} ${right.type}`, "de"));
-}
-
-function decodeHomematicXmlBuffer(buffer, contentType = "") {
-  const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
-  const declaration = new TextDecoder("ascii").decode(bytes.slice(0, 180));
-  const declaredEncoding = `${contentType} ${declaration}`.match(/charset\s*=\s*["']?([^\s;"']+)|encoding\s*=\s*["']([^"']+)/i);
-  const encoding = String(declaredEncoding?.[1] || declaredEncoding?.[2] || "utf-8").toLowerCase();
-  const decoderEncoding = /^(?:iso-8859-1|latin-?1)$/i.test(encoding) ? "windows-1252" : encoding;
-  try {
-    return new TextDecoder(decoderEncoding).decode(bytes);
-  } catch {
-    return new TextDecoder("utf-8").decode(bytes);
-  }
-}
-
-function getHomematicClimateDatapointIds(settings) {
-  const temperatureId = String(settings?.homematic_temperature_datapoint_id || settings?.homematic_climate_channel_id || "").trim();
-  const humidityId = String(settings?.homematic_humidity_datapoint_id || "").trim();
-  if (!/^\d+$/.test(temperatureId) || !/^\d+$/.test(humidityId)) return null;
-  return { temperatureId, humidityId };
-}
-
-function normalizeHomematicXmlApiToken(value) {
-  const raw = String(value || "").trim();
-  if (!raw) return "";
-  const normalizedUrl = normalizeConfiguredUrl(raw);
-  if (isHttpUrl(normalizedUrl)) return String(new URL(normalizedUrl).searchParams.get("sid") || "").trim();
-  return raw.replace(/^[?&]?sid=/i, "").trim();
-}
-
-function getHomematicXmlApiConfig(settings) {
-  const configured = normalizeConfiguredUrl(settings?.homematic_ccu_url);
-  if (!isHttpUrl(configured)) return null;
-  const url = new URL(configured);
-  const configuredPath = url.pathname.match(/\/(?:addons|config)\/xmlapi\/?/i)?.[0];
-  const basePath = (configuredPath || "/addons/xmlapi/").replace(/\/?$/, "/");
-  const token = normalizeHomematicXmlApiToken(url.searchParams.get("sid") || settings?.homematic_xmlapi_token);
-  return { url, basePath, token };
-}
-
-function buildHomematicXmlApiUrl(settings, endpoint, params = {}) {
-  const config = getHomematicXmlApiConfig(settings);
-  if (!config || !config.token) return "";
-  const url = new URL(config.url.origin);
-  url.pathname = `${config.basePath}${endpoint}`;
-  url.searchParams.set("sid", config.token);
-  Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, String(value)));
-  // XML-API's Tcl CGI splits list parameters before URL decoding them.
-  return url.toString().replace(/%2C/gi, ",");
-}
-
-function getHomematicApiUrl(settings) {
-  const configured = normalizeConfiguredUrl(settings?.homematic_ccu_url);
-  if (isHttpUrl(configured)) {
-    const url = new URL(configured);
-    if (!/\/api\/homematic\.cgi$/i.test(url.pathname)) url.pathname = "/api/homematic.cgi";
-    return url.toString();
-  }
-  const source = normalizeConfiguredUrl(settings?.homematic_climate_url || settings?.homematic_door_open_url);
-  if (!isHttpUrl(source)) return "";
-  const url = new URL(source);
-  url.pathname = "/api/homematic.cgi";
-  url.search = "";
-  return url.toString();
-}
-
-async function callHomematicJsonRpc(apiUrl, method, params) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 7000);
-  try {
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "1.1", id: 1, method, params }),
-      signal: controller.signal,
-    });
-    if (!response.ok) throw new Error(`CCU antwortet mit HTTP ${response.status}.`);
-    const payload = await response.json();
-    if (payload?.error) throw new Error(payload.error.message || `CCU-Fehler ${payload.error.code || "unbekannt"}.`);
-    return payload?.result;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-async function executeHomematicCommand(settings, configuredUrl, { expectedDoorOpen = null } = {}) {
-  const stateChange = parseHomematicStateChange(configuredUrl);
-  const commandId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
-  const commandUrlFromXmlApi = stateChange ? buildHomematicXmlApiUrl(settings, "statechange.cgi", {
-    ise_id: stateChange.iseId,
-    new_value: stateChange.newValue,
-  }) : "";
-  if (commandUrlFromXmlApi) {
-    const targetValue = Number(stateChange.newValue);
-    console.info(`[HeartPet][CCU][door-command][${commandId}] Sende XML-API-Datenpunkt ${stateChange.iseId} mit Sollwert ${targetValue} über ${new URL(commandUrlFromXmlApi).origin}${new URL(commandUrlFromXmlApi).pathname}.`);
-    const commandUrl = commandUrlFromXmlApi;
-    const response = await fetchWithTimeout(commandUrl, 5000);
-    if (!response.ok) throw new Error(`XML-API antwortet mit HTTP ${response.status}.`);
-    const responseText = await response.text();
-    console.info(`[HeartPet][CCU][door-command][${commandId}] CCU-Antwort: ${responseText.replace(/\s+/g, " ").trim().slice(0, 500)}`);
-    const responseError = getHomematicCommandResponseError(responseText);
-    if (responseError) throw new Error(responseError);
-    const sensorResult = await waitForDoorSensor(settings, expectedDoorOpen, commandId);
-    console.info(`[HeartPet][CCU][door-command][${commandId}] CCU-Befehl bestätigt.${sensorResult.sensorConfigured ? ` Türsensor: ${sensorResult.sensorConfirmed ? "Endlage bestätigt" : "Endlage nicht bestätigt"}.` : ""}`);
-    return { accepted: true, operationStatus: sensorResult.sensorConfigured ? (sensorResult.sensorConfirmed ? "confirmed" : "timeout") : "accepted", commandId, targetValue, ...sensorResult };
-  }
-  const apiUrl = getHomematicApiUrl(settings);
-  const hasCredentials = Boolean(String(settings?.homematic_ccu_username || "").trim());
-  if (stateChange && apiUrl && hasCredentials) {
-    const login = await loginHomematicCcu(settings);
-    if (!login.ok) throw new Error(`CCU-Anmeldung fehlgeschlagen: ${login.error}`);
-    const script = `dom.GetObject(${stateChange.iseId}).State(${stateChange.newValue});`;
-    try {
-      await callHomematicJsonRpc(apiUrl, "ReGa.runScript", { _session_id_: login.sid, script });
-    } catch (error) {
-      console.error(`[HeartPet][CCU][door-command] Datenpunkt ${stateChange.iseId}, Wert ${stateChange.newValue}: ${error.message}`);
-      throw new Error(`CCU-Schaltbefehl fehlgeschlagen: ${error.message}`);
-    }
-    const sensorResult = await waitForDoorSensor(settings, expectedDoorOpen, commandId);
-    return { accepted: true, operationStatus: sensorResult.sensorConfigured ? (sensorResult.sensorConfirmed ? "confirmed" : "timeout") : "accepted", commandId, targetValue: Number(stateChange.newValue), ...sensorResult };
-  }
-
-  const commandUrl = buildHomematicCommandUrl(configuredUrl, await resolveHomematicSid(settings));
-  if (!isHttpUrl(commandUrl)) throw new Error("Ungültige Homematic-Befehls-URL.");
-  const response = await fetchWithTimeout(commandUrl, 5000);
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  const responseText = await response.text();
-  console.info(`[HeartPet][CCU][door-command][${commandId}] Direkte CCU-Antwort: ${responseText.replace(/\s+/g, " ").trim().slice(0, 500)}`);
-  const responseError = getHomematicCommandResponseError(responseText);
-  if (responseError) throw new Error(responseError);
-  const sensorResult = await waitForDoorSensor(settings, expectedDoorOpen, commandId);
-  return { accepted: true, operationStatus: sensorResult.sensorConfigured ? (sensorResult.sensorConfirmed ? "confirmed" : "timeout") : "accepted", commandId, targetValue: stateChange ? Number(stateChange.newValue) : null, ...sensorResult };
-}
-
-async function waitForDoorSensor(settings, expectedDoorOpen, commandId = "status") {
-  const sensorId = String(settings?.homematic_door_sensor_datapoint_id || "").trim();
-  if (!/^\d+$/.test(sensorId) || typeof expectedDoorOpen !== "boolean") {
-    return { changed: true, sensorConfigured: false, sensorConfirmed: false, sensorValue: null, expectedSensorValue: null, previousSensorValue: null, attempts: 0 };
-  }
-
-  const trueMeansOpen = settings?.homematic_door_sensor_true_state !== "closed";
-  const expectedValue = expectedDoorOpen === trueMeansOpen ? 1 : 0;
-  const previousValue = await readHomematicXmlApiDatapoint(settings, sensorId);
-  console.info(`[HeartPet][CCU][door-command][${commandId}] Türsensor ${sensorId}: vorher ${previousValue}, erwartet ${expectedValue}.`);
-  for (let attempt = 0; attempt < 12; attempt += 1) {
-    if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 1000));
-    const sensorValue = await readHomematicXmlApiDatapoint(settings, sensorId);
-    if (attempt === 0 || sensorValue === expectedValue || attempt === 11) {
-      console.info(`[HeartPet][CCU][door-command][${commandId}] Türsensor ${sensorId}: Versuch ${attempt + 1}/12, Wert ${sensorValue}.`);
-    }
-    if (sensorValue === expectedValue) {
-      return {
-        changed: previousValue !== expectedValue,
-        sensorConfigured: true,
-        sensorConfirmed: true,
-        sensorValue,
-        expectedSensorValue: expectedValue,
-        previousSensorValue: previousValue,
-        attempts: attempt + 1,
-      };
-    }
-  }
-  const sensorValue = await readHomematicXmlApiDatapoint(settings, sensorId);
-  return { changed: false, sensorConfigured: true, sensorConfirmed: false, sensorValue, expectedSensorValue: expectedValue, previousSensorValue: previousValue, attempts: 12 };
-}
-
-async function readHomematicXmlApiDatapoint(settings, datapointId) {
-  const statusUrl = buildHomematicXmlApiUrl(settings, "state.cgi", { datapoint_id: datapointId });
-  if (!statusUrl) return null;
-  const response = await fetchWithTimeout(statusUrl, 7000);
-  if (!response.ok) return null;
-  const text = await response.text();
-  if (/<not_authenticated\b/i.test(text)) return null;
-  const tag = (text.match(new RegExp(`<datapoint\\b[^>]*\\bise_id=["']${datapointId}["'][^>]*>`, "i")) || [])[0] || "";
-  const value = tag.match(/\bvalue=["'](true|false|-?\d+(?:[.,]\d+)?)["']/i)?.[1];
-  if (value === undefined) return null;
-  if (/^true$/i.test(value)) return 1;
-  if (/^false$/i.test(value)) return 0;
-  return Number(value.replace(",", "."));
-}
-
-async function readHomematicClimateFromCcu(settings) {
-  const datapointIds = getHomematicClimateDatapointIds(settings);
-  if (!datapointIds) return { temperature: null, humidity: null, loginOk: false, stage: "configuration", error: "Temperatur- und Luftfeuchte-Datenpunkt müssen hinterlegt sein." };
-  const xmlApiConfig = getHomematicXmlApiConfig(settings);
-  if (xmlApiConfig?.token) return readHomematicClimateFromXmlApi(settings, datapointIds);
-  const login = await loginHomematicCcu(settings);
-  if (!login.ok) return { temperature: null, humidity: null, loginOk: false, stage: "login", error: login.error };
-  try {
-    const script = `WriteLine("temperature=" # dom.GetObject(${datapointIds.temperatureId}).Value()); WriteLine("humidity=" # dom.GetObject(${datapointIds.humidityId}).Value());`;
-    const result = await callHomematicJsonRpc(getHomematicApiUrl(settings), "ReGa.runScript", { _session_id_: login.sid, script });
-    const text = typeof result === "string" ? result : JSON.stringify(result || "");
-    const temperature = parseHomematicTextValue(text, ["actual_temperature", "temperature", "temperatur", "temp"]);
-    const humidity = parseHomematicTextValue(text, ["humidity", "luftfeuchte", "feuchte", "hum"]);
-    return {
-      temperature,
-      humidity,
-      loginOk: true,
-      stage: temperature === null && humidity === null ? "parse" : "success",
-      error: temperature === null && humidity === null ? "CCU erreichbar, aber im Kanal wurden keine Klima-Werte gefunden." : "",
-    };
-  } catch (error) {
-    console.error(`[HeartPet][CCU][climate-read] Datenpunkte ${datapointIds.temperatureId}/${datapointIds.humidityId}: ${error.message}`);
-    return { temperature: null, humidity: null, loginOk: true, stage: "climate-read", error: error.message };
-  }
-}
-
-async function readHomematicClimateFromXmlApi(settings, datapointIds) {
-  const climateUrl = buildHomematicXmlApiUrl(settings, "state.cgi", {
-    datapoint_id: `${datapointIds.temperatureId},${datapointIds.humidityId}`,
-  });
-  if (!climateUrl) return { temperature: null, humidity: null, loginOk: false, stage: "configuration", error: "XML-API-Adresse oder Token fehlt." };
-  try {
-    const response = await fetchWithTimeout(climateUrl, 7000);
-    if (!response.ok) throw new Error(`XML-API antwortet mit HTTP ${response.status}.`);
-    const text = await response.text();
-    if (/<not_authenticated\b/i.test(text)) throw new Error("XML-API-Token ist ungültig oder fehlt.");
-    const readValue = (id) => {
-      const tag = (text.match(new RegExp(`<datapoint\\b[^>]*\\bise_id=["']${id}["'][^>]*>`, "i")) || [])[0] || "";
-      const value = tag.match(/\bvalue=["'](-?\d+(?:[.,]\d+)?)["']/i)?.[1];
-      return value === undefined ? null : Number(value.replace(",", "."));
-    };
-    const temperature = readValue(datapointIds.temperatureId);
-    const humidity = readValue(datapointIds.humidityId);
-    return {
-      temperature,
-      humidity,
-      loginOk: true,
-      stage: temperature === null && humidity === null ? "parse" : "success",
-      error: temperature === null && humidity === null ? "XML-API erreichbar, aber die angegebenen Datenpunkte wurden nicht gefunden." : "",
-    };
-  } catch (error) {
-    console.error(`[HeartPet][CCU][xml-api-climate] Datenpunkte ${datapointIds.temperatureId}/${datapointIds.humidityId}: ${error.message}`);
-    return { temperature: null, humidity: null, loginOk: false, stage: "climate-read", error: error.message };
-  }
-}
-
-async function resolveHomematicSid(settings) {
-  const token = String(settings?.homematic_xmlapi_token || "").trim();
-  if (token) return token;
-  return (await loginHomematicCcu(settings)).sid;
-}
-
-function getHomematicCommandResponseError(text) {
-  const responseText = String(text || "");
-  if (/<not_authenticated\b/i.test(responseText)) return "XML-API-Token ist ungültig oder fehlt.";
-  if (/<not_found\s*\/>/i.test(responseText)) return "Der Tür-Datenpunkt wurde auf der CCU nicht gefunden. Bitte die ise_id prüfen.";
-  if (/<changed\b[^>]*\bsuccess=["']false["']/i.test(responseText)) return "Die CCU hat den Tür-Datenpunkt gefunden, den Schaltwert aber abgelehnt.";
-  if (/\berror=["']true["']/i.test(responseText)) return "Datenpunkt wurde von der XML-API nicht gefunden.";
-  if (/<result>\s*<\/result>/i.test(responseText)) return "Die CCU hat keine Bestätigung für den Türbefehl geliefert.";
-  return "";
-}
-
-
-
 function getRuntimeMetricsSnapshot() {
   const requests = runtimeMetrics.requests;
   return {
@@ -2521,7 +1153,7 @@ function buildOperationalHealthChecks(settings) {
     const cached = cameraFrameCache.get(index) || readCameraFrameCache(index, camera.snapshotUrl);
     return cached?.createdAt && Date.now() - cached.createdAt < 5 * 60 * 1000;
   }).length;
-  const xmlApi = getHomematicXmlApiConfig(settings);
+  const xmlApi = homematic.getXmlApiConfig(settings);
   const ccuUsername = String(settings.homematic_ccu_username || "").trim();
   const ccuReady = Boolean(xmlApi?.token || ccuUsername);
   const ccuDetail = xmlApi?.token
@@ -2540,110 +1172,6 @@ function buildOperationalHealthChecks(settings) {
   ];
 }
 
-
-function findHomematicValue(value, preferredKeys) {
-  if (typeof value === "number") return value;
-  if (typeof value === "string") {
-    const match = String(value).replace(",", ".").match(/-?\d+(?:\.\d+)?/);
-    return match ? Number(match[0]) : null;
-  }
-  if (!value || typeof value !== "object") return null;
-
-  const entries = Object.entries(value);
-  for (const preferredKey of preferredKeys) {
-    const match = entries.find(([key]) => key.toLowerCase().includes(preferredKey));
-    if (match) {
-      const result = findHomematicValue(match[1], preferredKeys);
-      if (result !== null) return result;
-    }
-  }
-  const genericValue = entries.find(([key]) => ["value", "val", "wert"].includes(key.toLowerCase()));
-  if (genericValue) return findHomematicValue(genericValue[1], preferredKeys);
-
-  for (const [, nestedValue] of entries.filter(([, item]) => item && typeof item === "object")) {
-    const result = findHomematicValue(nestedValue, preferredKeys);
-    if (result !== null) return result;
-  }
-  return null;
-}
-
-function parseHomematicTextValue(text, preferredKeys) {
-  const normalized = String(text || "").replace(/,/g, ".");
-  const datapointValue = findHomematicXmlDatapoint(normalized, preferredKeys);
-  if (datapointValue !== null) return datapointValue;
-  const escapedKeys = preferredKeys.map((key) => key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-  const namedPattern = new RegExp(`(?:${escapedKeys.join("|")})[^-\\d]{0,40}(-?\\d+(?:\\.\\d+)?)`, "i");
-  const namedMatch = normalized.match(namedPattern);
-  if (namedMatch) return Number(namedMatch[1]);
-
-  const valueAttribute = normalized.match(/\b(?:value|val|wert)\s*=\s*["'](-?\d+(?:\.\d+)?)["']/i);
-  if (valueAttribute) return Number(valueAttribute[1]);
-
-  const plainNumber = normalized.trim().match(/^-?\d+(?:\.\d+)?$/);
-  return plainNumber ? Number(plainNumber[0]) : null;
-}
-
-function findHomematicXmlDatapoint(xml, preferredKeys) {
-  const tags = String(xml || "").match(/<datapoint\b[^>]*>/gi) || [];
-  for (const tag of tags) {
-    const attributes = {};
-    tag.replace(/([\w:-]+)\s*=\s*["']([^"']*)["']/g, (match, key, value) => {
-      attributes[key.toLowerCase()] = value;
-      return match;
-    });
-    const descriptor = [attributes.name, attributes.type, attributes.paramset_key]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-    if (!preferredKeys.some((key) => descriptor.includes(key))) continue;
-    const parsed = Number(String(attributes.value || "").replace(",", "."));
-    if (Number.isFinite(parsed)) return parsed;
-  }
-  return null;
-}
-
-async function readHomematicClimate(url) {
-  const normalizedUrl = normalizeConfiguredUrl(url);
-  if (!isHttpUrl(normalizedUrl)) return { temperature: null, humidity: null, error: "Ungültige XML-API-URL." };
-  try {
-    const response = await fetchWithTimeout(normalizedUrl);
-    if (!response.ok) return { temperature: null, humidity: null, error: `XML-API antwortet mit HTTP ${response.status}.` };
-    const text = await response.text();
-    if (/<not_authenticated\b/i.test(text)) {
-      return { temperature: null, humidity: null, error: "XML-API verlangt ein gültiges sid-Token." };
-    }
-    if (/\berror=["']true["']/i.test(text)) {
-      return { temperature: null, humidity: null, error: "Geräte- oder Kanal-ID wurde von der XML-API nicht gefunden." };
-    }
-    const temperature = parseHomematicTextValue(text, ["actual_temperature", "temperature", "temperatur", "temp"]);
-    const humidity = parseHomematicTextValue(text, ["humidity", "luftfeuchte", "feuchte", "hum"]);
-    return {
-      temperature,
-      humidity,
-      error: temperature === null && humidity === null
-        ? "XML empfangen, aber keine Datenpunkte für Temperatur oder Luftfeuchte gefunden."
-        : "",
-    };
-  } catch (error) {
-    return { temperature: null, humidity: null, error: describeFetchError(error) };
-  }
-}
-
-async function readHomematicValue(url, preferredKeys) {
-  if (!isHttpUrl(url)) return null;
-  try {
-    const response = await fetchWithTimeout(url);
-    if (!response.ok) return null;
-    const text = await response.text();
-    try {
-      return findHomematicValue(JSON.parse(text), preferredKeys);
-    } catch {
-      return parseHomematicTextValue(text, preferredKeys);
-    }
-  } catch {
-    return null;
-  }
-}
 
 function getAppLogoUrl(settings) {
   const storedName = String(settings?.app_logo_stored_name || "").trim();
@@ -3138,29 +1666,6 @@ function getAnimalActivityEntries(animalId, limit = 12) {
   `).all(String(animalId), limit).map(formatAnimalActivityEntry);
 }
 
-function buildDashboardActivityFeed(limit = 8) {
-  return db.prepare(`
-    SELECT audit_logs.*, animals.name AS current_animal_name
-    FROM audit_logs
-    LEFT JOIN animals
-      ON audit_logs.entity_type = 'animal'
-     AND CAST(audit_logs.entity_id AS INTEGER) = animals.id
-    WHERE audit_logs.entity_type = 'animal'
-      AND audit_logs.action IN (
-        'animal.create', 'animal.update', 'animal.status_change', 'animal.note_create',
-        'animal.document_create', 'animal.image_create', 'animal.profile_image_update'
-      )
-    ORDER BY audit_logs.id DESC
-    LIMIT ?
-  `).all(limit).map((entry) => {
-    const formatted = formatAnimalActivityEntry(entry);
-    return {
-      ...formatted,
-      animalId: entry.entity_id ? Number(entry.entity_id) : null,
-    };
-  });
-}
-
 function getAdminViewData(pageTitle, adminPath) {
   const settings = getSettingsObject(db);
   const lastSuccessfulEmailCheck = getLastSuccessfulNotificationCheck("email", ["test", "smtp_connection_check"]);
@@ -3378,9 +1883,17 @@ async function requestEmailChangeConfirmation({ userId, requestedByUserId, newEm
 
 function resolveAppBaseUrl(settings) {
   const raw = String(settings.app_domain || "").trim();
+  const configured = String(process.env.HEARTPET_APP_URL || "").trim();
   if (!raw) {
-    return "http://127.0.0.1:3000";
+    if (configured) {
+      return normalizeAppBaseUrl(configured);
+    }
+    return getDefaultAppBaseUrl({ port, bindHost });
   }
+  return normalizeAppBaseUrl(raw);
+}
+
+function normalizeAppBaseUrl(raw) {
   if (/^https?:\/\//i.test(raw)) {
     return raw.replace(/\/+$/, "");
   }
@@ -3388,7 +1901,7 @@ function resolveAppBaseUrl(settings) {
 }
 
 app.__test = {
-  maybeSendDailyDigest,
+  maybeSendDailyDigest: reminderScheduler.sendDailyDigest,
   createAuthenticatedFetchTarget,
   buildDigestAuthorization,
   normalizeConfiguredUrl,

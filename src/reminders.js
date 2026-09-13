@@ -5,110 +5,29 @@ const path = require("node:path");
 const crypto = require("node:crypto");
 const { resolveSessionSecret } = require("./http-session");
 const { resolveStoredFilePath } = require("./storage-paths");
+const { createReminderRepository } = require("./repositories/reminder-repository");
+const { createNotificationChannels } = require("./services/notification-channels");
+const { createReminderDeliveryService } = require("./services/reminder-delivery");
 
 let reminderActionSecret = "";
 
 async function processDueReminders(db, settings, hooks = {}) {
   const now = dayjs().format("YYYY-MM-DDTHH:mm");
-  const dueReminders = db.prepare(`
-    SELECT reminders.*, animals.name AS animal_name
-    FROM reminders
-    INNER JOIN animals ON animals.id = reminders.animal_id
-    WHERE reminders.completed_at IS NULL
-      AND reminders.due_at <= ?
-      AND reminders.last_notified_at IS NULL
-      AND animals.status = 'Aktiv'
-    ORDER BY reminders.due_at ASC
-  `).all(now);
-
-  for (const reminder of dueReminders) {
-    const deliveryState = {
-      status: "skipped",
-      error: "",
-      notified: false,
-    };
-
-    try {
-      const emailEnabled = isEmailEnabled(settings);
-      const telegramEnabled = isTelegramEnabled(settings);
-      const ntfyEnabled = isNtfyEnabled(settings);
-
-      if (reminder.channel_email && emailEnabled) {
-        await sendEmailReminder(settings, reminder);
-        if (typeof hooks.onNotification === "function") {
-          hooks.onNotification({
-            channel: "email",
-            type: "reminder",
-            recipient: settings.notification_email_to || settings.smtp_user || "",
-            subject: `Erinnerung: ${reminder.title}`,
-            status: "sent",
-            error: "",
-            reminder,
-          });
-        }
-        deliveryState.notified = true;
-      }
-
-      if (reminder.channel_telegram && telegramEnabled) {
-        await sendTelegramReminder(settings, reminder);
-        if (typeof hooks.onNotification === "function") {
-          hooks.onNotification({
-            channel: "telegram",
-            type: "reminder",
-            recipient: settings.telegram_chat_id || "",
-            subject: `Erinnerung: ${reminder.title}`,
-            status: "sent",
-            error: "",
-            reminder,
-          });
-        }
-        deliveryState.notified = true;
-      }
-
-      if (ntfyEnabled) {
-        await sendNtfyReminder(settings, reminder);
-        hooks.onNotification?.({
-          channel: "ntfy",
-          type: "reminder",
-          recipient: settings.ntfy_topic || "",
-          subject: `Erinnerung: ${reminder.title}`,
-          status: "sent",
-          error: "",
-          reminder,
-        });
-        deliveryState.notified = true;
-      }
-
-      deliveryState.status = deliveryState.notified ? "sent" : "skipped";
-    } catch (error) {
-      deliveryState.status = "error";
-      deliveryState.error = error.message;
-      if (typeof hooks.onNotification === "function") {
-        hooks.onNotification({
-          channel: reminder.channel_email ? "email" : reminder.channel_telegram ? "telegram" : ntfyEnabled ? "ntfy" : "none",
-          type: "reminder",
-          recipient: settings.notification_email_to || settings.smtp_user || settings.telegram_chat_id || settings.ntfy_topic || "",
-          subject: `Erinnerung: ${reminder.title}`,
-          status: "error",
-          error: error.message,
-          reminder,
-        });
-      }
-    }
-
-    db.prepare(`
-      UPDATE reminders
-      SET last_notified_at = CASE WHEN ? THEN CURRENT_TIMESTAMP ELSE last_notified_at END,
-          last_delivery_status = ?,
-          last_delivery_error = ?
-      WHERE id = ?
-    `).run(
-      deliveryState.notified ? 1 : 0,
-      deliveryState.status,
-      deliveryState.error || "",
-      reminder.id
-    );
-  }
+  const service = createReminderDeliveryService({
+    repository: createReminderRepository(db),
+    channels: createNotificationChannels({
+      isEmailEnabled,
+      isTelegramEnabled,
+      isNtfyEnabled,
+      sendEmailReminder,
+      sendTelegramReminder,
+      sendNtfyReminder,
+      sendDailyDigestEmail,
+      sendDailyDigestTelegram,
+      sendDailyDigestNtfy,
+    }),
+  });
+  await service.processDue(now, settings, hooks);
 }
 
 async function sendEmailReminder(settings, reminder) {
@@ -1054,6 +973,7 @@ module.exports = {
   processDueReminders,
   sendEmailReminder,
   sendTelegramReminder,
+  sendNtfyReminder,
   sendDailyDigestEmail,
   sendDailyDigestTelegram,
   sendDailyDigestNtfy,

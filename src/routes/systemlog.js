@@ -7,7 +7,7 @@ function createSystemlogRouter(dependencies) {
     createAuditLog,
     formatAuditLogEntry,
     getAdminViewData,
-    getHomematicClimateDatapointIds,
+    homematic,
     getInstanceTimeZone,
     getRuntimeMetricsSnapshot,
     getSettings,
@@ -16,7 +16,6 @@ function createSystemlogRouter(dependencies) {
     isTelegramConfigured,
     parseCoopCameras,
     readAppRevision,
-    readHomematicClimateFromCcu,
     redactSensitiveText,
     repository,
     requireAdmin,
@@ -80,8 +79,8 @@ function createSystemlogRouter(dependencies) {
       }
     };
     await run("Datenbank", repository.checkDatabase);
-    if (getHomematicClimateDatapointIds(settings)) await run("OpenCCU Klima", async () => {
-      const climate = await readHomematicClimateFromCcu(settings);
+    if (homematic.getClimateDatapointIds(settings)) await run("OpenCCU Klima", async () => {
+      const climate = await homematic.readClimate(settings);
       if (climate.error) throw new Error(climate.error);
     });
     for (const camera of parseCoopCameras(settings.coop_camera_streams)) await run(`Kamera ${camera.name}`, async () => {

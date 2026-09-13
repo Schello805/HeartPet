@@ -4,11 +4,17 @@ const dayjs = require("dayjs");
 function createAnimalHealthRouter({
   db, upload, requireAnimalPermission, getVaccinationSuggestionGroups, getAnimalReturnTo,
   safeLocalReturnPath, getVaccinationCertificateError, discardUploadedFile, setFlash,
-  syncMedicationReminders, syncVaccinationReminders, syncAppointmentReminders,
+  reminders,
   createAuditLog, redirectDocumentDrawerRequest, renderNotFound,
-  deleteGeneratedReminders, deleteUploadedFileIfUnreferenced,
+  deleteUploadedFileIfUnreferenced,
 }) {
   const router = express.Router();
+  const {
+    deleteGeneratedReminders,
+    syncAppointmentReminders,
+    syncMedicationReminders,
+    syncVaccinationReminders,
+  } = reminders;
 
   router.get("/animals/vaccinations/bulk/new", requireAnimalPermission("canManageHealth"), (req, res) => {
     const speciesId = String(req.query.species_id || "").trim();

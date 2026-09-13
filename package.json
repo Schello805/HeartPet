@@ -10,6 +10,8 @@
     "start": "node src/app.js",
     "dev": "node src/app.js",
     "check:animal-view": "node scripts/render-animal-show-check.js",
+    "images:audit": "node scripts/optimize-animal-images.js",
+    "images:optimize": "node scripts/optimize-animal-images.js --apply",
     "verify": "node scripts/verify.js",
     "prepare": "git config core.hooksPath .githooks || true"
   },
@@ -28,7 +30,8 @@
     "node-cron": "^4.2.1",
     "nodemailer": "^9.1.1",
     "pdfkit": "^0.18.0",
-    "qrcode": "^1.5.4"
+    "qrcode": "^1.5.4",
+    "sharp": "^0.35.4"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",

@@ -3,10 +3,11 @@ const dayjs = require("dayjs");
 
 function createAnimalRemindersRouter({
   db, requireAnimalPermission, safeLocalReturnPath, parsePositiveInteger, setFlash,
-  createAuditLog, applyCompletionSideEffects, findAnimal, isActiveAnimalStatus,
+  createAuditLog, reminders, findAnimal, isActiveAnimalStatus,
   renderNotFound, safeRefererPath, getAnimalReturnTo, redirectDocumentDrawerRequest,
 }) {
   const router = express.Router();
+  const { applyCompletionSideEffects } = reminders;
 
   router.post("/animals/:id/reminders", requireAnimalPermission("canManageReminders"), (req, res) => {
     const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.id}`);

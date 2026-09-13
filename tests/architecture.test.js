@@ -119,3 +119,49 @@ test("Stall-Endpunkte und Wetterlogik bleiben fachlich getrennt", () => {
   assert.doesNotMatch(appSource, /async function readOutdoorWeather/);
   assert.doesNotMatch(appSource, /function parseCoopCameraLines/);
 });
+
+test("Dashboard, Suche und Erinnerungs-API bleiben aus app.js ausgelagert", () => {
+  const appSource = fs.readFileSync(path.join(__dirname, "..", "src", "app.js"), "utf8");
+  const dashboardRouter = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "dashboard.js"), "utf8");
+  const dashboardService = fs.readFileSync(path.join(__dirname, "..", "src", "services", "dashboard.js"), "utf8");
+  const searchService = fs.readFileSync(path.join(__dirname, "..", "src", "services", "search.js"), "utf8");
+  const reminderApi = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "reminder-api.js"), "utf8");
+
+  assert.match(appSource, /app\.use\(createDashboardRouter/);
+  assert.match(appSource, /app\.use\(createReminderApiRouter/);
+  assert.doesNotMatch(appSource, /app\.get\("\/(?:dashboard|api\/reminders\/pending|animals\/suggest|search)"/);
+  assert.match(dashboardRouter, /router\.get\("\/"/);
+  assert.match(dashboardService, /function createDashboardService/);
+  assert.match(searchService, /function createSearchService/);
+  assert.match(reminderApi, /router\.get\("\/api\/reminders\/pending"/);
+});
+
+test("Oeffentliche Erinnerungslinks und Reminder-Jobs bleiben in eigenen Modulen", () => {
+  const appSource = fs.readFileSync(path.join(__dirname, "..", "src", "app.js"), "utf8");
+  const actions = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "reminder-actions.js"), "utf8");
+  const repository = fs.readFileSync(path.join(__dirname, "..", "src", "repositories", "reminder-repository.js"), "utf8");
+  const scheduler = fs.readFileSync(path.join(__dirname, "..", "src", "services", "reminder-scheduler.js"), "utf8");
+  const delivery = fs.readFileSync(path.join(__dirname, "..", "src", "services", "reminder-delivery.js"), "utf8");
+
+  assert.match(appSource, /app\.use\(createReminderActionsRouter/);
+  assert.doesNotMatch(appSource, /app\.get\("\/reminders\/(?:complete|snooze)"/);
+  assert.doesNotMatch(appSource, /function maybeSendDailyDigest/);
+  assert.match(actions, /router\.get\("\/reminders\/:id\/email-complete"/);
+  assert.match(repository, /listDue/);
+  assert.match(scheduler, /function createReminderScheduler/);
+  assert.match(delivery, /async function processDue/);
+});
+
+test("Browser-Skripte fuer Statuswechsel und Suche bleiben modular geladen", () => {
+  const appScript = fs.readFileSync(path.join(__dirname, "..", "public", "js", "app.js"), "utf8");
+  const bottom = fs.readFileSync(path.join(__dirname, "..", "views", "partials", "bottom.ejs"), "utf8");
+  const animalStatus = fs.readFileSync(path.join(__dirname, "..", "public", "js", "animal-status.js"), "utf8");
+  const globalSearch = fs.readFileSync(path.join(__dirname, "..", "public", "js", "global-search.js"), "utf8");
+
+  assert.match(bottom, /animal-status\.js/);
+  assert.match(bottom, /global-search\.js/);
+  assert.match(appScript, /HeartPetAnimalStatus\?\.init/);
+  assert.match(appScript, /HeartPetGlobalSearch\?\.init/);
+  assert.match(animalStatus, /window\.HeartPetAnimalStatus/);
+  assert.match(globalSearch, /window\.HeartPetGlobalSearch/);
+});
