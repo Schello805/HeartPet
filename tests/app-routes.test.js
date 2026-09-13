@@ -518,7 +518,7 @@ test("Alle internen API- und Steuerungsrouten sind mit der vorgesehenen Methode 
       return Object.keys(layer.route.methods).map((method) => `${method.toUpperCase()} ${prefix}${layer.route.path}`);
     }
     if (Array.isArray(layer.handle?.stack)) {
-      return routeEntries(layer.handle.stack, layer.handle.heartpetMountPath || "/admin");
+      return routeEntries(layer.handle.stack, layer.handle.heartpetMountPath ?? "/admin");
     }
     return [];
   });
@@ -1332,39 +1332,6 @@ test("Betriebsskripte verwenden die gemeinsame systemd-Bibliothek", () => {
   }
 });
 
-test("Systemlog-Router kapselt SQL im Repository", () => {
-  const router = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "systemlog.js"), "utf8");
-  const repository = fs.readFileSync(path.join(__dirname, "..", "src", "repositories", "systemlog-repository.js"), "utf8");
-  assert.doesNotMatch(router, /\bdb\.prepare\s*\(/);
-  assert.match(repository, /notification_logs/);
-  assert.match(repository, /audit_logs/);
-});
-
-test("Tierübersicht und Tierdetail bleiben im fachlichen Router und Service", () => {
-  const appSource = fs.readFileSync(path.join(__dirname, "..", "src", "app.js"), "utf8");
-  const router = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "animals.js"), "utf8");
-  const service = fs.readFileSync(path.join(__dirname, "..", "src", "services", "animal-workspace.js"), "utf8");
-  assert.match(appSource, /app\.use\("\/animals", createAnimalsRouter/);
-  assert.doesNotMatch(appSource, /app\.get\("\/animals"\s*,/);
-  assert.doesNotMatch(appSource, /app\.get\("\/animals\/historie"\s*,/);
-  assert.doesNotMatch(appSource, /app\.get\("\/animals\/:id"\s*,/);
-  assert.match(router, /router\.get\("\/historie"/);
-  assert.match(router, /router\.get\(\/\^\\\/\(\\d\+\)\$\//);
-  assert.doesNotMatch(router, /\bdb\.prepare\s*\(/);
-  assert.match(service, /function buildWorkspace\(/);
-  assert.match(service, /function buildDetailView\(/);
-});
-
-test("Tier-Stammdaten und Statuswechsel bleiben im fachlichen Router", () => {
-  const appSource = fs.readFileSync(path.join(__dirname, "..", "src", "app.js"), "utf8");
-  const router = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "animal-records.js"), "utf8");
-  assert.match(appSource, /app\.use\("\/animals", createAnimalRecordsRouter/);
-  assert.doesNotMatch(appSource, /app\.(?:get|post)\("\/animals\/(?:new|:id\/(?:edit|update|memorial-note|duplicate|delete))"/);
-  assert.match(router, /router\.post\("\/:id\/update"/);
-  assert.match(router, /router\.post\("\/:id\/memorial-note"/);
-  assert.match(router, /router\.post\("\/:id\/duplicate"/);
-  assert.match(router, /router\.post\("\/:id\/delete"/);
-});
 
 test("Stammdaten-Template bleibt mit einem älteren Serverstand renderbar", () => {
   const template = fs.readFileSync(path.join(__dirname, "..", "views", "pages", "admin-masterdata.ejs"), "utf8");

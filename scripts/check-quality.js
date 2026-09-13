@@ -5,7 +5,7 @@ const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
 const limits = new Map([
-  ["src/app.js", 7150],
+  ["src/app.js", 5500],
   ["public/js/app.js", 1700],
 ]);
 
