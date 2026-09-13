@@ -2,7 +2,7 @@
 <% const sectionBasePath = sectionState.basePath || '/animals'; %>
 <% const selectedAnimalState = typeof selectedAnimal !== 'undefined' ? selectedAnimal : null; %>
 <% const selectedAnimalViewState = typeof selectedAnimalView !== 'undefined' ? selectedAnimalView : null; %>
-<% const cleanHistoryValue = (value) => String(value || '').replace(/^[\s"'„“‚‘’]+|[\s"'„“‚‘’]+$/g, '').trim(); %>
+<% const cleanHistoryValue = (value) => { const text = String(value || '').trim(); return /^[\s,"'”“„‘’‚`´]+$/.test(text) ? '' : text; }; %>
 <%- include('../partials/top', { pageTitle, pageClass: `animals-page animals-page--${sectionState.key}${selectedAnimalState ? ' animals-page--selected' : ''}` }) %>
 <% const hasAnimalFilters = Boolean(filters.search || filters.speciesId || (sectionState.allowStatusFilter && filters.status)); %>
 

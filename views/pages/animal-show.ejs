@@ -84,7 +84,7 @@
   ].filter(Boolean);
   const cleanMemorialValue = (value) => {
     const text = String(value || '').trim();
-    return /^(?:["'”“„‘’]){1,2}$/.test(text) ? '' : text;
+    return /^[\s,"'”“„‘’‚`´]+$/.test(text) ? '' : text;
   };
   const memorialNote = cleanMemorialValue(animal.memorial_note);
   const memorialPlace = cleanMemorialValue(animal.status_context_name);
@@ -242,22 +242,22 @@
             </article>
           </div>
         <% } %>
-        <% if (animal.status_context_name) { %>
+        <% if (memorialPlace) { %>
           <div class="col-md-4">
             <article class="card border bg-body-tertiary h-100">
               <div class="card-body p-3 d-grid gap-1">
                 <span class="small text-body-secondary"><%= statusContextLabel %></span>
-                <strong><%= animal.status_context_name %></strong>
+                <strong><%= memorialPlace %></strong>
               </div>
             </article>
           </div>
         <% } %>
-        <% if (animal.memorial_note) { %>
+        <% if (memorialNote) { %>
           <div class="col-md-4">
             <article class="card border bg-body-tertiary h-100">
               <div class="card-body p-3 d-grid gap-1">
                 <span class="small text-body-secondary"><%= lifecycle.inRestingPlace ? 'Erinnerung' : 'Hinweis' %></span>
-                <strong><%= animal.memorial_note %></strong>
+                <strong><%= memorialNote %></strong>
               </div>
             </article>
           </div>
