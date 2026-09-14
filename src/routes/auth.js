@@ -22,16 +22,17 @@ function createAuthRouter({
   
   router.post("/setup", async (req, res) => {
     if (isSetupComplete()) {
-      return res.redirect(req.session.user ? "/" : "/login");
+      return res.redirect(req.session?.user ? "/" : "/login");
     }
   
-    const adminName = String(req.body.admin_name || "").trim();
-    const adminEmail = String(req.body.admin_email || "").trim().toLowerCase();
-    const adminPassword = String(req.body.admin_password || "");
-    const organizationName = String(req.body.organization_name || "").trim();
-    const veterinarianName = String(req.body.veterinarian_name || "").trim();
-    const animalName = String(req.body.animal_name || "").trim();
-    const speciesName = String(req.body.species_name || "").trim();
+    const body = req.body || {};
+    const adminName = String(body.admin_name || "").trim();
+    const adminEmail = String(body.admin_email || "").trim().toLowerCase();
+    const adminPassword = String(body.admin_password || "");
+    const organizationName = String(body.organization_name || "").trim();
+    const veterinarianName = String(body.veterinarian_name || "").trim();
+    const animalName = String(body.animal_name || "").trim();
+    const speciesName = String(body.species_name || "").trim();
   
     if (!adminName || !adminEmail || !adminPassword || !veterinarianName || !animalName || !speciesName) {
       setFlash(req, "error", "Bitte fülle alle Pflichtfelder der Ersteinrichtung aus.");
@@ -50,8 +51,8 @@ function createAuthRouter({
       return res.redirect("/setup");
     }
   
-    const veterinarianPayload = normalizeVeterinarianPayload(req.body, "veterinarian_");
-    const addressError = validateVeterinarian(veterinarianPayload, req.body.veterinarian_name);
+    const veterinarianPayload = normalizeVeterinarianPayload(body, "veterinarian_");
+    const addressError = validateVeterinarian(veterinarianPayload, body.veterinarian_name);
     if (addressError) {
       setFlash(req, "error", addressError);
       return res.redirect("/setup");
@@ -91,16 +92,16 @@ function createAuthRouter({
       `).run(
         animalName,
         species.id,
-        req.body.animal_sex || "",
-        req.body.animal_birth_date || null,
-        req.body.animal_intake_date || dayjs().format("YYYY-MM-DD"),
-        req.body.animal_source || "",
-        req.body.animal_microchip_number || "",
-        req.body.animal_color || "",
-        req.body.animal_breed || "",
-        req.body.animal_weight_kg || null,
+        body.animal_sex || "",
+        body.animal_birth_date || null,
+        body.animal_intake_date || dayjs().format("YYYY-MM-DD"),
+        body.animal_source || "",
+        body.animal_microchip_number || "",
+        body.animal_color || "",
+        body.animal_breed || "",
+        body.animal_weight_kg || null,
         veterinarianResult.lastInsertRowid,
-        req.body.animal_notes || ""
+        body.animal_notes || ""
       );
   
       if (organizationName) {
@@ -131,7 +132,7 @@ function createAuthRouter({
   
   router.get("/login", (req, res) => {
     const returnTo = safeLocalReturnPath(req.query.return_to, "");
-    if (req.session.user) {
+    if (req.session?.user) {
       return res.redirect(returnTo || "/");
     }
   
@@ -139,9 +140,10 @@ function createAuthRouter({
   });
   
   router.post("/login", async (req, res) => {
-    const returnTo = safeLocalReturnPath(req.body.return_to || req.query.return_to, "");
-    const email = String(req.body.email || "").trim().toLowerCase();
-    const password = String(req.body.password || "");
+    const body = req.body || {};
+    const returnTo = safeLocalReturnPath(body.return_to || req.query.return_to, "");
+    const email = String(body.email || "").trim().toLowerCase();
+    const password = String(body.password || "");
     const attemptKey = `${req.ip}|${email}`;
     if (loginAttempts.size > 1000) {
       const cutoff = Date.now() - 60 * 60 * 1000;
@@ -195,7 +197,7 @@ function createAuthRouter({
   });
   
   router.get("/password-forgot", (req, res) => {
-    if (req.session.user) return res.redirect("/");
+    if (req.session?.user) return res.redirect("/");
     res.render("pages/password-forgot", { pageTitle: "Passwort vergessen" });
   });
   

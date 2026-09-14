@@ -339,14 +339,15 @@ app.get("/health", (req, res) => {
 app.use(createSessionMiddleware(dataDir));
 
 app.use((req, res, next) => {
-  const flash = req.session.flash || null;
-  delete req.session.flash;
-  let currentUserRecord = req.session.user
-    ? db.prepare("SELECT * FROM users WHERE id = ?").get(req.session.user.id)
+  const session = req.session || (req.session = {});
+  const flash = session.flash || null;
+  delete session.flash;
+  let currentUserRecord = session.user
+    ? db.prepare("SELECT * FROM users WHERE id = ?").get(session.user.id)
     : null;
 
-  if (currentUserRecord && Number(req.session.user.sessionVersion || 0) !== Number(currentUserRecord.session_version || 0)) {
-    delete req.session.user;
+  if (currentUserRecord && Number(session.user.sessionVersion || 0) !== Number(currentUserRecord.session_version || 0)) {
+    delete session.user;
     currentUserRecord = null;
   }
 
@@ -356,7 +357,7 @@ app.use((req, res, next) => {
       db.prepare("UPDATE users SET last_seen_at = CURRENT_TIMESTAMP WHERE id = ?").run(currentUserRecord.id);
       userPresenceWrites.set(currentUserRecord.id, Date.now());
     }
-    req.session.user = {
+    session.user = {
       id: currentUserRecord.id,
       name: currentUserRecord.name,
       email: currentUserRecord.email,
@@ -367,7 +368,7 @@ app.use((req, res, next) => {
   }
 
   res.locals.flash = flash;
-  res.locals.currentUser = req.session.user || null;
+  res.locals.currentUser = session.user || null;
   res.locals.appSettings = getSettingsObject(db);
   res.locals.appBaseUrl = resolveAppBaseUrl(res.locals.appSettings);
   res.locals.appLogoUrl = getAppLogoUrl(res.locals.appSettings);
@@ -386,7 +387,7 @@ app.use((req, res, next) => {
   res.locals.getRoleLabel = getRoleLabel;
   res.locals.getAnimalLifecycle = getAnimalLifecycle;
   res.locals.getReminderStatusMeta = getReminderStatusMeta;
-  res.locals.permissions = buildPermissions(currentUserRecord || req.session.user);
+  res.locals.permissions = buildPermissions(currentUserRecord || session.user);
   res.locals.editState = { type: "", id: null };
   res.locals.reminderBuckets = { overdue: [], open: [], done: [] };
   next();
@@ -410,7 +411,7 @@ app.use((req, res, next) => {
   }
 
   if (setupComplete && req.path.startsWith("/setup")) {
-    return res.redirect(req.session.user ? "/" : "/login");
+    return res.redirect(req.session?.user ? "/" : "/login");
   }
 
   next();
@@ -740,7 +741,7 @@ if (require.main === module) {
 }
 
 function requireAuth(req, res, next) {
-  if (!req.session.user) {
+  if (!req.session?.user) {
     const target = safeLocalReturnPath(`${req.path}${req.url.includes("?") ? req.url.slice(req.path.length) : ""}`, "");
     return res.redirect(target ? `/login?return_to=${encodeURIComponent(target)}` : "/login");
   }
@@ -752,7 +753,7 @@ function isSetupComplete() {
 }
 
 function requireAdmin(req, res, next) {
-  if (!req.session.user || req.session.user.role !== "admin") {
+  if (!req.session?.user || req.session.user.role !== "admin") {
     setFlash(req, "error", "Dieser Bereich ist nur für Administratoren verfügbar.");
     return res.redirect("/");
   }
@@ -787,11 +788,16 @@ function getCurrentUserRecord(req) {
 }
 
 function setFlash(req, type, message) {
+  if (!req.session) req.session = {};
   req.session.flash = { type, message };
 }
 
 function regenerateSession(req) {
   return new Promise((resolve, reject) => {
+    if (!req.session?.regenerate) {
+      req.session = req.session || {};
+      return resolve();
+    }
     req.session.regenerate((error) => error ? reject(error) : resolve());
   });
 }

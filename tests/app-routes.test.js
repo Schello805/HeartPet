@@ -342,6 +342,18 @@ async function ensureSetupComplete() {
   assert.equal(setupResponse.status, 302);
 }
 
+async function ensureAdminAuthenticated() {
+  await ensureSetupComplete();
+  const response = await agent.get("/admin/benachrichtigungen");
+  if (response.status === 200) return;
+
+  const login = await agent.post("/login").type("form").send({
+    email: "admin@test.local",
+    password: "passwort123!",
+  });
+  assert.ok([302, 303].includes(login.status));
+}
+
 function collectInternalLinks(html) {
   return [...html.matchAll(/href="([^"]+)"/g)]
     .map((match) => match[1])
@@ -610,6 +622,18 @@ test("Login führt mit return_to wieder direkt zur Tierakte zurück", async () =
   const expiresMatch = sessionCookie.match(/Expires=([^;]+)/i);
   assert.ok(expiresMatch);
   assert.ok(new Date(expiresMatch[1]).getTime() - Date.now() > 20 * 24 * 60 * 60 * 1000);
+});
+
+test("Leere Login-Posts erzeugen keinen technischen Fehler", async () => {
+  const loginAgent = request.agent(app);
+  const response = await loginAgent.post("/login");
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.location, "/login");
+
+  const loginPage = await loginAgent.get("/login");
+  assert.equal(loginPage.status, 200);
+  assert.match(loginPage.text, /Login fehlgeschlagen/);
+  assert.doesNotMatch(loginPage.text, /Technischer Fehler|Cannot read properties/i);
 });
 
 test("Passwort-Reset verwendet einen Einmal-Link und beendet bestehende Sitzungen", async () => {
@@ -1326,6 +1350,10 @@ test("Betriebsskripte verwenden die gemeinsame systemd-Bibliothek", () => {
     assert.match(script, /source "\$APP_DIR\/scripts\/lib\/systemd\.sh"/);
     assert.doesNotMatch(script, /run_systemctl\(\)\s*\{/);
   }
+
+  const systemdLib = fs.readFileSync(path.join(__dirname, "..", "scripts", "lib", "systemd.sh"), "utf8");
+  assert.match(systemdLib, /systemctl cat heartpet\.service/);
+  assert.match(systemdLib, /list-unit-files heartpet\.service/);
 });
 
 
@@ -3048,6 +3076,8 @@ test("Normales Speichern von E-Mail und Telegram ändert den Aktiv-Status nicht"
 });
 
 test("Gespeicherte Zugangsdaten werden nicht wieder im Adminformular ausgegeben", async () => {
+  await ensureAdminAuthenticated();
+
   const keys = ["smtp_password", "telegram_bot_token", "ntfy_access_token", "homematic_xmlapi_token"];
   const previous = require("../src/db").getSettingsObject(db);
   try {
