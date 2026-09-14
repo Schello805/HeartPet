@@ -77,15 +77,6 @@ function seedDefaults(db) {
     homematic_temperature_url: "",
     homematic_humidity_url: "",
     help_contact: "Support-Kontakt: [Name / Organisation], [E-Mail], [Telefon optional]",
-    contact_text: [
-      "Kontakt",
-      "",
-      "Bei Fragen zu HeartPet oder zum Betrieb dieser Instanz:",
-      "",
-      "Name / Organisation: [Bitte eintragen]",
-      "E-Mail: [kontakt@beispiel.de]",
-      "Telefon: [optional]",
-    ].join("\n"),
   };
 
   const insertSetting = db.prepare(`
@@ -99,13 +90,8 @@ function seedDefaults(db) {
   db.prepare(`DELETE FROM settings WHERE key IN (
     'legal_responsible_name', 'legal_content_responsible_name', 'legal_contact_street',
     'legal_contact_postal_city', 'legal_contact_country', 'legal_contact_phone',
-    'legal_contact_email', 'imprint_text', 'privacy_text', 'cookies_text'
+    'legal_contact_email', 'imprint_text', 'privacy_text', 'cookies_text', 'contact_text'
   )`).run();
-  db.prepare(`
-    UPDATE settings
-    SET value = REPLACE(value, ?, '')
-    WHERE key = 'contact_text'
-  `).run("Wichtiger Hinweis: Dieser Text ist nur eine allgemeine Vorlage, nicht vollständig und nicht rechtssicher. Bitte vor produktivem Einsatz rechtlich prüfen lassen.\n\n");
   normalizeSpeciesCatalog(db);
 
   if (db.prepare("SELECT COUNT(*) AS count FROM document_categories").get().count === 0) {

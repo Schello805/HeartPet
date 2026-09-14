@@ -77,14 +77,18 @@
     </div>
   </div>
 
-  <section class="card border-0 bg-body-tertiary">
-    <div class="card-body">
+  <div class="accordion admin-settings-accordion" id="communication-accordion">
+  <section class="accordion-item card border-0 bg-body-tertiary">
+    <h2 class="accordion-header" id="communication-heading-general">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#communication-panel-general" aria-expanded="false" aria-controls="communication-panel-general">
+        <span><strong>1. Allgemeine Erinnerungen</strong><small class="d-block text-body-secondary">Browser-Hinweise und tägliche Zusammenfassung</small></span>
+      </button>
+    </h2>
+    <div id="communication-panel-general" class="accordion-collapse collapse" aria-labelledby="communication-heading-general">
+    <div class="accordion-body card-body">
       <form method="post" action="/admin/settings" class="vstack gap-4">
         <input type="hidden" name="_fields" value="browser_notifications_enabled,daily_digest_enabled,daily_digest_time,daily_digest_only_when_open" />
-        <div>
-          <h3 class="h5 mb-1">1. Allgemeine Erinnerungen</h3>
-          <p class="text-body-secondary mb-0">Lege fest, ob HeartPet zusätzlich im Browser erinnert und ob täglich eine Zusammenfassung verschickt werden soll.</p>
-        </div>
+        <p class="text-body-secondary mb-0">Lege fest, ob HeartPet zusätzlich im Browser erinnert und ob täglich eine Zusammenfassung verschickt werden soll.</p>
         <div class="row g-3">
           <div class="col-12">
             <div class="form-check">
@@ -117,16 +121,20 @@
         </div>
       </form>
     </div>
+    </div>
   </section>
 
-  <section class="card border-0 bg-body-tertiary">
-    <div class="card-body">
+  <section class="accordion-item card border-0 bg-body-tertiary">
+    <h2 class="accordion-header" id="communication-heading-rules">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#communication-panel-rules" aria-expanded="false" aria-controls="communication-panel-rules">
+        <span><strong>2. Erinnerungsregeln je Ereignis</strong><small class="d-block text-body-secondary">Vorlauf und Wiederholungen</small></span>
+      </button>
+    </h2>
+    <div id="communication-panel-rules" class="accordion-collapse collapse" aria-labelledby="communication-heading-rules">
+    <div class="accordion-body card-body">
       <form method="post" action="/admin/settings" class="vstack gap-4">
         <input type="hidden" name="_fields" value="medication_reminder_lead_days,medication_reminder_repeat_count,vaccination_reminder_lead_days,vaccination_reminder_repeat_count,appointment_reminder_lead_days,appointment_reminder_repeat_count" />
-        <div>
-          <h3 class="h5 mb-1">2. Erinnerungsregeln je Ereignis</h3>
-          <p class="text-body-secondary mb-0">Diese Werte gelten nur, wenn in der Tierakte bei Medikament, Impfung oder Termin wirklich eine Erinnerung gesetzt wurde.</p>
-        </div>
+        <p class="text-body-secondary mb-0">Diese Werte gelten nur, wenn in der Tierakte bei Medikament, Impfung oder Termin wirklich eine Erinnerung gesetzt wurde.</p>
         <div class="alert alert-secondary mb-0" role="alert">Bei mehreren Erinnerungen wird nach dem eingestellten Vorlauf täglich weiter erinnert.</div>
         <div class="row g-3">
           <div class="col-md-6">
@@ -159,13 +167,19 @@
         </div>
       </form>
     </div>
+    </div>
   </section>
 
-  <section class="card border-0 bg-body-tertiary">
-    <div class="card-body vstack gap-4">
+  <section class="accordion-item card border-0 bg-body-tertiary">
+    <h2 class="accordion-header" id="communication-heading-email">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#communication-panel-email" aria-expanded="false" aria-controls="communication-panel-email">
+        <span><strong>3. E-Mail</strong><small class="d-block text-body-secondary">SMTP-Zugang, Zieladresse und Tests</small></span>
+      </button>
+    </h2>
+    <div id="communication-panel-email" class="accordion-collapse collapse" aria-labelledby="communication-heading-email">
+    <div class="accordion-body card-body vstack gap-4">
       <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
         <div>
-          <h3 class="h5 mb-1">3. E-Mail</h3>
           <p class="text-body-secondary mb-0">SMTP-Zugang, Zieladresse und Tests für Mail-Erinnerungen.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
@@ -241,13 +255,19 @@
         </div>
       </section>
     </div>
+    </div>
   </section>
 
-  <section class="card border-0 bg-body-tertiary">
-    <div class="card-body vstack gap-4">
+  <section class="accordion-item card border-0 bg-body-tertiary">
+    <h2 class="accordion-header" id="communication-heading-telegram">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#communication-panel-telegram" aria-expanded="false" aria-controls="communication-panel-telegram">
+        <span><strong>4. Telegram</strong><small class="d-block text-body-secondary">Bot-Zugang, Chat-ID und Testnachricht</small></span>
+      </button>
+    </h2>
+    <div id="communication-panel-telegram" class="accordion-collapse collapse" aria-labelledby="communication-heading-telegram">
+    <div class="accordion-body card-body vstack gap-4">
       <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
         <div>
-          <h3 class="h5 mb-1">4. Telegram</h3>
           <p class="text-body-secondary mb-0">Bot-Zugang, Chat-ID und direkter Test für Telegram-Erinnerungen.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
@@ -316,14 +336,19 @@
         </div>
       </section>
     </div>
+    </div>
   </section>
-</div>
 
-<section class="card border-0 bg-body-tertiary">
-  <div class="card-body vstack gap-4">
+  <section class="accordion-item card border-0 bg-body-tertiary">
+    <h2 class="accordion-header" id="communication-heading-ntfy">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#communication-panel-ntfy" aria-expanded="false" aria-controls="communication-panel-ntfy">
+        <span><strong>5. ntfy</strong><small class="d-block text-body-secondary">Push-Nachrichten über ntfy.sh oder eigenen Server</small></span>
+      </button>
+    </h2>
+    <div id="communication-panel-ntfy" class="accordion-collapse collapse" aria-labelledby="communication-heading-ntfy">
+  <div class="accordion-body card-body vstack gap-4">
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
       <div>
-        <h3 class="h5 mb-1">5. ntfy</h3>
         <p class="text-body-secondary mb-0">Push-Nachrichten über ntfy.sh oder deinen eigenen ntfy-Server.</p>
       </div>
       <div class="d-flex flex-wrap gap-2">
@@ -357,6 +382,9 @@
       <button type="submit" class="btn btn-outline-secondary">ntfy-Test senden</button>
     </form>
   </div>
-</section>
+    </div>
+  </section>
+  </div>
+</div>
 
 <%- include('../partials/bottom') %>

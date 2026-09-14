@@ -311,6 +311,7 @@ test("Benachrichtigungs-Checkboxen sind mobil sichtbar aktivierbar", async ({ pa
   await page.setViewportSize({ width: 390, height: 844 });
   await ensureAuthenticated(page);
   await page.goto("/admin/benachrichtigungen");
+  await page.getByRole("button", { name: /1\. Allgemeine Erinnerungen/ }).click();
 
   const digestCheckbox = page.getByLabel("Tägliche Erinnerungs-Zusammenfassung aktivieren");
   await expect(digestCheckbox).toBeVisible();
@@ -342,6 +343,7 @@ test("Checkbox-Labels sind visuell mittig ausgerichtet", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await ensureAuthenticated(page);
   await page.goto("/admin/benachrichtigungen");
+  await page.getByRole("button", { name: /1\. Allgemeine Erinnerungen/ }).click();
 
   const alignment = await page.locator(".form-check").first().evaluate((element) => {
     const checkbox = element.querySelector(".form-check-input");
@@ -370,7 +372,6 @@ test("Kernseiten bleiben kompakt und kontrastreich", async ({ page }) => {
     "/admin/benutzer",
     "/admin/systemlog",
     "/help",
-    "/contact",
   ];
 
   for (const viewport of [

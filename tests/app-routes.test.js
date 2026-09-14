@@ -831,17 +831,13 @@ test("Auch die Hilfeseite bleibt vollständig von Suchmaschinen ausgeschlossen",
   assert.equal(response.headers["x-robots-tag"], "noindex, nofollow, noarchive, nosnippet");
 });
 
-test("Konfigurierbare Informationstexte werden nicht als HTML ausgeführt", async () => {
-  const originalContactText = db.prepare("SELECT value FROM settings WHERE key = ?").get("contact_text")?.value || "";
-  upsertSetting(db, "contact_text", '<script>alert("xss")</script>\nKontakt');
-  try {
-    const response = await agent.get("/kontakt");
-    assert.equal(response.status, 200);
-    assert.doesNotMatch(response.text, /<script>alert\("xss"\)<\/script>/);
-    assert.match(response.text, /&lt;script&gt;alert\(&#34;xss&#34;\)&lt;\/script&gt;<br \/>/);
-  } finally {
-    upsertSetting(db, "contact_text", originalContactText);
-  }
+test("Kontaktseite ist vollständig entfernt", async () => {
+  const response = await agent.get("/kontakt");
+  assert.equal(response.status, 404);
+
+  const footerPage = await agent.get("/");
+  assert.equal(footerPage.status, 200);
+  assert.doesNotMatch(footerPage.text, /href="\/kontakt"/);
 });
 
 test("Interne Dashboard-Seite bleibt für Suchmaschinen auf noindex", async () => {
@@ -2526,7 +2522,6 @@ test("Wichtige Hauptseiten rendern ohne Template-Fehler", async () => {
     "/admin/import",
     "/admin/systemlog",
     "/hilfe",
-    "/kontakt",
   ];
 
   for (const href of routes) {
@@ -2986,6 +2981,23 @@ test("Telegram-Testformular ist kein verschachteltes Formular", async () => {
     telegramTestFormIndex > telegramSettingsSaveIndex,
     "Das Telegram-Testformular muss nach dem Telegram-Einstellungsformular kommen."
   );
+});
+
+test("Benachrichtigungsbereiche sind standardmäßig geschlossene Akkordeons", async () => {
+  const response = await agent.get("/admin/benachrichtigungen");
+  assert.equal(response.status, 200);
+
+  assert.match(response.text, /id="communication-accordion"/);
+  for (const panel of [
+    "communication-panel-general",
+    "communication-panel-rules",
+    "communication-panel-email",
+    "communication-panel-telegram",
+    "communication-panel-ntfy",
+  ]) {
+    assert.match(response.text, new RegExp(`id="${panel}" class="accordion-collapse collapse"`));
+    assert.doesNotMatch(response.text, new RegExp(`id="${panel}" class="accordion-collapse collapse show"`));
+  }
 });
 
 test("Normales Speichern von E-Mail und Telegram ändert den Aktiv-Status nicht", async () => {

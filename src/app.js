@@ -386,7 +386,6 @@ app.use((req, res, next) => {
   res.locals.getRoleLabel = getRoleLabel;
   res.locals.getAnimalLifecycle = getAnimalLifecycle;
   res.locals.getReminderStatusMeta = getReminderStatusMeta;
-  res.locals.applyInfoPagePlaceholders = (content) => applyInfoPagePlaceholders(content, res.locals.appSettings);
   res.locals.permissions = buildPermissions(currentUserRecord || req.session.user);
   res.locals.editState = { type: "", id: null };
   res.locals.reminderBuckets = { overdue: [], open: [], done: [] };
@@ -704,10 +703,6 @@ app.use(createAdminImportRouter({
 
 app.get("/hilfe", (req, res) => {
   res.render("pages/help", { pageTitle: "Hilfe" });
-});
-
-app.get("/kontakt", (req, res) => {
-  renderInfoPage(res, "Kontakt", getSettingsObject(db).contact_text);
 });
 
 app.use(createReminderApiRouter({ repository: reminderRepository }));
@@ -1105,25 +1100,6 @@ function renderNotFound(req, res, message) {
     pageTitle: "Nicht gefunden",
     message,
   });
-}
-
-function renderInfoPage(res, title, content) {
-  const settings = getSettingsObject(db);
-  res.render("pages/info-page", {
-    pageTitle: title,
-    content: applyInfoPagePlaceholders(content || "", settings),
-  });
-}
-
-function applyInfoPagePlaceholders(content, settings) {
-  const organizationName = String(settings?.organization_name || settings?.app_name || "").trim();
-  let result = String(content || "");
-  if (organizationName) {
-    result = result
-      .replace(/\[Name \/ Organisation\]/g, organizationName)
-      .replace(/Name \/ Organisation:\s*\[Bitte eintragen\]/g, `Name / Organisation: ${organizationName}`);
-  }
-  return result;
 }
 
 function normalizeSettingsInputValue(key, value) {
