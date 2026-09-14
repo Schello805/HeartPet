@@ -62,6 +62,7 @@ ExecStart=
 ExecStart=$npm_path start
 User=$target_user
 Group=$target_group
+Environment=HEARTPET_DATA_DIR=$APP_DIR/data
 EOF
 
   run_as_root mkdir -p /etc/systemd/system/heartpet.service.d
@@ -88,7 +89,7 @@ prepare_git_workspace() {
 
   AUTO_STASH_NAME="heartpet-auto-update-$(date +%Y%m%d-%H%M%S)"
   echo "Lokale Git-Aenderungen erkannt. Sichere sie als Stash: $AUTO_STASH_NAME"
-  git stash push --include-untracked -m "$AUTO_STASH_NAME" >/dev/null
+  git stash push --include-untracked -m "$AUTO_STASH_NAME" -- . ':!data' >/dev/null
   AUTO_STASHED=1
 }
 

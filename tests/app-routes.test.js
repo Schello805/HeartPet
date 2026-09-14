@@ -1342,6 +1342,7 @@ test("Deployment aktiviert Releases atomar und prüft die aktive Revision", () =
 test("Startskript aktiviert den systemd-Dienst dauerhaft", () => {
   const script = fs.readFileSync(path.join(__dirname, "..", "scripts", "start.sh"), "utf8");
   assert.match(script, /run_systemctl enable --now heartpet/);
+  assert.match(script, /Environment=HEARTPET_DATA_DIR=\$APP_DIR\/data/);
 });
 
 test("Betriebsskripte verwenden die gemeinsame systemd-Bibliothek", () => {
@@ -1354,6 +1355,16 @@ test("Betriebsskripte verwenden die gemeinsame systemd-Bibliothek", () => {
   const systemdLib = fs.readFileSync(path.join(__dirname, "..", "scripts", "lib", "systemd.sh"), "utf8");
   assert.match(systemdLib, /systemctl cat heartpet\.service/);
   assert.match(systemdLib, /list-unit-files heartpet\.service/);
+});
+
+test("Updates behalten Laufzeitdaten und Session-Geheimnis außerhalb des Auto-Stashs", () => {
+  const gitignore = fs.readFileSync(path.join(__dirname, "..", ".gitignore"), "utf8");
+  assert.match(gitignore, /^data\/\.session-secret$/m);
+  assert.match(gitignore, /^data\/sessions\.sqlite$/m);
+
+  const updateScript = fs.readFileSync(path.join(__dirname, "..", "scripts", "update.sh"), "utf8");
+  assert.match(updateScript, /git stash push --include-untracked[\s\S]*':!data'/);
+  assert.match(updateScript, /Environment=HEARTPET_DATA_DIR=\$APP_DIR\/data/);
 });
 
 

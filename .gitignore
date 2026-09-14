@@ -3,6 +3,7 @@ data/heartpet.sqlite
 data/heartpet.sqlite-shm
 data/heartpet.sqlite-wal
 data/heartpet.db
+data/.session-secret
 data/sessions.sqlite
 data/sessions.sqlite-shm
 data/sessions.sqlite-wal
@@ -12,6 +13,8 @@ data/exports/*
 !data/exports/.gitkeep
 data/backups/*
 !data/backups/.gitkeep
+data/logs/*
+!data/logs/.gitkeep
 .DS_Store
 npm-debug.log*
 .env

@@ -55,6 +55,7 @@ ExecStart=
 ExecStart=$npm_path start
 User=$target_user
 Group=$target_group
+Environment=HEARTPET_DATA_DIR=$APP_DIR/data
 EOF
 
   run_as_root mkdir -p /etc/systemd/system/heartpet.service.d
