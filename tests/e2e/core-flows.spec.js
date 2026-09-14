@@ -339,6 +339,24 @@ test("Anmeldebutton bleibt auch bei schmaler Login-Karte einzeilig", async ({ pa
   await expect(button).toHaveText("Anmelden");
 });
 
+test("Desktop-Seitenleiste hält lange Menüpunkte einzeilig", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 760 });
+  await ensureAuthenticated(page);
+  await page.goto("/admin/benachrichtigungen");
+
+  const navLink = page.locator(".app-sidebar .nav-link", { hasText: "Benachrichtigungen" }).first();
+  await expect(navLink).toBeVisible();
+  await expect(navLink).toHaveCSS("white-space", "nowrap");
+
+  const box = await navLink.boundingBox();
+  const lineHeight = await navLink.evaluate((element) => {
+    const styles = window.getComputedStyle(element);
+    const computed = Number.parseFloat(styles.lineHeight);
+    return Number.isFinite(computed) ? computed : Number.parseFloat(styles.fontSize) * 1.3;
+  });
+  expect(box.height).toBeLessThanOrEqual(lineHeight + 18);
+});
+
 test("Checkbox-Labels sind visuell mittig ausgerichtet", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await ensureAuthenticated(page);

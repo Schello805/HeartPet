@@ -1210,9 +1210,22 @@ body.bootstrap-app {
 .bootstrap-app .accordion:not(.nav-accordion) .accordion-button {
   display: grid;
   gap: 0.1rem;
-  align-items: start;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
   padding: 0.5rem 0.65rem;
   box-shadow: none;
+}
+
+.bootstrap-app .accordion:not(.nav-accordion) .accordion-button > span:first-child {
+  min-width: 0;
+}
+
+.bootstrap-app .accordion-header-status {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: flex-end;
+  padding-left: 0.75rem;
 }
 
 .bootstrap-app .accordion:not(.nav-accordion) .accordion-button::after {
@@ -1391,6 +1404,14 @@ body.bootstrap-app {
 
 .bootstrap-app .nav-link {
   color: var(--bs-body-color);
+}
+
+.bootstrap-app .app-sidebar .nav-link {
+  overflow: hidden;
+  padding-left: 0.72rem !important;
+  padding-right: 0.72rem !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bootstrap-app .nav-link.text-body-secondary {

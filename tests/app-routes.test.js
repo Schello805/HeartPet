@@ -3026,6 +3026,17 @@ test("Benachrichtigungsbereiche sind standardmäßig geschlossene Akkordeons", a
     assert.match(response.text, new RegExp(`id="${panel}" class="accordion-collapse collapse"`));
     assert.doesNotMatch(response.text, new RegExp(`id="${panel}" class="accordion-collapse collapse show"`));
   }
+
+  for (const heading of ["communication-heading-email", "communication-heading-telegram", "communication-heading-ntfy"]) {
+    const headingIndex = response.text.indexOf(`id="${heading}"`);
+    const panelIndex = response.text.indexOf("accordion-collapse", headingIndex);
+    assert.ok(headingIndex >= 0, `${heading} fehlt`);
+    assert.ok(panelIndex > headingIndex, `${heading} hat keinen folgenden Inhalt`);
+    const headingMarkup = response.text.slice(headingIndex, panelIndex);
+    assert.match(headingMarkup, /accordion-header-status/);
+    assert.match(headingMarkup, /Konfiguriert|Nicht konfiguriert/);
+    assert.match(headingMarkup, /Aktiviert|Deaktiviert/);
+  }
 });
 
 test("Normales Speichern von E-Mail und Telegram ändert den Aktiv-Status nicht", async () => {
