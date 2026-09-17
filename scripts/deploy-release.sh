@@ -13,8 +13,8 @@ RELEASE_DIR="$RELEASE_ROOT/$RELEASE_ID"
 PREVIOUS_TARGET="$(readlink "$CURRENT_LINK" 2>/dev/null || printf '%s' "$APP_DIR")"
 
 write_service_override() {
-  local npm_path current_user current_group target_user target_group override_tmp
-  npm_path="$(command -v npm)"
+  local node_path current_user current_group target_user target_group override_tmp
+  node_path="$(command -v node)"
   current_user="$(run_systemctl show -p User --value heartpet 2>/dev/null || true)"
   current_group="$(run_systemctl show -p Group --value heartpet 2>/dev/null || true)"
   target_user="${current_user:-root}"
@@ -31,7 +31,7 @@ write_service_override() {
 [Service]
 WorkingDirectory=$CURRENT_LINK
 ExecStart=
-ExecStart=$npm_path start
+ExecStart=$node_path $CURRENT_LINK/src/app.js
 User=$target_user
 Group=$target_group
 Environment=HEARTPET_DATA_DIR=$DATA_DIR
