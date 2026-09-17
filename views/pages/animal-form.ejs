@@ -85,6 +85,21 @@
   <div class="card-body">
     <h2 class="h4 mb-4"><%= animal ? 'Tier bearbeiten' : 'Neues Tier anlegen' %></h2>
 
+    <% if (animal) { %>
+      <section class="card border bg-body form-section-card mb-4">
+        <div class="card-body">
+          <h3 class="h5 mb-1">Profilbild</h3>
+          <p class="text-body-secondary mb-3">Bild hochladen oder das vorhandene Profilbild ersetzen.</p>
+          <form method="post" action="/animals/<%= animal.id %>/profile-image" enctype="multipart/form-data" class="profile-image-inline-form">
+            <input id="profile-upload-edit-<%= animal.id %>" class="visually-hidden profile-upload-input" type="file" name="profile_image" accept="image/*" required />
+            <label for="profile-upload-edit-<%= animal.id %>" class="profile-upload-trigger">
+              <%= animal.profile_image_stored_name ? 'Bild ändern' : 'Bild auswählen' %>
+            </label>
+          </form>
+        </div>
+      </section>
+    <% } %>
+
     <form method="post" action="<%= animal ? `/animals/${animal.id}/update` : '/animals' %>" class="vstack gap-4 animal-setup-form compact-workflow-form" data-drawer-form="animal">
       <input type="hidden" name="return_to" value="<%= typeof returnTo !== 'undefined' ? returnTo : '/animals' %>" />
       <input type="hidden" name="original_status" value="<%= currentStatus %>" />
@@ -341,20 +356,6 @@
         </div>
       </div>
     </form>
-    <% if (animal) { %>
-      <section class="card border bg-body form-section-card mt-3">
-        <div class="card-body">
-          <h3 class="h5 mb-1">Profilbild</h3>
-          <p class="text-body-secondary mb-3">Bild hochladen oder das vorhandene Profilbild ersetzen.</p>
-          <form method="post" action="/animals/<%= animal.id %>/profile-image" enctype="multipart/form-data" class="profile-image-inline-form">
-            <input id="profile-upload-edit-<%= animal.id %>" class="visually-hidden profile-upload-input" type="file" name="profile_image" accept="image/*" required />
-            <label for="profile-upload-edit-<%= animal.id %>" class="profile-upload-trigger">
-              <%= animal.profile_image_stored_name ? 'Bild ändern' : 'Bild auswählen' %>
-            </label>
-          </form>
-        </div>
-      </section>
-    <% } %>
   </div>
 </section>
 

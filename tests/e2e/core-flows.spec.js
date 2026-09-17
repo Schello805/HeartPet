@@ -164,6 +164,8 @@ test("Profilbild kann auf dem Smartphone sichtbar ausgewählt werden", async ({ 
   await page.goto("/animals/1");
   await page.getByRole("link", { name: "Tier bearbeiten" }).click();
   await expect(page.locator("[data-drawer-body]")).toContainText("Profilbild");
+  const drawerText = await page.locator("[data-drawer-body]").textContent();
+  expect(drawerText.indexOf("Profilbild")).toBeLessThan(drawerText.indexOf("Direkt starten"));
 
   const uploadInput = page.locator(".profile-upload-input");
   await expect(uploadInput).toHaveCount(1);
