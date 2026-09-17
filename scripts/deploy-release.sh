@@ -60,9 +60,13 @@ activate_release() {
 }
 
 wait_for_revision() {
-  local attempt body
+  local attempt body status_code
   for attempt in $(seq 1 20); do
-    body="$(curl --max-time 2 -sS "http://127.0.0.1:${PORT}/health" 2>/dev/null || true)"
+    body="$(curl --max-time 2 -sS -w $'\n%{http_code}' "http://127.0.0.1:${PORT}/health" 2>/dev/null || true)"
+    status_code="${body##*$'\n'}"
+    body="${body%$'\n'*}"
+    LAST_HEALTH_BODY="$body"
+    LAST_HEALTH_STATUS="$status_code"
     if HEALTH_BODY="$body" EXPECTED_REVISION="$REVISION" node -e '
       try {
         const health = JSON.parse(process.env.HEALTH_BODY || "{}");
@@ -77,6 +81,11 @@ wait_for_revision() {
 }
 
 print_service_diagnostics() {
+  echo "Erwartete Revision: $REVISION"
+  echo "Letzter Health-Status: ${LAST_HEALTH_STATUS:-unbekannt}"
+  echo "Letzte Health-Antwort: ${LAST_HEALTH_BODY:-keine Antwort}"
+  echo "Aktives Release-Ziel: $(readlink "$CURRENT_LINK" 2>/dev/null || printf '%s' "$APP_DIR")"
+  echo "systemd-Arbeitsverzeichnis: $(run_systemctl show -p WorkingDirectory --value heartpet 2>/dev/null || printf '%s' 'unbekannt')"
   run_systemctl status heartpet --no-pager --full || true
   run_as_root journalctl -u heartpet.service -n 80 --no-pager --output=short-iso || true
 }
