@@ -96,6 +96,31 @@ Wenn du HeartPet per `systemd` startest, kannst du die Werte direkt über `Envir
 - Sessions: `data/sessions.sqlite`
 - Backups: `data/backups`
 
+### Updates ohne erzwungenen Logout
+
+Der Session-Schlüssel liegt dauerhaft in `data/.session-secret`. Zusammen mit
+`data/sessions.sqlite` darf dieser Ordner bei Updates nicht verschoben,
+gelöscht oder durch einen temporären Release-Ordner ersetzt werden. Das
+mitgelieferte `scripts/update.sh` und `scripts/deploy-release.sh` verwenden
+deshalb immer `data/` außerhalb des Releases.
+
+Nach einem Update kannst du die aktive Revision und den Dienst prüfen:
+
+```bash
+./scripts/status.sh
+curl -fsS http://127.0.0.1:3000/health
+```
+
+Wenn eine ältere Installation den Session-Schlüssel bereits verloren hat,
+musst du dich einmal neu anmelden. Danach bleiben Sitzungen bei weiteren
+Updates erhalten. Prüfe bei manuellen systemd-Units zusätzlich:
+
+```bash
+systemctl show heartpet -p WorkingDirectory -p Environment
+```
+
+Die Ausgabe muss `HEARTPET_DATA_DIR=.../data` enthalten.
+
 Tier-Profilbilder und Galeriebilder werden beim Upload automatisch auf WebP verkleinert. Bereits vorhandene Tierbilder kannst du erst prüfen und danach gezielt optimieren:
 
 ```bash
