@@ -141,6 +141,9 @@
               <div class="animal-profile-image animal-profile-fallback" title="<%= animal.species_name || 'Tier' %>"><%= getAnimalSpeciesIcon(animal.species_name) %></div>
             <% } %>
           </label>
+          <label for="profile-upload-<%= animal.id %>" class="profile-upload-trigger">
+            <%= animal.profile_image_stored_name ? 'Bild ändern' : 'Bild auswählen' %>
+          </label>
           <% if (animal.profile_image_stored_name) { %>
             <button type="submit" class="profile-delete-button subtle" form="profile-image-delete-<%= animal.id %>" aria-label="Profilbild löschen" title="Profilbild löschen">🗑</button>
           <% } %>

@@ -882,6 +882,16 @@ small {
     height: 112px;
   }
 
+  .profile-image-inline-form {
+    align-items: stretch;
+    flex-direction: column;
+    width: 112px;
+  }
+
+  .profile-upload-trigger {
+    min-height: 40px;
+  }
+
   .hero-actions {
     grid-auto-columns: 52px;
     justify-content: start;

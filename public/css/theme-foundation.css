@@ -954,6 +954,7 @@ textarea {
   font-size: 0.82rem;
   border: 1px solid rgba(35, 115, 81, 0.2);
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .profile-upload-trigger.icon-only {

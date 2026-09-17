@@ -158,6 +158,18 @@ test("Tiere-Arbeitsansicht zeigt die Akte im Browser-Kontext", async ({ page }) 
   await expect(page.locator("#event-title")).toHaveValue("RCP (Katzenschnupfen und Katzenseuche)");
 });
 
+test("Profilbild kann auf dem Smartphone sichtbar ausgewählt werden", async ({ page }) => {
+  await ensureAuthenticated(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/animals/1");
+
+  const uploadInput = page.locator(".profile-upload-input");
+  await expect(uploadInput).toHaveCount(1);
+  await expect(page.locator(".profile-upload-trigger")).toBeVisible();
+  await expect(page.locator(".profile-upload-trigger")).toContainText("Bild auswählen");
+  await expect(page.locator(".profile-image-inline-form")).toHaveCSS("flex-direction", "column");
+});
+
 test("Dashboard bleibt auf Smartphone, Tablet und Desktop visuell stabil", async ({ page }, testInfo) => {
   await ensureAuthenticated(page);
   for (const viewport of [
