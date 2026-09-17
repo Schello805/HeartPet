@@ -170,6 +170,13 @@ test("Profilbild kann auf dem Smartphone sichtbar ausgewählt werden", async ({ 
   await expect(page.locator(".profile-upload-trigger")).toBeVisible();
   await expect(page.locator(".profile-upload-trigger")).toContainText("Bild auswählen");
   await expect(page.locator(".profile-image-inline-form")).toHaveCSS("flex-direction", "column");
+
+  await uploadInput.setInputFiles({
+    name: "tierbild.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64"),
+  });
+  await expect(page).toHaveURL(/\/animals\/1$/);
 });
 
 test("Dashboard bleibt auf Smartphone, Tablet und Desktop visuell stabil", async ({ page }, testInfo) => {

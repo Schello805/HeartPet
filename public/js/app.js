@@ -1137,7 +1137,7 @@ window.HeartPetFeatures?.register("required-marks", initRequiredMarks, { context
 window.HeartPetFeatures?.register("event-form", initEventFormBehavior, { contexts: ["page", "fragment"] });
 window.HeartPetFeatures?.register("vaccination-presets", initVaccinationPresets, { contexts: ["page", "fragment"] });
 window.HeartPetFeatures?.register("bulk-selection", initBulkSelection, { contexts: ["page", "fragment"] });
-window.HeartPetFeatures?.register("profile-upload", initProfileUploadAutoSubmit, { contexts: ["page"] });
+window.HeartPetFeatures?.register("profile-upload", initProfileUploadAutoSubmit, { contexts: ["page", "fragment"] });
 window.HeartPetFeatures?.register("animal-workspace", initAnimalWorkspace, { contexts: ["page"] });
 window.HeartPetFeatures?.register("camera-diagnostics", initCameraDiagnostics, { contexts: ["page"] });
 window.HeartPetFeatures?.register("dashboard-customizer", () => window.HeartPetDashboardCustomizer?.init(), { contexts: ["page"] });
