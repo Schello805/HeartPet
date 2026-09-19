@@ -183,3 +183,15 @@ test("Kamera-Vorschau wird in den Einstellungen nur bewusst gestartet", () => {
   assert.match(appScript, /data-camera-preview-load/);
   assert.doesNotMatch(appScript, /if \(snapshotUrl\) loadPreview\(card\)/);
 });
+
+test("CI prüft Produktionsabhängigkeiten reproduzierbar aus der Lockdatei", () => {
+  const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf8"));
+  const workflow = fs.readFileSync(path.join(__dirname, "..", ".github", "workflows", "verify.yml"), "utf8");
+
+  assert.equal(
+    packageJson.scripts["audit:production"],
+    "npm audit --package-lock-only --omit=dev --audit-level=moderate",
+  );
+  assert.match(workflow, /run: npm run audit:production/);
+  assert.doesNotMatch(workflow, /run: npm audit --omit=dev/);
+});

@@ -27,7 +27,7 @@ jobs:
         run: npm ci
 
       - name: Produktionsabhängigkeiten auf Schwachstellen prüfen
-        run: npm audit --omit=dev --audit-level=moderate
+        run: npm run audit:production
 
       - name: Chromium installieren
         shell: bash

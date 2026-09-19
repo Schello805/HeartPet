@@ -12,6 +12,7 @@
     "check:animal-view": "node scripts/render-animal-show-check.js",
     "images:audit": "node scripts/optimize-animal-images.js",
     "images:optimize": "node scripts/optimize-animal-images.js --apply",
+    "audit:production": "npm audit --package-lock-only --omit=dev --audit-level=moderate",
     "verify": "node scripts/verify.js",
     "prepare": "git config core.hooksPath .githooks || true"
   },
