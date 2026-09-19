@@ -1092,16 +1092,26 @@
                       <small><%= formatDateTime(item.created_at) %></small>
                     </div>
                     <% if (canManageGalleryNow) { %>
-                      <div class="inline-actions">
+                      <div class="gallery-card-actions">
+                        <form method="post" action="/animals/<%= animal.id %>/images/<%= item.id %>/update" class="gallery-title-form">
+                          <input type="hidden" name="return_to" value="/animals/<%= animal.id %>#animal-dokumente" />
+                          <label class="visually-hidden" for="gallery-title-<%= item.id %>">Bildtitel</label>
+                          <input class="form-control form-control-sm" id="gallery-title-<%= item.id %>" name="title" value="<%= item.title || '' %>" placeholder="Bildtitel" />
+                          <button type="submit" class="btn btn-outline-secondary btn-sm">Titel speichern</button>
+                        </form>
+                        <div class="inline-actions">
                         <form method="post" action="/animals/<%= animal.id %>/images/<%= item.id %>/set-profile">
+                          <input type="hidden" name="return_to" value="/animals/<%= animal.id %>#animal-dokumente" />
                           <button type="submit" class="btn btn-outline-secondary btn-sm">Als Profilbild</button>
                         </form>
                         <form method="post" action="/animals/<%= animal.id %>/images/<%= item.id %>/delete" data-confirm="Galeriebild wirklich löschen?">
+                          <input type="hidden" name="return_to" value="/animals/<%= animal.id %>#animal-dokumente" />
                           <button type="submit" class="btn btn-outline-danger btn-sm icon-button" aria-label="Galeriebild löschen" title="Löschen">
                             <span aria-hidden="true">🗑</span>
                             <span class="visually-hidden">Löschen</span>
                           </button>
                         </form>
+                        </div>
                       </div>
                     <% } %>
                   </article>

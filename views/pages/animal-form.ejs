@@ -91,11 +91,18 @@
           <h3 class="h5 mb-1">Profilbild</h3>
           <p class="text-body-secondary mb-3">Bild hochladen oder das vorhandene Profilbild ersetzen.</p>
           <form method="post" action="/animals/<%= animal.id %>/profile-image" enctype="multipart/form-data" class="profile-image-inline-form">
+            <input type="hidden" name="return_to" value="/animals/<%= animal.id %>" />
             <input id="profile-upload-edit-<%= animal.id %>" class="visually-hidden profile-upload-input" type="file" name="profile_image" accept="image/*" required />
             <label for="profile-upload-edit-<%= animal.id %>" class="profile-upload-trigger">
               <%= animal.profile_image_stored_name ? 'Bild ändern' : 'Bild auswählen' %>
             </label>
           </form>
+          <% if (animal.profile_image_stored_name) { %>
+            <form method="post" action="/animals/<%= animal.id %>/profile-image/delete" class="mt-2" data-confirm="Profilbild wirklich entfernen?">
+              <input type="hidden" name="return_to" value="/animals/<%= animal.id %>" />
+              <button type="submit" class="btn btn-outline-danger btn-sm w-100">Profilbild entfernen</button>
+            </form>
+          <% } %>
         </div>
       </section>
     <% } %>

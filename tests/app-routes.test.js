@@ -551,6 +551,13 @@ test("Alle internen API- und Steuerungsrouten sind mit der vorgesehenen Methode 
     "POST /admin/coop/camera-preview",
     "POST /admin/systemlog/diagnose",
     "POST /animals/:id/memorial-note",
+    "POST /animals/:id/profile-image",
+    "POST /animals/:id/profile-image/delete",
+    "POST /animals/:id/images",
+    "POST /animals/:animalId/images/:entryId/update",
+    "POST /animals/:animalId/images/:entryId/set-profile",
+    "POST /animals/:animalId/images/:entryId/delete",
+    "POST /admin/settings/app-logo/delete",
   ];
 
   expected.forEach((route) => assert.ok(registered.has(route), `${route} ist nicht registriert`));
@@ -2598,6 +2605,50 @@ test("App-Logo kann hochgeladen und in der Oberflaeche verwendet werden", async 
   const publicLogo = await request(app).get("/app-logo");
   assert.equal(publicLogo.status, 200);
   assert.match(publicLogo.headers["content-type"], /^image\//);
+
+  const removeLogo = await agent.post("/admin/settings/app-logo/delete").type("form").send({});
+  assert.equal(removeLogo.status, 302);
+  assert.equal(db.prepare("SELECT value FROM settings WHERE key = 'app_logo_stored_name'").get()?.value, "");
+  const resetPage = await agent.get("/admin/allgemein");
+  assert.doesNotMatch(resetPage.text, /Standardlogo verwenden/);
+});
+
+test("Bilder lassen sich vollständig verwalten, ohne gemeinsam verwendete Dateien zu beschädigen", async () => {
+  await ensureAdminAuthenticated();
+  const animal = db.prepare("SELECT id FROM animals WHERE name = ?").get("Minka");
+  const imagePath = path.join(process.cwd(), "public", "images", "logo-heartpet.png");
+
+  const createImage = await agent
+    .post(`/animals/${animal.id}/images`)
+    .field("title", "Erster Titel")
+    .attach("image", imagePath);
+  assert.equal(createImage.status, 302);
+
+  const image = db.prepare("SELECT * FROM animal_images WHERE animal_id = ? ORDER BY id DESC").get(animal.id);
+  assert.equal(image.title, "Erster Titel");
+  const storedPath = path.join(tempDataDir, "uploads", image.stored_name);
+  assert.equal(fs.existsSync(storedPath), true);
+
+  const updateImage = await agent
+    .post(`/animals/${animal.id}/images/${image.id}/update`)
+    .type("form")
+    .send({ title: "Neuer Titel" });
+  assert.equal(updateImage.status, 302);
+  assert.equal(db.prepare("SELECT title FROM animal_images WHERE id = ?").get(image.id).title, "Neuer Titel");
+
+  const setProfile = await agent.post(`/animals/${animal.id}/images/${image.id}/set-profile`).type("form").send({});
+  assert.equal(setProfile.status, 302);
+  assert.equal(db.prepare("SELECT profile_image_stored_name FROM animals WHERE id = ?").get(animal.id).profile_image_stored_name, image.stored_name);
+
+  const deleteGalleryEntry = await agent.post(`/animals/${animal.id}/images/${image.id}/delete`).type("form").send({});
+  assert.equal(deleteGalleryEntry.status, 302);
+  assert.equal(db.prepare("SELECT 1 FROM animal_images WHERE id = ?").get(image.id), undefined);
+  assert.equal(fs.existsSync(storedPath), true, "Das weiterhin verwendete Profilbild muss erhalten bleiben");
+
+  const deleteProfile = await agent.post(`/animals/${animal.id}/profile-image/delete`).type("form").send({});
+  assert.equal(deleteProfile.status, 302);
+  assert.equal(db.prepare("SELECT profile_image_stored_name FROM animals WHERE id = ?").get(animal.id).profile_image_stored_name, null);
+  assert.equal(fs.existsSync(storedPath), false, "Eine nicht mehr referenzierte Datei wird entfernt");
 });
 
 test("Erinnerungs-Mail verwendet Umlaute und Direktlink", async () => {

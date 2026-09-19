@@ -60,6 +60,14 @@
                   <div class="flex-grow-1 w-100">
                     <label class="form-label" for="app_logo">Neues Logo hochladen</label>
                     <input class="form-control" id="app_logo" type="file" name="app_logo" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/x-icon,image/vnd.microsoft.icon" />
+                    <% if (settings.app_logo_stored_name) { %>
+                      <button
+                        type="submit"
+                        class="btn btn-outline-danger btn-sm mt-2"
+                        formaction="/admin/settings/app-logo/delete"
+                        formmethod="post"
+                      >Standardlogo verwenden</button>
+                    <% } %>
                   </div>
                 </div>
               </div>

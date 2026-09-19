@@ -143,6 +143,15 @@ function createAdminSettingsRouter({
     res.redirect(backTo(req, "/admin/allgemein"));
   });
 
+  router.post("/admin/settings/app-logo/delete", requireAdmin, (req, res) => {
+    const currentSettings = getSettingsObject(db);
+    const previousLogo = String(currentSettings.app_logo_stored_name || "").trim();
+    upsertSetting(db, "app_logo_stored_name", "");
+    safeDeleteUploadedFile(previousLogo);
+    setFlash(req, "success", "Das App-Logo wurde auf das Standardlogo zurückgesetzt.");
+    res.redirect(backTo(req, "/admin/allgemein"));
+  });
+
   router.post("/admin/test-email", requireAdmin, async (req, res) => {
     try {
       await sendTestEmail(getSettingsObject(db));

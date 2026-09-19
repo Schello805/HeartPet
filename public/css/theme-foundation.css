@@ -471,6 +471,17 @@ textarea {
   gap: 4px;
 }
 
+.gallery-card-actions,
+.gallery-title-form {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.gallery-title-form .form-control {
+  min-width: 0;
+}
+
 .pagination-row {
   display: flex;
   flex-wrap: wrap;
@@ -1017,6 +1028,10 @@ textarea {
   border-radius: var(--radius);
   box-shadow: var(--shadow-soft);
   overflow: hidden;
+}
+
+.accordion-button {
+  scroll-margin-block: 84px 104px;
 }
 
 .accordion-item summary {

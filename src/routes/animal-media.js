@@ -82,6 +82,7 @@ function createAnimalMediaRouter({
   });
   
   router.post("/animals/:id/profile-image", requireAnimalPermission("canManageGallery"), upload.single("profile_image"), async (req, res) => {
+    const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.id}`);
     const animal = findAnimal(req.params.id);
     if (!animal) {
       return renderNotFound(req, res, "Tier nicht gefunden.");
@@ -89,13 +90,13 @@ function createAnimalMediaRouter({
   
     if (!req.file) {
       setFlash(req, "error", "Bitte wähle ein Bild aus.");
-      return res.redirect(`/animals/${req.params.id}`);
+      return res.redirect(returnTo);
     }
   
     if (!String(req.file.mimetype || "").startsWith("image/")) {
       safeDeleteUploadedFile(req.file.filename);
       setFlash(req, "error", "Es können nur Bilddateien als Profilbild gespeichert werden.");
-      return res.redirect(`/animals/${req.params.id}`);
+      return res.redirect(returnTo);
     }
 
     const imageOptimization = await optimizeAnimalImageUpload(req.file);
@@ -119,10 +120,11 @@ function createAnimalMediaRouter({
       original_name: req.file.originalname,
     }, { entityType: "animal", entityId: req.params.id });
     setFlash(req, "success", "Profilbild gespeichert.");
-    res.redirect(`/animals/${req.params.id}`);
+    res.redirect(returnTo);
   });
   
   router.post("/animals/:id/profile-image/delete", requireAnimalPermission("canManageGallery"), (req, res) => {
+    const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.id}`);
     const animal = findAnimal(req.params.id);
     if (!animal) {
       return renderNotFound(req, res, "Tier nicht gefunden.");
@@ -143,7 +145,7 @@ function createAnimalMediaRouter({
       animal_id: req.params.id,
     }, { entityType: "animal", entityId: req.params.id });
     setFlash(req, "success", "Profilbild entfernt.");
-    res.redirect(`/animals/${req.params.id}`);
+    res.redirect(returnTo);
   });
   
   router.post("/animals/:id/images", requireAnimalPermission("canManageGallery"), upload.single("image"), async (req, res) => {
@@ -184,29 +186,46 @@ function createAnimalMediaRouter({
     setFlash(req, "success", "Bild zur Galerie hinzugefügt.");
     res.redirect(returnTo);
   });
+
+  router.post("/animals/:animalId/images/:entryId/update", requireAnimalPermission("canManageGallery"), (req, res) => {
+    const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.animalId}`);
+    const image = db.prepare("SELECT * FROM animal_images WHERE id = ? AND animal_id = ?").get(req.params.entryId, req.params.animalId);
+    if (!image) {
+      return renderNotFound(req, res, "Bild nicht gefunden.");
+    }
+
+    const title = String(req.body.title || "").trim();
+    db.prepare("UPDATE animal_images SET title = ? WHERE id = ? AND animal_id = ?")
+      .run(title, req.params.entryId, req.params.animalId);
+    createAuditLog(req, "animal.image_update", {
+      animal_id: req.params.animalId,
+      image_id: req.params.entryId,
+      title,
+    }, { entityType: "animal", entityId: req.params.animalId });
+    setFlash(req, "success", "Bildtitel gespeichert.");
+    res.redirect(returnTo);
+  });
   
   router.post("/animals/:animalId/images/:entryId/delete", requireAnimalPermission("canManageGallery"), (req, res) => {
+    const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.animalId}`);
     const image = db.prepare("SELECT * FROM animal_images WHERE id = ? AND animal_id = ?").get(req.params.entryId, req.params.animalId);
     if (!image) {
       return renderNotFound(req, res, "Bild nicht gefunden.");
     }
   
-    const fullPath = resolveStoredFilePath(uploadsDir, image.stored_name);
-    if (fullPath && fs.existsSync(fullPath)) {
-      fs.unlinkSync(fullPath);
-    }
-  
     db.prepare("DELETE FROM animal_images WHERE id = ? AND animal_id = ?").run(req.params.entryId, req.params.animalId);
+    deleteUploadedFileIfUnreferenced(image.stored_name);
     createAuditLog(req, "animal.image_delete", {
       animal_id: req.params.animalId,
       image_id: req.params.entryId,
       title: image.title || "",
     }, { entityType: "animal", entityId: req.params.animalId });
     setFlash(req, "success", "Galeriebild gelöscht.");
-    res.redirect(`/animals/${req.params.animalId}`);
+    res.redirect(returnTo);
   });
   
   router.post("/animals/:animalId/images/:entryId/set-profile", requireAnimalPermission("canManageGallery"), (req, res) => {
+    const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.animalId}`);
     const image = db.prepare("SELECT * FROM animal_images WHERE id = ? AND animal_id = ?").get(req.params.entryId, req.params.animalId);
     if (!image) {
       return renderNotFound(req, res, "Bild nicht gefunden.");
@@ -225,7 +244,7 @@ function createAnimalMediaRouter({
     }, { entityType: "animal", entityId: req.params.animalId });
   
     setFlash(req, "success", "Galeriebild als Profilbild gesetzt.");
-    res.redirect(`/animals/${req.params.animalId}`);
+    res.redirect(returnTo);
   });
 
   router.heartpetMountPath = "";

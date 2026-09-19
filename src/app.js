@@ -1599,6 +1599,12 @@ function formatAnimalActivityEntry(entry) {
         title: `Foto ergänzt${details.title ? `: ${details.title}` : ""}`,
         details: "Galerie wurde erweitert.",
       };
+    case "animal.image_update":
+      return {
+        at: entry.created_at,
+        title: `Foto aktualisiert${details.title ? `: ${details.title}` : ""}`,
+        details: "Der Bildtitel wurde angepasst.",
+      };
     case "animal.image_delete":
       return {
         at: entry.created_at,
@@ -1640,7 +1646,7 @@ function getAnimalActivityEntries(animalId, limit = 12) {
         'animal.create', 'animal.update', 'animal.status_change',
         'animal.note_create', 'animal.note_update', 'animal.note_delete',
         'animal.document_create', 'animal.document_update', 'animal.document_delete',
-        'animal.image_create', 'animal.image_delete',
+        'animal.image_create', 'animal.image_update', 'animal.image_delete',
         'animal.profile_image_update', 'animal.profile_image_delete'
       )
     ORDER BY audit_logs.id DESC

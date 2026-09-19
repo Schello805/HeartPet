@@ -45,6 +45,8 @@ test("Tierdokumente und Bilder bleiben im Medien-Router", () => {
   assert.match(router, /router\.post\("\/animals\/:id\/documents"/);
   assert.match(router, /router\.post\("\/animals\/:id\/profile-image"/);
   assert.match(router, /router\.post\("\/animals\/:id\/images"/);
+  assert.match(router, /router\.post\("\/animals\/:animalId\/images\/:entryId\/update"/);
+  assert.match(router, /router\.post\("\/animals\/:animalId\/images\/:entryId\/delete"/);
 });
 
 test("Medizinische Tierdaten bleiben im Gesundheits-Router", () => {

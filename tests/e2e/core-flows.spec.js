@@ -158,7 +158,7 @@ test("Tiere-Arbeitsansicht zeigt die Akte im Browser-Kontext", async ({ page }) 
   await expect(page.locator("#event-title")).toHaveValue("RCP (Katzenschnupfen und Katzenseuche)");
 });
 
-test("Profilbild kann auf dem Smartphone sichtbar ausgewählt werden", async ({ page }) => {
+test("Profilbild kann auf dem Smartphone hochgeladen, ersetzt und entfernt werden", async ({ page }) => {
   await ensureAuthenticated(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/animals/1");
@@ -179,6 +179,95 @@ test("Profilbild kann auf dem Smartphone sichtbar ausgewählt werden", async ({ 
     buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64"),
   });
   await expect(page).toHaveURL(/\/animals\/1$/);
+
+  await page.getByRole("link", { name: "Tier bearbeiten" }).click();
+  await expect(page.locator(".profile-upload-trigger")).toContainText("Bild ändern");
+  await page.locator(".profile-upload-input").setInputFiles({
+    name: "tierbild-neu.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64"),
+  });
+  await expect(page).toHaveURL(/\/animals\/1$/);
+
+  await page.getByRole("link", { name: "Tier bearbeiten" }).click();
+  const removeProfile = page.getByRole("button", { name: "Profilbild entfernen" });
+  await expect(removeProfile).toBeVisible();
+  await removeProfile.click();
+  await page.locator("[data-confirm-modal-submit]").click();
+  await expect(page).toHaveURL(/\/animals\/1$/);
+
+  await page.getByRole("link", { name: "Tier bearbeiten" }).click();
+  await expect(page.locator(".profile-upload-trigger")).toContainText("Bild auswählen");
+  await expect(page.getByRole("button", { name: "Profilbild entfernen" })).toHaveCount(0);
+});
+
+test("Galeriebilder sind auf dem Smartphone vollständig verwaltbar", async ({ page }) => {
+  await ensureAuthenticated(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/animals/1");
+
+  const openPhotos = async () => {
+    const detailsButton = page.getByRole("button", { name: "Details anzeigen" });
+    if (await detailsButton.getAttribute("aria-expanded") !== "true") {
+      await detailsButton.click();
+    }
+    await expect(page.locator("#animalRecordDetails")).toHaveClass(/show/);
+    await expect(page.getByRole("link", { name: "Foto hochladen" })).toBeVisible();
+  };
+
+  await openPhotos();
+  await page.getByRole("link", { name: "Foto hochladen" }).click();
+  await page.locator("[data-drawer-body] #image-title").fill("Smartphone-Foto");
+  await page.locator("[data-drawer-body] #image-file").setInputFiles({
+    name: "galerie.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64"),
+  });
+  await page.locator("[data-drawer-body]").getByRole("button", { name: "Bild hochladen" }).click();
+  await expect(page).toHaveURL(/\/animals\/1$/);
+  await expect(page.locator(".gallery-card", { hasText: "Smartphone-Foto" })).toHaveCount(1);
+
+  await openPhotos();
+  const galleryCard = page.locator(".gallery-card", { hasText: "Smartphone-Foto" });
+  await expect(galleryCard).toBeVisible();
+  await galleryCard.getByLabel("Bildtitel").fill("Mobil geändert");
+  await galleryCard.getByRole("button", { name: "Titel speichern" }).click();
+  await expect(page).toHaveURL(/\/animals\/1#animal-dokumente$/);
+  await expect(page.locator(".gallery-card", { hasText: "Mobil geändert" })).toHaveCount(1);
+
+  await openPhotos();
+  const updatedCard = page.locator(".gallery-card", { hasText: "Mobil geändert" });
+  await expect(updatedCard).toBeVisible();
+  await updatedCard.getByRole("button", { name: "Als Profilbild" }).click();
+  await expect(page).toHaveURL(/\/animals\/1#animal-dokumente$/);
+  await expect(page.locator(".animal-profile-image")).toBeVisible();
+
+  await openPhotos();
+  const removableCard = page.locator(".gallery-card", { hasText: "Mobil geändert" });
+  await removableCard.getByRole("button", { name: "Galeriebild löschen" }).click();
+  await page.locator("[data-confirm-modal-submit]").click();
+  await expect(page).toHaveURL(/\/animals\/1#animal-dokumente$/);
+  await expect(page.locator(".gallery-card", { hasText: "Mobil geändert" })).toHaveCount(0);
+});
+
+test("App-Logo kann auf dem Smartphone ersetzt und zurückgesetzt werden", async ({ page }) => {
+  await ensureAuthenticated(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/admin/allgemein");
+
+  await page.locator("#app_logo").setInputFiles({
+    name: "app-logo.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64"),
+  });
+  await page.getByRole("button", { name: "Allgemeine Einstellungen speichern" }).click();
+  await expect(page).toHaveURL(/\/admin\/allgemein$/);
+
+  const resetLogo = page.getByRole("button", { name: "Standardlogo verwenden" });
+  await expect(resetLogo).toBeVisible();
+  await resetLogo.click();
+  await expect(page).toHaveURL(/\/admin\/allgemein$/);
+  await expect(page.getByRole("button", { name: "Standardlogo verwenden" })).toHaveCount(0);
 });
 
 test("Dashboard bleibt auf Smartphone, Tablet und Desktop visuell stabil", async ({ page }, testInfo) => {
