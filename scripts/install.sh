@@ -25,6 +25,29 @@ run_as_root() {
   fi
 }
 
+install_required_tools() {
+  local missing=()
+  for command_name in node npm git curl; do
+    command -v "$command_name" >/dev/null 2>&1 || missing+=("$command_name")
+  done
+  if [ "${#missing[@]}" -eq 0 ]; then return 0; fi
+
+  echo "Installiere fehlende Systemvoraussetzungen: ${missing[*]}"
+  if command -v apt-get >/dev/null 2>&1; then
+    run_as_root apt-get update
+    run_as_root apt-get install -y ca-certificates curl git nodejs npm build-essential python3
+  elif command -v dnf >/dev/null 2>&1; then
+    run_as_root dnf install -y ca-certificates curl git nodejs npm gcc-c++ make python3
+  elif command -v yum >/dev/null 2>&1; then
+    run_as_root yum install -y ca-certificates curl git nodejs npm gcc-c++ make python3
+  elif command -v apk >/dev/null 2>&1; then
+    run_as_root apk add --no-cache ca-certificates curl git nodejs npm build-base python3
+  else
+    echo "Fehler: Kein unterstützter Paketmanager gefunden. Bitte Git, curl sowie Node.js 20 oder neuer inklusive npm installieren."
+    exit 1
+  fi
+}
+
 install_ffmpeg() {
   if command -v ffmpeg >/dev/null 2>&1; then
     echo "ffmpeg ist bereits installiert: $(ffmpeg -version | head -n 1)"
@@ -52,7 +75,9 @@ install_ffmpeg() {
   fi
 }
 
-for command_name in node npm git; do
+install_required_tools
+
+for command_name in node npm git curl; do
   if ! command -v "$command_name" >/dev/null 2>&1; then
     echo "Fehler: $command_name fehlt. HeartPet benötigt Git sowie Node.js 20 oder neuer inklusive npm."
     exit 1

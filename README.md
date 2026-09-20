@@ -30,6 +30,10 @@ HeartPet ist inzwischen ein brauchbares MVP für den Alltag:
 
 Kein Docker. Kein externer Objekt-Storage. HeartPet ist für einen einfachen Betrieb auf einem LXC oder Linux-Server gedacht.
 
+Auf Debian, Fedora/RHEL und Alpine installiert `scripts/install.sh` fehlende
+Grundpakete einschließlich Node.js und npm automatisch aus den jeweiligen
+Paketquellen. Anschließend wird geprüft, ob mindestens Node.js 20 vorhanden ist.
+
 ## Installation
 
 Das Installationsskript installiert `ffmpeg` über den verfügbaren Linux-Paketmanager und anschließend alle Node.js-Abhängigkeiten:

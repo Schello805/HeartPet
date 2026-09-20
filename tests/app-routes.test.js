@@ -1384,6 +1384,8 @@ test("Interaktiver Installer erzeugt einen gehärteten und neu gestarteten syste
   assert.match(installer, /systemctl restart heartpet/);
   assert.match(installer, /curl --max-time 2 -fsS/);
   assert.match(installScript, /configure-instance\.sh" "\$@"/);
+  assert.match(installScript, /apt-get install -y ca-certificates curl git nodejs npm build-essential python3/);
+  assert.match(installScript, /node_major.*-lt 20/s);
 });
 
 test("Startskript aktiviert den systemd-Dienst dauerhaft", () => {
