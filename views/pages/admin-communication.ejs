@@ -186,19 +186,7 @@
     </h2>
     <div id="communication-panel-email" class="accordion-collapse collapse" aria-labelledby="communication-heading-email">
     <div class="accordion-body card-body vstack gap-4">
-      <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
-        <div>
-          <p class="text-body-secondary mb-0">SMTP-Zugang, Zieladresse und Tests für Mail-Erinnerungen.</p>
-        </div>
-        <div class="d-flex flex-wrap gap-2">
-          <span class="status-chip <%= communicationStatus.emailReady ? 'status-ok' : 'status-muted' %>">
-            <%= communicationStatus.emailReady ? 'Konfiguriert' : 'Nicht konfiguriert' %>
-          </span>
-          <button type="submit" form="toggle-email-enabled-form" class="status-chip <%= settings.reminder_email_enabled === 'true' ? 'status-active' : 'status-muted' %>">
-            <%= settings.reminder_email_enabled === 'true' ? 'Aktiviert' : 'Deaktiviert' %>
-          </button>
-        </div>
-      </div>
+      <p class="text-body-secondary mb-0">SMTP-Zugang, Zieladresse und Tests für Mail-Erinnerungen.</p>
 
       <form method="post" action="/admin/settings" class="vstack gap-4">
         <input type="hidden" name="_fields" value="smtp_host,smtp_port,smtp_user,smtp_password,smtp_from,notification_email_to,smtp_secure" />
@@ -234,7 +222,10 @@
             </div>
           </div>
         </div>
-        <div class="d-flex justify-content-end">
+        <div class="d-flex flex-wrap justify-content-between gap-2">
+          <button type="submit" form="toggle-email-enabled-form" class="btn btn-outline-secondary">
+            E-Mail-Versand <%= settings.reminder_email_enabled === 'true' ? 'ausschalten' : 'einschalten' %>
+          </button>
           <button type="submit" class="btn btn-success">E-Mail speichern</button>
         </div>
       </form>
@@ -282,19 +273,7 @@
     </h2>
     <div id="communication-panel-telegram" class="accordion-collapse collapse" aria-labelledby="communication-heading-telegram">
     <div class="accordion-body card-body vstack gap-4">
-      <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
-        <div>
-          <p class="text-body-secondary mb-0">Bot-Zugang, Chat-ID und direkter Test für Telegram-Erinnerungen.</p>
-        </div>
-        <div class="d-flex flex-wrap gap-2">
-          <span class="status-chip <%= communicationStatus.telegramReady ? 'status-ok' : 'status-muted' %>">
-            <%= communicationStatus.telegramReady ? 'Konfiguriert' : 'Nicht konfiguriert' %>
-          </span>
-          <button type="submit" form="toggle-telegram-enabled-form" class="status-chip <%= settings.reminder_telegram_enabled === 'true' ? 'status-active' : 'status-muted' %>">
-            <%= settings.reminder_telegram_enabled === 'true' ? 'Aktiviert' : 'Deaktiviert' %>
-          </button>
-        </div>
-      </div>
+      <p class="text-body-secondary mb-0">Bot-Zugang, Chat-ID und direkter Test für Telegram-Erinnerungen.</p>
 
       <form id="telegram-settings-form" method="post" action="/admin/settings" class="vstack gap-4">
         <input type="hidden" name="_fields" value="telegram_bot_token,telegram_chat_id" />
@@ -329,7 +308,10 @@
           </div>
         </section>
 
-        <div class="d-flex justify-content-end">
+        <div class="d-flex flex-wrap justify-content-between gap-2">
+          <button type="submit" form="toggle-telegram-enabled-form" class="btn btn-outline-secondary">
+            Telegram-Versand <%= settings.reminder_telegram_enabled === 'true' ? 'ausschalten' : 'einschalten' %>
+          </button>
           <button type="submit" class="btn btn-success">Telegram speichern</button>
         </div>
       </form>
@@ -367,15 +349,7 @@
     </h2>
     <div id="communication-panel-ntfy" class="accordion-collapse collapse" aria-labelledby="communication-heading-ntfy">
   <div class="accordion-body card-body vstack gap-4">
-    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3">
-      <div>
-        <p class="text-body-secondary mb-0">Push-Nachrichten über ntfy.sh oder deinen eigenen ntfy-Server.</p>
-      </div>
-      <div class="d-flex flex-wrap gap-2">
-        <span class="status-chip <%= communicationStatus.ntfyReady ? 'status-ok' : 'status-muted' %>"><%= communicationStatus.ntfyReady ? 'Konfiguriert' : 'Nicht konfiguriert' %></span>
-        <button type="submit" form="toggle-ntfy-enabled-form" class="status-chip <%= settings.reminder_ntfy_enabled === 'true' ? 'status-active' : 'status-muted' %>"><%= settings.reminder_ntfy_enabled === 'true' ? 'Aktiviert' : 'Deaktiviert' %></button>
-      </div>
-    </div>
+    <p class="text-body-secondary mb-0">Push-Nachrichten über ntfy.sh oder deinen eigenen ntfy-Server.</p>
     <form method="post" action="/admin/settings" class="vstack gap-3">
       <input type="hidden" name="_fields" value="ntfy_server_url,ntfy_topic,ntfy_access_token" />
       <div class="row g-3">
@@ -395,7 +369,12 @@
       </div>
       <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
         <span class="text-body-secondary small">Letzter erfolgreicher Test: <strong><%= communicationStatus.ntfyLastSuccessfulCheckAt ? formatDateTime(communicationStatus.ntfyLastSuccessfulCheckAt) : 'Noch kein erfolgreicher Test' %></strong></span>
-        <button type="submit" class="btn btn-success">ntfy speichern</button>
+        <div class="d-flex flex-wrap gap-2">
+          <button type="submit" form="toggle-ntfy-enabled-form" class="btn btn-outline-secondary">
+            ntfy-Versand <%= settings.reminder_ntfy_enabled === 'true' ? 'ausschalten' : 'einschalten' %>
+          </button>
+          <button type="submit" class="btn btn-success">ntfy speichern</button>
+        </div>
       </div>
     </form>
     <form method="post" action="/admin/test-ntfy">
