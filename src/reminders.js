@@ -5,6 +5,7 @@ const path = require("node:path");
 const crypto = require("node:crypto");
 const { resolveSessionSecret } = require("./http-session");
 const { resolveStoredFilePath } = require("./storage-paths");
+const { getInstanceDateTime } = require("./instance-timezone");
 const { createReminderRepository } = require("./repositories/reminder-repository");
 const { createNotificationChannels } = require("./services/notification-channels");
 const { createReminderDeliveryService } = require("./services/reminder-delivery");
@@ -13,7 +14,7 @@ const { resolveAppBaseUrl } = require("./app-url");
 let reminderActionSecret = "";
 
 async function processDueReminders(db, settings, hooks = {}) {
-  const now = dayjs().format("YYYY-MM-DDTHH:mm");
+  const now = getInstanceDateTime(settings).format("YYYY-MM-DDTHH:mm");
   const service = createReminderDeliveryService({
     repository: createReminderRepository(db),
     channels: createNotificationChannels({

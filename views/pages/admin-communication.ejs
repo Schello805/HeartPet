@@ -1,5 +1,6 @@
 <%- include('../partials/top', { pageTitle }) %>
 <% const resolvedInstanceTimezone = typeof instanceTimezone !== 'undefined' && instanceTimezone ? instanceTimezone : 'UTC'; %>
+<% const resolvedTimeZoneOptions = typeof timeZoneOptions !== 'undefined' && Array.isArray(timeZoneOptions) ? timeZoneOptions : ['UTC']; %>
 
 <form id="toggle-email-enabled-form" method="post" action="/admin/settings" class="hidden-form">
   <input type="hidden" name="_fields" value="reminder_email_enabled" />
@@ -87,7 +88,7 @@
     <div id="communication-panel-general" class="accordion-collapse collapse" aria-labelledby="communication-heading-general">
     <div class="accordion-body card-body">
       <form method="post" action="/admin/settings" class="vstack gap-4">
-        <input type="hidden" name="_fields" value="browser_notifications_enabled,daily_digest_enabled,daily_digest_time,daily_digest_only_when_open" />
+        <input type="hidden" name="_fields" value="browser_notifications_enabled,daily_digest_enabled,daily_digest_time,daily_digest_only_when_open,instance_timezone" />
         <p class="text-body-secondary mb-0">Lege fest, ob HeartPet zusätzlich im Browser erinnert und ob täglich eine Zusammenfassung verschickt werden soll.</p>
         <div class="row g-3">
           <div class="col-12">
@@ -101,6 +102,14 @@
               <input class="form-check-input" type="checkbox" id="daily_digest_enabled" name="daily_digest_enabled" <%= settings.daily_digest_enabled === 'true' ? 'checked' : '' %> />
               <label class="form-check-label" for="daily_digest_enabled">Tägliche Erinnerungs-Zusammenfassung aktivieren</label>
             </div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="instance_timezone">Instanz-Zeitzone</label>
+            <select class="form-select" id="instance_timezone" name="instance_timezone">
+              <% resolvedTimeZoneOptions.forEach((timeZone) => { %>
+                <option value="<%= timeZone %>" <%= resolvedInstanceTimezone === timeZone ? 'selected' : '' %>><%= timeZone %></option>
+              <% }) %>
+            </select>
           </div>
           <div class="col-md-6">
             <label class="form-label" for="daily_digest_time">Tägliche Zusammenfassung um</label>

@@ -1,4 +1,5 @@
 const express = require("express");
+const { isValidTimeZone } = require("../instance-timezone");
 
 function createAdminSettingsRouter({
   backTo,
@@ -80,17 +81,20 @@ function createAdminSettingsRouter({
     const invalidDoorValue = ["homematic_door_open_value", "homematic_door_close_value"].find((key) =>
       fields.includes(key) && !/^-?\d+(?:[.,]\d+)?$/.test(String(req.body[key] || "").trim())
     );
-    if (invalidUrlField || invalidCamera || invalidAppDomain || invalidDoorDatapoint || invalidDoorValue) {
+    const invalidTimeZone = fields.includes("instance_timezone") && !isValidTimeZone(req.body.instance_timezone);
+    if (invalidUrlField || invalidCamera || invalidAppDomain || invalidDoorDatapoint || invalidDoorValue || invalidTimeZone) {
       setFlash(req, "error", invalidCamera
         ? `Ungültige Kamera-URL in der Zeile „${invalidCamera.source}“.`
         : invalidAppDomain
           ? "Für den Domainbetrieb ist eine gültige HTTPS-Adresse ohne Pfad erforderlich, zum Beispiel https://tiere.example.de."
-        : invalidDoorDatapoint
-          ? "Der Tür-Datenpunkt muss eine numerische ISE-ID sein."
+          : invalidDoorDatapoint
+            ? "Der Tür-Datenpunkt muss eine numerische ISE-ID sein."
           : invalidDoorValue
             ? "Öffnungs- und Schließwert müssen Zahlen sein."
-            : "Bitte für Homematic eine vollständige HTTP- oder HTTPS-URL eingeben.");
-      return res.redirect(backTo(req, "/admin/allgemein"));
+            : invalidTimeZone
+              ? "Bitte eine gültige Zeitzone auswählen."
+              : "Bitte für Homematic eine vollständige HTTP- oder HTTPS-URL eingeben.");
+      return res.redirect(backTo(req, invalidTimeZone ? "/admin/benachrichtigungen" : "/admin/allgemein"));
     }
 
     const settingsBeforeSave = getSettingsObject(db);

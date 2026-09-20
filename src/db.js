@@ -58,6 +58,7 @@ function seedDefaults(db) {
     default_veterinarian_id: "",
     daily_digest_enabled: "false",
     daily_digest_time: "07:30",
+    instance_timezone: "",
     daily_digest_only_when_open: "true",
     last_daily_digest_date: "",
     coop_camera_streams: "",

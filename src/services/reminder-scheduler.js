@@ -1,5 +1,5 @@
 const cron = require("node-cron");
-const dayjs = require("dayjs");
+const { getInstanceDateTime } = require("../instance-timezone");
 
 function createReminderScheduler({
   db,
@@ -18,9 +18,9 @@ function createReminderScheduler({
     const [hourRaw, minuteRaw] = String(settings.daily_digest_time || "07:30").trim().split(":");
     const hour = clampTimePart(hourRaw, 23, 7);
     const minute = clampTimePart(minuteRaw, 59, 30);
-    const now = dayjs();
+    const now = getInstanceDateTime(settings);
     const today = now.format("YYYY-MM-DD");
-    const sendAt = dayjs(`${today}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`);
+    const sendAt = now.hour(hour).minute(minute).second(0).millisecond(0);
 
     if (String(settings.last_daily_digest_date || "").trim() === today || now.isBefore(sendAt)) return;
 

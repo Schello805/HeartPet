@@ -123,6 +123,7 @@ const { createNotificationChannels } = require("./services/notification-channels
 const { optimizeAnimalImageUpload } = require("./services/image-optimizer");
 const { getDefaultAppBaseUrl, listLocalAccessUrls, resolveBindHost } = require("./runtime/network");
 const { normalizeAppBaseUrl, resolveAppBaseUrl: resolveConfiguredAppBaseUrl } = require("./app-url");
+const { listTimeZones, resolveInstanceTimeZone } = require("./instance-timezone");
 
 const app = express();
 app.set("trust proxy", process.env.HEARTPET_TRUST_PROXY || "loopback");
@@ -1672,6 +1673,7 @@ function getAdminViewData(pageTitle, adminPath) {
     adminPath,
     settings,
     instanceTimezone: getInstanceTimeZone(),
+    timeZoneOptions: listTimeZones(),
     communicationStatus: {
       emailReady: isEmailConfigured(settings),
       telegramReady: isTelegramConfigured(settings),
@@ -1709,7 +1711,7 @@ function getAdminViewData(pageTitle, adminPath) {
 }
 
 function getInstanceTimeZone() {
-  return Intl.DateTimeFormat().resolvedOptions().timeZone || process.env.TZ || "UTC";
+  return resolveInstanceTimeZone(getSettingsObject(db));
 }
 
 function backTo(req, fallback) {

@@ -3176,6 +3176,36 @@ test("Benachrichtigungsbereiche sind standardmäßig geschlossene Akkordeons", a
   }
 });
 
+test("Instanz-Zeitzone kann ausgewählt und nur gültig gespeichert werden", async () => {
+  const previousTimeZone = db.prepare("SELECT value FROM settings WHERE key = ?").get("instance_timezone")?.value || "";
+
+  try {
+    let response = await agent.get("/admin/benachrichtigungen");
+    assert.equal(response.status, 200);
+    assert.match(response.text, /id="instance_timezone"/);
+    assert.match(response.text, /<option value="Europe\/Berlin"/);
+
+    response = await agent
+      .post("/admin/settings")
+      .set("Referer", "http://localhost/admin/benachrichtigungen")
+      .type("form")
+      .send({ _fields: "instance_timezone", instance_timezone: "Europe/Berlin" });
+    assert.ok([302, 303].includes(response.status));
+    assert.equal(response.headers.location, "/admin/benachrichtigungen");
+    assert.equal(db.prepare("SELECT value FROM settings WHERE key = ?").get("instance_timezone")?.value, "Europe/Berlin");
+
+    response = await agent
+      .post("/admin/settings")
+      .set("Referer", "http://localhost/admin/benachrichtigungen")
+      .type("form")
+      .send({ _fields: "instance_timezone", instance_timezone: "Mars/Olympus_Mons" });
+    assert.ok([302, 303].includes(response.status));
+    assert.equal(db.prepare("SELECT value FROM settings WHERE key = ?").get("instance_timezone")?.value, "Europe/Berlin");
+  } finally {
+    upsertSetting(db, "instance_timezone", previousTimeZone);
+  }
+});
+
 test("Normales Speichern von E-Mail und Telegram ändert den Aktiv-Status nicht", async () => {
   let response = await agent
     .post("/admin/settings")
