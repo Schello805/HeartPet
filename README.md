@@ -179,6 +179,18 @@ sudo systemctl restart heartpet
 
 ## Grundlegende Befehle nach der Installation
 
+### Administrator-Passwort lokal zurücksetzen
+
+Wenn keine E-Mail-Zustellung eingerichtet ist, kann ein Administrator das Passwort direkt auf dem HeartPet-Server ändern. Das Passwort wird verdeckt und mit Bestätigung abgefragt:
+
+```bash
+cd /opt/HeartPet
+node scripts/reset-admin-password.js admin@example.de
+systemctl restart heartpet
+```
+
+Das Skript prüft den gespeicherten Passwort-Hash unmittelbar und macht bestehende Sitzungen des Kontos ungültig.
+
 Typische Betriebsbefehle auf dem LXC:
 
 ```bash
