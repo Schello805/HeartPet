@@ -42,9 +42,45 @@
 
                 <div class="accordion" id="setupAccordion">
                   <div class="accordion-item">
+                    <h2 class="accordion-header" id="setup-access-heading">
+                      <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#setup-access" aria-expanded="true" aria-controls="setup-access">
+                        1. Zugriff
+                      </button>
+                    </h2>
+                    <div id="setup-access" class="accordion-collapse collapse show" aria-labelledby="setup-access-heading" data-bs-parent="#setupAccordion">
+                      <div class="accordion-body vstack gap-3">
+                        <p class="text-body-secondary mb-0">Wie soll diese HeartPet-Instanz normalerweise erreichbar sein?</p>
+                        <div class="row g-3">
+                          <div class="col-md-6">
+                            <label class="card border h-100 p-3" for="access-mode-lan">
+                              <span class="d-flex gap-2 align-items-start">
+                                <input class="form-check-input mt-1" id="access-mode-lan" type="radio" name="access_mode" value="lan" checked data-access-mode />
+                                <span><strong class="d-block">Nur Heimnetz</strong><small class="text-body-secondary">Direkter Zugriff über die lokale IP-Adresse, ohne öffentliche Domain.</small></span>
+                              </span>
+                            </label>
+                          </div>
+                          <div class="col-md-6">
+                            <label class="card border h-100 p-3" for="access-mode-domain">
+                              <span class="d-flex gap-2 align-items-start">
+                                <input class="form-check-input mt-1" id="access-mode-domain" type="radio" name="access_mode" value="domain" data-access-mode />
+                                <span><strong class="d-block">Über eine Domain</strong><small class="text-body-secondary">HTTPS-Zugriff über Nginx oder einen anderen Reverse Proxy.</small></span>
+                              </span>
+                            </label>
+                          </div>
+                        </div>
+                        <div data-domain-settings hidden>
+                          <label class="form-label" for="app_domain">Öffentliche HTTPS-Adresse</label>
+                          <input class="form-control" id="app_domain" type="url" name="app_domain" placeholder="https://tiere.example.de" data-domain-input />
+                          <div class="form-text">Vollständige Adresse ohne zusätzlichen Pfad. Diese Adresse wird für E-Mails und Erinnerungslinks verwendet.</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="accordion-item">
                     <h2 class="accordion-header" id="setup-admin-heading">
                       <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#setup-admin" aria-expanded="false" aria-controls="setup-admin">
-                        1. Administrator
+                        2. Administrator
                       </button>
                     </h2>
                     <div id="setup-admin" class="accordion-collapse collapse" aria-labelledby="setup-admin-heading" data-bs-parent="#setupAccordion">
@@ -67,11 +103,6 @@
                             <label class="form-label" for="organization_name">Name der Haltung / Organisation</label>
                             <input class="form-control" id="organization_name" type="text" name="organization_name" placeholder="optional" />
                           </div>
-                          <div class="col-12">
-                            <label class="form-label" for="app_domain">Öffentliche Adresse</label>
-                            <input class="form-control" id="app_domain" type="url" name="app_domain" placeholder="https://tiere.example.de" />
-                            <div class="form-text">Optional im reinen Heimnetz. Für E-Mail- und Erinnerungslinks die vollständige HTTPS-Adresse ohne weiteren Pfad eintragen.</div>
-                          </div>
                         </div>
                       </div>
                     </div>
@@ -80,7 +111,7 @@
                   <div class="accordion-item">
                     <h2 class="accordion-header" id="setup-vet-heading">
                       <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#setup-vet" aria-expanded="false" aria-controls="setup-vet">
-                        2. Tierarzt
+                        3. Tierarzt
                       </button>
                     </h2>
                     <div id="setup-vet" class="accordion-collapse collapse" aria-labelledby="setup-vet-heading" data-bs-parent="#setupAccordion">
@@ -122,7 +153,7 @@
                   <div class="accordion-item">
                     <h2 class="accordion-header" id="setup-animal-heading">
                       <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#setup-animal" aria-expanded="false" aria-controls="setup-animal">
-                        3. Erstes Tier
+                        4. Erstes Tier
                       </button>
                     </h2>
                     <div id="setup-animal" class="accordion-collapse collapse" aria-labelledby="setup-animal-heading" data-bs-parent="#setupAccordion">
@@ -179,6 +210,21 @@
       </div>
     </main>
     <script src="/static/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+    <script>
+      (() => {
+        const modes = document.querySelectorAll('[data-access-mode]');
+        const settings = document.querySelector('[data-domain-settings]');
+        const input = document.querySelector('[data-domain-input]');
+        const update = () => {
+          const domainMode = document.querySelector('[data-access-mode]:checked')?.value === 'domain';
+          settings.hidden = !domainMode;
+          input.required = domainMode;
+          input.disabled = !domainMode;
+        };
+        modes.forEach((mode) => mode.addEventListener('change', update));
+        update();
+      })();
+    </script>
     <script src="/static/js/app.js?v=<%= assetVersion %>"></script>
   </body>
 </html>

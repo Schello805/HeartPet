@@ -1,5 +1,6 @@
 const fs = require("node:fs");
 const path = require("node:path");
+const { normalizeAppBaseUrl } = require("./app-url");
 
 function buildCoreOperationalChecks({ db, dataDir, now = Date.now() }) {
   const checks = [checkDatabase(db), checkDataDirectory(dataDir), checkDiskSpace(dataDir), checkBackupFreshness(dataDir, now)];
@@ -15,6 +16,82 @@ function summarizeOperationalChecks(checks) {
     criticalFailures: criticalFailures.length,
     warnings: warnings.length,
   };
+}
+
+function buildInstallationChecks({
+  settings = {},
+  requestBaseUrl = "",
+  runtimeRevision = "",
+  availableRevision = "",
+  dataDirectoryConfigured = false,
+  secureCookie = "auto",
+  notificationChannels = {},
+} = {}) {
+  const accessMode = settings.access_mode === "domain" ? "domain" : "lan";
+  const configuredUrl = normalizeAppBaseUrl(settings.app_domain || process.env.HEARTPET_APP_URL);
+  const currentUrl = normalizeAppBaseUrl(requestBaseUrl);
+  const checks = [{
+    name: "Betriebsart",
+    ok: true,
+    critical: false,
+    detail: accessMode === "domain" ? "HTTPS-Domain" : "Nur Heimnetz",
+    action: accessMode === "domain" ? "DNS, TLS und Reverse Proxy regelmäßig prüfen." : "Kein öffentlicher Zugriff vorgesehen.",
+  }];
+
+  if (accessMode === "domain") {
+    const validDomain = Boolean(configuredUrl?.startsWith("https://"));
+    checks.push({
+      name: "Öffentliche Adresse",
+      ok: validDomain,
+      critical: true,
+      detail: validDomain ? configuredUrl : "Keine gültige HTTPS-Adresse konfiguriert",
+      action: validDomain ? "" : "Unter Verwaltung > Allgemein eine HTTPS-Adresse speichern.",
+    });
+    checks.push({
+      name: "Aktueller Aufruf",
+      ok: validDomain && Boolean(currentUrl) && configuredUrl === currentUrl,
+      critical: false,
+      detail: currentUrl || "Adresse nicht ermittelbar",
+      action: validDomain && configuredUrl !== currentUrl ? `HeartPet über ${configuredUrl} öffnen und Proxy-Header prüfen.` : "",
+    });
+    checks.push({
+      name: "Sicheres Session-Cookie",
+      ok: secureCookie !== "false",
+      critical: true,
+      detail: secureCookie === "false" ? "Für Domainbetrieb deaktiviert" : "Aktiv oder automatisch",
+      action: secureCookie === "false" ? "HEARTPET_SECURE_COOKIE=true setzen und den Dienst neu starten." : "",
+    });
+  }
+
+  checks.push({
+    name: "Datenpfad",
+    ok: dataDirectoryConfigured,
+    critical: false,
+    detail: dataDirectoryConfigured ? "Dauerhaft über HEARTPET_DATA_DIR festgelegt" : "Projektverzeichnis wird verwendet",
+    action: dataDirectoryConfigured ? "" : "Für Updates HEARTPET_DATA_DIR im systemd-Dienst festlegen.",
+  });
+
+  const revisionMatches = !runtimeRevision || !availableRevision || runtimeRevision === availableRevision;
+  checks.push({
+    name: "Aktive Revision",
+    ok: revisionMatches,
+    critical: true,
+    detail: revisionMatches ? (runtimeRevision || "Nicht ermittelbar") : `${runtimeRevision} aktiv, ${availableRevision} installiert`,
+    action: revisionMatches ? "" : "HeartPet-Dienst neu starten und /health erneut prüfen.",
+  });
+
+  for (const [name, channel] of Object.entries(notificationChannels)) {
+    if (!channel.enabled) continue;
+    checks.push({
+      name: `${name} aktiviert`,
+      ok: Boolean(channel.configured),
+      critical: false,
+      detail: channel.configured ? "Vollständig konfiguriert" : "Zugangsdaten unvollständig",
+      action: channel.configured ? "" : "Kanal vervollständigen oder deaktivieren.",
+    });
+  }
+
+  return checks;
 }
 
 function checkDatabase(db) {
@@ -89,4 +166,4 @@ function formatBytes(bytes) {
   return `${Math.round(bytes / 1024 ** 2)} MB`;
 }
 
-module.exports = { buildCoreOperationalChecks, summarizeOperationalChecks };
+module.exports = { buildCoreOperationalChecks, buildInstallationChecks, summarizeOperationalChecks };

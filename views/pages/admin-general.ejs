@@ -16,7 +16,7 @@
   <section class="card border-0 bg-body-tertiary admin-section-card">
     <div class="card-body">
       <form method="post" action="/admin/settings" enctype="multipart/form-data" class="vstack gap-4 compact-workflow-form">
-        <input type="hidden" name="_fields" value="app_name,app_domain,organization_name,help_contact" />
+        <input type="hidden" name="_fields" value="app_name,access_mode,app_domain,organization_name,help_contact" />
 
         <div class="row g-3">
           <div class="col-lg-6">
@@ -32,8 +32,16 @@
                     <input class="form-control" id="app_name" type="text" name="app_name" value="<%= settings.app_name || '' %>" />
                   </div>
                   <div class="col-12">
+                    <label class="form-label" for="access_mode">Betriebsart</label>
+                    <select class="form-select" id="access_mode" name="access_mode">
+                      <option value="lan" <%= settings.access_mode !== 'domain' ? 'selected' : '' %>>Nur im Heimnetz</option>
+                      <option value="domain" <%= settings.access_mode === 'domain' ? 'selected' : '' %>>Über HTTPS-Domain</option>
+                    </select>
+                  </div>
+                  <div class="col-12">
                     <label class="form-label" for="app_domain">Domain</label>
-                    <input class="form-control" id="app_domain" type="text" inputmode="url" spellcheck="false" name="app_domain" value="<%= settings.app_domain || '' %>" placeholder="https://tiere.example.de" />
+                    <input class="form-control" id="app_domain" type="url" inputmode="url" spellcheck="false" name="app_domain" value="<%= settings.app_domain || '' %>" placeholder="https://tiere.example.de" />
+                    <div class="form-text">Nur für den Domainbetrieb erforderlich.</div>
                   </div>
                   <div class="col-12">
                     <label class="form-label" for="organization_name_general">Name der Haltung / Organisation</label>

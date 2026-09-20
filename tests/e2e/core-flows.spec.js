@@ -89,23 +89,28 @@ async function ensureAuthenticated(page) {
   await page.goto("/setup");
 
   if (page.url().includes("/setup")) {
-    await page.getByRole("button", { name: "1. Administrator" }).click();
+    await page.getByRole("button", { name: "2. Administrator" }).click();
     await expect(page.locator('input[name="admin_name"]')).toBeVisible();
     await page.locator('input[name="admin_name"]').fill(adminCredentials.name);
     await page.locator('input[name="admin_email"]').fill(adminCredentials.email);
     await page.locator('input[name="admin_password"]').fill(adminCredentials.password);
     await page.locator('input[name="organization_name"]').fill("HeartPet E2E");
 
-    await page.getByRole("button", { name: "2. Tierarzt" }).click();
+    await page.getByRole("button", { name: "3. Tierarzt" }).click();
     await expect(page.locator('input[name="veterinarian_name"]')).toBeVisible();
     await page.locator('input[name="veterinarian_name"]').fill("Praxis E2E");
 
-    await page.getByRole("button", { name: "3. Erstes Tier" }).click();
+    await page.getByRole("button", { name: "4. Erstes Tier" }).click();
     await expect(page.locator('input[name="animal_name"]')).toBeVisible();
     await page.locator('input[name="animal_name"]').fill("Minka");
     await page.locator('input[name="species_name"]').fill("Katze");
     await page.getByRole("button", { name: "Ersteinrichtung abschließen" }).click();
     await page.waitForLoadState("networkidle");
+
+    if (page.url().includes("/setup/complete")) {
+      await page.getByRole("link", { name: "HeartPet öffnen" }).click();
+      await page.waitForLoadState("networkidle");
+    }
 
     if (page.url().includes("/login")) {
       await page.getByLabel("E-Mail").fill(adminCredentials.email);

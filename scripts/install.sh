@@ -2,6 +2,17 @@
 set -euo pipefail
 
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CONFIGURE_INSTANCE=0
+
+if [ "${1:-}" = "--configure" ]; then
+  CONFIGURE_INSTANCE=1
+  shift
+fi
+if [ "$CONFIGURE_INSTANCE" -eq 0 ] && [ "$#" -gt 0 ]; then
+  echo "Unbekannte Option: $1"
+  echo "Verwendung: ./scripts/install.sh [--configure]"
+  exit 1
+fi
 
 run_as_root() {
   if [ "$(id -u)" -eq 0 ]; then
@@ -66,3 +77,8 @@ echo "Prüfe App-Load."
 node -e "require('./src/app'); console.log('app-load-ok'); process.exit(0)"
 
 echo "HeartPet ist installiert. Start mit: ./scripts/start.sh"
+if [ "$CONFIGURE_INSTANCE" -eq 1 ]; then
+  "$APP_DIR/scripts/configure-instance.sh" "$@"
+else
+  echo "Interaktive LXC-Konfiguration: ./scripts/install.sh --configure"
+fi

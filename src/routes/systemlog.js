@@ -2,6 +2,7 @@ const express = require("express");
 
 function createSystemlogRouter(dependencies) {
   const {
+    buildInstallationChecks,
     buildOperationalHealthChecks,
     captureCameraFrame,
     createAuditLog,
@@ -20,6 +21,8 @@ function createSystemlogRouter(dependencies) {
     repository,
     requireAdmin,
     runtimeRevision,
+    dataDirectoryConfigured,
+    secureCookie,
     setFlash,
     summarizeOperationalChecks,
   } = dependencies;
@@ -30,6 +33,20 @@ function createSystemlogRouter(dependencies) {
     const level = String(req.query.level || "all").trim();
     const auditLogs = repository.listAuditLogs().map(formatAuditLogEntry);
     const settings = getSettings();
+    const availableRevision = readAppRevision();
+    const installationChecks = buildInstallationChecks({
+      settings,
+      requestBaseUrl: `${req.protocol}://${req.get("host")}`,
+      runtimeRevision,
+      availableRevision,
+      dataDirectoryConfigured,
+      secureCookie,
+      notificationChannels: {
+        "E-Mail": { enabled: settings.reminder_email_enabled === "true", configured: isEmailConfigured(settings) },
+        Telegram: { enabled: settings.reminder_telegram_enabled === "true", configured: isTelegramConfigured(settings) },
+        ntfy: { enabled: settings.reminder_ntfy_enabled === "true", configured: isNtfyConfigured(settings) },
+      },
+    });
     const overview = {
       ...repository.getOverviewCounts(),
       instanceTimezone: getInstanceTimeZone(),
@@ -41,6 +58,7 @@ function createSystemlogRouter(dependencies) {
       ntfyEnabled: settings.reminder_ntfy_enabled === "true",
       runtime: getRuntimeMetricsSnapshot(),
       healthChecks: buildOperationalHealthChecks(settings),
+      installationChecks,
     };
     res.render("pages/admin-systemlog", {
       ...getAdminViewData("Systemlog", "/admin/systemlog"),
@@ -53,8 +71,17 @@ function createSystemlogRouter(dependencies) {
   });
 
   router.get("/health", (req, res) => {
-    const checks = buildOperationalHealthChecks(getSettings());
+    const settings = getSettings();
+    const checks = buildOperationalHealthChecks(settings);
     const availableRevision = readAppRevision();
+    const installationChecks = buildInstallationChecks({
+      settings,
+      requestBaseUrl: `${req.protocol}://${req.get("host")}`,
+      runtimeRevision,
+      availableRevision,
+      dataDirectoryConfigured,
+      secureCookie,
+    });
     res.json({
       ...summarizeOperationalChecks(checks),
       revision: runtimeRevision,
@@ -63,6 +90,7 @@ function createSystemlogRouter(dependencies) {
       checkedAt: new Date().toISOString(),
       runtime: getRuntimeMetricsSnapshot(),
       checks,
+      installationChecks,
     });
   });
 

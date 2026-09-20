@@ -409,6 +409,7 @@ test("Ersteinrichtung funktioniert", async () => {
     admin_name: "Test Admin",
     admin_email: "admin@test.local",
     admin_password: "passwort123!",
+    access_mode: "domain",
     app_domain: "https://tiere.test.local/unterpfad",
     veterinarian_name: "Tierarzt Test",
     species_name: "Katze",
@@ -422,6 +423,7 @@ test("Ersteinrichtung funktioniert", async () => {
     admin_email: "admin@test.local",
     admin_password: "passwort123!",
     organization_name: "Test Tierbestand",
+    access_mode: "domain",
     app_domain: "https://tiere.test.local",
     veterinarian_name: "Tierarzt Test",
     species_name: "Katze",
@@ -429,8 +431,14 @@ test("Ersteinrichtung funktioniert", async () => {
   });
 
   assert.equal(setupResponse.status, 302);
-  assert.match(setupResponse.headers.location || "", /^\/animals\/\d+$/);
+  assert.match(setupResponse.headers.location || "", /^\/setup\/complete\?animal_id=\d+$/);
+  assert.equal(db.prepare("SELECT value FROM settings WHERE key = 'access_mode'").get()?.value, "domain");
   assert.equal(db.prepare("SELECT value FROM settings WHERE key = 'app_domain'").get()?.value, "https://tiere.test.local");
+
+  const completePage = await agent.get(setupResponse.headers.location);
+  assert.equal(completePage.status, 200);
+  assert.match(completePage.text, /HeartPet ist eingerichtet/);
+  assert.match(completePage.text, /Domain mit HTTPS/);
 
   const speciesRows = db.prepare("SELECT name FROM species ORDER BY name ASC").all();
   assert.deepEqual(speciesRows.map((item) => item.name), ["Katze"]);
@@ -1363,6 +1371,19 @@ test("Deployment aktiviert Releases atomar und prüft die aktive Revision", () =
   assert.match(script, /Group=\$target_group/);
   assert.match(script, /"\$CURRENT_LINK" == \/root\/\*/);
   assert.match(script, /runuser -u "\$SERVICE_USER" -- test -x "\$CURRENT_LINK"/);
+});
+
+test("Interaktiver Installer erzeugt einen gehärteten und neu gestarteten systemd-Dienst", () => {
+  const installer = fs.readFileSync(path.join(__dirname, "..", "scripts", "configure-instance.sh"), "utf8");
+  const installScript = fs.readFileSync(path.join(__dirname, "..", "scripts", "install.sh"), "utf8");
+  assert.match(installer, /--mode lan\|domain/);
+  assert.match(installer, /HEARTPET_SECURE_COOKIE=/);
+  assert.match(installer, /Environment=HEARTPET_DATA_DIR=/);
+  assert.match(installer, /ProtectSystem=full/);
+  assert.match(installer, /APP_DIR" == \/root/);
+  assert.match(installer, /systemctl restart heartpet/);
+  assert.match(installer, /curl --max-time 2 -fsS/);
+  assert.match(installScript, /configure-instance\.sh" "\$@"/);
 });
 
 test("Startskript aktiviert den systemd-Dienst dauerhaft", () => {

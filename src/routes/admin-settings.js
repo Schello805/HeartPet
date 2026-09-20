@@ -64,7 +64,16 @@ function createAdminSettingsRouter({
       : null;
     const submittedAppDomain = String(req.body.app_domain || "").trim();
     const normalizedAppDomain = normalizeAppBaseUrl(submittedAppDomain);
-    const invalidAppDomain = fields.includes("app_domain") && submittedAppDomain && !normalizedAppDomain;
+    const currentSettings = getSettingsObject(db);
+    const accessMode = fields.includes("access_mode")
+      ? (req.body.access_mode === "domain" ? "domain" : "lan")
+      : (fields.includes("app_domain") && submittedAppDomain
+        ? "domain"
+        : (currentSettings.access_mode === "domain" ? "domain" : "lan"));
+    const invalidAppDomain = fields.includes("app_domain") && (
+      (submittedAppDomain && !normalizedAppDomain)
+      || (accessMode === "domain" && (!normalizedAppDomain || !normalizedAppDomain.startsWith("https://")))
+    );
     const invalidDoorDatapoint = ["homematic_door_open_datapoint_id", "homematic_door_close_datapoint_id", "homematic_door_command_datapoint_id"].find((key) =>
       fields.includes(key) && String(req.body[key] || "").trim() && !/^\d+$/.test(String(req.body[key]).trim())
     );
@@ -75,7 +84,7 @@ function createAdminSettingsRouter({
       setFlash(req, "error", invalidCamera
         ? `Ungültige Kamera-URL in der Zeile „${invalidCamera.source}“.`
         : invalidAppDomain
-          ? "Bitte gib eine gültige Domain ohne Pfad ein, zum Beispiel https://tiere.example.de."
+          ? "Für den Domainbetrieb ist eine gültige HTTPS-Adresse ohne Pfad erforderlich, zum Beispiel https://tiere.example.de."
         : invalidDoorDatapoint
           ? "Der Tür-Datenpunkt muss eine numerische ISE-ID sein."
           : invalidDoorValue
@@ -102,12 +111,16 @@ function createAdminSettingsRouter({
       }
 
       if (key === "app_domain") {
-        upsertSetting(db, key, normalizedAppDomain);
+        upsertSetting(db, key, accessMode === "domain" ? normalizedAppDomain : "");
         return;
       }
 
       upsertSetting(db, key, normalizeSettingsInputValue(key, req.body[key]));
     });
+
+    if (!fields.includes("access_mode") && fields.includes("app_domain") && submittedAppDomain) {
+      upsertSetting(db, "access_mode", "domain");
+    }
 
     if (ccuConnectionChanged) {
       await homematicSessionService.reset(settingsBeforeSave);

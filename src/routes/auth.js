@@ -19,6 +19,35 @@ function createAuthRouter({
       species: db.prepare("SELECT * FROM species ORDER BY name ASC").all(),
     });
   });
+
+  router.get("/setup/complete", (req, res) => {
+    if (!isSetupComplete()) return res.redirect("/setup");
+    if (!req.session?.user) return res.redirect("/login?return_to=%2Fsetup%2Fcomplete");
+
+    const settings = getSettingsObject(db);
+    const appBaseUrl = resolveAppBaseUrl(settings);
+    const currentUrl = `${req.protocol}://${req.get("host")}`;
+    const accessMode = settings.access_mode === "domain" ? "domain" : "lan";
+    let addressMatches = accessMode === "lan";
+    if (accessMode === "domain") {
+      try {
+        const expected = new URL(appBaseUrl);
+        const current = new URL(currentUrl);
+        addressMatches = expected.protocol === current.protocol && expected.host === current.host;
+      } catch {
+        addressMatches = false;
+      }
+    }
+
+    res.render("pages/setup-complete", {
+      pageTitle: "Einrichtung abgeschlossen",
+      accessMode,
+      appBaseUrl,
+      currentUrl,
+      addressMatches,
+      animalId: Number(req.query.animal_id || 0) || null,
+    });
+  });
   
   router.post("/setup", async (req, res) => {
     if (isSetupComplete()) {
@@ -30,8 +59,9 @@ function createAuthRouter({
     const adminEmail = String(body.admin_email || "").trim().toLowerCase();
     const adminPassword = String(body.admin_password || "");
     const organizationName = String(body.organization_name || "").trim();
+    const accessMode = body.access_mode === "domain" ? "domain" : "lan";
     const submittedAppDomain = String(body.app_domain || "").trim();
-    const appDomain = normalizeAppBaseUrl(submittedAppDomain);
+    const appDomain = accessMode === "domain" ? normalizeAppBaseUrl(submittedAppDomain) : "";
     const veterinarianName = String(body.veterinarian_name || "").trim();
     const animalName = String(body.animal_name || "").trim();
     const speciesName = String(body.species_name || "").trim();
@@ -41,8 +71,8 @@ function createAuthRouter({
       return res.redirect("/setup");
     }
 
-    if (submittedAppDomain && !appDomain) {
-      setFlash(req, "error", "Bitte gib eine gültige Domain ohne Pfad ein, zum Beispiel https://tiere.example.de.");
+    if (accessMode === "domain" && (!appDomain || !appDomain.startsWith("https://"))) {
+      setFlash(req, "error", "Für den Domainbetrieb ist eine gültige HTTPS-Adresse ohne Pfad erforderlich.");
       return res.redirect("/setup");
     }
   
@@ -114,9 +144,8 @@ function createAuthRouter({
       if (organizationName) {
         upsertSetting(db, "organization_name", organizationName);
       }
-      if (appDomain) {
-        upsertSetting(db, "app_domain", appDomain);
-      }
+      upsertSetting(db, "access_mode", accessMode);
+      upsertSetting(db, "app_domain", appDomain);
       upsertSetting(db, "setup_complete", "true");
   
       return {
@@ -137,7 +166,7 @@ function createAuthRouter({
     };
   
     setFlash(req, "success", "Ersteinrichtung abgeschlossen.");
-    res.redirect(`/animals/${result.animalId}`);
+    res.redirect(`/setup/complete?animal_id=${result.animalId}`);
   });
   
   router.get("/login", (req, res) => {

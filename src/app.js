@@ -52,7 +52,7 @@ const { buildAnimalTimeline } = require("./animal-timeline");
 const { createAnimalRepository } = require("./animal-repository");
 const { createSystemlogRepository } = require("./repositories/systemlog-repository");
 const { createReminderRepository } = require("./repositories/reminder-repository");
-const { buildCoreOperationalChecks, summarizeOperationalChecks } = require("./operational-health");
+const { buildCoreOperationalChecks, buildInstallationChecks, summarizeOperationalChecks } = require("./operational-health");
 const { getVaccinationSuggestionGroups, getVaccinationSuggestionsForSpecies } = require("./vaccination-suggestions");
 const { resolveStoredFilePath } = require("./storage-paths");
 const {
@@ -411,7 +411,7 @@ app.use((req, res, next) => {
     return res.redirect("/setup");
   }
 
-  if (setupComplete && req.path.startsWith("/setup")) {
+  if (setupComplete && req.path.startsWith("/setup") && req.path !== "/setup/complete") {
     return res.redirect(req.session?.user ? "/" : "/login");
   }
 
@@ -619,6 +619,7 @@ app.use(createAdminUserPagesRouter({
 }));
 
 app.use("/admin", createSystemlogRouter({
+  buildInstallationChecks,
   buildOperationalHealthChecks,
   captureCameraFrame,
   createAuditLog,
@@ -637,6 +638,8 @@ app.use("/admin", createSystemlogRouter({
   repository: systemlogRepository,
   requireAdmin,
   runtimeRevision,
+  dataDirectoryConfigured: Boolean(configuredDataDir),
+  secureCookie: String(process.env.HEARTPET_SECURE_COOKIE || "auto").trim().toLowerCase(),
   setFlash,
   summarizeOperationalChecks,
 }));

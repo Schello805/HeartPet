@@ -156,22 +156,20 @@ Für einen neuen LXC empfiehlt sich folgende Grundkonfiguration:
 ```bash
 git clone https://github.com/Schello805/HeartPet.git /opt/HeartPet
 cd /opt/HeartPet
-./scripts/install.sh
-sudo chown -R www-data:www-data /opt/HeartPet/data
-
-sudo mkdir -p /etc/heartpet
-sudo cp deploy/heartpet.service.example /etc/systemd/system/heartpet.service
-sudo tee /etc/heartpet/heartpet.env >/dev/null <<'EOF'
-HEARTPET_APP_URL=https://tiere.example.de
-HEARTPET_SECURE_COOKIE=true
-HEARTPET_TRUST_PROXY=loopback
-HEARTPET_SESSION_DAYS=30
-EOF
-sudo chmod 600 /etc/heartpet/heartpet.env
-
-sudo systemctl daemon-reload
-./scripts/start.sh
+./scripts/install.sh --configure
 ```
+
+Der Assistent fragt nach Heimnetz- oder Domainbetrieb, Port und Dienstbenutzer,
+legt den dauerhaften Datenpfad fest und richtet systemd ein. Im Domainbetrieb
+kann er außerdem Nginx vorbereiten. Eine unbeaufsichtigte Installation ist
+ebenfalls möglich:
+
+```bash
+./scripts/install.sh --configure --mode domain --domain https://tiere.example.de --user www-data --nginx --yes
+```
+
+Installiere HeartPet nicht unter `/root`: Ein gehärteter Dienstbenutzer kann
+diesen Pfad nicht betreten. Für LXC-Installationen ist `/opt/HeartPet` vorgesehen.
 
 Danach:
 
@@ -179,7 +177,7 @@ Danach:
 2. `tiere.example.de` in `deploy/nginx-heartpet.example.conf` ersetzen. Das Beispiel setzt Nginx im selben LXC voraus.
 3. Nginx-Konfiguration aktivieren und ein TLS-Zertifikat einrichten.
 4. In `/setup` einen eigenen Administrator und die neue Haltung anlegen.
-5. Unter `Verwaltung > Allgemein` Domain, Wetterstandort und Integrationen prüfen.
+5. Unter `Verwaltung > Systemlog` die Installationsdiagnose prüfen.
 6. Ein Backup erstellen und eine Wiederherstellung testen.
 
 Neue Installationen enthalten keine voreingestellte Domain und keinen

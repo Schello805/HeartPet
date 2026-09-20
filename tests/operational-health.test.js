@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const Database = require("better-sqlite3");
-const { buildCoreOperationalChecks, summarizeOperationalChecks } = require("../src/operational-health");
+const { buildCoreOperationalChecks, buildInstallationChecks, summarizeOperationalChecks } = require("../src/operational-health");
 
 test("Betriebsdiagnose unterscheidet kritische Fehler und Warnungen", () => {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "heartpet-health-check-"));
@@ -35,4 +35,31 @@ test("Betriebsdiagnose unterscheidet kritische Fehler und Warnungen", () => {
     db.close();
     fs.rmSync(dataDir, { recursive: true, force: true });
   }
+});
+
+test("Installationsdiagnose unterscheidet Heimnetz und fehlerhaften Domainbetrieb", () => {
+  const lanChecks = buildInstallationChecks({
+    settings: { access_mode: "lan" },
+    requestBaseUrl: "http://192.168.1.20:3000",
+    runtimeRevision: "1.2.3",
+    availableRevision: "1.2.3",
+    dataDirectoryConfigured: true,
+    secureCookie: "false",
+  });
+  assert.ok(lanChecks.every((check) => check.ok));
+  assert.equal(lanChecks.some((check) => check.name === "Öffentliche Adresse"), false);
+
+  const domainChecks = buildInstallationChecks({
+    settings: { access_mode: "domain", app_domain: "https://tiere.example.de", reminder_email_enabled: "true" },
+    requestBaseUrl: "http://127.0.0.1:3000",
+    runtimeRevision: "1.2.2",
+    availableRevision: "1.2.3",
+    dataDirectoryConfigured: false,
+    secureCookie: "false",
+    notificationChannels: { "E-Mail": { enabled: true, configured: false } },
+  });
+  assert.ok(domainChecks.some((check) => check.name === "Aktueller Aufruf" && !check.ok));
+  assert.ok(domainChecks.some((check) => check.name === "Sicheres Session-Cookie" && !check.ok && check.critical));
+  assert.ok(domainChecks.some((check) => check.name === "Aktive Revision" && !check.ok));
+  assert.ok(domainChecks.some((check) => check.name === "E-Mail aktiviert" && !check.ok));
 });

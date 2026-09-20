@@ -29,6 +29,7 @@ function initDatabase() {
 function seedDefaults(db) {
   const defaultSettings = {
     app_name: "HeartPet",
+    access_mode: "lan",
     app_domain: "",
     app_logo_stored_name: "",
     organization_name: "Mein Tierbestand",
