@@ -148,47 +148,6 @@ Ziel der Weiterleitung:
 http://127.0.0.1:3000
 ```
 
-### Separate Installation in einem weiteren LXC
-
-HeartPet ist nicht mandantenfähig. Jede Person benötigt deshalb eine eigene
-Instanz mit eigenem LXC, eigener Datenbank und eigenem `data/`-Verzeichnis.
-Eine weitere Domain darf nicht einfach auf eine bestehende Instanz zeigen,
-wenn die Datenbestände getrennt bleiben sollen.
-
-Für einen neuen LXC empfiehlt sich folgende Grundkonfiguration:
-
-```bash
-git clone https://github.com/Schello805/HeartPet.git /opt/HeartPet
-cd /opt/HeartPet
-./scripts/install.sh --configure
-```
-
-Der Assistent fragt nach Heimnetz- oder Domainbetrieb, Port und Dienstbenutzer,
-legt den dauerhaften Datenpfad fest und richtet systemd ein. Im Domainbetrieb
-kann er außerdem Nginx vorbereiten. Eine unbeaufsichtigte Installation ist
-ebenfalls möglich:
-
-```bash
-./scripts/install.sh --configure --mode domain --domain https://tiere.example.de --user www-data --nginx --yes
-```
-
-Installiere HeartPet nicht unter `/root`: Ein gehärteter Dienstbenutzer kann
-diesen Pfad nicht betreten. Für LXC-Installationen ist `/opt/HeartPet` vorgesehen.
-
-Danach:
-
-1. DNS-Eintrag der Domain auf den neuen LXC beziehungsweise Reverse Proxy setzen.
-2. `tiere.example.de` in `deploy/nginx-heartpet.example.conf` ersetzen. Das Beispiel setzt Nginx im selben LXC voraus.
-3. Nginx-Konfiguration aktivieren und ein TLS-Zertifikat einrichten.
-4. In `/setup` einen eigenen Administrator und die neue Haltung anlegen.
-5. Unter `Verwaltung > Systemlog` die Installationsdiagnose prüfen.
-6. Ein Backup erstellen und eine Wiederherstellung testen.
-
-Neue Installationen enthalten keine voreingestellte Domain und keinen
-voreingestellten Wetterstandort. Bleibt die öffentliche Adresse im Setup leer,
-verwendet HeartPet `HEARTPET_APP_URL`. Eine später im Adminbereich gespeicherte
-Domain hat Vorrang vor der Umgebungsvariable.
-
 ## Betrieb mit systemd
 
 Eine Beispiel-Datei liegt in:
