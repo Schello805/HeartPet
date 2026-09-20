@@ -71,6 +71,17 @@ Für eine vollständige LXC-Installation wird die Instanz direkt auf der Kommand
 
 Das Skript fragt Betriebsart, Domain und Admin-E-Mail ab. Es erzeugt ein zufälliges Einmalpasswort, das beim ersten Login zwingend geändert werden muss. Tierärzte und Tiere werden anschließend in der normalen Oberfläche angelegt.
 
+### Adminpasswort über die CLI zurücksetzen
+
+Falls der Adminzugang nicht mehr funktioniert und keine E-Mail-Zustellung eingerichtet ist, kann das Passwort direkt auf dem HeartPet-Server geändert werden. Ersetze die Beispieladresse durch die E-Mail-Adresse des Administrators:
+
+```bash
+cd /opt/HeartPet
+node scripts/reset-admin-password.js admin@example.de
+```
+
+Das neue Passwort wird verdeckt und mit Bestätigung abgefragt. Das Skript prüft anschließend den gespeicherten Passwort-Hash und macht bestehende Sitzungen dieses Kontos ungültig. Ein Neustart des Dienstes ist nicht erforderlich.
+
 ## Konfiguration
 
 HeartPet liest derzeit folgende Umgebungsvariablen:
@@ -172,18 +183,6 @@ sudo systemctl restart heartpet
 ```
 
 ## Grundlegende Befehle nach der Installation
-
-### Administrator-Passwort lokal zurücksetzen
-
-Wenn keine E-Mail-Zustellung eingerichtet ist, kann ein Administrator das Passwort direkt auf dem HeartPet-Server ändern. Das Passwort wird verdeckt und mit Bestätigung abgefragt:
-
-```bash
-cd /opt/HeartPet
-node scripts/reset-admin-password.js admin@example.de
-systemctl restart heartpet
-```
-
-Das Skript prüft den gespeicherten Passwort-Hash unmittelbar und macht bestehende Sitzungen des Kontos ungültig.
 
 Typische Betriebsbefehle auf dem LXC:
 
