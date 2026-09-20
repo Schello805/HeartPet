@@ -111,6 +111,7 @@ async function ensureAuthenticated(page) {
 
 test("Erster Login erzwingt ein neues Passwort und bietet Passwort-Augen", async ({ page }) => {
   await page.goto("/login");
+  await expect(page.getByText("Bei einer neuen Installation")).toHaveCount(0);
   const loginPassword = page.getByLabel("Passwort", { exact: true });
   const loginPasswordToggle = page.locator(".password-visibility-toggle");
   await expect(loginPasswordToggle).toHaveCount(1);

@@ -19,7 +19,7 @@ process.env.HEARTPET_DISABLE_EXTERNAL_WEATHER = "true";
 process.env.HEARTPET_DISABLE_PWNED_PASSWORD_CHECK = "true";
 
 const { initDatabase, upsertSetting } = require("../src/db");
-const { createInitialAdmin } = require("../src/initial-admin");
+const { createInitialAdmin, generateInitialPassword } = require("../src/initial-admin");
 const { createAnimalPdf } = require("../src/exporters");
 const { buildReminderActionToken, buildReminderEmailHtml, sendTelegramReminder, sendTestNtfy, processDueReminders } = require("../src/reminders");
 const { getVaccinationSuggestionGroups, getVaccinationSuggestionsForSpecies } = require("../src/vaccination-suggestions");
@@ -425,6 +425,12 @@ test("CLI-Ersteinrichtung erzeugt einen Admin mit verpflichtendem Passwortwechse
 
   const speciesRows = db.prepare("SELECT name FROM species ORDER BY name ASC").all();
   assert.deepEqual(speciesRows.map((item) => item.name), ["Katze"]);
+});
+
+test("Generierte Einmalpasswörter sind kopierbar und enthalten keine Sonderzeichen", () => {
+  const password = generateInitialPassword();
+  assert.match(password, /^[A-Za-z0-9]+$/);
+  assert.ok(password.length >= 32);
 });
 
 test("Login erneuert die Session-ID", async () => {

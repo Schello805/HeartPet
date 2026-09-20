@@ -77,11 +77,17 @@ Falls der Adminzugang nicht mehr funktioniert und keine E-Mail-Zustellung einger
 
 ```bash
 cd /opt/HeartPet
-node scripts/reset-admin-password.js admin@example.de
+node scripts/reset-admin-password.js admin@example.de --generate
 systemctl restart heartpet
 ```
 
-Das neue Passwort wird verdeckt und mit Bestätigung abgefragt. Das Skript prüft anschließend den gespeicherten Passwort-Hash und macht bestehende Sitzungen dieses Kontos ungültig. Der Neustart löscht zusätzlich eine möglicherweise durch vorherige Fehlversuche aktive 15-Minuten-Anmeldesperre.
+Das Skript zeigt ein zufälliges Einmalpasswort ohne Sonderzeichen an. Es prüft den gespeicherten Passwort-Hash unmittelbar; beim ersten Login muss ein eigenes Passwort festgelegt werden. Bestehende Sitzungen werden ungültig. Der Neustart löscht zusätzlich eine möglicherweise durch vorherige Fehlversuche aktive 15-Minuten-Anmeldesperre.
+
+Alternativ kann das neue Passwort verdeckt und mit Bestätigung abgefragt werden:
+
+```bash
+node scripts/reset-admin-password.js admin@example.de
+```
 
 ## Konfiguration
 

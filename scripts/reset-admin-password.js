@@ -5,6 +5,7 @@ const path = require("node:path");
 const bcrypt = require("bcryptjs");
 const Database = require("better-sqlite3");
 const { PASSWORD_HASH_ROUNDS } = require("../src/password-security");
+const { generateInitialPassword } = require("../src/initial-admin");
 
 const projectRoot = path.resolve(__dirname, "..");
 const dataDir = String(process.env.HEARTPET_DATA_DIR || "").trim()
@@ -12,9 +13,10 @@ const dataDir = String(process.env.HEARTPET_DATA_DIR || "").trim()
   : path.join(projectRoot, "data");
 const databasePath = path.join(dataDir, "heartpet.sqlite");
 const email = String(process.argv[2] || "").trim().toLowerCase();
+const generateTemporaryPassword = process.argv.includes("--generate");
 
 if (!email || !email.includes("@")) {
-  console.error("Aufruf: node scripts/reset-admin-password.js admin@example.de");
+  console.error("Aufruf: node scripts/reset-admin-password.js admin@example.de [--generate]");
   process.exit(1);
 }
 
@@ -66,8 +68,8 @@ function readHidden(prompt) {
 }
 
 async function main() {
-  const password = await readHidden("Neues Passwort: ");
-  const confirmation = await readHidden("Passwort wiederholen: ");
+  const password = generateTemporaryPassword ? generateInitialPassword() : await readHidden("Neues Passwort: ");
+  const confirmation = generateTemporaryPassword ? password : await readHidden("Passwort wiederholen: ");
 
   if (password !== confirmation) throw new Error("Die Passwörter stimmen nicht überein.");
   if (password.length < 8) throw new Error("Das Passwort muss mindestens 8 Zeichen lang sein.");
@@ -80,10 +82,10 @@ async function main() {
     const passwordHash = bcrypt.hashSync(password, PASSWORD_HASH_ROUNDS);
     db.prepare(`
       UPDATE users
-      SET password_hash = ?, must_change_password = 0,
+      SET password_hash = ?, must_change_password = ?,
           session_version = COALESCE(session_version, 0) + 1
       WHERE id = ?
-    `).run(passwordHash, user.id);
+    `).run(passwordHash, generateTemporaryPassword ? 1 : 0, user.id);
 
     const savedHash = db.prepare("SELECT password_hash FROM users WHERE id = ?").get(user.id)?.password_hash;
     if (!savedHash || !bcrypt.compareSync(password, savedHash)) {
@@ -94,6 +96,10 @@ async function main() {
   }
 
   console.log(`Passwort für ${email} wurde geändert und erfolgreich verifiziert.`);
+  if (generateTemporaryPassword) {
+    console.log(`Einmalpasswort: ${password}`);
+    console.log("Dieses Passwort muss beim ersten Login geändert werden.");
+  }
   console.log("Bestehende Anmeldesitzungen wurden ungültig gemacht.");
   console.log("Führe jetzt 'systemctl restart heartpet' aus, um eine mögliche Anmeldesperre nach Fehlversuchen zu löschen.");
 }

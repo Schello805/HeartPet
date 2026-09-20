@@ -3,7 +3,7 @@ const bcrypt = require("bcryptjs");
 const { PASSWORD_HASH_ROUNDS } = require("./password-security");
 
 function generateInitialPassword() {
-  return `${crypto.randomBytes(18).toString("base64url")}!9aA`;
+  return `${crypto.randomBytes(18).toString("hex")}A9`;
 }
 
 function createInitialAdmin(db, options = {}) {
