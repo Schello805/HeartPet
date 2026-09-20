@@ -90,6 +90,10 @@ function createSessionMiddleware(dataDir) {
 
 function resolveSecureCookieSetting(environment) {
   const configured = String(environment.HEARTPET_SECURE_COOKIE || "").trim().toLowerCase();
+  const trustProxy = String(environment.HEARTPET_TRUST_PROXY || "").trim().toLowerCase();
+  // A remote reverse proxy may omit X-Forwarded-Proto. In that case Express
+  // must still be allowed to issue a session cookie for the internal HTTP hop.
+  if (configured === "true" && trustProxy === "1") return "auto";
   if (configured === "true") return true;
   if (configured === "false") return false;
   return "auto";

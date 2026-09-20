@@ -43,5 +43,7 @@ test("Unsichere konfigurierte Session-Geheimnisse werden nicht verwendet", () =>
 test("Session-Cookies erkennen HTTPS automatisch und bleiben explizit konfigurierbar", () => {
   assert.equal(resolveSecureCookieSetting({}), "auto");
   assert.equal(resolveSecureCookieSetting({ HEARTPET_SECURE_COOKIE: "true" }), true);
+  assert.equal(resolveSecureCookieSetting({ HEARTPET_SECURE_COOKIE: "true", HEARTPET_TRUST_PROXY: "1" }), "auto");
+  assert.equal(resolveSecureCookieSetting({ HEARTPET_SECURE_COOKIE: "true", HEARTPET_TRUST_PROXY: "loopback" }), true);
   assert.equal(resolveSecureCookieSetting({ HEARTPET_SECURE_COOKIE: "false" }), false);
 });

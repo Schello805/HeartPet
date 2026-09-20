@@ -1393,6 +1393,7 @@ test("Interaktiver Installer erzeugt einen gehärteten und neu gestarteten syste
   assert.match(installer, /curl --max-time 2 -fsS/);
   assert.match(installer, /BIND_HOST="127\.0\.0\.1"/);
   assert.match(installer, /TRUST_PROXY="1"/);
+  assert.match(installer, /COOKIE_MODE="auto"/);
   assert.match(installer, /Externer Proxy: Ziel ist <LXC-IP>/);
   assert.match(installer, /--admin-email ADRESSE/);
   assert.match(installer, /create-initial-admin\.js/);
@@ -1401,6 +1402,10 @@ test("Interaktiver Installer erzeugt einen gehärteten und neu gestarteten syste
   assert.doesNotMatch(installer, /\/setup öffnen/);
   assert.match(installScript, /configure-instance\.sh" "\$@"/);
   assert.match(installScript, /apt-get install -y ca-certificates curl git nodejs npm build-essential python3/);
+  assert.match(installScript, /deb\.nodesource\.com\/node_22\.x/);
+  assert.match(installScript, /CONFIGURE_INSTANCE=1/);
+  assert.match(installScript, /--dependencies-only/);
+  assert.match(installScript, /HeartPet darf als Dienst nicht unter/);
   assert.match(installScript, /node_major.*-lt 20/s);
 });
 

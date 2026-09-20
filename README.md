@@ -1,79 +1,55 @@
 # HeartPet
 
-HeartPet ist eine deutschsprachige Webapp für Tierhalter, Gnadenhöfe und kleinere Tierhaltungen. Ziel ist eine zentrale Tierakte pro Tier mit Dokumenten, Tierarztbezug, Medikamenten, Impfungen, Fütterungsplänen, Erinnerungen, Bildern und Exporten.
+HeartPet ist eine deutschsprachige, selbst gehostete Tierverwaltung für private Halter, Gnadenhöfe und kleinere Tierhaltungen. Die App verwaltet Tierakten, Bilder, Dokumente, Tierärzte, Medikamente, Impfungen, Fütterung und Erinnerungen lokal auf dem eigenen Server.
 
-## Aktueller Stand
+## Voraussetzungen
 
-HeartPet ist inzwischen ein brauchbares MVP für den Alltag:
+- Debian oder Ubuntu mit `systemd`, empfohlen als LXC
+- Internetzugang während der Installation
+- Eine Domain mit HTTPS oder Zugriff ausschließlich im Heimnetz
+- Mindestens 1 GB RAM und ausreichend Speicher für Bilder und Dokumente
 
-- Tierakten mit Stammdaten, Herkunft, Status, Mikrochip, Notizen und Tierarzt
-- Tierarzt je Tier und Standard-Tierarzt je Tierart
-- Profilbild und Bildergalerie pro Tier
-- Dokument-Uploads mit lokalem Dateispeicher
-- Dokumentkategorien mit optionalen Pflichtkategorien
-- Vorerkrankungen, Medikamente, Impfungen, Fütterungspläne und Protokolle
-- Erinnerungen mit E-Mail, Telegram, ntfy, Browser-Hinweisen und Wiederholungen
-- Stallkameras per HTTP/MJPEG oder RTSP; RTSP wird serverseitig mit `ffmpeg` umgewandelt
-- JSON- und PDF-Export pro Tier
-- Import eines HeartPet-JSON-Exports
-- Adminbereich für Kommunikation, Benutzer, Tierarten, Tierärzte, Kategorien und Rechtstexte
-- Hilfe-Seite direkt in der App
+Das Installationsskript installiert Node.js 22, npm, ffmpeg und weitere benötigte Pakete automatisch. Docker ist nicht erforderlich.
 
-## Technik
+## Neuinstallation
 
-- Node.js 20+
-- Express
-- EJS Templates
-- SQLite
-- Lokaler Dateispeicher unter `data/uploads`
-- `ffmpeg` für Kamera-Standbilder und RTSP-Streams
-
-Kein Docker. Kein externer Objekt-Storage. HeartPet ist für einen einfachen Betrieb auf einem LXC oder Linux-Server gedacht.
-
-Auf Debian, Fedora/RHEL und Alpine installiert `scripts/install.sh` fehlende
-Grundpakete einschließlich Node.js und npm automatisch aus den jeweiligen
-Paketquellen. Anschließend wird geprüft, ob mindestens Node.js 20 vorhanden ist.
-
-## Installation
-
-Das Installationsskript installiert `ffmpeg` über den verfügbaren Linux-Paketmanager und anschließend alle Node.js-Abhängigkeiten:
+HeartPet muss außerhalb von `/root` liegen. Auf einem neuen Debian- oder Ubuntu-LXC genügen diese Befehle:
 
 ```bash
-chmod +x scripts/install.sh
+apt update
+apt install -y git
+git clone https://github.com/Schello805/HeartPet.git /opt/HeartPet
+cd /opt/HeartPet
 ./scripts/install.sh
 ```
 
-Unter Debian und Ubuntu entspricht die manuelle FFmpeg-Nachinstallation:
+Das Skript fragt anschließend:
+
+- Betrieb über eine Domain oder nur im Heimnetz
+- öffentliche HTTPS-Adresse bei Domainbetrieb
+- E-Mail-Adresse des ersten Administrators
+- Port und Systembenutzer, normalerweise einfach mit Enter bestätigen
+- ob Nginx auf demselben LXC eingerichtet werden soll
+
+Danach installiert und startet es `heartpet.service`. Es zeigt ein zufälliges Einmalpasswort für den ersten Login an. Dieses Passwort muss nach der ersten Anmeldung geändert werden.
+
+Wichtig:
+
+- Das Repository nicht nach `/root/HeartPet` klonen.
+- Nicht den gesamten Ordner `/opt/HeartPet` an `www-data` übertragen. Das Skript setzt nur für `data/` die erforderlichen Rechte.
+- Bei einem externen Reverse Proxy dessen Ziel auf `<LXC-IP>:3000` setzen und den Port auf Heimnetz beziehungsweise Proxy beschränken.
+
+Nur für eine Entwicklungsumgebung lassen sich die Abhängigkeiten ohne Dienstkonfiguration installieren:
 
 ```bash
-sudo apt update
-sudo apt install -y ffmpeg
-sudo systemctl restart heartpet
+./scripts/install.sh --dependencies-only
 ```
 
-Für einen kurzen Test ohne `systemd`:
+## Erster Login
 
-```bash
-./scripts/start.sh
-```
+Die Anmeldung erfolgt mit der während der Installation angegebenen E-Mail-Adresse und dem ausgegebenen Einmalpasswort. Eine E-Mail-Bestätigung und ein SMTP-Server sind dafür nicht erforderlich.
 
-Die App läuft danach standardmäßig unter:
-
-```text
-http://127.0.0.1:3000
-```
-
-Für eine vollständige LXC-Installation wird die Instanz direkt auf der Kommandozeile konfiguriert:
-
-```bash
-./scripts/install.sh --configure
-```
-
-Das Skript fragt Betriebsart, Domain und Admin-E-Mail ab. Es erzeugt ein zufälliges Einmalpasswort, das beim ersten Login zwingend geändert werden muss. Tierärzte und Tiere werden anschließend in der normalen Oberfläche angelegt.
-
-### Adminpasswort über die CLI zurücksetzen
-
-Falls der Adminzugang nicht mehr funktioniert und keine E-Mail-Zustellung eingerichtet ist, kann das Passwort direkt auf dem HeartPet-Server geändert werden. Ersetze die Beispieladresse durch die E-Mail-Adresse des Administrators:
+Falls das Einmalpasswort verloren ging:
 
 ```bash
 cd /opt/HeartPet
@@ -81,264 +57,89 @@ node scripts/reset-admin-password.js admin@example.de --generate
 systemctl restart heartpet
 ```
 
-Das Skript zeigt ein zufälliges Einmalpasswort ohne Sonderzeichen an. Es prüft den gespeicherten Passwort-Hash unmittelbar; beim ersten Login muss ein eigenes Passwort festgelegt werden. Bestehende Sitzungen werden ungültig. Der Neustart löscht zusätzlich eine möglicherweise durch vorherige Fehlversuche aktive 15-Minuten-Anmeldesperre.
-
-Alternativ kann das neue Passwort verdeckt und mit Bestätigung abgefragt werden:
-
-```bash
-node scripts/reset-admin-password.js admin@example.de
-```
-
-Wenn die Anmeldung danach weiterhin scheitert, prüft folgender Befehl ohne Passwortausgabe sowohl den gespeicherten Hash als auch den lokalen Loginweg:
+Der Befehl erzeugt ein neues Einmalpasswort und beendet bestehende Sitzungen. Mit folgender Diagnose lässt sich der lokale Anmeldeweg prüfen, ohne das Passwort auszugeben:
 
 ```bash
 node scripts/check-admin-login.js admin@example.de
 ```
 
-## Konfiguration
+## Betrieb
 
-HeartPet liest derzeit folgende Umgebungsvariablen:
-
-- `PORT`
-- `HEARTPET_HOST` (optional, Standard: `0.0.0.0` fuer Zugriff im Heimnetz; `127.0.0.1` fuer nur lokal)
-- `HEARTPET_APP_URL` (optional, Basis-URL fuer Links in E-Mails/Erinnerungen, falls keine Domain in den Einstellungen gesetzt ist)
-- `HEARTPET_SESSION_SECRET`
-- `HEARTPET_SESSION_DAYS` (optional, Standard: `30`)
-- `HEARTPET_SESSION_STORE` (optional; `memory` wird aus Sicherheitsgründen ausschließlich mit `NODE_ENV=test` verwendet)
-
-Eine Vorlage liegt in [.env.example](/Users/michael/Programmerierung/HeartPet/.env.example).
-
-Wenn du HeartPet per `systemd` startest, kannst du die Werte direkt über `Environment=` setzen.
-
-## Datenablage
-
-- SQLite Datenbank: `data/heartpet.sqlite`
-- Uploads: `data/uploads`
-- Exporte: `data/exports`
-- Sessions: `data/sessions.sqlite`
-- Backups: `data/backups`
-
-### Updates ohne erzwungenen Logout
-
-Der Session-Schlüssel liegt dauerhaft in `data/.session-secret`. Zusammen mit
-`data/sessions.sqlite` darf dieser Ordner bei Updates nicht verschoben,
-gelöscht oder durch einen temporären Release-Ordner ersetzt werden. Das
-mitgelieferte `scripts/update.sh` und `scripts/deploy-release.sh` verwenden
-deshalb immer `data/` außerhalb des Releases.
-
-Nach einem Update kannst du die aktive Revision und den Dienst prüfen:
+Status und Protokoll:
 
 ```bash
+cd /opt/HeartPet
 ./scripts/status.sh
 curl -fsS http://127.0.0.1:3000/health
+journalctl -u heartpet -n 100 --no-pager
 ```
 
-Wenn eine ältere Installation den Session-Schlüssel bereits verloren hat,
-musst du dich einmal neu anmelden. Danach bleiben Sitzungen bei weiteren
-Updates erhalten. Prüfe bei manuellen systemd-Units zusätzlich:
+Dienst neu starten:
 
 ```bash
-systemctl show heartpet -p WorkingDirectory -p Environment
+systemctl restart heartpet
 ```
 
-Die Ausgabe muss `HEARTPET_DATA_DIR=.../data` enthalten.
+`GET /health` liefert einen knappen öffentlichen Status. Angemeldete Administratoren sehen unter `GET /admin/health` weitere Diagnosen.
 
-Tier-Profilbilder und Galeriebilder werden beim Upload automatisch auf WebP verkleinert. Bereits vorhandene Tierbilder kannst du erst prüfen und danach gezielt optimieren:
+## Updates
+
+```bash
+cd /opt/HeartPet
+./scripts/update.sh
+```
+
+Das Update erstellt zuerst ein Backup, installiert Abhängigkeiten, aktiviert die neue Revision atomar und prüft anschließend Dienst und Health-Status. Bei einem fehlgeschlagenen Start wird das vorherige Release wiederhergestellt. Daten, Uploads und Sitzungen bleiben außerhalb des Releases erhalten, sodass ein Update normalerweise nicht abmeldet.
+
+## Backup
+
+```bash
+cd /opt/HeartPet
+./scripts/backup.sh
+```
+
+Die dauerhaften Daten liegen unter `/opt/HeartPet/data`:
+
+- `heartpet.sqlite`: Tier- und Konfigurationsdaten
+- `sessions.sqlite`: aktive Sitzungen
+- `uploads/`: Bilder und Dokumente
+- `backups/`: geprüfte Sicherungen
+
+Profil- und Galeriebilder werden beim Upload automatisch verkleinert und als WebP gespeichert. Vorhandene Bilder lassen sich prüfen und optimieren:
 
 ```bash
 npm run images:audit
 npm run images:optimize
 ```
 
-## Reverse Proxy / SSL
+## Reverse Proxy
 
-HeartPet selbst spricht nur HTTP. SSL und die eigene Domain sollten über einen externen Reverse Proxy erledigt werden, zum Beispiel Nginx auf dem Host.
+HeartPet stellt intern HTTP bereit. HTTPS endet am Reverse Proxy. Für Nginx liegt eine Vorlage unter `deploy/nginx-heartpet.example.conf`.
 
-Eine Beispielkonfiguration liegt in:
+Bei einem externen Proxy:
 
-```text
-deploy/nginx-heartpet.example.conf
-```
+- Ziel: `http://<LXC-IP>:3000`
+- öffentliche Adresse: die bei der Installation angegebene HTTPS-Domain
+- `Host`, `X-Forwarded-For` und möglichst `X-Forwarded-Proto` weitergeben
+- Port 3000 nicht öffentlich ins Internet freigeben
 
-Ziel der Weiterleitung:
+Die Installation setzt die Session-Cookies für diesen Aufbau automatisch passend.
 
-```text
-http://127.0.0.1:3000
-```
-
-## Betrieb mit systemd
-
-Eine Beispiel-Datei liegt in:
-
-```text
-deploy/heartpet.service.example
-```
-
-Typischer Ablauf:
+## Entwicklung und Tests
 
 ```bash
-sudo cp deploy/heartpet.service.example /etc/systemd/system/heartpet.service
-sudo systemctl daemon-reload
-sudo systemctl enable --now heartpet
-```
-
-Wenn du eine `.env`-Datei verwenden willst, kannst du die Service-Datei erweitern um:
-
-```ini
-EnvironmentFile=/opt/HeartPet/.env
-```
-
-und danach:
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl restart heartpet
-```
-
-## Grundlegende Befehle nach der Installation
-
-Typische Betriebsbefehle auf dem LXC:
-
-```bash
-sudo systemctl start heartpet
-sudo systemctl stop heartpet
-sudo systemctl restart heartpet
-sudo systemctl status heartpet --no-pager
-sudo journalctl -u heartpet -n 100 --no-pager
-sudo journalctl -u heartpet -f
-```
-
-Ohne `systemd` stehen die mitgelieferten Skripte zur Verfügung:
-
-```bash
-./scripts/start.sh
-./scripts/stop.sh
-./scripts/status.sh
-./scripts/logs.sh
-```
-
-`npm start` ist nur für kurze manuelle Tests gedacht und blockiert das Terminal im Vordergrund.
-
-## Update
-
-HeartPet bringt ein Update-Skript mit:
-
-```bash
-./scripts/update.sh
-```
-
-Das Skript:
-
-- erstellt zuerst ein Backup
-- prüft Git, Node.js und npm
-- holt den aktuellen Stand aus GitHub
-- baut bei `systemd` ein unveränderliches Release mit eigenen Abhängigkeiten
-- prüft den App-Load vor der Aktivierung
-- schaltet den `current`-Symlink atomar auf das neue Release um
-- startet HeartPet verbindlich neu und prüft `/health` auf die erwartete Revision
-- aktiviert bei einem fehlgeschlagenen Start automatisch wieder das vorherige Release
-
-Wenn `heartpet.service` eingerichtet ist, wird der atomare Release-Pfad verwendet. Daten und Uploads bleiben unabhängig vom Release dauerhaft im gemeinsamen `data`-Verzeichnis. Ohne `systemd` nutzt das Skript weiterhin die direkte Installation und startet HeartPet automatisch im Hintergrund, damit die Shell frei bleibt.
-
-Manuell geht es ebenfalls:
-
-```bash
-git pull --ff-only
 npm install
-./scripts/stop.sh
-./scripts/start.sh
+npm test
+npm run verify
+npm start
 ```
 
-## Backup und Wiederherstellung
-
-Backup erstellen:
-
-```bash
-./scripts/backup.sh
-```
-
-Gesichert werden:
-
-- konsistenter SQLite-Snapshot über die SQLite-Backup-API
-- Sessions
-- Uploads
-- Exporte
-- Prüfmanifest mit dem Ergebnis der SQLite-Integritätsprüfung
-
-Jedes Backup wird direkt nach der Erstellung geöffnet und mit `PRAGMA integrity_check` geprüft. Der vollständige Build prüft zusätzlich automatisch eine Wiederherstellung inklusive Upload-Datei.
-
-Wiederherstellung erfolgt durch Zurückkopieren des Inhalts eines Backup-Ordners nach `data/`.
-Vorher HeartPet stoppen:
-
-```bash
-sudo systemctl stop heartpet
-```
-
-danach Daten zurückkopieren und wieder starten:
-
-```bash
-sudo systemctl start heartpet
-```
-
-## Monitoring
-
-- `GET /health` liefert für Uptime Kuma einen minimalen Status ohne interne Details.
-- `GET /admin/health` liefert angemeldeten Administratoren Detailprüfungen.
-- Der Systemlog zeigt Datenbank, Datenablage, freien Speicher, Backup-Alter, Versandfehler und konfigurierte Integrationen.
-- Kritische Fehler bei Datenbank, Schreibzugriff oder Speicherplatz liefern über `/health` HTTP `503`; ein fehlendes Backup erzeugt nur den Zustand `degraded`.
-
-## Schneller LXC-Check
-
-Nach der Installation solltest du mindestens diese Punkte prüfen:
-
-```bash
-sudo systemctl status heartpet --no-pager
-curl -I http://127.0.0.1:3000
-ls -lah data
-```
-
-Erwartung:
-
-- der Dienst läuft ohne Neustart-Schleife
-- Port `3000` antwortet lokal
-- `data/heartpet.sqlite` und `data/sessions.sqlite` werden angelegt
-- `data/uploads` existiert
-
-## Reverse Proxy / SSL
-
-## SMTP und Telegram
-
-Die SMTP- und Telegram-Daten werden im Adminbereich hinterlegt.
-
-Telegram Einrichtung:
-
-1. In Telegram `@BotFather` öffnen
-2. `/newbot` ausführen
-3. Token kopieren
-4. Dem Bot einmal schreiben
-5. `https://api.telegram.org/botTOKEN/getUpdates` aufrufen
-6. `chat.id` aus der Antwort in HeartPet eintragen
-
-## Import / Export
-
-- PDF-Exporte enthalten die wichtigsten Daten einer Tierakte
-- JSON-Exporte enthalten einen Import-Hinweis für HeartPet
-- Dokument- und Bilddateien werden im HeartPet-JSON-Export eingebettet
-- Beim Import werden strukturierte Daten und eingebettete Dateien wiederhergestellt
+Technisch verwendet HeartPet Node.js, Express, EJS und SQLite. Dokumente und Bilder bleiben im lokalen Dateisystem. Die App ist für eine einzelne selbst gehostete Instanz und nicht als Mehrmandanten-SaaS ausgelegt.
 
 ## Rollen
 
-Aktuell gibt es drei Rollen:
+- `Administrator`: vollständige Verwaltung
+- `Benutzer`: Tiere und Akteneinträge verwalten
+- `Nur Lesen`: ausschließlich lesender Zugriff
 
-- `Administrator`
-- `Benutzer`
-- `Nur Lesen`
-
-`Administrator` hat Vollzugriff. `Benutzer` kann unter `Tiere` alles sehen, anlegen, ändern und löschen. `Nur Lesen` darf ausschließlich lesen.
-
-## Hinweise
-
-- Sprache ist aktuell nur Deutsch
-- Dateispeicher ist bewusst lokal gehalten
-- Dokumente werden nicht versioniert oder signiert
-- HeartPet ist für Self-Hosting gedacht und nicht als SaaS aufgebaut
+Die Oberfläche und Hilfe sind derzeit deutschsprachig.

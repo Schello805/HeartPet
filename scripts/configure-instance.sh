@@ -150,7 +150,7 @@ if [ "$MODE" = "domain" ] && [ "$CONFIGURE_NGINX" = "yes" ]; then
   COOKIE_MODE="true"
 elif [ "$MODE" = "domain" ]; then
   TRUST_PROXY="1"
-  COOKIE_MODE="true"
+  COOKIE_MODE="auto"
 fi
 
 env_tmp="$(mktemp)"
@@ -233,12 +233,13 @@ run_as_root systemctl enable heartpet
 run_as_root systemctl restart heartpet
 
 for _ in $(seq 1 20); do
-  if curl --max-time 2 -fsS "http://127.0.0.1:$PORT_VALUE/login" >/dev/null; then break; fi
+  if curl --max-time 2 -fsS "http://127.0.0.1:$PORT_VALUE/login" >/dev/null 2>&1; then break; fi
   sleep 1
 done
 if ! curl --max-time 2 -fsS "http://127.0.0.1:$PORT_VALUE/login" >/dev/null; then
   echo "Fehler: HeartPet antwortet nicht auf Port $PORT_VALUE."
   run_as_root systemctl status heartpet --no-pager --full || true
+  run_as_root journalctl -u heartpet -n 80 --no-pager || true
   exit 1
 fi
 
