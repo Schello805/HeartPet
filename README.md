@@ -89,6 +89,12 @@ Alternativ kann das neue Passwort verdeckt und mit Bestätigung abgefragt werden
 node scripts/reset-admin-password.js admin@example.de
 ```
 
+Wenn die Anmeldung danach weiterhin scheitert, prüft folgender Befehl ohne Passwortausgabe sowohl den gespeicherten Hash als auch den lokalen Loginweg:
+
+```bash
+node scripts/check-admin-login.js admin@example.de
+```
+
 ## Konfiguration
 
 HeartPet liest derzeit folgende Umgebungsvariablen:
