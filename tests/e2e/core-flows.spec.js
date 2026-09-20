@@ -96,11 +96,11 @@ async function ensureAuthenticated(page) {
     await page.locator('input[name="admin_password"]').fill(adminCredentials.password);
     await page.locator('input[name="organization_name"]').fill("HeartPet E2E");
 
-    await page.getByRole("button", { name: "3. Tierarzt" }).click();
+    await page.getByRole("button", { name: "3. Tierarzt (optional)" }).click();
     await expect(page.locator('input[name="veterinarian_name"]')).toBeVisible();
     await page.locator('input[name="veterinarian_name"]').fill("Praxis E2E");
 
-    await page.getByRole("button", { name: "4. Erstes Tier" }).click();
+    await page.getByRole("button", { name: "4. Erstes Tier (optional)" }).click();
     await expect(page.locator('input[name="animal_name"]')).toBeVisible();
     await page.locator('input[name="animal_name"]').fill("Minka");
     await page.locator('input[name="species_name"]').fill("Katze");
@@ -128,6 +128,19 @@ async function ensureAuthenticated(page) {
   await page.getByRole("button", { name: "Anmelden" }).click();
   await expect(page).toHaveURL(/\/($|dashboard|animals(\/.*)?$)/);
 }
+
+test("Setup öffnet geschlossene Bereiche mit fehlenden Pflichtfeldern", async ({ page }) => {
+  await page.goto("/setup");
+
+  await expect(page.locator('input[name="veterinarian_name"]')).not.toHaveAttribute("required", "");
+  await expect(page.locator('input[name="animal_name"]')).not.toHaveAttribute("required", "");
+  await expect(page.locator('input[name="species_name"]')).not.toHaveAttribute("required", "");
+  await page.getByRole("button", { name: "Ersteinrichtung abschließen" }).click();
+
+  const adminName = page.locator('input[name="admin_name"]');
+  await expect(adminName).toBeVisible();
+  await expect(adminName).toBeFocused();
+});
 
 test("Tiere-Arbeitsansicht zeigt die Akte im Browser-Kontext", async ({ page }) => {
   await ensureAuthenticated(page);

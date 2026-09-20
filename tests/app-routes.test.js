@@ -403,6 +403,12 @@ test("Ersteinrichtung funktioniert", async () => {
   const setupPage = await agent.get("/setup");
   assert.equal(setupPage.status, 200);
   assert.match(setupPage.text, /name="app_domain"/);
+  assert.match(setupPage.text, /3\. Tierarzt \(optional\)/);
+  assert.match(setupPage.text, /4\. Erstes Tier \(optional\)/);
+  assert.match(setupPage.text, /data-setup-form/);
+  assert.doesNotMatch(setupPage.text, /name="veterinarian_name"[^>]*required/);
+  assert.doesNotMatch(setupPage.text, /name="animal_name"[^>]*required/);
+  assert.doesNotMatch(setupPage.text, /name="species_name"[^>]*required/);
   assert.equal(db.prepare("SELECT value FROM settings WHERE key = 'app_domain'").get()?.value, "");
 
   const invalidDomainResponse = await agent.post("/setup").type("form").send({
@@ -418,6 +424,17 @@ test("Ersteinrichtung funktioniert", async () => {
   assert.equal(invalidDomainResponse.status, 302);
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM users").get().count, 0);
 
+  const incompleteAnimalResponse = await agent.post("/setup").type("form").send({
+    admin_name: "Test Admin",
+    admin_email: "admin@test.local",
+    admin_password: "passwort123!",
+    access_mode: "lan",
+    animal_name: "Minka",
+  });
+  assert.equal(incompleteAnimalResponse.status, 302);
+  assert.equal(incompleteAnimalResponse.headers.location, "/setup");
+  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM users").get().count, 0);
+
   const setupResponse = await agent.post("/setup").type("form").send({
     admin_name: "Test Admin",
     admin_email: "admin@test.local",
@@ -425,20 +442,25 @@ test("Ersteinrichtung funktioniert", async () => {
     organization_name: "Test Tierbestand",
     access_mode: "domain",
     app_domain: "https://tiere.test.local",
-    veterinarian_name: "Tierarzt Test",
-    species_name: "Katze",
-    animal_name: "Minka",
   });
 
   assert.equal(setupResponse.status, 302);
-  assert.match(setupResponse.headers.location || "", /^\/setup\/complete\?animal_id=\d+$/);
+  assert.equal(setupResponse.headers.location, "/setup/complete");
   assert.equal(db.prepare("SELECT value FROM settings WHERE key = 'access_mode'").get()?.value, "domain");
   assert.equal(db.prepare("SELECT value FROM settings WHERE key = 'app_domain'").get()?.value, "https://tiere.test.local");
+  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM veterinarians").get().count, 0);
+  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM animals").get().count, 0);
 
   const completePage = await agent.get(setupResponse.headers.location);
   assert.equal(completePage.status, 200);
   assert.match(completePage.text, /HeartPet ist eingerichtet/);
   assert.match(completePage.text, /Domain mit HTTPS/);
+  assert.doesNotMatch(completePage.text, /Die erste Tierakte wurde angelegt/);
+
+  const veterinarianId = db.prepare("INSERT INTO veterinarians (name) VALUES (?)").run("Tierarzt Test").lastInsertRowid;
+  const speciesId = db.prepare("INSERT INTO species (name) VALUES (?)").run("Katze").lastInsertRowid;
+  db.prepare("INSERT INTO animals (name, species_id, status, veterinarian_id) VALUES (?, ?, ?, ?)")
+    .run("Minka", speciesId, "Aktiv", veterinarianId);
 
   const speciesRows = db.prepare("SELECT name FROM species ORDER BY name ASC").all();
   assert.deepEqual(speciesRows.map((item) => item.name), ["Katze"]);

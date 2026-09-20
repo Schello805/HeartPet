@@ -66,8 +66,13 @@ function createAuthRouter({
     const animalName = String(body.animal_name || "").trim();
     const speciesName = String(body.species_name || "").trim();
   
-    if (!adminName || !adminEmail || !adminPassword || !veterinarianName || !animalName || !speciesName) {
-      setFlash(req, "error", "Bitte fülle alle Pflichtfelder der Ersteinrichtung aus.");
+    if (!adminName || !adminEmail || !adminPassword) {
+      setFlash(req, "error", "Bitte fülle die Pflichtfelder für den Administrator aus.");
+      return res.redirect("/setup");
+    }
+
+    if ((animalName && !speciesName) || (!animalName && speciesName)) {
+      setFlash(req, "error", "Für das erste Tier müssen Name und Tierart gemeinsam angegeben werden.");
       return res.redirect("/setup");
     }
 
@@ -88,11 +93,14 @@ function createAuthRouter({
       return res.redirect("/setup");
     }
   
-    const veterinarianPayload = normalizeVeterinarianPayload(body, "veterinarian_");
-    const addressError = validateVeterinarian(veterinarianPayload, body.veterinarian_name);
-    if (addressError) {
-      setFlash(req, "error", addressError);
-      return res.redirect("/setup");
+    let veterinarianPayload = null;
+    if (veterinarianName) {
+      veterinarianPayload = normalizeVeterinarianPayload(body, "veterinarian_");
+      const addressError = validateVeterinarian(veterinarianPayload, body.veterinarian_name);
+      if (addressError) {
+        setFlash(req, "error", addressError);
+        return res.redirect("/setup");
+      }
     }
   
     const setupTx = db.transaction(() => {
@@ -105,41 +113,47 @@ function createAuthRouter({
         VALUES (?, ?, ?, 'admin', 0, 1, 1, 1, 1, 1, 1, 1)
       `).run(adminName, adminEmail, bcrypt.hashSync(adminPassword, PASSWORD_HASH_ROUNDS));
   
-      const veterinarianResult = db.prepare(`
-        INSERT INTO veterinarians (name, street, postal_code, city, country, email, phone, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        veterinarianName,
-        veterinarianPayload.street,
-        veterinarianPayload.postal_code,
-        veterinarianPayload.city,
-        veterinarianPayload.country,
-        veterinarianPayload.email,
-        veterinarianPayload.phone,
-        veterinarianPayload.notes
-      );
-  
-      const species = ensureSpeciesExists(speciesName);
-      const animalResult = db.prepare(`
-        INSERT INTO animals (
-          name, species_id, sex, birth_date, intake_date, source, microchip_number,
-          status, color, breed, weight_kg, veterinarian_id, notes, updated_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'Aktiv', ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-      `).run(
-        animalName,
-        species.id,
-        body.animal_sex || "",
-        body.animal_birth_date || null,
-        body.animal_intake_date || dayjs().format("YYYY-MM-DD"),
-        body.animal_source || "",
-        body.animal_microchip_number || "",
-        body.animal_color || "",
-        body.animal_breed || "",
-        body.animal_weight_kg || null,
-        veterinarianResult.lastInsertRowid,
-        body.animal_notes || ""
-      );
+      let veterinarianId = null;
+      if (veterinarianPayload) {
+        veterinarianId = db.prepare(`
+          INSERT INTO veterinarians (name, street, postal_code, city, country, email, phone, notes)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          veterinarianName,
+          veterinarianPayload.street,
+          veterinarianPayload.postal_code,
+          veterinarianPayload.city,
+          veterinarianPayload.country,
+          veterinarianPayload.email,
+          veterinarianPayload.phone,
+          veterinarianPayload.notes
+        ).lastInsertRowid;
+      }
+
+      let animalId = null;
+      if (animalName && speciesName) {
+        const species = ensureSpeciesExists(speciesName);
+        animalId = db.prepare(`
+          INSERT INTO animals (
+            name, species_id, sex, birth_date, intake_date, source, microchip_number,
+            status, color, breed, weight_kg, veterinarian_id, notes, updated_at
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, 'Aktiv', ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        `).run(
+          animalName,
+          species.id,
+          body.animal_sex || "",
+          body.animal_birth_date || null,
+          body.animal_intake_date || dayjs().format("YYYY-MM-DD"),
+          body.animal_source || "",
+          body.animal_microchip_number || "",
+          body.animal_color || "",
+          body.animal_breed || "",
+          body.animal_weight_kg || null,
+          veterinarianId,
+          body.animal_notes || ""
+        ).lastInsertRowid;
+      }
   
       if (organizationName) {
         upsertSetting(db, "organization_name", organizationName);
@@ -150,7 +164,7 @@ function createAuthRouter({
   
       return {
         userId: userResult.lastInsertRowid,
-        animalId: animalResult.lastInsertRowid,
+        animalId,
       };
     });
   
@@ -166,7 +180,8 @@ function createAuthRouter({
     };
   
     setFlash(req, "success", "Ersteinrichtung abgeschlossen.");
-    res.redirect(`/setup/complete?animal_id=${result.animalId}`);
+    const animalQuery = result.animalId ? `?animal_id=${result.animalId}` : "";
+    res.redirect(`/setup/complete${animalQuery}`);
   });
   
   router.get("/login", (req, res) => {
