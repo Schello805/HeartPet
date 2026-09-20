@@ -105,5 +105,5 @@ echo "HeartPet ist installiert. Start mit: ./scripts/start.sh"
 if [ "$CONFIGURE_INSTANCE" -eq 1 ]; then
   "$APP_DIR/scripts/configure-instance.sh" "$@"
 else
-  echo "Interaktive LXC-Konfiguration: ./scripts/install.sh --configure"
+  echo "CLI-Konfiguration mit Domain und Admin-Zugang: ./scripts/install.sh --configure"
 fi

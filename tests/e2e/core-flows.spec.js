@@ -7,6 +7,7 @@ const path = require("node:path");
 const adminCredentials = {
   name: "E2E Admin",
   email: "admin@heartpet-e2e.local",
+  initialPassword: "einmal-passwort-123!",
   password: "passwort123!",
 };
 
@@ -49,6 +50,16 @@ test.beforeEach(async ({ page }) => {
   process.env.HEARTPET_SESSION_STORE = "memory";
   process.env.HEARTPET_DISABLE_PWNED_PASSWORD_CHECK = "true";
 
+  delete require.cache[require.resolve("../../src/db")];
+  const { initDatabase } = require("../../src/db");
+  const { createInitialAdmin } = require("../../src/initial-admin");
+  const setupDb = initDatabase();
+  createInitialAdmin(setupDb, { email: adminCredentials.email, name: adminCredentials.name, password: adminCredentials.initialPassword });
+  const veterinarianId = setupDb.prepare("INSERT INTO veterinarians (name) VALUES (?)").run("Praxis E2E").lastInsertRowid;
+  const speciesId = setupDb.prepare("INSERT INTO species (name) VALUES (?)").run("Katze").lastInsertRowid;
+  setupDb.prepare("INSERT INTO animals (name, species_id, status, veterinarian_id) VALUES (?, ?, ?, ?)").run("Minka", speciesId, "Aktiv", veterinarianId);
+  setupDb.close();
+
   delete require.cache[require.resolve("../../src/app")];
   const app = require("../../src/app");
   await new Promise((resolve) => {
@@ -86,60 +97,37 @@ test.afterEach(async () => {
 });
 
 async function ensureAuthenticated(page) {
-  await page.goto("/setup");
-
-  if (page.url().includes("/setup")) {
-    await page.getByRole("button", { name: "2. Administrator" }).click();
-    await expect(page.locator('input[name="admin_name"]')).toBeVisible();
-    await page.locator('input[name="admin_name"]').fill(adminCredentials.name);
-    await page.locator('input[name="admin_email"]').fill(adminCredentials.email);
-    await page.locator('input[name="admin_password"]').fill(adminCredentials.password);
-    await page.locator('input[name="organization_name"]').fill("HeartPet E2E");
-
-    await page.getByRole("button", { name: "3. Tierarzt (optional)" }).click();
-    await expect(page.locator('input[name="veterinarian_name"]')).toBeVisible();
-    await page.locator('input[name="veterinarian_name"]').fill("Praxis E2E");
-
-    await page.getByRole("button", { name: "4. Erstes Tier (optional)" }).click();
-    await expect(page.locator('input[name="animal_name"]')).toBeVisible();
-    await page.locator('input[name="animal_name"]').fill("Minka");
-    await page.locator('input[name="species_name"]').fill("Katze");
-    await page.getByRole("button", { name: "Ersteinrichtung abschließen" }).click();
-    await page.waitForLoadState("networkidle");
-
-    if (page.url().includes("/setup/complete")) {
-      await page.getByRole("link", { name: "HeartPet öffnen" }).click();
-      await page.waitForLoadState("networkidle");
-    }
-
-    if (page.url().includes("/login")) {
-      await page.getByLabel("E-Mail").fill(adminCredentials.email);
-      await page.getByLabel("Passwort").fill(adminCredentials.password);
-      await page.getByRole("button", { name: "Anmelden" }).click();
-    }
-
-    await expect(page).toHaveURL(/\/($|dashboard|animals(\/.*)?$)/);
-    return;
-  }
-
   await page.goto("/login");
   await page.getByLabel("E-Mail").fill(adminCredentials.email);
-  await page.getByLabel("Passwort").fill(adminCredentials.password);
+  await page.getByLabel("Passwort", { exact: true }).fill(adminCredentials.initialPassword);
   await page.getByRole("button", { name: "Anmelden" }).click();
+  if (page.url().includes("/first-login/password")) {
+    await page.getByLabel("Neues Passwort", { exact: true }).fill(adminCredentials.password);
+    await page.getByLabel("Passwort wiederholen").fill(adminCredentials.password);
+    await page.getByRole("button", { name: "Passwort speichern und HeartPet öffnen" }).click();
+  }
   await expect(page).toHaveURL(/\/($|dashboard|animals(\/.*)?$)/);
 }
 
-test("Setup öffnet geschlossene Bereiche mit fehlenden Pflichtfeldern", async ({ page }) => {
-  await page.goto("/setup");
-
-  await expect(page.locator('input[name="veterinarian_name"]')).not.toHaveAttribute("required", "");
-  await expect(page.locator('input[name="animal_name"]')).not.toHaveAttribute("required", "");
-  await expect(page.locator('input[name="species_name"]')).not.toHaveAttribute("required", "");
-  await page.getByRole("button", { name: "Ersteinrichtung abschließen" }).click();
-
-  const adminName = page.locator('input[name="admin_name"]');
-  await expect(adminName).toBeVisible();
-  await expect(adminName).toBeFocused();
+test("Erster Login erzwingt ein neues Passwort und bietet Passwort-Augen", async ({ page }) => {
+  await page.goto("/login");
+  const loginPassword = page.getByLabel("Passwort", { exact: true });
+  const loginPasswordToggle = page.locator(".password-visibility-toggle");
+  await expect(loginPasswordToggle).toHaveCount(1);
+  await loginPassword.fill(adminCredentials.initialPassword);
+  await loginPasswordToggle.click();
+  await expect(loginPassword).toHaveAttribute("type", "text");
+  await expect(loginPasswordToggle).toHaveAttribute("aria-label", "Passwort verbergen");
+  await loginPasswordToggle.click();
+  await expect(loginPassword).toHaveAttribute("type", "password");
+  await page.getByLabel("E-Mail").fill(adminCredentials.email);
+  await page.getByRole("button", { name: "Anmelden" }).click();
+  await expect(page).toHaveURL(/\/first-login\/password$/);
+  await expect(page.locator(".password-visibility-toggle")).toHaveCount(2);
+  await page.getByLabel("Neues Passwort", { exact: true }).fill(adminCredentials.password);
+  await page.getByLabel("Passwort wiederholen").fill(adminCredentials.password);
+  await page.getByRole("button", { name: "Passwort speichern und HeartPet öffnen" }).click();
+  await expect(page).toHaveURL(/\/$/);
 });
 
 test("Tiere-Arbeitsansicht zeigt die Akte im Browser-Kontext", async ({ page }) => {

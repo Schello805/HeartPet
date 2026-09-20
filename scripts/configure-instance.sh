@@ -9,21 +9,22 @@ PORT_VALUE="3000"
 SERVICE_USER="www-data"
 CONFIGURE_NGINX=""
 ASSUME_YES=0
-BROWSER_FIRST=0
+ADMIN_EMAIL=""
 
 usage() {
   cat <<'EOF'
 HeartPet-Instanz konfigurieren
 
-Standardinstallation mit Einrichtung im Browser:
+Interaktive Standardinstallation:
   ./scripts/configure-instance.sh
 
 Automatisiert:
-  ./scripts/configure-instance.sh --mode domain --domain https://tiere.example.de --port 3000 --user www-data --nginx --yes
+  ./scripts/configure-instance.sh --mode domain --domain https://tiere.example.de --admin-email admin@example.de --port 3000 --user www-data --nginx --yes
 
 Optionen:
   --mode lan|domain
   --domain https://tiere.example.de
+  --admin-email ADRESSE
   --port PORT
   --user SYSTEMBENUTZER
   --nginx | --no-nginx
@@ -42,6 +43,7 @@ while [ "$#" -gt 0 ]; do
   case "$1" in
     --mode) MODE="${2:-}"; shift 2 ;;
     --domain) DOMAIN="${2:-}"; shift 2 ;;
+    --admin-email) ADMIN_EMAIL="${2:-}"; shift 2 ;;
     --port) PORT_VALUE="${2:-}"; shift 2 ;;
     --user) SERVICE_USER="${2:-}"; shift 2 ;;
     --nginx) CONFIGURE_NGINX="yes"; shift ;;
@@ -53,10 +55,12 @@ while [ "$#" -gt 0 ]; do
 done
 
 if [ -z "$MODE" ]; then
-  MODE="lan"
-  CONFIGURE_NGINX="${CONFIGURE_NGINX:-no}"
-  ASSUME_YES=1
-  BROWSER_FIRST=1
+  if [ "$ASSUME_YES" -eq 1 ]; then
+    echo "Fehler: --yes benötigt --mode und --admin-email."
+    exit 1
+  fi
+  read -r -p "Betriebsart domain oder lan [domain]: " input_mode
+  MODE="${input_mode:-domain}"
 fi
 
 if [ "$MODE" != "lan" ] && [ "$MODE" != "domain" ]; then
@@ -77,6 +81,19 @@ if [ "$MODE" = "domain" ]; then
     echo "Fehler: Bitte eine HTTPS-Adresse ohne Pfad angeben."
     exit 1
   fi
+fi
+
+if [ -z "$ADMIN_EMAIL" ]; then
+  if [ "$ASSUME_YES" -eq 1 ]; then
+    echo "Fehler: --yes benötigt --admin-email."
+    exit 1
+  fi
+  read -r -p "E-Mail-Adresse des Administrators: " ADMIN_EMAIL
+fi
+ADMIN_EMAIL="$(printf '%s' "$ADMIN_EMAIL" | tr '[:upper:]' '[:lower:]')"
+if [[ ! "$ADMIN_EMAIL" =~ ^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$ ]]; then
+  echo "Fehler: Ungültige Admin-E-Mail-Adresse."
+  exit 1
 fi
 
 if [ "$ASSUME_YES" -eq 0 ]; then
@@ -128,10 +145,7 @@ run_as_root chown -R "$SERVICE_USER:$SERVICE_GROUP" "$DATA_DIR"
 BIND_HOST="0.0.0.0"
 TRUST_PROXY="loopback"
 COOKIE_MODE="false"
-if [ "$BROWSER_FIRST" -eq 1 ]; then
-  TRUST_PROXY="1"
-  COOKIE_MODE="auto"
-elif [ "$MODE" = "domain" ] && [ "$CONFIGURE_NGINX" = "yes" ]; then
+if [ "$MODE" = "domain" ] && [ "$CONFIGURE_NGINX" = "yes" ]; then
   BIND_HOST="127.0.0.1"
   COOKIE_MODE="true"
 elif [ "$MODE" = "domain" ]; then
@@ -183,6 +197,10 @@ run_as_root mkdir -p /etc/heartpet
 run_as_root install -m 600 "$env_tmp" /etc/heartpet/heartpet.env
 run_as_root install -m 644 "$service_tmp" /etc/systemd/system/heartpet.service
 
+initial_admin_output="$(run_as_root env HEARTPET_DATA_DIR="$DATA_DIR" node "$APP_DIR/scripts/create-initial-admin.js" \
+  --email "$ADMIN_EMAIL" --mode "$MODE" --domain "$DOMAIN")"
+run_as_root chown -R "$SERVICE_USER:$SERVICE_GROUP" "$DATA_DIR"
+
 if [ "$CONFIGURE_NGINX" = "yes" ]; then
   if ! command -v nginx >/dev/null 2>&1; then
     if command -v apt-get >/dev/null 2>&1; then
@@ -225,15 +243,13 @@ if ! curl --max-time 2 -fsS "http://127.0.0.1:$PORT_VALUE/login" >/dev/null; the
 fi
 
 echo "HeartPet wurde erfolgreich als systemd-Dienst eingerichtet."
-if [ "$BROWSER_FIRST" -eq 1 ]; then
-  echo "Öffne http://<LXC-IP>:$PORT_VALUE/setup. Betriebsart und Domain legst du dort im Browser fest."
-  echo "Bei einem externen Reverse Proxy ist das Ziel <LXC-IP>:$PORT_VALUE. Beschränke den Port auf das Heimnetz beziehungsweise den Proxy."
-elif [ "$MODE" = "domain" ]; then
-  echo "Nächster Schritt: TLS-Zertifikat für $DOMAIN einrichten und danach $DOMAIN/setup öffnen."
+echo "$initial_admin_output"
+if [ "$MODE" = "domain" ]; then
+  echo "Nächster Schritt: TLS-Zertifikat für $DOMAIN einrichten und danach $DOMAIN/login öffnen."
   if [ "$CONFIGURE_NGINX" = "yes" ]; then echo "Mit Certbot typischerweise: certbot --nginx -d $domain_host"; fi
   if [ "$CONFIGURE_NGINX" = "no" ]; then
     echo "Externer Proxy: Ziel ist <LXC-IP>:$PORT_VALUE. Beschränke diesen Port per Firewall auf das Heimnetz beziehungsweise den Proxy."
   fi
 else
-  echo "Öffne http://<LXC-IP>:$PORT_VALUE/setup im Heimnetz."
+  echo "Öffne http://<LXC-IP>:$PORT_VALUE/login im Heimnetz."
 fi

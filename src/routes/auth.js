@@ -1,188 +1,17 @@
 const crypto = require("crypto");
 const express = require("express");
 const bcrypt = require("bcryptjs");
-const dayjs = require("dayjs");
 
 function createAuthRouter({
-  db, isSetupComplete, setFlash, validateNewPassword, normalizeVeterinarianPayload,
-  validateVeterinarian, passwordHashRounds, ensureSpeciesExists, upsertSetting,
+  db, setFlash, validateNewPassword, passwordHashRounds,
   regenerateSession, safeLocalReturnPath, loginAttempts, userPresenceWrites, requireAuth,
   passwordResetAttempts, getSettingsObject, resolveAppBaseUrl, sendPasswordResetEmail,
-  createNotificationLog, createAuditLog, normalizeAppBaseUrl,
+  createNotificationLog, createAuditLog,
 }) {
   const router = express.Router();
   const PASSWORD_HASH_ROUNDS = passwordHashRounds;
 
-  router.get("/setup", (req, res) => {
-    res.render("pages/setup", {
-      pageTitle: "Ersteinrichtung",
-      species: db.prepare("SELECT * FROM species ORDER BY name ASC").all(),
-    });
-  });
-
-  router.get("/setup/complete", (req, res) => {
-    if (!isSetupComplete()) return res.redirect("/setup");
-    if (!req.session?.user) return res.redirect("/login?return_to=%2Fsetup%2Fcomplete");
-
-    const settings = getSettingsObject(db);
-    const appBaseUrl = resolveAppBaseUrl(settings);
-    const currentUrl = `${req.protocol}://${req.get("host")}`;
-    const accessMode = settings.access_mode === "domain" ? "domain" : "lan";
-    let addressMatches = accessMode === "lan";
-    if (accessMode === "domain") {
-      try {
-        const expected = new URL(appBaseUrl);
-        const current = new URL(currentUrl);
-        addressMatches = expected.protocol === current.protocol && expected.host === current.host;
-      } catch {
-        addressMatches = false;
-      }
-    }
-
-    res.render("pages/setup-complete", {
-      pageTitle: "Einrichtung abgeschlossen",
-      accessMode,
-      appBaseUrl,
-      currentUrl,
-      addressMatches,
-      animalId: Number(req.query.animal_id || 0) || null,
-    });
-  });
-  
-  router.post("/setup", async (req, res) => {
-    if (isSetupComplete()) {
-      return res.redirect(req.session?.user ? "/" : "/login");
-    }
-  
-    const body = req.body || {};
-    const adminName = String(body.admin_name || "").trim();
-    const adminEmail = String(body.admin_email || "").trim().toLowerCase();
-    const adminPassword = String(body.admin_password || "");
-    const organizationName = String(body.organization_name || "").trim();
-    const accessMode = body.access_mode === "domain" ? "domain" : "lan";
-    const submittedAppDomain = String(body.app_domain || "").trim();
-    const appDomain = accessMode === "domain" ? normalizeAppBaseUrl(submittedAppDomain) : "";
-    const veterinarianName = String(body.veterinarian_name || "").trim();
-    const animalName = String(body.animal_name || "").trim();
-    const speciesName = String(body.species_name || "").trim();
-  
-    if (!adminName || !adminEmail || !adminPassword) {
-      setFlash(req, "error", "Bitte fülle die Pflichtfelder für den Administrator aus.");
-      return res.redirect("/setup");
-    }
-
-    if ((animalName && !speciesName) || (!animalName && speciesName)) {
-      setFlash(req, "error", "Für das erste Tier müssen Name und Tierart gemeinsam angegeben werden.");
-      return res.redirect("/setup");
-    }
-
-    if (accessMode === "domain" && (!appDomain || !appDomain.startsWith("https://"))) {
-      setFlash(req, "error", "Für den Domainbetrieb ist eine gültige HTTPS-Adresse ohne Pfad erforderlich.");
-      return res.redirect("/setup");
-    }
-  
-    const passwordError = await validateNewPassword(adminPassword);
-    if (passwordError) {
-      setFlash(req, "error", passwordError);
-      return res.redirect("/setup");
-    }
-  
-    const duplicateUser = db.prepare("SELECT id FROM users WHERE email = ?").get(adminEmail);
-    if (duplicateUser) {
-      setFlash(req, "error", "Diese E-Mail-Adresse ist bereits vergeben.");
-      return res.redirect("/setup");
-    }
-  
-    let veterinarianPayload = null;
-    if (veterinarianName) {
-      veterinarianPayload = normalizeVeterinarianPayload(body, "veterinarian_");
-      const addressError = validateVeterinarian(veterinarianPayload, body.veterinarian_name);
-      if (addressError) {
-        setFlash(req, "error", addressError);
-        return res.redirect("/setup");
-      }
-    }
-  
-    const setupTx = db.transaction(() => {
-      const userResult = db.prepare(`
-        INSERT INTO users (
-          name, email, password_hash, role, must_change_password,
-          can_edit_animals, can_manage_documents, can_manage_gallery, can_manage_health,
-          can_manage_feedings, can_manage_notes, can_manage_reminders
-        )
-        VALUES (?, ?, ?, 'admin', 0, 1, 1, 1, 1, 1, 1, 1)
-      `).run(adminName, adminEmail, bcrypt.hashSync(adminPassword, PASSWORD_HASH_ROUNDS));
-  
-      let veterinarianId = null;
-      if (veterinarianPayload) {
-        veterinarianId = db.prepare(`
-          INSERT INTO veterinarians (name, street, postal_code, city, country, email, phone, notes)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
-          veterinarianName,
-          veterinarianPayload.street,
-          veterinarianPayload.postal_code,
-          veterinarianPayload.city,
-          veterinarianPayload.country,
-          veterinarianPayload.email,
-          veterinarianPayload.phone,
-          veterinarianPayload.notes
-        ).lastInsertRowid;
-      }
-
-      let animalId = null;
-      if (animalName && speciesName) {
-        const species = ensureSpeciesExists(speciesName);
-        animalId = db.prepare(`
-          INSERT INTO animals (
-            name, species_id, sex, birth_date, intake_date, source, microchip_number,
-            status, color, breed, weight_kg, veterinarian_id, notes, updated_at
-          )
-          VALUES (?, ?, ?, ?, ?, ?, ?, 'Aktiv', ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        `).run(
-          animalName,
-          species.id,
-          body.animal_sex || "",
-          body.animal_birth_date || null,
-          body.animal_intake_date || dayjs().format("YYYY-MM-DD"),
-          body.animal_source || "",
-          body.animal_microchip_number || "",
-          body.animal_color || "",
-          body.animal_breed || "",
-          body.animal_weight_kg || null,
-          veterinarianId,
-          body.animal_notes || ""
-        ).lastInsertRowid;
-      }
-  
-      if (organizationName) {
-        upsertSetting(db, "organization_name", organizationName);
-      }
-      upsertSetting(db, "access_mode", accessMode);
-      upsertSetting(db, "app_domain", appDomain);
-      upsertSetting(db, "setup_complete", "true");
-  
-      return {
-        userId: userResult.lastInsertRowid,
-        animalId,
-      };
-    });
-  
-    const result = setupTx();
-    await regenerateSession(req);
-    req.session.user = {
-      id: result.userId,
-      name: adminName,
-      email: adminEmail,
-      role: "admin",
-      mustChangePassword: false,
-      sessionVersion: 0,
-    };
-  
-    setFlash(req, "success", "Ersteinrichtung abgeschlossen.");
-    const animalQuery = result.animalId ? `?animal_id=${result.animalId}` : "";
-    res.redirect(`/setup/complete${animalQuery}`);
-  });
+  router.all(["/setup", "/setup/complete"], (req, res) => res.redirect("/login"));
   
   router.get("/login", (req, res) => {
     const returnTo = safeLocalReturnPath(req.query.return_to, "");
@@ -219,11 +48,6 @@ function createAuthRouter({
       return res.redirect("/login");
     }
   
-    if (user.must_change_password) {
-      setFlash(req, "error", "Bitte zuerst über den Einladungslink ein Passwort festlegen.");
-      return res.redirect("/login");
-    }
-  
     loginAttempts.delete(attemptKey);
     db.prepare("UPDATE users SET last_login_at = CURRENT_TIMESTAMP, last_seen_at = CURRENT_TIMESTAMP, last_logout_at = NULL WHERE id = ?").run(user.id);
     userPresenceWrites.set(user.id, Date.now());
@@ -238,8 +62,42 @@ function createAuthRouter({
       sessionVersion: Number(user.session_version || 0),
     };
   
+    if (user.must_change_password) {
+      return res.redirect("/first-login/password");
+    }
+
     setFlash(req, "success", "Login erfolgreich.");
     res.redirect(returnTo || "/");
+  });
+
+  router.get("/first-login/password", (req, res) => {
+    if (!req.session?.user) return res.redirect("/login");
+    if (!req.session.user.mustChangePassword) return res.redirect("/");
+    return res.render("pages/first-login-password", { pageTitle: "Passwort ändern" });
+  });
+
+  router.post("/first-login/password", async (req, res) => {
+    if (!req.session?.user) return res.redirect("/login");
+    if (!req.session.user.mustChangePassword) return res.redirect("/");
+    if (String(req.body.new_password || "") !== String(req.body.new_password_confirm || "")) {
+      setFlash(req, "error", "Die neuen Passwörter stimmen nicht überein.");
+      return res.redirect("/first-login/password");
+    }
+    const passwordError = await validateNewPassword(req.body.new_password);
+    if (passwordError) {
+      setFlash(req, "error", passwordError);
+      return res.redirect("/first-login/password");
+    }
+
+    const user = db.prepare("SELECT id, session_version FROM users WHERE id = ?").get(req.session.user.id);
+    if (!user) return res.redirect("/login");
+    db.prepare("UPDATE users SET password_hash = ?, must_change_password = 0, session_version = session_version + 1 WHERE id = ?")
+      .run(bcrypt.hashSync(req.body.new_password, PASSWORD_HASH_ROUNDS), user.id);
+    req.session.user.mustChangePassword = false;
+    req.session.user.sessionVersion = Number(user.session_version || 0) + 1;
+    createAuditLog(req, "self.initial_password_change", { user_id: user.id }, { entityType: "user", entityId: user.id });
+    setFlash(req, "success", "Dein persönliches Passwort wurde gespeichert.");
+    return res.redirect("/");
   });
   
   router.post("/logout", requireAuth, (req, res) => {

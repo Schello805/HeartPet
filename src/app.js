@@ -407,24 +407,26 @@ app.use((req, res, next) => {
   const setupComplete = isSetupComplete();
   res.locals.setupComplete = setupComplete;
 
-  if (!setupComplete && !req.path.startsWith("/setup")) {
-    return res.redirect("/setup");
-  }
-
-  if (setupComplete && req.path.startsWith("/setup") && req.path !== "/setup/complete") {
-    return res.redirect(req.session?.user ? "/" : "/login");
+  if (!setupComplete) {
+    return res.status(503).send("HeartPet ist noch nicht vollständig installiert. Führe ./scripts/install.sh --configure aus.");
   }
 
   next();
 });
 
 app.use(createAuthRouter({
-  db, isSetupComplete, setFlash, validateNewPassword, normalizeVeterinarianPayload,
-  validateVeterinarian, passwordHashRounds: PASSWORD_HASH_ROUNDS, ensureSpeciesExists,
-  upsertSetting, regenerateSession, safeLocalReturnPath, loginAttempts, userPresenceWrites,
+  db, setFlash, validateNewPassword, passwordHashRounds: PASSWORD_HASH_ROUNDS,
+  regenerateSession, safeLocalReturnPath, loginAttempts, userPresenceWrites,
   requireAuth, passwordResetAttempts, getSettingsObject, resolveAppBaseUrl,
-  sendPasswordResetEmail, createNotificationLog, createAuditLog, normalizeAppBaseUrl,
+  sendPasswordResetEmail, createNotificationLog, createAuditLog,
 }));
+
+app.use((req, res, next) => {
+  if (req.session?.user?.mustChangePassword && req.path !== "/first-login/password" && req.path !== "/logout") {
+    return res.redirect("/first-login/password");
+  }
+  next();
+});
 
 app.use(createReminderActionsRouter({
   db,
@@ -729,7 +731,7 @@ if (require.main === module) {
     for (const url of listLocalAccessUrls({ port, bindHost })) {
       console.log(`- ${url}`);
     }
-    console.log("Wenn dies eine neue Installation ist, starte mit /setup.");
+    console.log("Anmeldung unter /login.");
   });
   let shuttingDown = false;
   const shutdown = async (signal) => {

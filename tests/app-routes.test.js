@@ -19,6 +19,7 @@ process.env.HEARTPET_DISABLE_EXTERNAL_WEATHER = "true";
 process.env.HEARTPET_DISABLE_PWNED_PASSWORD_CHECK = "true";
 
 const { initDatabase, upsertSetting } = require("../src/db");
+const { createInitialAdmin } = require("../src/initial-admin");
 const { createAnimalPdf } = require("../src/exporters");
 const { buildReminderActionToken, buildReminderEmailHtml, sendTelegramReminder, sendTestNtfy, processDueReminders } = require("../src/reminders");
 const { getVaccinationSuggestionGroups, getVaccinationSuggestionsForSpecies } = require("../src/vaccination-suggestions");
@@ -324,22 +325,9 @@ test("CCU-XML wird entsprechend der ISO-8859-1-Deklaration dekodiert", () => {
 });
 
 async function ensureSetupComplete() {
-  const setupPage = await agent.get("/setup");
-  if (setupPage.status !== 200) {
-    return;
-  }
-
-  const setupResponse = await agent.post("/setup").type("form").send({
-    admin_name: "Test Admin",
-    admin_email: "admin@test.local",
-    admin_password: "passwort123!",
-    organization_name: "Test Tierbestand",
-    veterinarian_name: "Tierarzt Test",
-    species_name: "Katze",
-    animal_name: "Minka",
-  });
-
-  assert.equal(setupResponse.status, 302);
+  if (db.prepare("SELECT COUNT(*) AS count FROM users").get().count > 0) return;
+  createInitialAdmin(db, { email: "admin@test.local", password: "passwort123!" });
+  db.prepare("UPDATE users SET must_change_password = 0").run();
 }
 
 async function ensureAdminAuthenticated() {
@@ -399,63 +387,36 @@ test.after(() => {
   fs.rmSync(tempDataDir, { recursive: true, force: true });
 });
 
-test("Ersteinrichtung funktioniert", async () => {
-  const setupPage = await agent.get("/setup");
-  assert.equal(setupPage.status, 200);
-  assert.match(setupPage.text, /name="app_domain"/);
-  assert.match(setupPage.text, /3\. Tierarzt \(optional\)/);
-  assert.match(setupPage.text, /4\. Erstes Tier \(optional\)/);
-  assert.match(setupPage.text, /data-setup-form/);
-  assert.doesNotMatch(setupPage.text, /name="veterinarian_name"[^>]*required/);
-  assert.doesNotMatch(setupPage.text, /name="animal_name"[^>]*required/);
-  assert.doesNotMatch(setupPage.text, /name="species_name"[^>]*required/);
-  assert.equal(db.prepare("SELECT value FROM settings WHERE key = 'app_domain'").get()?.value, "");
-
-  const invalidDomainResponse = await agent.post("/setup").type("form").send({
-    admin_name: "Test Admin",
-    admin_email: "admin@test.local",
-    admin_password: "passwort123!",
-    access_mode: "domain",
-    app_domain: "https://tiere.test.local/unterpfad",
-    veterinarian_name: "Tierarzt Test",
-    species_name: "Katze",
-    animal_name: "Minka",
+test("CLI-Ersteinrichtung erzeugt einen Admin mit verpflichtendem Passwortwechsel", async () => {
+  assert.throws(() => createInitialAdmin(db, { email: "admin@test.local", accessMode: "domain", appDomain: "https://tiere.test.local/pfad" }), /HTTPS-Adresse ohne Pfad/);
+  const setup = createInitialAdmin(db, {
+    email: "admin@test.local",
+    name: "Test Admin",
+    password: "einmal-passwort-123!",
+    accessMode: "domain",
+    appDomain: "https://tiere.test.local",
   });
-  assert.equal(invalidDomainResponse.status, 302);
-  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM users").get().count, 0);
-
-  const incompleteAnimalResponse = await agent.post("/setup").type("form").send({
-    admin_name: "Test Admin",
-    admin_email: "admin@test.local",
-    admin_password: "passwort123!",
-    access_mode: "lan",
-    animal_name: "Minka",
-  });
-  assert.equal(incompleteAnimalResponse.status, 302);
-  assert.equal(incompleteAnimalResponse.headers.location, "/setup");
-  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM users").get().count, 0);
-
-  const setupResponse = await agent.post("/setup").type("form").send({
-    admin_name: "Test Admin",
-    admin_email: "admin@test.local",
-    admin_password: "passwort123!",
-    organization_name: "Test Tierbestand",
-    access_mode: "domain",
-    app_domain: "https://tiere.test.local",
-  });
-
-  assert.equal(setupResponse.status, 302);
-  assert.equal(setupResponse.headers.location, "/setup/complete");
+  assert.equal(setup.created, true);
   assert.equal(db.prepare("SELECT value FROM settings WHERE key = 'access_mode'").get()?.value, "domain");
   assert.equal(db.prepare("SELECT value FROM settings WHERE key = 'app_domain'").get()?.value, "https://tiere.test.local");
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM veterinarians").get().count, 0);
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM animals").get().count, 0);
+  assert.equal(db.prepare("SELECT must_change_password FROM users WHERE email = ?").get("admin@test.local").must_change_password, 1);
 
-  const completePage = await agent.get(setupResponse.headers.location);
-  assert.equal(completePage.status, 200);
-  assert.match(completePage.text, /HeartPet ist eingerichtet/);
-  assert.match(completePage.text, /Domain mit HTTPS/);
-  assert.doesNotMatch(completePage.text, /Die erste Tierakte wurde angelegt/);
+  const oldSetupPage = await agent.get("/setup");
+  assert.equal(oldSetupPage.status, 302);
+  assert.equal(oldSetupPage.headers.location, "/login");
+  const firstLogin = await agent.post("/login").type("form").send({ email: "admin@test.local", password: "einmal-passwort-123!" });
+  assert.equal(firstLogin.headers.location, "/first-login/password");
+  const passwordPage = await agent.get("/first-login/password");
+  assert.equal(passwordPage.status, 200);
+  assert.match(passwordPage.text, /Eigenes Passwort festlegen/);
+  const passwordChange = await agent.post("/first-login/password").type("form").send({
+    new_password: "passwort123!",
+    new_password_confirm: "passwort123!",
+  });
+  assert.equal(passwordChange.headers.location, "/");
+  assert.equal(db.prepare("SELECT must_change_password FROM users WHERE email = ?").get("admin@test.local").must_change_password, 0);
 
   const veterinarianId = db.prepare("INSERT INTO veterinarians (name) VALUES (?)").run("Tierarzt Test").lastInsertRowid;
   const speciesId = db.prepare("INSERT INTO species (name) VALUES (?)").run("Katze").lastInsertRowid;
@@ -1408,10 +1369,11 @@ test("Interaktiver Installer erzeugt einen gehärteten und neu gestarteten syste
   assert.match(installer, /BIND_HOST="127\.0\.0\.1"/);
   assert.match(installer, /TRUST_PROXY="1"/);
   assert.match(installer, /Externer Proxy: Ziel ist <LXC-IP>/);
-  assert.match(installer, /BROWSER_FIRST=1/);
-  assert.match(installer, /COOKIE_MODE="auto"/);
-  assert.match(installer, /Betriebsart und Domain legst du dort im Browser fest/);
-  assert.doesNotMatch(installer, /Wie soll HeartPet erreichbar sein/);
+  assert.match(installer, /--admin-email ADRESSE/);
+  assert.match(installer, /create-initial-admin\.js/);
+  assert.match(installer, /initial_admin_output/);
+  assert.doesNotMatch(installer, /BROWSER_FIRST/);
+  assert.doesNotMatch(installer, /\/setup öffnen/);
   assert.match(installScript, /configure-instance\.sh" "\$@"/);
   assert.match(installScript, /apt-get install -y ca-certificates curl git nodejs npm build-essential python3/);
   assert.match(installScript, /node_major.*-lt 20/s);

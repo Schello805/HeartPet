@@ -63,19 +63,13 @@ Die App läuft danach standardmäßig unter:
 http://127.0.0.1:3000
 ```
 
-Bei einer neuen Installation erscheint zuerst die Ersteinrichtung unter:
+Für eine vollständige LXC-Installation wird die Instanz direkt auf der Kommandozeile konfiguriert:
 
-```text
-/setup
+```bash
+./scripts/install.sh --configure
 ```
 
-Dort werden in einem kurzen Wizard angelegt:
-
-- der erste Administrator
-- der erste Tierarzt
-- das erste Tier
-
-Erst danach wird die normale Oberfläche freigeschaltet.
+Das Skript fragt Betriebsart, Domain und Admin-E-Mail ab. Es erzeugt ein zufälliges Einmalpasswort, das beim ersten Login zwingend geändert werden muss. Tierärzte und Tiere werden anschließend in der normalen Oberfläche angelegt.
 
 ## Konfiguration
 

@@ -83,12 +83,13 @@ test("Angemeldete Erinnerungsaktionen bleiben im Erinnerungs-Router", () => {
   assert.doesNotMatch(appSource, /function syncVaccinationReminders/);
 });
 
-test("Setup und Anmeldung bleiben im Auth-Router", () => {
+test("Anmeldung und Passwortwechsel bleiben im Auth-Router", () => {
   const appSource = fs.readFileSync(path.join(__dirname, "..", "src", "app.js"), "utf8");
   const router = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "auth.js"), "utf8");
   assert.match(appSource, /app\.use\(createAuthRouter/);
   assert.doesNotMatch(appSource, /app\.(?:get|post)\("\/(?:setup|login|logout|password-reset|password-forgot|invite\/accept)"/);
   assert.match(router, /router\.post\("\/login"/);
+  assert.match(router, /router\.post\("\/first-login\/password"/);
   assert.match(router, /router\.post\("\/password-reset"/);
   assert.match(router, /router\.post\("\/invite\/accept"/);
 });
