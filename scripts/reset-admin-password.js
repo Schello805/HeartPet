@@ -95,6 +95,7 @@ async function main() {
 
   console.log(`Passwort für ${email} wurde geändert und erfolgreich verifiziert.`);
   console.log("Bestehende Anmeldesitzungen wurden ungültig gemacht.");
+  console.log("Führe jetzt 'systemctl restart heartpet' aus, um eine mögliche Anmeldesperre nach Fehlversuchen zu löschen.");
 }
 
 main().catch((error) => {

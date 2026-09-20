@@ -447,6 +447,25 @@ test("Login erneuert die Session-ID", async () => {
   assert.notEqual(sessionAfterLogin.split(";", 1)[0], sessionBeforeLogin.split(";", 1)[0]);
 });
 
+test("Login akzeptiert Umlaute und Sonderzeichen im Passwort unverändert", async () => {
+  await ensureSetupComplete();
+  const specialPassword = `Ärger! "Haus" & Huhn's #1`;
+  const email = "sonderzeichen@test.local";
+  db.prepare(`
+    INSERT INTO users (name, email, password_hash, role, must_change_password)
+    VALUES (?, ?, ?, 'admin', 0)
+  `).run("Sonderzeichen Admin", email, bcrypt.hashSync(specialPassword, 12));
+
+  const response = await request.agent(app).post("/login").type("form").send({
+    email,
+    password: specialPassword,
+  });
+  db.prepare("DELETE FROM users WHERE email = ?").run(email);
+
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.location, "/");
+});
+
 test("Einmalige Tierarten-Bereinigung entfernt ungenutzte Vorgaben und behält verwendete Arten", async () => {
   db.prepare("INSERT INTO species (name, notes) VALUES (?, ?)").run("Hund", "Soll entfernt werden");
   const parrotInsert = db.prepare("INSERT INTO species (name, notes) VALUES (?, ?)").run("Papagei", "Soll bleiben");
