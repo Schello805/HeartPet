@@ -1386,6 +1386,10 @@ test("Interaktiver Installer erzeugt einen gehärteten und neu gestarteten syste
   assert.match(installer, /BIND_HOST="127\.0\.0\.1"/);
   assert.match(installer, /TRUST_PROXY="1"/);
   assert.match(installer, /Externer Proxy: Ziel ist <LXC-IP>/);
+  assert.match(installer, /BROWSER_FIRST=1/);
+  assert.match(installer, /COOKIE_MODE="auto"/);
+  assert.match(installer, /Betriebsart und Domain legst du dort im Browser fest/);
+  assert.doesNotMatch(installer, /Wie soll HeartPet erreichbar sein/);
   assert.match(installScript, /configure-instance\.sh" "\$@"/);
   assert.match(installScript, /apt-get install -y ca-certificates curl git nodejs npm build-essential python3/);
   assert.match(installScript, /node_major.*-lt 20/s);

@@ -9,12 +9,13 @@ PORT_VALUE="3000"
 SERVICE_USER="www-data"
 CONFIGURE_NGINX=""
 ASSUME_YES=0
+BROWSER_FIRST=0
 
 usage() {
   cat <<'EOF'
 HeartPet-Instanz konfigurieren
 
-Interaktiv:
+Standardinstallation mit Einrichtung im Browser:
   ./scripts/configure-instance.sh
 
 Automatisiert:
@@ -52,15 +53,18 @@ while [ "$#" -gt 0 ]; do
 done
 
 if [ -z "$MODE" ]; then
-  echo "Wie soll HeartPet erreichbar sein?"
-  echo "  1) Nur im Heimnetz"
-  echo "  2) Über eine HTTPS-Domain"
-  read -r -p "Auswahl [1]: " mode_choice
-  MODE="$([ "${mode_choice:-1}" = "2" ] && printf domain || printf lan)"
+  MODE="lan"
+  CONFIGURE_NGINX="${CONFIGURE_NGINX:-no}"
+  ASSUME_YES=1
+  BROWSER_FIRST=1
 fi
 
 if [ "$MODE" != "lan" ] && [ "$MODE" != "domain" ]; then
   echo "Fehler: --mode muss lan oder domain sein."
+  exit 1
+fi
+if [ "$CONFIGURE_NGINX" = "yes" ] && [ "$MODE" != "domain" ]; then
+  echo "Fehler: --nginx benötigt zusätzlich --mode domain und --domain."
   exit 1
 fi
 
@@ -123,10 +127,16 @@ run_as_root chown -R "$SERVICE_USER:$SERVICE_GROUP" "$DATA_DIR"
 
 BIND_HOST="0.0.0.0"
 TRUST_PROXY="loopback"
-if [ "$MODE" = "domain" ] && [ "$CONFIGURE_NGINX" = "yes" ]; then
+COOKIE_MODE="false"
+if [ "$BROWSER_FIRST" -eq 1 ]; then
+  TRUST_PROXY="1"
+  COOKIE_MODE="auto"
+elif [ "$MODE" = "domain" ] && [ "$CONFIGURE_NGINX" = "yes" ]; then
   BIND_HOST="127.0.0.1"
+  COOKIE_MODE="true"
 elif [ "$MODE" = "domain" ]; then
   TRUST_PROXY="1"
+  COOKIE_MODE="true"
 fi
 
 env_tmp="$(mktemp)"
@@ -138,7 +148,7 @@ PORT=$PORT_VALUE
 HEARTPET_HOST=$BIND_HOST
 HEARTPET_SESSION_DAYS=30
 HEARTPET_TRUST_PROXY=$TRUST_PROXY
-HEARTPET_SECURE_COOKIE=$([ "$MODE" = "domain" ] && printf 'true' || printf 'false')
+HEARTPET_SECURE_COOKIE=$COOKIE_MODE
 EOF
 if [ "$MODE" = "domain" ]; then printf 'HEARTPET_APP_URL=%s\n' "$DOMAIN" >> "$env_tmp"; fi
 
@@ -215,7 +225,10 @@ if ! curl --max-time 2 -fsS "http://127.0.0.1:$PORT_VALUE/login" >/dev/null; the
 fi
 
 echo "HeartPet wurde erfolgreich als systemd-Dienst eingerichtet."
-if [ "$MODE" = "domain" ]; then
+if [ "$BROWSER_FIRST" -eq 1 ]; then
+  echo "Öffne http://<LXC-IP>:$PORT_VALUE/setup. Betriebsart und Domain legst du dort im Browser fest."
+  echo "Bei einem externen Reverse Proxy ist das Ziel <LXC-IP>:$PORT_VALUE. Beschränke den Port auf das Heimnetz beziehungsweise den Proxy."
+elif [ "$MODE" = "domain" ]; then
   echo "Nächster Schritt: TLS-Zertifikat für $DOMAIN einrichten und danach $DOMAIN/setup öffnen."
   if [ "$CONFIGURE_NGINX" = "yes" ]; then echo "Mit Certbot typischerweise: certbot --nginx -d $domain_host"; fi
   if [ "$CONFIGURE_NGINX" = "no" ]; then
