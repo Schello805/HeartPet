@@ -1383,6 +1383,9 @@ test("Interaktiver Installer erzeugt einen gehärteten und neu gestarteten syste
   assert.match(installer, /APP_DIR" == \/root/);
   assert.match(installer, /systemctl restart heartpet/);
   assert.match(installer, /curl --max-time 2 -fsS/);
+  assert.match(installer, /BIND_HOST="127\.0\.0\.1"/);
+  assert.match(installer, /TRUST_PROXY="1"/);
+  assert.match(installer, /Externer Proxy: Ziel ist <LXC-IP>/);
   assert.match(installScript, /configure-instance\.sh" "\$@"/);
   assert.match(installScript, /apt-get install -y ca-certificates curl git nodejs npm build-essential python3/);
   assert.match(installScript, /node_major.*-lt 20/s);

@@ -121,15 +121,23 @@ echo "Konfiguriere HeartPet unter $APP_DIR"
 mkdir -p "$DATA_DIR" "$DATA_DIR/uploads" "$DATA_DIR/exports" "$DATA_DIR/backups" "$DATA_DIR/logs"
 run_as_root chown -R "$SERVICE_USER:$SERVICE_GROUP" "$DATA_DIR"
 
+BIND_HOST="0.0.0.0"
+TRUST_PROXY="loopback"
+if [ "$MODE" = "domain" ] && [ "$CONFIGURE_NGINX" = "yes" ]; then
+  BIND_HOST="127.0.0.1"
+elif [ "$MODE" = "domain" ]; then
+  TRUST_PROXY="1"
+fi
+
 env_tmp="$(mktemp)"
 service_tmp="$(mktemp)"
 trap 'rm -f "$env_tmp" "$service_tmp" "${nginx_tmp:-}"' EXIT
 
 cat > "$env_tmp" <<EOF
 PORT=$PORT_VALUE
-HEARTPET_HOST=$([ "$MODE" = "domain" ] && printf '127.0.0.1' || printf '0.0.0.0')
+HEARTPET_HOST=$BIND_HOST
 HEARTPET_SESSION_DAYS=30
-HEARTPET_TRUST_PROXY=loopback
+HEARTPET_TRUST_PROXY=$TRUST_PROXY
 HEARTPET_SECURE_COOKIE=$([ "$MODE" = "domain" ] && printf 'true' || printf 'false')
 EOF
 if [ "$MODE" = "domain" ]; then printf 'HEARTPET_APP_URL=%s\n' "$DOMAIN" >> "$env_tmp"; fi
@@ -210,6 +218,9 @@ echo "HeartPet wurde erfolgreich als systemd-Dienst eingerichtet."
 if [ "$MODE" = "domain" ]; then
   echo "Nächster Schritt: TLS-Zertifikat für $DOMAIN einrichten und danach $DOMAIN/setup öffnen."
   if [ "$CONFIGURE_NGINX" = "yes" ]; then echo "Mit Certbot typischerweise: certbot --nginx -d $domain_host"; fi
+  if [ "$CONFIGURE_NGINX" = "no" ]; then
+    echo "Externer Proxy: Ziel ist <LXC-IP>:$PORT_VALUE. Beschränke diesen Port per Firewall auf das Heimnetz beziehungsweise den Proxy."
+  fi
 else
   echo "Öffne http://<LXC-IP>:$PORT_VALUE/setup im Heimnetz."
 fi
