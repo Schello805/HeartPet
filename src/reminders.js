@@ -8,6 +8,7 @@ const { resolveStoredFilePath } = require("./storage-paths");
 const { createReminderRepository } = require("./repositories/reminder-repository");
 const { createNotificationChannels } = require("./services/notification-channels");
 const { createReminderDeliveryService } = require("./services/reminder-delivery");
+const { resolveAppBaseUrl } = require("./app-url");
 
 let reminderActionSecret = "";
 
@@ -484,14 +485,7 @@ function escapeTelegram(value) {
 }
 
 function getAppBaseUrl(settings) {
-  const raw = String(settings.app_domain || "").trim();
-  if (!raw) {
-    return "";
-  }
-  if (/^https?:\/\//i.test(raw)) {
-    return raw.replace(/\/+$/, "");
-  }
-  return `https://${raw}`.replace(/\/+$/, "");
+  return resolveAppBaseUrl(settings);
 }
 
 function formatReminderDate(value) {

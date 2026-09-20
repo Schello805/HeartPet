@@ -29,7 +29,7 @@ function initDatabase() {
 function seedDefaults(db) {
   const defaultSettings = {
     app_name: "HeartPet",
-    app_domain: "heartpet.de",
+    app_domain: "",
     app_logo_stored_name: "",
     organization_name: "Mein Tierbestand",
     smtp_host: "",
@@ -60,9 +60,9 @@ function seedDefaults(db) {
     daily_digest_only_when_open: "true",
     last_daily_digest_date: "",
     coop_camera_streams: "",
-    weather_location_name: "Herrieden",
-    weather_latitude: "49.2378",
-    weather_longitude: "10.5035",
+    weather_location_name: "",
+    weather_latitude: "",
+    weather_longitude: "",
     homematic_door_open_url: "",
     homematic_door_close_url: "",
     homematic_climate_url: "",
@@ -76,7 +76,7 @@ function seedDefaults(db) {
     homematic_ccu_session_id: "",
     homematic_temperature_url: "",
     homematic_humidity_url: "",
-    help_contact: "Support-Kontakt: [Name / Organisation], [E-Mail], [Telefon optional]",
+    help_contact: "",
   };
 
   const insertSetting = db.prepare(`

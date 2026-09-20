@@ -130,7 +130,7 @@ npm run images:optimize
 
 ## Reverse Proxy / SSL
 
-HeartPet selbst spricht nur HTTP. SSL und Domain wie `heartpet.de` sollten über einen externen Reverse Proxy erledigt werden, zum Beispiel Nginx auf dem Host.
+HeartPet selbst spricht nur HTTP. SSL und die eigene Domain sollten über einen externen Reverse Proxy erledigt werden, zum Beispiel Nginx auf dem Host.
 
 Eine Beispielkonfiguration liegt in:
 
@@ -143,6 +143,49 @@ Ziel der Weiterleitung:
 ```text
 http://127.0.0.1:3000
 ```
+
+### Separate Installation in einem weiteren LXC
+
+HeartPet ist nicht mandantenfähig. Jede Person benötigt deshalb eine eigene
+Instanz mit eigenem LXC, eigener Datenbank und eigenem `data/`-Verzeichnis.
+Eine weitere Domain darf nicht einfach auf eine bestehende Instanz zeigen,
+wenn die Datenbestände getrennt bleiben sollen.
+
+Für einen neuen LXC empfiehlt sich folgende Grundkonfiguration:
+
+```bash
+git clone https://github.com/Schello805/HeartPet.git /opt/HeartPet
+cd /opt/HeartPet
+./scripts/install.sh
+sudo chown -R www-data:www-data /opt/HeartPet/data
+
+sudo mkdir -p /etc/heartpet
+sudo cp deploy/heartpet.service.example /etc/systemd/system/heartpet.service
+sudo tee /etc/heartpet/heartpet.env >/dev/null <<'EOF'
+HEARTPET_APP_URL=https://tiere.example.de
+HEARTPET_SECURE_COOKIE=true
+HEARTPET_TRUST_PROXY=loopback
+HEARTPET_SESSION_DAYS=30
+EOF
+sudo chmod 600 /etc/heartpet/heartpet.env
+
+sudo systemctl daemon-reload
+./scripts/start.sh
+```
+
+Danach:
+
+1. DNS-Eintrag der Domain auf den neuen LXC beziehungsweise Reverse Proxy setzen.
+2. `tiere.example.de` in `deploy/nginx-heartpet.example.conf` ersetzen. Das Beispiel setzt Nginx im selben LXC voraus.
+3. Nginx-Konfiguration aktivieren und ein TLS-Zertifikat einrichten.
+4. In `/setup` einen eigenen Administrator und die neue Haltung anlegen.
+5. Unter `Verwaltung > Allgemein` Domain, Wetterstandort und Integrationen prüfen.
+6. Ein Backup erstellen und eine Wiederherstellung testen.
+
+Neue Installationen enthalten keine voreingestellte Domain und keinen
+voreingestellten Wetterstandort. Bleibt die öffentliche Adresse im Setup leer,
+verwendet HeartPet `HEARTPET_APP_URL`. Eine später im Adminbereich gespeicherte
+Domain hat Vorrang vor der Umgebungsvariable.
 
 ## Betrieb mit systemd
 

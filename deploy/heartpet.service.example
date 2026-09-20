@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-# Anpassen, z. B. /opt/HeartPet oder /root/HeartPet
+# Anpassen, falls HeartPet nicht unter /opt/HeartPet installiert ist.
 WorkingDirectory=/opt/HeartPet
 ExecStart=/usr/bin/npm start
 Restart=always
@@ -13,7 +13,16 @@ RestartSec=5
 User=www-data
 Group=www-data
 Environment=PORT=3000
+Environment=HEARTPET_HOST=127.0.0.1
+# Pro Installation eigene Werte in /etc/heartpet/heartpet.env hinterlegen.
+EnvironmentFile=-/etc/heartpet/heartpet.env
 # Ohne gesetzten Wert erzeugt HeartPet installationsbezogen ein sicheres Geheimnis.
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+ReadWritePaths=/opt/HeartPet/data
 
 [Install]
 WantedBy=multi-user.target

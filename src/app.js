@@ -122,6 +122,7 @@ const { createReminderScheduler } = require("./services/reminder-scheduler");
 const { createNotificationChannels } = require("./services/notification-channels");
 const { optimizeAnimalImageUpload } = require("./services/image-optimizer");
 const { getDefaultAppBaseUrl, listLocalAccessUrls, resolveBindHost } = require("./runtime/network");
+const { normalizeAppBaseUrl, resolveAppBaseUrl: resolveConfiguredAppBaseUrl } = require("./app-url");
 
 const app = express();
 app.set("trust proxy", process.env.HEARTPET_TRUST_PROXY || "loopback");
@@ -422,7 +423,7 @@ app.use(createAuthRouter({
   validateVeterinarian, passwordHashRounds: PASSWORD_HASH_ROUNDS, ensureSpeciesExists,
   upsertSetting, regenerateSession, safeLocalReturnPath, loginAttempts, userPresenceWrites,
   requireAuth, passwordResetAttempts, getSettingsObject, resolveAppBaseUrl,
-  sendPasswordResetEmail, createNotificationLog, createAuditLog,
+  sendPasswordResetEmail, createNotificationLog, createAuditLog, normalizeAppBaseUrl,
 }));
 
 app.use(createReminderActionsRouter({
@@ -653,6 +654,7 @@ app.use(createAdminSettingsRouter({
   getSettingsObject,
   homematicSessionService,
   isHttpUrl,
+  normalizeAppBaseUrl,
   normalizeSettingsInputValue,
   parseBooleanSettingValue,
   parseCoopCameraLines,
@@ -1870,22 +1872,9 @@ async function requestEmailChangeConfirmation({ userId, requestedByUserId, newEm
 }
 
 function resolveAppBaseUrl(settings) {
-  const raw = String(settings.app_domain || "").trim();
-  const configured = String(process.env.HEARTPET_APP_URL || "").trim();
-  if (!raw) {
-    if (configured) {
-      return normalizeAppBaseUrl(configured);
-    }
-    return getDefaultAppBaseUrl({ port, bindHost });
-  }
-  return normalizeAppBaseUrl(raw);
-}
-
-function normalizeAppBaseUrl(raw) {
-  if (/^https?:\/\//i.test(raw)) {
-    return raw.replace(/\/+$/, "");
-  }
-  return `https://${raw}`.replace(/\/+$/, "");
+  return resolveConfiguredAppBaseUrl(settings, {
+    fallbackUrl: getDefaultAppBaseUrl({ port, bindHost }),
+  });
 }
 
 app.__test = {

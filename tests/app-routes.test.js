@@ -402,12 +402,27 @@ test.after(() => {
 test("Ersteinrichtung funktioniert", async () => {
   const setupPage = await agent.get("/setup");
   assert.equal(setupPage.status, 200);
+  assert.match(setupPage.text, /name="app_domain"/);
+  assert.equal(db.prepare("SELECT value FROM settings WHERE key = 'app_domain'").get()?.value, "");
+
+  const invalidDomainResponse = await agent.post("/setup").type("form").send({
+    admin_name: "Test Admin",
+    admin_email: "admin@test.local",
+    admin_password: "passwort123!",
+    app_domain: "https://tiere.test.local/unterpfad",
+    veterinarian_name: "Tierarzt Test",
+    species_name: "Katze",
+    animal_name: "Minka",
+  });
+  assert.equal(invalidDomainResponse.status, 302);
+  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM users").get().count, 0);
 
   const setupResponse = await agent.post("/setup").type("form").send({
     admin_name: "Test Admin",
     admin_email: "admin@test.local",
     admin_password: "passwort123!",
     organization_name: "Test Tierbestand",
+    app_domain: "https://tiere.test.local",
     veterinarian_name: "Tierarzt Test",
     species_name: "Katze",
     animal_name: "Minka",
@@ -415,6 +430,7 @@ test("Ersteinrichtung funktioniert", async () => {
 
   assert.equal(setupResponse.status, 302);
   assert.match(setupResponse.headers.location || "", /^\/animals\/\d+$/);
+  assert.equal(db.prepare("SELECT value FROM settings WHERE key = 'app_domain'").get()?.value, "https://tiere.test.local");
 
   const speciesRows = db.prepare("SELECT name FROM species ORDER BY name ASC").all();
   assert.deepEqual(speciesRows.map((item) => item.name), ["Katze"]);

@@ -33,7 +33,7 @@
                   </div>
                   <div class="col-12">
                     <label class="form-label" for="app_domain">Domain</label>
-                    <input class="form-control" id="app_domain" type="text" name="app_domain" value="<%= settings.app_domain || '' %>" />
+                    <input class="form-control" id="app_domain" type="text" inputmode="url" spellcheck="false" name="app_domain" value="<%= settings.app_domain || '' %>" placeholder="https://tiere.example.de" />
                   </div>
                   <div class="col-12">
                     <label class="form-label" for="organization_name_general">Name der Haltung / Organisation</label>
@@ -100,15 +100,15 @@
             <div class="row g-3">
               <div class="col-md-6">
                 <label class="form-label" for="weather_location_name">Ort</label>
-                <input class="form-control" id="weather_location_name" name="weather_location_name" value="<%= settings.weather_location_name || '' %>" placeholder="Herrieden" />
+                <input class="form-control" id="weather_location_name" name="weather_location_name" value="<%= settings.weather_location_name || '' %>" placeholder="z. B. Berlin" />
               </div>
               <div class="col-6 col-md-3">
                 <label class="form-label" for="weather_latitude">Breitengrad</label>
-                <input class="form-control" id="weather_latitude" name="weather_latitude" type="number" min="-90" max="90" step="0.0001" value="<%= settings.weather_latitude || '' %>" placeholder="49.2378" />
+                <input class="form-control" id="weather_latitude" name="weather_latitude" type="number" min="-90" max="90" step="0.0001" value="<%= settings.weather_latitude || '' %>" placeholder="52.5200" />
               </div>
               <div class="col-6 col-md-3">
                 <label class="form-label" for="weather_longitude">Längengrad</label>
-                <input class="form-control" id="weather_longitude" name="weather_longitude" type="number" min="-180" max="180" step="0.0001" value="<%= settings.weather_longitude || '' %>" placeholder="10.5035" />
+                <input class="form-control" id="weather_longitude" name="weather_longitude" type="number" min="-180" max="180" step="0.0001" value="<%= settings.weather_longitude || '' %>" placeholder="13.4050" />
               </div>
             </div>
             <div class="form-text">HeartPet lädt aktuelles Wetter, Sonnenaufgang und Sonnenuntergang ohne API-Schlüssel von Open-Meteo. Koordinaten bestimmen den genauen Standort.</div>

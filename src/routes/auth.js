@@ -8,7 +8,7 @@ function createAuthRouter({
   validateVeterinarian, passwordHashRounds, ensureSpeciesExists, upsertSetting,
   regenerateSession, safeLocalReturnPath, loginAttempts, userPresenceWrites, requireAuth,
   passwordResetAttempts, getSettingsObject, resolveAppBaseUrl, sendPasswordResetEmail,
-  createNotificationLog, createAuditLog,
+  createNotificationLog, createAuditLog, normalizeAppBaseUrl,
 }) {
   const router = express.Router();
   const PASSWORD_HASH_ROUNDS = passwordHashRounds;
@@ -30,12 +30,19 @@ function createAuthRouter({
     const adminEmail = String(body.admin_email || "").trim().toLowerCase();
     const adminPassword = String(body.admin_password || "");
     const organizationName = String(body.organization_name || "").trim();
+    const submittedAppDomain = String(body.app_domain || "").trim();
+    const appDomain = normalizeAppBaseUrl(submittedAppDomain);
     const veterinarianName = String(body.veterinarian_name || "").trim();
     const animalName = String(body.animal_name || "").trim();
     const speciesName = String(body.species_name || "").trim();
   
     if (!adminName || !adminEmail || !adminPassword || !veterinarianName || !animalName || !speciesName) {
       setFlash(req, "error", "Bitte fülle alle Pflichtfelder der Ersteinrichtung aus.");
+      return res.redirect("/setup");
+    }
+
+    if (submittedAppDomain && !appDomain) {
+      setFlash(req, "error", "Bitte gib eine gültige Domain ohne Pfad ein, zum Beispiel https://tiere.example.de.");
       return res.redirect("/setup");
     }
   
@@ -106,6 +113,9 @@ function createAuthRouter({
   
       if (organizationName) {
         upsertSetting(db, "organization_name", organizationName);
+      }
+      if (appDomain) {
+        upsertSetting(db, "app_domain", appDomain);
       }
       upsertSetting(db, "setup_complete", "true");
   

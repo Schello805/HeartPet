@@ -7,6 +7,7 @@ function createAdminSettingsRouter({
   getSettingsObject,
   homematicSessionService,
   isHttpUrl,
+  normalizeAppBaseUrl,
   normalizeSettingsInputValue,
   parseBooleanSettingValue,
   parseCoopCameraLines,
@@ -61,15 +62,20 @@ function createAdminSettingsRouter({
     const invalidCamera = fields.includes("coop_camera_streams")
       ? parseCoopCameraLines(req.body.coop_camera_streams).find((camera) => !camera.valid)
       : null;
+    const submittedAppDomain = String(req.body.app_domain || "").trim();
+    const normalizedAppDomain = normalizeAppBaseUrl(submittedAppDomain);
+    const invalidAppDomain = fields.includes("app_domain") && submittedAppDomain && !normalizedAppDomain;
     const invalidDoorDatapoint = ["homematic_door_open_datapoint_id", "homematic_door_close_datapoint_id", "homematic_door_command_datapoint_id"].find((key) =>
       fields.includes(key) && String(req.body[key] || "").trim() && !/^\d+$/.test(String(req.body[key]).trim())
     );
     const invalidDoorValue = ["homematic_door_open_value", "homematic_door_close_value"].find((key) =>
       fields.includes(key) && !/^-?\d+(?:[.,]\d+)?$/.test(String(req.body[key] || "").trim())
     );
-    if (invalidUrlField || invalidCamera || invalidDoorDatapoint || invalidDoorValue) {
+    if (invalidUrlField || invalidCamera || invalidAppDomain || invalidDoorDatapoint || invalidDoorValue) {
       setFlash(req, "error", invalidCamera
         ? `Ungültige Kamera-URL in der Zeile „${invalidCamera.source}“.`
+        : invalidAppDomain
+          ? "Bitte gib eine gültige Domain ohne Pfad ein, zum Beispiel https://tiere.example.de."
         : invalidDoorDatapoint
           ? "Der Tür-Datenpunkt muss eine numerische ISE-ID sein."
           : invalidDoorValue
@@ -92,6 +98,11 @@ function createAdminSettingsRouter({
       }
       if (booleanKeys.has(key)) {
         upsertSetting(db, key, parseBooleanSettingValue(req.body[key]) ? "true" : "false");
+        return;
+      }
+
+      if (key === "app_domain") {
+        upsertSetting(db, key, normalizedAppDomain);
         return;
       }
 

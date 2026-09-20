@@ -248,6 +248,11 @@ test("Galeriebilder sind auf dem Smartphone vollständig verwaltbar", async ({ p
   await page.locator("[data-confirm-modal-submit]").click();
   await expect(page).toHaveURL(/\/animals\/1#animal-dokumente$/);
   await expect(page.locator(".gallery-card", { hasText: "Mobil geändert" })).toHaveCount(0);
+
+  await page.getByRole("link", { name: "Tier bearbeiten" }).click();
+  await page.getByRole("button", { name: "Profilbild entfernen" }).click();
+  await page.locator("[data-confirm-modal-submit]").click();
+  await expect(page).toHaveURL(/\/animals\/1$/);
 });
 
 test("App-Logo kann auf dem Smartphone ersetzt und zurückgesetzt werden", async ({ page }) => {
