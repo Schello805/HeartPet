@@ -416,6 +416,35 @@ test("Dashboard zeigt mobil nur einen Einstieg für ein neues Tier", async ({ pa
   await expect(adminNav.getByRole("link", { name: /Stall/ })).toBeVisible();
 });
 
+test("Android-Nutzer können HeartPet über den nativen Dialog installieren", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.addEventListener("DOMContentLoaded", () => {
+      const event = new Event("beforeinstallprompt", { cancelable: true });
+      Object.defineProperties(event, {
+        prompt: {
+          value: async () => {
+            window.__heartPetInstallPromptCalled = true;
+          },
+        },
+        userChoice: { value: Promise.resolve({ outcome: "accepted" }) },
+      });
+      window.dispatchEvent(event);
+    });
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await ensureAuthenticated(page);
+  await page.goto("/");
+
+  const prompt = page.locator("[data-app-install-prompt]");
+  await expect(prompt).toBeVisible();
+  await prompt.getByRole("button", { name: "Installieren" }).click();
+  await expect.poll(() => page.evaluate(() => window.__heartPetInstallPromptCalled)).toBe(true);
+  await expect(prompt).toBeHidden();
+
+  await page.locator(".app-mobile-bottom-nav").getByRole("button", { name: "Mehr" }).click();
+  await expect(page.locator("[data-app-install-entry]")).toBeVisible();
+});
+
 test("Dokumentkategorie lässt sich im Bearbeiten-Dialog speichern", async ({ page }) => {
   await ensureAuthenticated(page);
   await page.goto("/admin/stammdaten");

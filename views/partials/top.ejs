@@ -121,6 +121,14 @@
                     <div class="col-12"><a class="btn btn-outline-secondary w-100 text-start p-3" href="/hilfe"><strong class="d-block">Hilfe</strong><span class="small">Anleitungen</span></a></div>
                   </div>
 
+                  <section class="mobile-install-entry d-none" data-app-install-entry aria-labelledby="mobile-install-title">
+                    <div>
+                      <strong class="d-block" id="mobile-install-title">HeartPet installieren</strong>
+                      <span class="small text-body-secondary" data-app-install-description>Wie eine App vom Startbildschirm öffnen.</span>
+                    </div>
+                    <button type="button" class="btn btn-primary flex-shrink-0" data-app-install-action>Installieren</button>
+                  </section>
+
                   <div class="app-mobile-account mt-auto">
                     <div class="small-label">Eingeloggt als</div>
                     <% const mobileDisplayName = String(currentUser?.name || "").trim(); %>
@@ -131,6 +139,16 @@
                   </div>
                 </div>
               </div>
+
+              <aside class="app-install-prompt d-none" data-app-install-prompt aria-labelledby="app-install-prompt-title">
+                <img src="<%= resolvedAppLogoUrl %>" alt="" width="42" height="42" />
+                <div class="app-install-prompt-copy">
+                  <strong id="app-install-prompt-title">HeartPet als App installieren</strong>
+                  <span data-app-install-description>Schneller Zugriff direkt vom Startbildschirm.</span>
+                </div>
+                <button type="button" class="btn btn-primary btn-sm" data-app-install-action>Installieren</button>
+                <button type="button" class="app-install-dismiss" data-app-install-dismiss aria-label="Installationshinweis schließen">×</button>
+              </aside>
 
               <nav class="app-mobile-bottom-nav d-lg-none" aria-label="Mobile Hauptnavigation">
                 <a class="app-mobile-nav-item <%= currentPath === '/' ? 'active' : '' %>" href="/">

@@ -322,6 +322,12 @@ app.get("/app.webmanifest", (req, res) => {
   return res.type("application/manifest+json").send(buildWebAppManifest(getSettingsObject(db), getAppIconVersion()));
 });
 
+app.get("/service-worker.js", (req, res) => {
+  res.set("Cache-Control", "no-cache, must-revalidate");
+  res.set("Service-Worker-Allowed", "/");
+  return res.type("application/javascript").sendFile(path.join(projectRoot, "public", "service-worker.js"));
+});
+
 app.get(/^\/app-icon\/(32|180|192|512)\.png$/, async (req, res, next) => {
   const size = Number(req.params[0]);
   if (!APP_ICON_SIZES.has(size)) return res.sendStatus(404);

@@ -959,6 +959,17 @@ test("Web-App-Manifest und Icons sind öffentlich und verwenden das App-Logo", a
   const login = await request(app).get("/login");
   assert.match(login.text, /rel="manifest"/);
   assert.match(login.text, /rel="apple-touch-icon" sizes="180x180"/);
+  assert.match(login.text, /\/static\/js\/app-install\.js/);
+});
+
+test("Service Worker aktiviert die Installation ohne private App-Daten zu cachen", async () => {
+  const response = await request(app).get("/service-worker.js");
+  assert.equal(response.status, 200);
+  assert.match(response.headers["content-type"], /^application\/javascript/);
+  assert.equal(response.headers["service-worker-allowed"], "/");
+  assert.match(response.headers["cache-control"], /no-cache/);
+  assert.match(response.text, /self\.clients\.claim/);
+  assert.doesNotMatch(response.text, /caches\.open/);
 });
 
 test("Weitere Admin-Aliase sind erreichbar", async () => {
