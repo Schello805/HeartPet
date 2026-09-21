@@ -33,11 +33,7 @@ Das Skript fragt anschließend:
 
 Danach installiert und startet es `heartpet.service`. Es zeigt ein zufälliges Einmalpasswort für den ersten Login an. Dieses Passwort muss nach der ersten Anmeldung geändert werden.
 
-Wichtig:
-
-- Das Repository nicht nach `/root/HeartPet` klonen.
-- Nicht den gesamten Ordner `/opt/HeartPet` an `www-data` übertragen. Das Skript setzt nur für `data/` die erforderlichen Rechte.
-- Bei einem externen Reverse Proxy dessen Ziel auf `<LXC-IP>:3000` setzen und den Port auf Heimnetz beziehungsweise Proxy beschränken.
+Bei einem externen Reverse Proxy dessen Ziel auf `<LXC-IP>:3000` setzen und den Port auf Heimnetz beziehungsweise Proxy beschränken.
 
 Nur für eine Entwicklungsumgebung lassen sich die Abhängigkeiten ohne Dienstkonfiguration installieren:
 
