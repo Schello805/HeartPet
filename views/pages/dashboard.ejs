@@ -83,6 +83,32 @@
 
 </div>
 
+<% const quickAnimals = typeof activeAnimals !== 'undefined' ? activeAnimals : []; %>
+<% const canQuickCapture = permissions.canManageFeedings || permissions.canManageNotes || permissions.canManageHealth || permissions.canManageReminders; %>
+<% if (quickAnimals.length && canQuickCapture) { %>
+<div class="row g-2 mb-2 quick-entry-section" data-quick-entry data-dashboard-section="quick-entry" data-dashboard-title="Schnellerfassung">
+  <div class="col-12"><section class="card border-0 dashboard-surface-card app-section-card quick-entry-card">
+  <div class="card-body p-2 p-md-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+      <div><h2 class="h5 mb-1">Schnellerfassung</h2><p class="small text-body-secondary mb-0">Unterwegs einen Eintrag mit wenigen Fingertipps erfassen.</p></div>
+      <a href="/calendar.ics" class="btn btn-outline-secondary btn-sm">Kalender exportieren</a>
+    </div>
+    <label class="form-label" for="quick-entry-animal">Tier</label>
+    <select class="form-select form-select-lg mb-3" id="quick-entry-animal" data-quick-entry-animal>
+      <% quickAnimals.forEach((animal) => { %><option value="<%= animal.id %>"><%= getAnimalSpeciesIcon(animal.species_name) %> <%= animal.name %></option><% }) %>
+    </select>
+    <div class="quick-entry-actions">
+      <% if (permissions.canManageFeedings) { %><a class="btn btn-outline-primary" data-drawer="animal-entry" data-quick-entry-kind="feeding" href="#">Fütterung</a><% } %>
+      <% if (permissions.canManageNotes) { %><a class="btn btn-outline-primary" data-drawer="animal-entry" data-quick-entry-kind="note" href="#">Notiz</a><% } %>
+      <% if (permissions.canManageHealth) { %><a class="btn btn-outline-primary" data-drawer="animal-entry" data-quick-entry-kind="medication" href="#">Medikament</a><% } %>
+      <% if (permissions.canManageHealth) { %><a class="btn btn-outline-primary" data-drawer="animal-entry" data-quick-entry-kind="appointment" href="#">Termin</a><% } %>
+      <% if (permissions.canManageReminders) { %><a class="btn btn-outline-primary" data-drawer="animal-entry" data-quick-entry-kind="reminder" href="#">Erinnerung</a><% } %>
+    </div>
+  </div>
+  </section></div>
+</div>
+<% } %>
+
 <% if (hasPriorityContent) { %>
 <div class="row g-2 dashboard-priority-grid dashboard-priority-section" data-dashboard-section="priority" data-dashboard-title="Hinweise und Erinnerungen">
   <% if (urgentList.length > 0) { %>

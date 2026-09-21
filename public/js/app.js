@@ -864,10 +864,7 @@ function initEventFormBehavior(scope = document) {
       }
       if (veterinarianSelect) {
         veterinarianSelect.disabled = !showVeterinarian;
-        veterinarianSelect.required = showVeterinarian;
-        if (!showVeterinarian) {
-          veterinarianSelect.value = "";
-        }
+        veterinarianSelect.required = false;
       }
 
       if (createReminder) {

@@ -178,12 +178,6 @@ function createAnimalEntriesRouter({
       return res.redirect(`/animals/${req.params.id}/events/new?return_to=${encodeURIComponent(returnTo)}`);
     }
 
-    if (req.body.handled_by_veterinarian && !req.body.veterinarian_id) {
-      discardUploadedFile(req.file);
-      setFlash(req, "error", "Bitte wähle einen Tierarzt aus.");
-      return res.redirect(`/animals/${req.params.id}/events/new?return_to=${encodeURIComponent(returnTo)}`);
-    }
-
     if (eventKind === "reminder" && !permissions.canManageReminders) {
       discardUploadedFile(req.file);
       setFlash(req, "error", "Für freie Erinnerungen fehlen die erforderlichen Rechte.");

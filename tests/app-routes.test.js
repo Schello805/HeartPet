@@ -504,6 +504,7 @@ test("Datenbank-Migrationen werden protokolliert", () => {
   assert.ok(migrationIds.includes("007_animal_microchip_details"));
   assert.ok(migrationIds.includes("008_vaccination_presets"));
   assert.ok(migrationIds.includes("009_repair_vaccination_presets"));
+  assert.ok(migrationIds.includes("010_care_management"));
   assert.ok(db.prepare("SELECT 1 FROM vaccination_presets WHERE species_name = ? AND name = ?").get(
     "Katze",
     "RCP (Katzenschnupfen und Katzenseuche)",
@@ -2618,6 +2619,7 @@ test("Wichtige interne Links liefern keine 404", async () => {
     "/",
     "/animals",
     "/animals/1",
+    "/versorgung",
     "/admin/allgemein",
     "/admin/benachrichtigungen",
     "/admin/stammdaten",
@@ -2667,6 +2669,72 @@ test("Wichtige Hauptseiten rendern ohne Template-Fehler", async () => {
     const response = await agent.get(href).redirects(3);
     assertNoTemplateError(response, href);
   }
+});
+
+test("Kalenderexport liefert globale und tierbezogene ICS-Dateien", async () => {
+  const appointmentId = db.prepare(`
+    INSERT INTO animal_appointments (animal_id, title, appointment_at)
+    VALUES (?, ?, ?)
+  `).run(1, "Kalenderkontrolle", dayjs().add(5, "day").format("YYYY-MM-DDTHH:mm")).lastInsertRowid;
+
+  const globalCalendar = await agent.get("/calendar.ics");
+  assert.equal(globalCalendar.status, 200);
+  assert.match(globalCalendar.headers["content-type"], /text\/calendar/);
+  assert.match(globalCalendar.text, new RegExp(`UID:appointment-${appointmentId}@heartpet\\.local`));
+
+  const animalCalendar = await agent.get("/animals/1/calendar.ics");
+  assert.equal(animalCalendar.status, 200);
+  assert.match(animalCalendar.headers["content-disposition"], /attachment/);
+  assert.match(animalCalendar.text, /Kalenderkontrolle/);
+});
+
+test("Versorgungsseite verwaltet Bestände und Kosten vollständig", async () => {
+  const page = await agent.get("/versorgung");
+  assert.equal(page.status, 200);
+  assert.match(page.text, /Bestände und Kosten/);
+
+  const inventoryDrawer = await agent.get("/versorgung/bestand/new").set("X-Requested-With", "heartpet-drawer");
+  assert.equal(inventoryDrawer.status, 200);
+  assert.match(inventoryDrawer.text, /data-drawer-fragment/);
+
+  const inventoryCreate = await agent.post("/versorgung/bestand").type("form").send({
+    name: "Testfutter",
+    category: "Futter",
+    quantity: "2,5",
+    unit: "kg",
+    minimum_quantity: "1",
+    expires_on: "2027-01-01",
+  });
+  assert.equal(inventoryCreate.status, 302);
+  const inventory = db.prepare("SELECT * FROM inventory_items WHERE name = ?").get("Testfutter");
+  assert.equal(inventory.quantity, 2.5);
+
+  const inventoryUpdate = await agent.post(`/versorgung/bestand/${inventory.id}/update`).type("form").send({
+    name: "Testfutter neu",
+    category: "Futter",
+    quantity: "0.5",
+    unit: "kg",
+    minimum_quantity: "1",
+  });
+  assert.equal(inventoryUpdate.status, 302);
+  assert.equal(db.prepare("SELECT name FROM inventory_items WHERE id = ?").get(inventory.id).name, "Testfutter neu");
+
+  const expenseCreate = await agent.post("/versorgung/kosten").type("form").send({
+    description: "Testrechnung",
+    category: "Tierarzt",
+    amount: "12,34",
+    expense_date: "2026-09-21",
+    animal_id: "1",
+  });
+  assert.equal(expenseCreate.status, 302);
+  const expense = db.prepare("SELECT * FROM expenses WHERE description = ?").get("Testrechnung");
+  assert.equal(expense.amount_cents, 1234);
+  assert.equal(expense.animal_id, 1);
+
+  assert.equal((await agent.post(`/versorgung/kosten/${expense.id}/delete`).type("form").send({})).status, 302);
+  assert.equal((await agent.post(`/versorgung/bestand/${inventory.id}/delete`).type("form").send({})).status, 302);
+  assert.equal(db.prepare("SELECT 1 FROM expenses WHERE id = ?").get(expense.id), undefined);
+  assert.equal(db.prepare("SELECT 1 FROM inventory_items WHERE id = ?").get(inventory.id), undefined);
 });
 
 test("Rechtstext-Seiten und Einstellungen sind vollständig entfernt", async () => {

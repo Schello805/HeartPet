@@ -43,10 +43,10 @@
           const doc = parser.parseFromString(text, "text/html");
           const fragment = doc.querySelector("[data-drawer-fragment]");
           const drawerBody = document.querySelector("[data-drawer-body]");
+          showToastFromDocument(doc);
 
           if (fragment && drawerBody) {
             drawerBody.innerHTML = "";
-            showToastFromDocument(doc);
             drawerBody.appendChild(fragment.cloneNode(true));
             const drawerTitle = document.querySelector("#drawer-title");
             if (drawerTitle) {

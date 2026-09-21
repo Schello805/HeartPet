@@ -848,6 +848,22 @@ test("Leere Impfungen bieten einen Plus-Einstieg mit tierartspezifischer Auswahl
   await expect(page.getByLabel("Bezeichnung")).toHaveValue("Tollwut");
 });
 
+test("Impfung lässt sich mobil auch ohne konkrete Tierarzt-Zuordnung speichern", async ({ page }) => {
+  await ensureAuthenticated(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/animals/1");
+  await page.getByRole("link", { name: /Aktion hinzufügen/ }).click();
+  await page.locator("[data-drawer-body] label[for='event-kind-vaccination']").click();
+  await page.getByLabel("Bezeichnung").fill("Mobile Testimpfung");
+  await page.getByLabel("Datum").fill("2026-09-21");
+  await page.getByLabel("Durch Tierarzt").check();
+  await page.getByLabel("Tierarzt (optional)").selectOption("");
+  await page.getByRole("button", { name: "Eintrag speichern" }).click();
+
+  await expect(page.locator("[data-drawer-body]")).toBeEmpty();
+  await expect(page.getByText("Impfung durchgeführt: Mobile Testimpfung")).toBeVisible();
+});
+
 test("Kernseiten erfüllen grundlegende Barrierefreiheitsregeln", async ({ page }) => {
   await ensureAuthenticated(page);
   await page.setViewportSize({ width: 390, height: 844 });

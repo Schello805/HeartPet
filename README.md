@@ -1,6 +1,6 @@
 # HeartPet
 
-HeartPet ist eine deutschsprachige, selbst gehostete Tierverwaltung für private Halter, Gnadenhöfe und kleinere Tierhaltungen. Die App verwaltet Tierakten, Bilder, Dokumente, Tierärzte, Medikamente, Impfungen, Fütterung und Erinnerungen lokal auf dem eigenen Server.
+HeartPet ist eine deutschsprachige, selbst gehostete Tierverwaltung für private Halter, Gnadenhöfe und kleinere Tierhaltungen. Die App verwaltet Tierakten, Bilder, Dokumente, Tierärzte, Medikamente, Impfungen, Fütterung, Erinnerungen, Vorräte und Kosten lokal auf dem eigenen Server. Termine und offene Erinnerungen lassen sich als Kalenderdatei exportieren; auf dem Smartphone steht eine kompakte Schnellerfassung bereit.
 
 ## Voraussetzungen
 

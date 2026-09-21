@@ -19,6 +19,12 @@ function createDashboardService({ db, animalWorkspace, getSettings, homematic, p
       WHERE animals.status = 'Aktiv' GROUP BY species.id, species.name
       ORDER BY species.name COLLATE NOCASE ASC
     `).all();
+    const activeAnimals = db.prepare(`
+      SELECT animals.id, animals.name, species.name AS species_name
+      FROM animals LEFT JOIN species ON species.id = animals.species_id
+      WHERE animals.status = 'Aktiv'
+      ORDER BY animals.name COLLATE NOCASE ASC
+    `).all();
     const upcomingReminders = db.prepare(`
       SELECT reminders.*, animals.name AS animal_name FROM reminders
       LEFT JOIN animals ON animals.id = reminders.animal_id
@@ -72,6 +78,7 @@ function createDashboardService({ db, animalWorkspace, getSettings, homematic, p
       searchResults: searchable ? search(q) : [],
       stats,
       speciesCounts,
+      activeAnimals,
       upcomingReminders,
       urgentReminders,
       attentionAnimals,
