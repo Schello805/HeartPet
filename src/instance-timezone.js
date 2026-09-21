@@ -5,6 +5,19 @@ const timezone = require("dayjs/plugin/timezone");
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+const COMMON_TIME_ZONES = [
+  "Europe/Berlin",
+  "Europe/Vienna",
+  "Europe/Zurich",
+  "Europe/London",
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "Asia/Tokyo",
+  "Australia/Sydney",
+];
+
 function isValidTimeZone(value) {
   const timeZone = String(value || "").trim();
   if (!timeZone) return false;
@@ -31,15 +44,21 @@ function getInstanceDateTime(settings = {}, value) {
   return dateTime.tz(resolveInstanceTimeZone(settings));
 }
 
-function listTimeZones() {
-  const supported = typeof Intl.supportedValuesOf === "function"
-    ? Intl.supportedValuesOf("timeZone")
-    : [
-      "Europe/Berlin", "Europe/Vienna", "Europe/Zurich", "Europe/London",
-      "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
-      "Asia/Tokyo", "Australia/Sydney",
-    ];
-  return ["UTC", ...supported.filter((value) => value !== "UTC")];
+function listTimeZones(supportedValuesOf = Intl.supportedValuesOf) {
+  let supported = [];
+  if (typeof supportedValuesOf === "function") {
+    try {
+      supported = supportedValuesOf("timeZone");
+    } catch {
+      supported = [];
+    }
+  }
+
+  return [
+    "UTC",
+    ...[...new Set([...COMMON_TIME_ZONES, ...supported])]
+      .filter((value) => value !== "UTC" && isValidTimeZone(value)),
+  ];
 }
 
 module.exports = {

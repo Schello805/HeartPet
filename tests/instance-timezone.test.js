@@ -26,3 +26,12 @@ test("Zeitzonen-Auswahl enthält UTC und mitteleuropäische Zonen", () => {
   assert.ok(values.includes("Europe/Berlin"));
   assert.equal(new Set(values).size, values.length);
 });
+
+test("Zeitzonen-Auswahl bleibt bei fehlenden oder leeren ICU-Daten nutzbar", () => {
+  for (const provider of [null, () => [], () => { throw new Error("ICU fehlt"); }]) {
+    const values = listTimeZones(provider);
+    assert.equal(values[0], "UTC");
+    assert.ok(values.includes("Europe/Berlin"));
+    assert.ok(values.length > 1);
+  }
+});

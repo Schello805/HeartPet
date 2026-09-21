@@ -3211,6 +3211,12 @@ test("Instanz-Zeitzone kann ausgewählt und nur gültig gespeichert werden", asy
   }
 });
 
+test("Zeitzonen-Template bleibt mit einem älteren Serverprozess auswählbar", () => {
+  const template = fs.readFileSync(path.join(__dirname, "..", "views", "pages", "admin-communication.ejs"), "utf8");
+  assert.match(template, /fallbackTimeZoneOptions/);
+  assert.match(template, /Europe\/Berlin/);
+});
+
 test("Normales Speichern von E-Mail und Telegram ändert den Aktiv-Status nicht", async () => {
   let response = await agent
     .post("/admin/settings")
