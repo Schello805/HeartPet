@@ -42,7 +42,7 @@ async function waitForServer(url, timeoutMs = 5_000) {
   throw new Error(`Server unter ${url} wurde nicht rechtzeitig erreichbar.`);
 }
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page }, testInfo) => {
   tempDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "heartpet-playwright-"));
   process.env.HEARTPET_DATA_DIR = tempDataDir;
   process.env.NODE_ENV = "test";
@@ -55,6 +55,9 @@ test.beforeEach(async ({ page }) => {
   const { createInitialAdmin } = require("../../src/initial-admin");
   const setupDb = initDatabase();
   createInitialAdmin(setupDb, { email: adminCredentials.email, name: adminCredentials.name, password: adminCredentials.initialPassword });
+  if (testInfo.title !== "Erster Login erzwingt ein neues Passwort und bietet Passwort-Augen") {
+    setupDb.prepare("UPDATE users SET must_change_password = 0 WHERE email = ?").run(adminCredentials.email);
+  }
   const veterinarianId = setupDb.prepare("INSERT INTO veterinarians (name) VALUES (?)").run("Praxis E2E").lastInsertRowid;
   const speciesId = setupDb.prepare("INSERT INTO species (name) VALUES (?)").run("Katze").lastInsertRowid;
   setupDb.prepare("INSERT INTO animals (name, species_id, status, veterinarian_id) VALUES (?, ?, ?, ?)").run("Minka", speciesId, "Aktiv", veterinarianId);
@@ -100,13 +103,10 @@ async function ensureAuthenticated(page) {
   await page.goto("/login");
   await page.getByLabel("E-Mail").fill(adminCredentials.email);
   await page.getByLabel("Passwort", { exact: true }).fill(adminCredentials.initialPassword);
-  await page.getByRole("button", { name: "Anmelden" }).click();
-  if (page.url().includes("/first-login/password")) {
-    await page.getByLabel("Neues Passwort", { exact: true }).fill(adminCredentials.password);
-    await page.getByLabel("Passwort wiederholen").fill(adminCredentials.password);
-    await page.getByRole("button", { name: "Passwort speichern und HeartPet öffnen" }).click();
-  }
-  await expect(page).toHaveURL(/\/($|dashboard|animals(\/.*)?$)/);
+  await Promise.all([
+    page.waitForURL(/\/($|dashboard|animals(\/.*)?$)/, { timeout: 15_000 }),
+    page.getByRole("button", { name: "Anmelden" }).click(),
+  ]);
 }
 
 test("Erster Login erzwingt ein neues Passwort und bietet Passwort-Augen", async ({ page }) => {
