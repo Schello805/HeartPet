@@ -4,11 +4,22 @@ const dayjs = require("dayjs");
 
 const {
   buildPermissions,
+  getAnimalAge,
   getAnimalLifecycle,
   getReminderStatusMeta,
   normalizeAnimalStatus,
   summarizeReminderState,
 } = require("../src/view-helpers");
+
+test("Tieralter zeigt Jahre immer zusammen mit vollen Monaten und niemals Tage", () => {
+  const today = "2026-09-21";
+  assert.equal(getAnimalAge("2025-05-21", today), "1 Jahr und 4 Monate");
+  assert.equal(getAnimalAge("2024-08-21", today), "2 Jahre und 1 Monat");
+  assert.equal(getAnimalAge("2025-09-21", today), "1 Jahr und 0 Monate");
+  assert.equal(getAnimalAge("2026-04-21", today), "5 Monate");
+  assert.equal(getAnimalAge("2026-09-10", today), "0 Monate");
+  assert.equal(getAnimalAge("2026-09-22", today), "-");
+});
 
 test("Tierstatus wird normalisiert und Lifecycle-Bereiche bleiben eindeutig", () => {
   assert.equal(normalizeAnimalStatus("Unbekannt"), "Aktiv");

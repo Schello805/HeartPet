@@ -14,29 +14,27 @@ function formatDateTime(value) {
   return dayjs(value).format("DD.MM.YYYY HH:mm");
 }
 
-function getAnimalAge(dateString) {
+function getAnimalAge(dateString, referenceDate = dayjs()) {
   if (!dateString) {
     return "-";
   }
 
   const birthDate = dayjs(dateString);
-  if (!birthDate.isValid() || birthDate.isAfter(dayjs())) {
+  const now = dayjs(referenceDate);
+  if (!birthDate.isValid() || !now.isValid() || birthDate.isAfter(now)) {
     return "-";
   }
 
-  const now = dayjs();
-  const years = now.diff(birthDate, "year");
+  const totalMonths = now.diff(birthDate, "month");
+  const years = Math.floor(totalMonths / 12);
+  const months = totalMonths % 12;
   if (years >= 1) {
-    return years === 1 ? "1 Jahr" : `${years} Jahre`;
+    const yearLabel = years === 1 ? "1 Jahr" : `${years} Jahre`;
+    const monthLabel = months === 1 ? "1 Monat" : `${months} Monate`;
+    return `${yearLabel} und ${monthLabel}`;
   }
 
-  const months = now.diff(birthDate, "month");
-  if (months >= 1) {
-    return months === 1 ? "1 Monat" : `${months} Monate`;
-  }
-
-  const days = now.diff(birthDate, "day");
-  return days === 1 ? "1 Tag" : `${days} Tage`;
+  return months === 1 ? "1 Monat" : `${months} Monate`;
 }
 
 function getAnimalInitial(name) {
