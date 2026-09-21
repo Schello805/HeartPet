@@ -8,9 +8,7 @@
     <title><%= pageTitle %> | <%= appSettings?.app_name || 'HeartPet' %></title>
     <meta name="description" content="Rückmeldung zu einer HeartPet-Erinnerung. Interne Bestätigungsseite für E-Mail-Aktionen." />
     <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
-    <link rel="icon" type="image/png" sizes="any" href="<%= resolvedAppLogoUrl %>" />
-    <link rel="shortcut icon" type="image/png" href="<%= resolvedAppLogoUrl %>" />
-    <link rel="apple-touch-icon" href="<%= resolvedAppLogoUrl %>" />
+    <%- include('../partials/app-icons', { iconBaseUrl: resolvedAssetBaseUrl }) %>
     <link rel="stylesheet" href="/static/vendor/bootstrap/bootstrap.min.css" />
     <link rel="stylesheet" href="<%= `${resolvedAssetBaseUrl}/static/css/theme-foundation.css` %>" />
     <link rel="stylesheet" href="<%= `${resolvedAssetBaseUrl}/static/css/theme-layout.css` %>" />

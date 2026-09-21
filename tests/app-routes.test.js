@@ -939,7 +939,26 @@ test("favicon.ico leitet auf das aktuelle App-Logo weiter", async () => {
   const response = await agent.get("/favicon.ico");
   assert.equal(response.status, 302);
   assert.ok(response.headers.location);
-  assert.match(response.headers.location, /logo-heartpet\.png|\/app-logo/i);
+  assert.match(response.headers.location, /\/app-icon\/32\.png/i);
+});
+
+test("Web-App-Manifest und Icons sind öffentlich und verwenden das App-Logo", async () => {
+  const manifest = await request(app).get("/app.webmanifest");
+  assert.equal(manifest.status, 200);
+  assert.match(manifest.headers["content-type"], /^application\/manifest\+json/);
+  assert.equal(manifest.body.start_url, "/");
+  assert.deepEqual(manifest.body.icons.map((icon) => icon.sizes), ["192x192", "512x512"]);
+
+  for (const size of [32, 180, 192, 512]) {
+    const icon = await request(app).get(`/app-icon/${size}.png`).buffer(true);
+    assert.equal(icon.status, 200);
+    assert.match(icon.headers["content-type"], /^image\/png/);
+    assert.equal(icon.body.subarray(1, 4).toString("ascii"), "PNG");
+  }
+
+  const login = await request(app).get("/login");
+  assert.match(login.text, /rel="manifest"/);
+  assert.match(login.text, /rel="apple-touch-icon" sizes="180x180"/);
 });
 
 test("Weitere Admin-Aliase sind erreichbar", async () => {

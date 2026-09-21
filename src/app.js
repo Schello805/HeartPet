@@ -121,6 +121,7 @@ const { createErrorHandler } = require("./middleware/error-handler");
 const { createReminderScheduler } = require("./services/reminder-scheduler");
 const { createNotificationChannels } = require("./services/notification-channels");
 const { optimizeAnimalImageUpload } = require("./services/image-optimizer");
+const { APP_ICON_SIZES, buildWebAppManifest, createAppIconPng } = require("./services/app-icons");
 const { getDefaultAppBaseUrl, listLocalAccessUrls, resolveBindHost } = require("./runtime/network");
 const { normalizeAppBaseUrl, resolveAppBaseUrl: resolveConfiguredAppBaseUrl } = require("./app-url");
 const { listTimeZones, resolveInstanceTimeZone } = require("./instance-timezone");
@@ -303,8 +304,7 @@ app.use(
   }),
 );
 app.get("/favicon.ico", (req, res) => {
-  const logoUrl = getAppLogoUrl(getSettingsObject(db)) || "/static/images/logo-heartpet.png";
-  return res.redirect(302, logoUrl);
+  return res.redirect(302, `/app-icon/32.png?v=${encodeURIComponent(getAppIconVersion())}`);
 });
 
 app.get("/app-logo", (req, res) => {
@@ -315,6 +315,23 @@ app.get("/app-logo", (req, res) => {
   return res.sendFile(logoPath, (error) => {
     if (error && !res.headersSent) res.sendFile(fallback);
   });
+});
+
+app.get("/app.webmanifest", (req, res) => {
+  res.set("Cache-Control", "no-cache, must-revalidate");
+  return res.type("application/manifest+json").send(buildWebAppManifest(getSettingsObject(db), getAppIconVersion()));
+});
+
+app.get(/^\/app-icon\/(32|180|192|512)\.png$/, async (req, res, next) => {
+  const size = Number(req.params[0]);
+  if (!APP_ICON_SIZES.has(size)) return res.sendStatus(404);
+  try {
+    const icon = await createAppIconPng(getAppLogoFilePath(getSettingsObject(db)), size);
+    res.set("Cache-Control", "no-cache, must-revalidate");
+    return res.type("image/png").send(icon);
+  } catch (error) {
+    return next(error);
+  }
 });
 
 app.get("/robots.txt", (req, res) => {
@@ -374,6 +391,7 @@ app.use((req, res, next) => {
   res.locals.appSettings = getSettingsObject(db);
   res.locals.appBaseUrl = resolveAppBaseUrl(res.locals.appSettings);
   res.locals.appLogoUrl = getAppLogoUrl(res.locals.appSettings);
+  res.locals.appIconVersion = getAppIconVersion();
   res.locals.currentPath = req.path;
   res.locals.currentQuery = req.query || {};
   res.locals.appRevision = runtimeRevision;
@@ -1166,6 +1184,11 @@ function buildOperationalHealthChecks(settings) {
 function getAppLogoUrl(settings) {
   const storedName = String(settings?.app_logo_stored_name || "").trim();
   return storedName ? "/app-logo" : "/static/images/logo-heartpet.png";
+}
+
+function getAppIconVersion() {
+  const storedName = String(getSettingsObject(db).app_logo_stored_name || "").trim();
+  return storedName || runtimeRevision;
 }
 
 function getAppLogoFilePath(settings) {

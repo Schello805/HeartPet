@@ -21,9 +21,7 @@
         }
       } catch (error) {}
     </script>
-    <link rel="icon" type="image/png" sizes="any" href="<%= resolvedAppLogoUrl %>" />
-    <link rel="shortcut icon" type="image/png" href="<%= resolvedAppLogoUrl %>" />
-    <link rel="apple-touch-icon" href="<%= resolvedAppLogoUrl %>" />
+    <%- include('./app-icons') %>
     <link rel="stylesheet" href="/static/vendor/bootstrap/bootstrap.min.css?v=<%= assetVersion %>" />
     <link rel="stylesheet" href="/static/css/theme-foundation.css?v=<%= assetVersion %>" />
     <link rel="stylesheet" href="/static/css/theme-layout.css?v=<%= assetVersion %>" />
