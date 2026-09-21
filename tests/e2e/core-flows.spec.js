@@ -452,6 +452,21 @@ test("Benachrichtigungs-Checkboxen sind mobil sichtbar aktivierbar", async ({ pa
   expect(checkedVisualState.accentColor).not.toBe("auto");
 });
 
+test("Instanz-Zeitzone ist mobil ohne geöffnetes Akkordeon auswählbar", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await ensureAuthenticated(page);
+  await page.goto("/admin/benachrichtigungen");
+
+  const timeZone = page.getByLabel("Instanz-Zeitzone");
+  await expect(timeZone).toBeVisible();
+  await timeZone.selectOption("Europe/Berlin");
+  await page.getByRole("button", { name: "Zeitzone speichern" }).click();
+
+  await expect(page).toHaveURL(/\/admin\/benachrichtigungen/);
+  await expect(page.getByLabel("Instanz-Zeitzone")).toHaveValue("Europe/Berlin");
+  await expect(page.locator("#communication-panel-general")).not.toHaveClass(/show/);
+});
+
 test("Anmeldebutton bleibt auch bei schmaler Login-Karte einzeilig", async ({ page }) => {
   await page.setViewportSize({ width: 700, height: 760 });
   await ensureAuthenticated(page);

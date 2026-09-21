@@ -3184,6 +3184,11 @@ test("Instanz-Zeitzone kann ausgewählt und nur gültig gespeichert werden", asy
     assert.equal(response.status, 200);
     assert.match(response.text, /id="instance_timezone"/);
     assert.match(response.text, /<option value="Europe\/Berlin"/);
+    assert.equal(response.text.match(/id="instance_timezone"/g)?.length, 1);
+    assert.ok(
+      response.text.indexOf('id="instance_timezone"') < response.text.indexOf('id="communication-accordion"'),
+      "Die Zeitzonen-Auswahl muss oberhalb der geschlossenen Akkordeons sichtbar sein."
+    );
 
     response = await agent
       .post("/admin/settings")
