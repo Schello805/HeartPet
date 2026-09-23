@@ -574,6 +574,8 @@ test("Bundesland und Entsorgungsanlage sind mobil pflegbar und in der Historie s
   const guidance = page.locator(".history-disposal-guidance");
   await expect(guidance.getByText("Bayern · Entsorgung, Bestattung und zuständige Anlagen")).toBeVisible();
   await guidance.locator("summary").click();
+  await expect(guidance.getByText("Ausgewähltes Bundesland:")).toBeVisible();
+  await expect(guidance.getByRole("heading", { name: "Für Bayern: bundesweite Regeln und örtliche Prüfung" })).toBeVisible();
   await expect(guidance.getByText("VTN Mobile Test")).toBeVisible();
   await expect(guidance.getByText("Abholung gegen Mehrkosten", { exact: false })).toBeVisible();
 });

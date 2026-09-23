@@ -2,6 +2,10 @@
 
 Alle wesentlichen Änderungen an HeartPet werden hier absteigend dokumentiert.
 
+## 0.10.89 - 23.09.2026
+
+- Der Entsorgungshinweis in der Historie nennt das ausgewählte Bundesland auch im geöffneten Akkordeon eindeutig.
+
 ## 0.10.88 - 23.09.2026
 
 - Atomare Updates starten systemd direkt aus dem unveränderlichen Release-Verzeichnis und prüfen dessen Revision und Commit vor der Aktivierung.
