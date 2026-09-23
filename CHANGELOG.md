@@ -2,6 +2,11 @@
 
 Alle wesentlichen Änderungen an HeartPet werden hier absteigend dokumentiert.
 
+## 0.10.87 - 23.09.2026
+
+- Atomare Updates starten systemd direkt aus dem unveränderlichen Release-Verzeichnis und prüfen dessen Revision und Commit vor der Aktivierung.
+- Fehlgeschlagene Deployments stellen neben dem Release-Link auch den vorherigen systemd-Startpfad wieder her und zeigen den Prozess auf dem App-Port an.
+
 ## 0.10.86 - 23.09.2026
 
 - Der Hinweis für einen veralteten Serverprozess funktioniert unabhängig vom Installationsordner.

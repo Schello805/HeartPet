@@ -141,7 +141,7 @@ const reminderRepository = createReminderRepository(db);
 const calendarExportService = createCalendarExportService(db);
 const projectRoot = path.join(__dirname, "..");
 const revisionPath = path.join(projectRoot, "REVISION");
-const runtimeRevision = readAppRevision();
+const runtimeRevision = String(process.env.HEARTPET_RUNTIME_REVISION || "").trim() || readAppRevision();
 const updateChecker = createUpdateChecker({ currentRevision: runtimeRevision });
 const configuredDataDir = String(process.env.HEARTPET_DATA_DIR || "").trim();
 const dataDir = configuredDataDir ? path.resolve(configuredDataDir) : path.join(projectRoot, "data");
@@ -364,6 +364,7 @@ app.get("/health", (req, res) => {
     ok: summary.ok && !restartRequired,
     status: restartRequired ? "restart_required" : summary.status,
     service: "heartpet",
+    pid: process.pid,
     revision: runtimeRevision,
     availableRevision,
     restartRequired,

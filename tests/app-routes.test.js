@@ -1439,19 +1439,28 @@ test("Deployment aktiviert Releases atomar und prüft die aktive Revision", () =
   const scriptPath = path.join(__dirname, "..", "scripts", "deploy-release.sh");
   const script = fs.readFileSync(scriptPath, "utf8");
   assert.match(script, /git -C "\$APP_DIR" archive HEAD/);
+  assert.match(script, /release_is_valid/);
+  assert.match(script, /\.heartpet-release/);
   assert.match(script, /mv -Tf "\$next_link" "\$CURRENT_LINK"/);
-  assert.match(script, /run_systemctl restart heartpet && wait_for_revision/);
+  assert.match(script, /start_release_service && wait_for_revision/);
+  assert.match(script, /run_systemctl stop heartpet/);
+  assert.ok(script.includes("pgrep -f 'node .*src/app\\.js'"));
+  assert.match(script, /readlink "\/proc\/\$pid\/cwd"/);
   assert.match(script, /health\.revision === process\.env\.EXPECTED_REVISION/);
-  assert.match(script, /ExecStart=\$node_path \$CURRENT_LINK\/src\/app\.js/);
+  assert.match(script, /WorkingDirectory=\$release_path/);
+  assert.match(script, /ExecStart=\$node_path \$release_path\/src\/app\.js/);
+  assert.match(script, /Environment=HEARTPET_RUNTIME_REVISION=\$runtime_revision/);
   assert.match(script, /Letzter Health-Status/);
   assert.match(script, /Aktives Release-Ziel/);
   assert.match(script, /run_systemctl enable heartpet/);
   assert.match(script, /journalctl -u heartpet\.service/);
   assert.match(script, /activate_release "\$PREVIOUS_TARGET"/);
+  assert.match(script, /write_service_override "\$PREVIOUS_TARGET"/);
   assert.match(script, /User=\$target_user/);
   assert.match(script, /Group=\$target_group/);
   assert.match(script, /"\$CURRENT_LINK" == \/root\/\*/);
-  assert.match(script, /runuser -u "\$SERVICE_USER" -- test -x "\$CURRENT_LINK"/);
+  assert.match(script, /runuser -u "\$SERVICE_USER" -- test -x "\$release_path"/);
+  assert.match(script, /ss -ltnp "sport = :\$PORT"/);
 });
 
 test("Interaktiver Installer erzeugt einen gehärteten und neu gestarteten systemd-Dienst", () => {
