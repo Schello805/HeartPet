@@ -416,6 +416,37 @@ test("Dashboard zeigt mobil nur einen Einstieg für ein neues Tier", async ({ pa
   await expect(adminNav.getByRole("link", { name: /Stall/ })).toBeVisible();
 });
 
+test("Impf-Erinnerung fragt mobil nach dem tatsächlichen Impfdatum", async ({ page }) => {
+  const setupDb = new (require("better-sqlite3"))(path.join(tempDataDir, "heartpet.sqlite"));
+  const vaccination = setupDb.prepare(`
+    INSERT INTO animal_vaccinations (animal_id, name, vaccination_date, next_due_date, notes)
+    VALUES (1, ?, NULL, ?, ?)
+  `).run("Mobile Fälligkeitsimpfung", "2026-09-20", "E2E");
+  setupDb.prepare(`
+    INSERT INTO reminders (animal_id, title, reminder_type, due_at, notes, source_kind, source_id)
+    VALUES (1, ?, 'Impfung', ?, ?, 'vaccination', ?)
+  `).run("Nächste Impfung: Mobile Fälligkeitsimpfung", "2026-09-20T09:00", "E2E", vaccination.lastInsertRowid);
+  setupDb.close();
+
+  await ensureAuthenticated(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.getByRole("button", { name: /Als erledigt markieren: Nächste Impfung: Mobile Fälligkeitsimpfung/ }).click();
+
+  const modal = page.locator("#vaccination-completion-modal");
+  await expect(modal).toBeVisible();
+  await expect(modal.getByText("Nächste Impfung: Mobile Fälligkeitsimpfung", { exact: true })).toBeVisible();
+  await modal.getByLabel("Wann wurde geimpft?").fill("2026-09-19");
+  await modal.getByRole("button", { name: "Impfung speichern" }).click();
+  await expect(modal).not.toBeVisible();
+
+  const resultDb = new (require("better-sqlite3"))(path.join(tempDataDir, "heartpet.sqlite"), { readonly: true });
+  expect(
+    resultDb.prepare("SELECT vaccination_date FROM animal_vaccinations WHERE id = ?").get(vaccination.lastInsertRowid).vaccination_date
+  ).toBe("2026-09-19");
+  resultDb.close();
+});
+
 test("Android-Nutzer können HeartPet über den nativen Dialog installieren", async ({ page }) => {
   await page.addInitScript(() => {
     window.addEventListener("DOMContentLoaded", () => {

@@ -3098,6 +3098,36 @@ test("Erinnerung per Complete-Route verschwindet aus der Pending-API", async () 
   assert.ok(!response.body.reminders.some((item) => Number(item.id) === Number(inserted.lastInsertRowid)));
 });
 
+test("Impf-Erinnerung verlangt ein tatsächliches Impfdatum", async () => {
+  await ensureAdminAuthenticated();
+  const animal = db.prepare("INSERT INTO animals (name, status) VALUES (?, ?)").run("Impfdatum Tier", "Aktiv");
+  const vaccination = db.prepare(`
+    INSERT INTO animal_vaccinations (animal_id, name, vaccination_date, next_due_date, notes)
+    VALUES (?, ?, NULL, ?, ?)
+  `).run(animal.lastInsertRowid, "Impfdatum-Test", "2026-09-20", "Test");
+  const inserted = db.prepare(`
+    INSERT INTO reminders (animal_id, title, reminder_type, due_at, notes, source_kind, source_id)
+    VALUES (?, ?, ?, ?, ?, 'vaccination', ?)
+  `).run(animal.lastInsertRowid, "Nächste Impfung", "Impfung", "2026-09-20T09:00", "Test", vaccination.lastInsertRowid);
+
+  let response = await agent.post(`/reminders/${inserted.lastInsertRowid}/complete`).send({});
+  assert.equal(response.status, 302);
+  assert.equal(db.prepare("SELECT completed_at FROM reminders WHERE id = ?").get(inserted.lastInsertRowid).completed_at, null);
+  assert.equal(db.prepare("SELECT vaccination_date FROM animal_vaccinations WHERE id = ?").get(vaccination.lastInsertRowid).vaccination_date, null);
+
+  response = await agent.post(`/reminders/${inserted.lastInsertRowid}/complete`).type("form").send({ vaccination_date: "2099-01-01" });
+  assert.equal(response.status, 302);
+  assert.equal(db.prepare("SELECT completed_at FROM reminders WHERE id = ?").get(inserted.lastInsertRowid).completed_at, null);
+
+  response = await agent.post(`/reminders/${inserted.lastInsertRowid}/complete`).type("form").send({ vaccination_date: "2026-09-19" });
+  assert.equal(response.status, 302);
+  assert.ok(db.prepare("SELECT completed_at FROM reminders WHERE id = ?").get(inserted.lastInsertRowid).completed_at);
+  assert.equal(
+    db.prepare("SELECT vaccination_date FROM animal_vaccinations WHERE id = ?").get(vaccination.lastInsertRowid).vaccination_date,
+    "2026-09-19"
+  );
+});
+
 test("Dringende Dashboard-Erinnerungen sind zur Tierakte klickbar", async () => {
   db.prepare(`
     INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, notes, source_kind, source_id)

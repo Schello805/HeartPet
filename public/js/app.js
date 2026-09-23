@@ -940,6 +940,35 @@ function initVaccinationPresets(scope = document) {
   });
 }
 
+function initVaccinationCompletion(scope = document) {
+  const modalElement = document.querySelector("#vaccination-completion-modal");
+  const modalForm = modalElement?.querySelector("[data-vaccination-completion-form]");
+  const dateInput = modalElement?.querySelector("[data-vaccination-completion-date]");
+  const title = modalElement?.querySelector("[data-vaccination-completion-title]");
+  if (!modalElement || !modalForm || !dateInput || !title || !window.bootstrap?.Modal) return;
+
+  scope.querySelectorAll("form[data-vaccination-completion]").forEach((form) => {
+    if (form.dataset.vaccinationCompletionBound === "1") return;
+    form.dataset.vaccinationCompletionBound = "1";
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+
+      const today = new Date();
+      const localToday = new Date(today.getTime() - today.getTimezoneOffset() * 60_000)
+        .toISOString()
+        .slice(0, 10);
+      modalForm.action = form.action;
+      dateInput.value = localToday;
+      dateInput.max = localToday;
+      title.textContent = form.dataset.reminderTitle || "Impfung";
+
+      modalElement.addEventListener("shown.bs.modal", () => dateInput.focus(), { once: true });
+      window.bootstrap.Modal.getOrCreateInstance(modalElement).show();
+    }, { capture: true });
+  });
+}
+
 function isAnimalsWorkspaceDesktop() {
   return window.matchMedia("(min-width: 992px)").matches;
 }
@@ -1194,6 +1223,7 @@ window.HeartPetFeatures?.register("species-autocomplete", initSpeciesAutocomplet
 window.HeartPetFeatures?.register("required-marks", initRequiredMarks, { contexts: ["page", "fragment"] });
 window.HeartPetFeatures?.register("event-form", initEventFormBehavior, { contexts: ["page", "fragment"] });
 window.HeartPetFeatures?.register("vaccination-presets", initVaccinationPresets, { contexts: ["page", "fragment"] });
+window.HeartPetFeatures?.register("vaccination-completion", initVaccinationCompletion, { contexts: ["page", "fragment"] });
 window.HeartPetFeatures?.register("bulk-selection", initBulkSelection, { contexts: ["page", "fragment"] });
 window.HeartPetFeatures?.register("profile-upload", initProfileUploadAutoSubmit, { contexts: ["page", "fragment"] });
 window.HeartPetFeatures?.register("animal-workspace", initAnimalWorkspace, { contexts: ["page"] });

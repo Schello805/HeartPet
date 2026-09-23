@@ -9,6 +9,14 @@ function createAnimalRemindersRouter({
   const router = express.Router();
   const { applyCompletionSideEffects } = reminders;
 
+  function isValidCompletionDate(value) {
+    const date = String(value || "").trim();
+    return /^\d{4}-\d{2}-\d{2}$/.test(date)
+      && dayjs(date).isValid()
+      && dayjs(date).format("YYYY-MM-DD") === date
+      && !dayjs(date).isAfter(dayjs(), "day");
+  }
+
   router.post("/animals/:id/reminders", requireAnimalPermission("canManageReminders"), (req, res) => {
     const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.id}`);
     db.prepare(`
@@ -139,9 +147,16 @@ function createAnimalRemindersRouter({
     if (!reminder) {
       return renderNotFound(req, res, "Erinnerung nicht gefunden.");
     }
+
+    const isVaccinationReminder = reminder.source_kind === "vaccination" && reminder.source_id;
+    const vaccinationDate = String(req.body?.vaccination_date || "").trim();
+    if (isVaccinationReminder && !isValidCompletionDate(vaccinationDate)) {
+      setFlash(req, "error", "Bitte wähle ein gültiges Impfdatum, das nicht in der Zukunft liegt.");
+      return res.redirect(safeRefererPath(req, "/"));
+    }
   
     if (Number(reminder.repeat_interval_days || 0) > 0) {
-      applyCompletionSideEffects(reminder);
+      applyCompletionSideEffects(reminder, vaccinationDate || undefined);
       db.prepare(`
         UPDATE reminders
         SET due_at = ?, completed_at = NULL, last_notified_at = NULL, last_delivery_status = 'rescheduled', last_delivery_error = ''
@@ -150,10 +165,14 @@ function createAnimalRemindersRouter({
       setFlash(req, "success", "Wiederkehrende Erinnerung abgeschlossen und neu terminiert.");
     } else {
       db.prepare("UPDATE reminders SET completed_at = CURRENT_TIMESTAMP, last_delivery_status = 'completed', last_delivery_error = '' WHERE id = ?").run(req.params.id);
-      applyCompletionSideEffects(reminder);
+      applyCompletionSideEffects(reminder, vaccinationDate || undefined);
       setFlash(req, "success", "Erinnerung als erledigt markiert.");
     }
-    createAuditLog(req, "reminder.complete", { reminder_id: reminder.id, animal_id: reminder.animal_id }, { entityType: "reminder", entityId: reminder.id });
+    createAuditLog(req, "reminder.complete", {
+      reminder_id: reminder.id,
+      animal_id: reminder.animal_id,
+      vaccination_date: isVaccinationReminder ? vaccinationDate : null,
+    }, { entityType: "reminder", entityId: reminder.id });
     res.redirect(safeRefererPath(req, "/"));
   });
   

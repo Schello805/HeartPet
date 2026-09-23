@@ -137,7 +137,7 @@
                   </span>
                 </div>
                 <% if (!reminder.completed_at && permissions.canManageReminders) { %>
-                  <form method="post" action="/reminders/<%= reminder.id %>/complete" class="mt-2">
+                  <form method="post" action="/reminders/<%= reminder.id %>/complete" class="mt-2" <% if (reminder.source_kind === 'vaccination') { %>data-vaccination-completion data-reminder-title="<%= reminder.title %>"<% } %>>
                     <button type="submit" class="btn btn-success btn-sm w-100" aria-label="Als erledigt markieren: <%= reminder.title %>">Erledigt</button>
                   </form>
                 <% } %>
@@ -171,7 +171,7 @@
                     <div class="small text-body-secondary mt-1">Fällig: <%= formatDateTime(reminder.due_at) %></div>
                   </<%= upcomingHref ? 'a' : 'div' %>>
                   <% if (!reminder.completed_at && permissions.canManageReminders) { %>
-                    <form method="post" action="/reminders/<%= reminder.id %>/complete">
+                    <form method="post" action="/reminders/<%= reminder.id %>/complete" <% if (reminder.source_kind === 'vaccination') { %>data-vaccination-completion data-reminder-title="<%= reminder.title %>"<% } %>>
                       <button type="submit" class="btn btn-success btn-sm w-100" aria-label="Als erledigt markieren: <%= reminder.title %>">Erledigt</button>
                     </form>
                   <% } %>

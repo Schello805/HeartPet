@@ -155,12 +155,12 @@ function createAnimalReminderService({ db, getSettingsObject, parsePositiveInteg
     });
   }
 
-  function applyCompletionSideEffects(reminder) {
+  function applyCompletionSideEffects(reminder, completionDate = dayjs().format("YYYY-MM-DD")) {
     if (!reminder || reminder.source_kind !== "vaccination" || !reminder.source_id) return;
     db.prepare(`
       UPDATE animal_vaccinations SET vaccination_date = ?
       WHERE id = ? AND vaccination_date IS NULL
-    `).run(dayjs().format("YYYY-MM-DD"), reminder.source_id);
+    `).run(completionDate, reminder.source_id);
   }
 
   function syncMedicationReminders(animalId, medicationId) {

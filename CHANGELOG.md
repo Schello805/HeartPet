@@ -2,6 +2,10 @@
 
 Alle wesentlichen Änderungen an HeartPet werden hier absteigend dokumentiert.
 
+## 0.10.81 - 23.09.2026
+
+- Beim Erledigen einer Impf-Erinnerung wird das tatsächliche Impfdatum abgefragt und im Impfeintrag gespeichert.
+
 ## 0.10.80 - 23.09.2026
 
 - Bei medizinischen Ereignissen mit „Durch Tierarzt“ muss wieder ein konkreter Tierarzt gewählt werden. Fehlt die Auswahl, bietet ein Modal direkt die Auswahl oder das Entfernen des Hakens an.

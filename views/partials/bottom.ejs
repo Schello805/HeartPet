@@ -50,6 +50,25 @@
         </div>
       </div>
 
+      <div class="modal fade" id="vaccination-completion-modal" tabindex="-1" aria-labelledby="vaccination-completion-modal-title" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+          <div class="modal-content border-0 shadow-lg">
+            <form method="post" data-vaccination-completion-form>
+              <div class="modal-body p-4">
+                <h2 class="h5 mb-2" id="vaccination-completion-modal-title">Impfung als erledigt markieren</h2>
+                <p class="text-body-secondary mb-3" data-vaccination-completion-title></p>
+                <label class="form-label" for="vaccination-completion-date">Wann wurde geimpft?</label>
+                <input class="form-control mb-4" id="vaccination-completion-date" type="date" name="vaccination_date" required data-vaccination-completion-date />
+                <div class="d-grid gap-2">
+                  <button type="submit" class="btn btn-primary">Impfung speichern</button>
+                  <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
       <div class="modal fade" id="app-install-help-modal" tabindex="-1" aria-labelledby="app-install-help-title" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-sm">
           <div class="modal-content border-0 shadow-lg">

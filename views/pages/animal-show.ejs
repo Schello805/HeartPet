@@ -855,7 +855,7 @@
                           <small class="text-body-secondary"><%= reminderStatus.detail %></small>
                           <% if (canManageRemindersNow) { %>
                             <% if (!reminder.completed_at) { %>
-                              <form method="post" action="/reminders/<%= reminder.id %>/complete">
+                              <form method="post" action="/reminders/<%= reminder.id %>/complete" data-vaccination-completion data-reminder-title="<%= reminder.title %>">
                                 <button type="submit" class="btn btn-outline-secondary btn-sm">Erledigt</button>
                               </form>
                             <% } else { %>
