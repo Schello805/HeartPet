@@ -10,6 +10,11 @@ const FIELD_SCHEMAS = Object.freeze({
   veterinarianEmail: { maxLength: 254, type: "email" },
   veterinarianPhone: { minLength: 6, maxLength: 30, pattern: /^[+0-9()/\.\-\s]{6,30}$/ },
   veterinarianNotes: { maxLength: 4000 },
+  disposalFacilityName: { required: true, minLength: 2, maxLength: 160 },
+  disposalFacilityOpeningHours: { maxLength: 1000 },
+  disposalFacilityPricing: { maxLength: 1000 },
+  disposalFacilityPickupDetails: { maxLength: 1000 },
+  disposalFacilityNotes: { maxLength: 4000 },
 });
 
 function normalizeText(value) {

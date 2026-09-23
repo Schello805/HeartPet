@@ -113,9 +113,9 @@
                 <input class="form-control" id="event-time" type="time" name="event_time" data-event-time />
               </div>
               <div class="col-md-6" data-veterinarian-fields hidden>
-                <label class="form-label" for="event-vet">Tierarzt (optional)</label>
+                <label class="form-label" for="event-vet">Tierarzt</label>
                 <select class="form-select" id="event-vet" name="veterinarian_id">
-                  <option value="">Ohne konkrete Zuordnung</option>
+                  <option value="">Tierarzt auswählen</option>
                   <% veterinarians.forEach((vet) => { %>
                     <option value="<%= vet.id %>" <%= String(animal.veterinarian_id || '') === String(vet.id) ? 'selected' : '' %>><%= vet.name %></option>
                   <% }) %>

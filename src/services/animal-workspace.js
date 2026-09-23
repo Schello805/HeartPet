@@ -11,6 +11,8 @@ function createAnimalWorkspaceService({
   getAnimalActivityEntries,
   getAnimalLifecycle,
   summarizeReminderState,
+  getDisposalGuidance,
+  getSettings,
 }) {
   function normalizeMicrochipRegistry(value) {
     const registry = String(value || "").trim();
@@ -283,6 +285,8 @@ function createAnimalWorkspaceService({
 
   function buildWorkspace(req, section = "active") {
     const sectionConfig = getAnimalSectionConfig(section);
+    const settings = section === "history" ? getSettings() : {};
+    const federalState = String(settings.federal_state || "").trim();
     const search = String(req.query.q || "").trim();
     const requestedStatus = String(req.query.status || "").trim();
     const speciesId = String(req.query.species_id || "").trim();
@@ -332,6 +336,14 @@ function createAnimalWorkspaceService({
       animalSection: sectionConfig,
       speciesOptions: listActiveSpecies(),
       pagination: { currentPage, totalPages, totalCount, pageSize },
+      disposalGuidance: section === "history" ? getDisposalGuidance(federalState) : null,
+      disposalFacilities: section === "history"
+        ? db.prepare(`
+            SELECT * FROM disposal_facilities
+            WHERE federal_state = ? OR ? = ''
+            ORDER BY name COLLATE NOCASE ASC
+          `).all(federalState, federalState)
+        : [],
     };
   }
 

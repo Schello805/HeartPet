@@ -2,6 +2,8 @@
 <% const resolvedInstanceTimezone = typeof instanceTimezone !== 'undefined' && instanceTimezone ? instanceTimezone : 'UTC'; %>
 <% const fallbackTimeZoneOptions = ['UTC', 'Europe/Berlin', 'Europe/Vienna', 'Europe/Zurich', 'Europe/London']; %>
 <% const resolvedTimeZoneOptions = typeof timeZoneOptions !== 'undefined' && Array.isArray(timeZoneOptions) && timeZoneOptions.length > 1 ? timeZoneOptions : fallbackTimeZoneOptions; %>
+<% const fallbackFederalStates = ['Baden-Württemberg', 'Bayern', 'Berlin', 'Brandenburg', 'Bremen', 'Hamburg', 'Hessen', 'Mecklenburg-Vorpommern', 'Niedersachsen', 'Nordrhein-Westfalen', 'Rheinland-Pfalz', 'Saarland', 'Sachsen', 'Sachsen-Anhalt', 'Schleswig-Holstein', 'Thüringen']; %>
+<% const resolvedFederalStates = typeof federalStates !== 'undefined' && Array.isArray(federalStates) && federalStates.length === 16 ? federalStates : fallbackFederalStates; %>
 
 <form id="toggle-email-enabled-form" method="post" action="/admin/settings" class="hidden-form">
   <input type="hidden" name="_fields" value="reminder_email_enabled" />
@@ -54,6 +56,24 @@
             </select>
             <small class="text-body-secondary">Gilt für tägliche Zusammenfassungen und Cronjobs.</small>
             <button type="submit" class="btn btn-outline-secondary align-self-start">Zeitzone speichern</button>
+          </form>
+        </div>
+      </section>
+    </div>
+    <div class="col-md-6 col-xl-3">
+      <section class="card border-0 bg-body-tertiary h-100">
+        <div class="card-body">
+          <form method="post" action="/admin/settings" class="vstack gap-2">
+            <input type="hidden" name="_fields" value="federal_state" />
+            <label class="small text-body-secondary" for="federal_state">Bundesland</label>
+            <select class="form-select" id="federal_state" name="federal_state" required>
+              <option value="">Bundesland auswählen</option>
+              <% resolvedFederalStates.forEach((state) => { %>
+                <option value="<%= state %>" <%= settings.federal_state === state ? 'selected' : '' %>><%= state %></option>
+              <% }) %>
+            </select>
+            <small class="text-body-secondary">Steuert Hinweise und angezeigte Tierkörperbeseitigungsanlagen.</small>
+            <button type="submit" class="btn btn-outline-secondary align-self-start">Bundesland speichern</button>
           </form>
         </div>
       </section>

@@ -496,6 +496,37 @@ test("Instanz-Zeitzone ist mobil ohne geöffnetes Akkordeon auswählbar", async 
   await expect(page.locator("#communication-panel-general")).not.toHaveClass(/show/);
 });
 
+test("Bundesland und Entsorgungsanlage sind mobil pflegbar und in der Historie sichtbar", async ({ page }) => {
+  await ensureAuthenticated(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/admin/benachrichtigungen");
+  await page.getByLabel("Bundesland").selectOption("Bayern");
+  await page.getByRole("button", { name: "Bundesland speichern" }).click();
+  await expect(page.getByLabel("Bundesland")).toHaveValue("Bayern");
+
+  await page.goto("/admin/stammdaten");
+  await page.getByText("Tierkörperbeseitigungsanlagen", { exact: true }).first().click();
+  await page.getByRole("link", { name: "Neue Anlage" }).click();
+  const drawer = page.locator("[data-drawer-body]");
+  await drawer.getByLabel("Name").fill("VTN Mobile Test");
+  await drawer.getByLabel("Bundesland").selectOption("Bayern");
+  await drawer.getByLabel("Straße und Hausnummer").fill("Am Heidweiher 3");
+  await drawer.getByLabel("PLZ").fill("91710");
+  await drawer.getByLabel("Ort").fill("Gunzenhausen");
+  await drawer.getByLabel("Preise / Preisstand").fill("Preis telefonisch bestätigen");
+  await drawer.getByLabel("Abholung wird angeboten").check();
+  await drawer.getByLabel("Abholkosten und Ablauf").fill("Abholung gegen Mehrkosten");
+  await drawer.getByRole("button", { name: "Anlage anlegen" }).click();
+  await expect(drawer).toBeEmpty();
+
+  await page.goto("/animals/historie");
+  const guidance = page.locator(".history-disposal-guidance");
+  await expect(guidance.getByText("Bayern · Entsorgung, Bestattung und zuständige Anlagen")).toBeVisible();
+  await guidance.locator("summary").click();
+  await expect(guidance.getByText("VTN Mobile Test")).toBeVisible();
+  await expect(guidance.getByText("Abholung gegen Mehrkosten", { exact: false })).toBeVisible();
+});
+
 test("Anmeldebutton bleibt auch bei schmaler Login-Karte einzeilig", async ({ page }) => {
   await page.setViewportSize({ width: 700, height: 760 });
   await ensureAuthenticated(page);
@@ -848,7 +879,7 @@ test("Leere Impfungen bieten einen Plus-Einstieg mit tierartspezifischer Auswahl
   await expect(page.getByLabel("Bezeichnung")).toHaveValue("Tollwut");
 });
 
-test("Impfung lässt sich mobil auch ohne konkrete Tierarzt-Zuordnung speichern", async ({ page }) => {
+test("Mobile Impfung verlangt bei tierärztlicher Durchführung eine eindeutige Entscheidung", async ({ page }) => {
   await ensureAuthenticated(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/animals/1");
@@ -857,11 +888,33 @@ test("Impfung lässt sich mobil auch ohne konkrete Tierarzt-Zuordnung speichern"
   await page.getByLabel("Bezeichnung").fill("Mobile Testimpfung");
   await page.getByLabel("Datum").fill("2026-09-21");
   await page.getByLabel("Durch Tierarzt").check();
-  await page.getByLabel("Tierarzt (optional)").selectOption("");
+  await page.locator("[data-drawer-body]").getByLabel("Tierarzt", { exact: true }).selectOption("");
   await page.getByRole("button", { name: "Eintrag speichern" }).click();
+
+  const veterinarianModal = page.locator("#event-veterinarian-modal");
+  await expect(veterinarianModal).toBeVisible();
+  await veterinarianModal.getByLabel("Tierarzt", { exact: true }).selectOption({ label: "Praxis E2E" });
+  await veterinarianModal.getByRole("button", { name: "Tierarzt übernehmen und speichern" }).click();
 
   await expect(page.locator("[data-drawer-body]")).toBeEmpty();
   await expect(page.getByText("Impfung durchgeführt: Mobile Testimpfung")).toBeVisible();
+
+  await page.getByRole("link", { name: /Aktion hinzufügen/ }).click();
+  await page.locator("[data-drawer-body] label[for='event-kind-vaccination']").click();
+  await page.getByLabel("Bezeichnung").fill("Mobile Impfung ohne Tierarzt");
+  await page.getByLabel("Datum").fill("2026-09-22");
+  await page.getByLabel("Durch Tierarzt").check();
+  await page.locator("[data-drawer-body]").getByLabel("Tierarzt", { exact: true }).selectOption("");
+  await page.getByRole("button", { name: "Eintrag speichern" }).click();
+  await expect(veterinarianModal).toBeVisible();
+  await veterinarianModal.getByRole("button", { name: "Haken entfernen und speichern" }).click();
+
+  await expect(page.locator("[data-drawer-body]")).toBeEmpty();
+  const vaccinationWithoutVeterinarian = page.locator("[data-timeline-primary] .detail-entry-card").filter({
+    hasText: "Impfung durchgeführt: Mobile Impfung ohne Tierarzt",
+  });
+  await expect(vaccinationWithoutVeterinarian).toBeVisible();
+  await expect(vaccinationWithoutVeterinarian).not.toContainText("Durchgeführt durch Tierarzt");
 });
 
 test("Kernseiten erfüllen grundlegende Barrierefreiheitsregeln", async ({ page }) => {

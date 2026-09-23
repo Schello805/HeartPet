@@ -6,6 +6,43 @@
 <%- include('../partials/top', { pageTitle, pageClass: `animals-page animals-page--${sectionState.key}${selectedAnimalState ? ' animals-page--selected' : ''}` }) %>
 <% const hasAnimalFilters = Boolean(filters.search || filters.speciesId || (sectionState.allowStatusFilter && filters.status)); %>
 
+<% if (sectionState.key === 'history' && disposalGuidance) { %>
+  <details class="card border-0 bg-body-tertiary mb-3 masterdata-accordion history-disposal-guidance">
+    <summary class="masterdata-accordion-summary">
+      <span><strong>Hinweis nach dem Tod eines Tieres</strong><small><%= disposalGuidance.federalState ? `${disposalGuidance.federalState} · Entsorgung, Bestattung und zuständige Anlagen` : 'Bundesland auswählen, um lokale Anlagen anzuzeigen' %></small></span>
+      <span class="badge text-bg-warning">Bitte prüfen</span>
+    </summary>
+    <div class="card-body vstack gap-3">
+      <% if (!disposalGuidance.federalState) { %>
+        <div class="alert alert-warning mb-0">Lege unter <a href="/admin/benachrichtigungen">Verwaltung · Benachrichtigungen</a> zuerst das Bundesland dieser Instanz fest.</div>
+      <% } %>
+      <div>
+        <h3 class="h6">Was bundesweit gilt</h3>
+        <ul class="mb-0">
+          <li>Ein einzelnes Heimtier darf auf dem eigenen Grundstück vergraben werden, wenn dieses geeignet ist, nicht im Wasserschutzgebiet und nicht unmittelbar an öffentlichen Wegen oder Plätzen liegt.</li>
+          <li>Über dem Tierkörper müssen mindestens 50 cm Erde liegen. Wasserrecht und zusätzliche Anordnungen der zuständigen Behörde bleiben unberührt.</li>
+          <li>Die Ausnahme gilt nicht automatisch für Nutz- oder landwirtschaftlich gehaltene Tiere. Das betrifft insbesondere Geflügel, Pferde und andere Tiere, die rechtlich nicht als Heimtier eingeordnet werden.</li>
+          <li>Bei unklarer Todesursache, Seuchenverdacht oder amtlichen Schutzmaßnahmen nichts vergraben oder transportieren, sondern sofort das <%= disposalGuidance.authorityLabel %> kontaktieren.</li>
+          <li>Biotonne und Kompost sind keine zulässige Entsorgung. Zugelassene Tierkrematorien, Tierfriedhöfe oder die zuständige Tierkörperbeseitigung sind mögliche Wege.</li>
+        </ul>
+      </div>
+      <div class="alert alert-secondary mb-0">Diese Übersicht ist eine Orientierung und keine Einzelfallfreigabe. Rechtsstand geprüft am <strong><%= disposalGuidance.lastReviewed %></strong>. Im Zweifel entscheidet die zuständige Behörde.</div>
+      <div>
+        <h3 class="h6">Amtliche Quellen</h3>
+        <div class="d-flex flex-wrap gap-2"><% disposalGuidance.officialSources.forEach((source) => { %><a class="btn btn-outline-secondary btn-sm" href="<%= source.url %>" target="_blank" rel="noopener noreferrer"><%= source.label %></a><% }) %></div>
+      </div>
+      <div>
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2"><h3 class="h6 mb-0">Hinterlegte Tierkörperbeseitigungsanlagen<%= disposalGuidance.federalState ? ` in ${disposalGuidance.federalState}` : '' %></h3><% if (permissions.canManageAdmin) { %><a class="btn btn-outline-primary btn-sm" href="/admin/stammdaten">Anlagen verwalten</a><% } %></div>
+        <% if (!disposalFacilities.length) { %>
+          <p class="text-body-secondary mb-0">Noch keine passende Anlage hinterlegt. Die Zuständigkeit richtet sich häufig nach Landkreis oder kreisfreier Stadt und sollte beim Veterinäramt bestätigt werden.</p>
+        <% } else { %>
+          <div class="row g-3"><% disposalFacilities.forEach((facility) => { %><div class="col-lg-6"><article class="card border bg-body h-100"><div class="card-body"><div class="d-flex flex-wrap gap-2 align-items-center mb-2"><strong><%= facility.name %></strong><% if (facility.pickup_available) { %><span class="status-chip status-ok">Abholung möglich</span><% } %></div><p class="mb-1"><%= [facility.street, facility.postal_code, facility.city].filter(Boolean).join(', ') || 'Adresse nicht hinterlegt' %></p><p class="mb-2"><% if (facility.phone) { %><a href="tel:<%= facility.phone %>"><%= facility.phone %></a><% } %><%= facility.phone && facility.email ? ' · ' : '' %><% if (facility.email) { %><a href="mailto:<%= facility.email %>"><%= facility.email %></a><% } %></p><% if (facility.opening_hours) { %><p class="small mb-1"><strong>Öffnungszeiten:</strong> <%= facility.opening_hours %></p><% } %><% if (facility.pricing) { %><p class="small mb-1"><strong>Preise:</strong> <%= facility.pricing %></p><% } %><% if (facility.pickup_details) { %><p class="small mb-1"><strong>Abholung:</strong> <%= facility.pickup_details %></p><% } %><% if (facility.website) { %><a href="<%= facility.website %>" target="_blank" rel="noopener noreferrer">Website und aktuelle Angaben prüfen</a><% } %></div></article></div><% }) %></div>
+        <% } %>
+      </div>
+    </div>
+  </details>
+<% } %>
+
 <div class="row g-3">
   <div class="col-12">
     <section class="card border-0 animals-compact-card animals-filter-card">

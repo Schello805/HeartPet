@@ -865,6 +865,7 @@ function initEventFormBehavior(scope = document) {
       if (veterinarianSelect) {
         veterinarianSelect.disabled = !showVeterinarian;
         veterinarianSelect.required = false;
+        veterinarianSelect.setAttribute("aria-required", showVeterinarian ? "true" : "false");
       }
 
       if (createReminder) {
@@ -881,6 +882,41 @@ function initEventFormBehavior(scope = document) {
 
     kindInputs.forEach((input) => input.addEventListener("change", updateEventForm));
     handledByVet?.addEventListener("change", updateEventForm);
+    form.addEventListener("submit", (event) => {
+      if (!handledByVet?.checked || veterinarianSelect?.value) return;
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+
+      const modalElement = document.querySelector("#event-veterinarian-modal");
+      const modalSelect = modalElement?.querySelector("[data-event-veterinarian-modal-select]");
+      const applyButton = modalElement?.querySelector("[data-event-veterinarian-apply]");
+      const removeButton = modalElement?.querySelector("[data-event-veterinarian-remove]");
+      if (!modalElement || !modalSelect || !applyButton || !removeButton || !window.bootstrap?.Modal) return;
+
+      modalSelect.replaceChildren(...[...veterinarianSelect.options].map((option) => option.cloneNode(true)));
+      modalSelect.value = "";
+      applyButton.disabled = true;
+      modalSelect.onchange = () => {
+        applyButton.disabled = !modalSelect.value;
+      };
+
+      const modal = window.bootstrap.Modal.getOrCreateInstance(modalElement);
+      applyButton.onclick = () => {
+        if (!modalSelect.value) return;
+        veterinarianSelect.value = modalSelect.value;
+        modal.hide();
+        form.requestSubmit();
+      };
+      removeButton.onclick = () => {
+        handledByVet.checked = false;
+        updateEventForm();
+        modal.hide();
+        form.requestSubmit();
+      };
+      modalElement.addEventListener("shown.bs.modal", () => modalSelect.focus(), { once: true });
+      modal.show();
+    }, { capture: true });
     updateEventForm();
   });
 }

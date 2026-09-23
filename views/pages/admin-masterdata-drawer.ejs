@@ -1,6 +1,7 @@
 <%
   const isCategory = entityType === 'category';
   const isVeterinarian = entityType === 'veterinarian';
+  const isDisposalFacility = entityType === 'disposalFacility';
   const isSpecies = entityType === 'species';
   const isVaccinationPreset = entityType === 'vaccinationPreset';
   const isEdit = Boolean(item);
@@ -17,6 +18,7 @@
     veterinarianPhone: { minlength: 6, maxlength: 30 },
     veterinarianNotes: { maxlength: 4000 },
   };
+  const resolvedFederalStates = typeof federalStates !== 'undefined' && Array.isArray(federalStates) ? federalStates : [];
   const getFieldConstraints = typeof fieldConstraints === 'function'
     ? fieldConstraints
     : (name) => legacyFieldConstraints[name] || { minlength: 1, maxlength: 4000 };
@@ -119,6 +121,37 @@
             <button type="button" class="btn btn-outline-secondary" data-drawer-close>Abbrechen</button>
           </div>
         </div>
+      </form>
+    <% } %>
+
+    <% if (isDisposalFacility) { %>
+      <form method="post" action="<%= isEdit ? `/admin/disposal-facilities/${item.id}/update` : '/admin/disposal-facilities' %>" class="vstack gap-4" data-drawer-form="masterdata">
+        <input type="hidden" name="return_to" value="<%= returnTo || '/admin/stammdaten' %>" />
+        <section class="card border bg-body">
+          <div class="card-body">
+            <div class="mb-3">
+              <h3 class="h5 mb-1">Anlage und Kontakt</h3>
+              <p class="text-body-secondary mb-0">Pflege die tatsächlich zuständige Anlage samt aktuellem Preisstand und Abholmöglichkeit.</p>
+            </div>
+            <div class="row g-3">
+              <div class="col-12"><label class="form-label" for="facility-name">Name</label><input class="form-control" id="facility-name" name="name" required minlength="2" maxlength="160" value="<%= item?.name || '' %>" /></div>
+              <div class="col-md-6"><label class="form-label" for="facility-state">Bundesland</label><select class="form-select" id="facility-state" name="federal_state" required><option value="">Bundesland auswählen</option><% resolvedFederalStates.forEach((state) => { %><option value="<%= state %>" <%= item?.federal_state === state ? 'selected' : '' %>><%= state %></option><% }) %></select></div>
+              <div class="col-md-6"><label class="form-label" for="facility-country">Land</label><input class="form-control" id="facility-country" name="country" value="<%= item?.country || 'Deutschland' %>" minlength="2" maxlength="80" /></div>
+              <div class="col-12"><label class="form-label" for="facility-street">Straße und Hausnummer</label><input class="form-control" id="facility-street" name="street" value="<%= item?.street || '' %>" minlength="3" maxlength="120" /></div>
+              <div class="col-md-4"><label class="form-label" for="facility-postal">PLZ</label><input class="form-control" id="facility-postal" name="postal_code" value="<%= item?.postal_code || '' %>" minlength="3" maxlength="12" /></div>
+              <div class="col-md-8"><label class="form-label" for="facility-city">Ort</label><input class="form-control" id="facility-city" name="city" value="<%= item?.city || '' %>" minlength="2" maxlength="80" /></div>
+              <div class="col-md-6"><label class="form-label" for="facility-phone">Telefon</label><input class="form-control" id="facility-phone" type="tel" name="phone" value="<%= item?.phone || '' %>" minlength="6" maxlength="30" /></div>
+              <div class="col-md-6"><label class="form-label" for="facility-email">E-Mail</label><input class="form-control" id="facility-email" type="email" name="email" value="<%= item?.email || '' %>" maxlength="254" /></div>
+              <div class="col-12"><label class="form-label" for="facility-website">Website / amtliche Quelle</label><input class="form-control" id="facility-website" type="url" name="website" value="<%= item?.website || '' %>" placeholder="https://…" /></div>
+              <div class="col-md-6"><label class="form-label" for="facility-hours">Öffnungszeiten</label><textarea class="form-control" id="facility-hours" name="opening_hours" rows="4" maxlength="1000"><%= item?.opening_hours || '' %></textarea></div>
+              <div class="col-md-6"><label class="form-label" for="facility-pricing">Preise / Preisstand</label><textarea class="form-control" id="facility-pricing" name="pricing" rows="4" maxlength="1000" placeholder="z. B. Preis, Gewichtsstaffel und Stand der Auskunft"><%= item?.pricing || '' %></textarea></div>
+              <div class="col-12"><div class="form-check"><input class="form-check-input" id="facility-pickup" type="checkbox" name="pickup_available" <%= item?.pickup_available ? 'checked' : '' %> /><label class="form-check-label" for="facility-pickup">Abholung wird angeboten</label></div></div>
+              <div class="col-12"><label class="form-label" for="facility-pickup-details">Abholkosten und Ablauf</label><textarea class="form-control" id="facility-pickup-details" name="pickup_details" rows="3" maxlength="1000"><%= item?.pickup_details || '' %></textarea></div>
+              <div class="col-12"><label class="form-label" for="facility-notes">Weitere Hinweise</label><textarea class="form-control" id="facility-notes" name="notes" rows="3" maxlength="4000"><%= item?.notes || '' %></textarea></div>
+            </div>
+          </div>
+        </section>
+        <div class="d-flex flex-wrap gap-2 pt-2 border-top"><button type="submit" class="btn btn-success"><%= isEdit ? 'Anlage speichern' : 'Anlage anlegen' %></button><button type="button" class="btn btn-outline-secondary" data-drawer-close>Abbrechen</button></div>
       </form>
     <% } %>
 

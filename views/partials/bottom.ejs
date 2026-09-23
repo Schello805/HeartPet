@@ -32,6 +32,24 @@
         </div>
       </div>
 
+      <div class="modal fade" id="event-veterinarian-modal" tabindex="-1" aria-labelledby="event-veterinarian-modal-title" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+          <div class="modal-content border-0 shadow-lg">
+            <div class="modal-body p-4">
+              <h2 class="h5 mb-2" id="event-veterinarian-modal-title">Tierarzt fehlt</h2>
+              <p class="text-body-secondary mb-3">Wähle den behandelnden Tierarzt aus oder entferne den Haken „Durch Tierarzt“.</p>
+              <label class="form-label" for="event-veterinarian-modal-select">Tierarzt</label>
+              <select class="form-select mb-4" id="event-veterinarian-modal-select" data-event-veterinarian-modal-select></select>
+              <div class="d-grid gap-2">
+                <button type="button" class="btn btn-primary" data-event-veterinarian-apply disabled>Tierarzt übernehmen und speichern</button>
+                <button type="button" class="btn btn-outline-secondary" data-event-veterinarian-remove>Haken entfernen und speichern</button>
+                <button type="button" class="btn btn-link text-body-secondary" data-bs-dismiss="modal">Zurück zum Formular</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="modal fade" id="app-install-help-modal" tabindex="-1" aria-labelledby="app-install-help-title" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-sm">
           <div class="modal-content border-0 shadow-lg">

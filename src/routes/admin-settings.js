@@ -22,6 +22,7 @@ function createAdminSettingsRouter({
   upload,
   upsertSetting,
   verifySmtpConnection,
+  isValidFederalState,
 }) {
   const router = express.Router();
 
@@ -82,7 +83,8 @@ function createAdminSettingsRouter({
       fields.includes(key) && !/^-?\d+(?:[.,]\d+)?$/.test(String(req.body[key] || "").trim())
     );
     const invalidTimeZone = fields.includes("instance_timezone") && !isValidTimeZone(req.body.instance_timezone);
-    if (invalidUrlField || invalidCamera || invalidAppDomain || invalidDoorDatapoint || invalidDoorValue || invalidTimeZone) {
+    const invalidFederalState = fields.includes("federal_state") && !isValidFederalState(req.body.federal_state);
+    if (invalidUrlField || invalidCamera || invalidAppDomain || invalidDoorDatapoint || invalidDoorValue || invalidTimeZone || invalidFederalState) {
       setFlash(req, "error", invalidCamera
         ? `Ungültige Kamera-URL in der Zeile „${invalidCamera.source}“.`
         : invalidAppDomain
@@ -93,8 +95,10 @@ function createAdminSettingsRouter({
             ? "Öffnungs- und Schließwert müssen Zahlen sein."
             : invalidTimeZone
               ? "Bitte eine gültige Zeitzone auswählen."
+              : invalidFederalState
+                ? "Bitte ein gültiges Bundesland auswählen."
               : "Bitte für Homematic eine vollständige HTTP- oder HTTPS-URL eingeben.");
-      return res.redirect(backTo(req, invalidTimeZone ? "/admin/benachrichtigungen" : "/admin/allgemein"));
+      return res.redirect(backTo(req, invalidTimeZone || invalidFederalState ? "/admin/benachrichtigungen" : "/admin/allgemein"));
     }
 
     const settingsBeforeSave = getSettingsObject(db);

@@ -5,6 +5,7 @@ function createMasterdataRouter({
   createAuditLog,
   db,
   FIELD_SCHEMAS,
+  federalStates,
   getSettingsObject,
   getAdminViewData,
   isDrawerRequest,
@@ -18,6 +19,7 @@ function createMasterdataRouter({
   validateText,
   normalizeVeterinarianPayload,
   validateVeterinarian,
+  isValidFederalState,
 }) {
   const router = express.Router();
   router.use(requireAdmin);
@@ -29,6 +31,7 @@ function createMasterdataRouter({
       speciesId: Number(req.query.editSpecies || 0) || null,
       veterinarianId: Number(req.query.editVeterinarian || 0) || null,
       vaccinationPresetId: Number(req.query.editVaccinationPreset || 0) || null,
+      disposalFacilityId: Number(req.query.editDisposalFacility || 0) || null,
     };
     res.render("pages/admin-masterdata", viewData);
   });
@@ -58,12 +61,14 @@ function createMasterdataRouter({
   router.get("/categories/:id/edit", drawer("category", "Dokumentkategorie bearbeiten", (id) => db.prepare("SELECT * FROM document_categories WHERE id = ?").get(id)));
   router.get("/veterinarians/new", drawer("veterinarian", "Neuer Tierarzt"));
   router.get("/veterinarians/:id/edit", drawer("veterinarian", "Tierarzt bearbeiten", (id) => db.prepare("SELECT * FROM veterinarians WHERE id = ?").get(id)));
+  router.get("/disposal-facilities/new", drawer("disposalFacility", "Tierkörperbeseitigungsanlage anlegen", null, () => ({ federalStates })));
+  router.get("/disposal-facilities/:id/edit", drawer("disposalFacility", "Tierkörperbeseitigungsanlage bearbeiten", (id) => db.prepare("SELECT * FROM disposal_facilities WHERE id = ?").get(id), () => ({ federalStates })));
   router.get("/species/new", drawer("species", "Neue Tierart", null, () => ({ veterinarians: db.prepare("SELECT * FROM veterinarians ORDER BY name ASC").all() })));
   router.get("/species/:id/edit", drawer("species", "Tierart bearbeiten", (id) => db.prepare("SELECT * FROM species WHERE id = ?").get(id), () => ({ veterinarians: db.prepare("SELECT * FROM veterinarians ORDER BY name ASC").all() })));
   router.get("/vaccination-presets/new", drawer("vaccinationPreset", "Neue Standardimpfung", null, () => ({ species: db.prepare("SELECT * FROM species ORDER BY name").all() })));
   router.get("/vaccination-presets/:id/edit", drawer("vaccinationPreset", "Standardimpfung bearbeiten", (id) => db.prepare("SELECT * FROM vaccination_presets WHERE id = ?").get(id), () => ({ species: db.prepare("SELECT * FROM species ORDER BY name").all() })));
 
-  ["categories", "species", "veterinarians", "vaccination-presets"].forEach((entity) => {
+  ["categories", "species", "veterinarians", "vaccination-presets", "disposal-facilities"].forEach((entity) => {
     router.get(`/${entity}/:id/update`, (req, res) => {
       setFlash(req, "error", "Bitte Änderungen über das Formular speichern.");
       redirectDocumentDrawerRequest(req, res, "/admin/stammdaten", `/admin/${entity}/${req.params.id}/edit`);
@@ -229,6 +234,79 @@ function createMasterdataRouter({
     db.prepare("DELETE FROM veterinarians WHERE id = ?").run(req.params.id);
     createAuditLog(req, "veterinarian.delete", { veterinarian_id: req.params.id, name: item?.name || "" }, { entityType: "veterinarian", entityId: req.params.id });
     setFlash(req, "success", "Tierarzt entfernt.");
+    res.redirect(backTo(req, "/admin/stammdaten"));
+  });
+
+  router.post("/disposal-facilities", (req, res) => saveDisposalFacility(req, res));
+  router.post("/disposal-facilities/:id/update", (req, res) => saveDisposalFacility(req, res, req.params.id));
+
+  function saveDisposalFacility(req, res, id = null) {
+    const value = (key) => String(req.body?.[key] || "").trim();
+    const payload = {
+      name: value("name"),
+      federal_state: value("federal_state"),
+      street: value("street"),
+      postal_code: value("postal_code"),
+      city: value("city"),
+      country: value("country") || "Deutschland",
+      phone: value("phone"),
+      email: value("email"),
+      website: value("website"),
+      opening_hours: value("opening_hours"),
+      pricing: value("pricing"),
+      pickup_available: req.body?.pickup_available ? 1 : 0,
+      pickup_details: value("pickup_details"),
+      notes: value("notes"),
+    };
+    let validWebsite = true;
+    try {
+      if (payload.website) validWebsite = ["http:", "https:"].includes(new URL(payload.website).protocol);
+    } catch {
+      validWebsite = false;
+    }
+    const error = validateText(payload.name, FIELD_SCHEMAS.disposalFacilityName, "Name")
+      || (!isValidFederalState(payload.federal_state) ? "Bitte ein gültiges Bundesland auswählen." : "")
+      || validateText(payload.street, FIELD_SCHEMAS.veterinarianStreet, "Straße/Hausnummer")
+      || validateText(payload.postal_code, FIELD_SCHEMAS.veterinarianPostalCode, "PLZ")
+      || validateText(payload.city, FIELD_SCHEMAS.veterinarianCity, "Ort")
+      || validateText(payload.country, FIELD_SCHEMAS.veterinarianCountry, "Land")
+      || validateText(payload.phone, FIELD_SCHEMAS.veterinarianPhone, "Telefon")
+      || validateText(payload.email, FIELD_SCHEMAS.veterinarianEmail, "E-Mail")
+      || (!validWebsite ? "Website muss eine gültige HTTP- oder HTTPS-Adresse sein." : "")
+      || validateText(payload.opening_hours, FIELD_SCHEMAS.disposalFacilityOpeningHours, "Öffnungszeiten")
+      || validateText(payload.pricing, FIELD_SCHEMAS.disposalFacilityPricing, "Preisangabe")
+      || validateText(payload.pickup_details, FIELD_SCHEMAS.disposalFacilityPickupDetails, "Abholhinweis")
+      || validateText(payload.notes, FIELD_SCHEMAS.disposalFacilityNotes, "Notizen");
+    if (error) return validationFailure(req, res, error);
+
+    const columns = Object.keys(payload);
+    try {
+      let entityId = id;
+      if (id) {
+        db.prepare(`UPDATE disposal_facilities SET ${columns.map((key) => `${key} = @${key}`).join(", ")}, updated_at = CURRENT_TIMESTAMP WHERE id = @id`)
+          .run({ ...payload, id });
+      } else {
+        const placeholders = columns.map((key) => `@${key}`).join(", ");
+        entityId = db.prepare(`INSERT INTO disposal_facilities (${columns.join(", ")}) VALUES (${placeholders})`).run(payload).lastInsertRowid;
+      }
+      createAuditLog(req, id ? "disposal_facility.update" : "disposal_facility.create", {
+        disposal_facility_id: entityId,
+        name: payload.name,
+        federal_state: payload.federal_state,
+        city: payload.city,
+      }, { entityType: "disposal_facility", entityId });
+      setFlash(req, "success", id ? "Tierkörperbeseitigungsanlage aktualisiert." : "Tierkörperbeseitigungsanlage gespeichert.");
+    } catch {
+      setFlash(req, "error", id ? "Tierkörperbeseitigungsanlage konnte nicht aktualisiert werden." : "Tierkörperbeseitigungsanlage konnte nicht gespeichert werden.");
+    }
+    return redirectAfterPost(res, returnPath(req));
+  }
+
+  router.post("/disposal-facilities/:id/delete", (req, res) => {
+    const item = db.prepare("SELECT * FROM disposal_facilities WHERE id = ?").get(req.params.id);
+    db.prepare("DELETE FROM disposal_facilities WHERE id = ?").run(req.params.id);
+    createAuditLog(req, "disposal_facility.delete", { name: item?.name || "" }, { entityType: "disposal_facility", entityId: req.params.id });
+    setFlash(req, "success", "Tierkörperbeseitigungsanlage entfernt.");
     res.redirect(backTo(req, "/admin/stammdaten"));
   });
 

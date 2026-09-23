@@ -128,6 +128,7 @@ const { optimizeAnimalImageUpload } = require("./services/image-optimizer");
 const { APP_ICON_SIZES, buildWebAppManifest, createAppIconPng } = require("./services/app-icons");
 const { getDefaultAppBaseUrl, listLocalAccessUrls, resolveBindHost } = require("./runtime/network");
 const { normalizeAppBaseUrl, resolveAppBaseUrl: resolveConfiguredAppBaseUrl } = require("./app-url");
+const { FEDERAL_STATES, getDisposalGuidance, isValidFederalState } = require("./disposal-guidance");
 const { listTimeZones, resolveInstanceTimeZone } = require("./instance-timezone");
 
 const app = express();
@@ -207,6 +208,8 @@ const animalWorkspace = createAnimalWorkspaceService({
   getAnimalActivityEntries,
   getAnimalLifecycle,
   summarizeReminderState,
+  getDisposalGuidance,
+  getSettings: () => getSettingsObject(db),
 });
 const searchService = createSearchService({ db, formatDateTime });
 const dashboardService = createDashboardService({
@@ -635,6 +638,7 @@ app.use("/admin", createMasterdataRouter({
   createAuditLog,
   db,
   FIELD_SCHEMAS,
+  federalStates: FEDERAL_STATES,
   getSettingsObject,
   getAdminViewData,
   isDrawerRequest,
@@ -648,6 +652,7 @@ app.use("/admin", createMasterdataRouter({
   validateText,
   normalizeVeterinarianPayload,
   validateVeterinarian,
+  isValidFederalState,
 }));
 
 app.use(createAdminUserPagesRouter({
@@ -715,6 +720,7 @@ app.use(createAdminSettingsRouter({
   upload,
   upsertSetting,
   verifySmtpConnection,
+  isValidFederalState,
 }));
 
 app.use(createAdminUsersRouter({
@@ -1563,6 +1569,12 @@ function formatAuditLogEntry(entry) {
       return make("Standardtierarzt gesetzt", details.name || `Tierarzt #${details.veterinarian_id || entityId}`, "Wird als Fallback für neue Zuordnungen verwendet");
     case "veterinarian.delete":
       return make("Tierarzt gelöscht", details.name || `Tierarzt #${details.veterinarian_id || entityId}`, "Eintrag aus den Stammdaten entfernt");
+    case "disposal_facility.create":
+      return make("Tierkörperbeseitigungsanlage angelegt", details.name || `Anlage #${entityId}`, [details.federal_state, details.city].filter(Boolean).join(" · "));
+    case "disposal_facility.update":
+      return make("Tierkörperbeseitigungsanlage bearbeitet", details.name || `Anlage #${entityId}`, [details.federal_state, details.city].filter(Boolean).join(" · "));
+    case "disposal_facility.delete":
+      return make("Tierkörperbeseitigungsanlage gelöscht", details.name || `Anlage #${entityId}`, "Eintrag aus den Stammdaten entfernt");
     case "species.create":
       return make("Tierart angelegt", details.name || `Tierart #${details.species_id || entityId}`, details.default_veterinarian_id ? `Standardtierarzt: #${details.default_veterinarian_id}` : "Ohne Standardtierarzt");
     case "species.update":
@@ -1720,6 +1732,7 @@ function getAdminViewData(pageTitle, adminPath) {
     settings,
     instanceTimezone: getInstanceTimeZone(),
     timeZoneOptions: listTimeZones(),
+    federalStates: FEDERAL_STATES,
     communicationStatus: {
       emailReady: isEmailConfigured(settings),
       telegramReady: isTelegramConfigured(settings),
@@ -1737,6 +1750,7 @@ function getAdminViewData(pageTitle, adminPath) {
       ORDER BY species.name ASC
     `).all(),
     veterinarians: db.prepare("SELECT * FROM veterinarians ORDER BY name ASC").all(),
+    disposalFacilities: db.prepare("SELECT * FROM disposal_facilities ORDER BY federal_state ASC, name ASC").all(),
     vaccinationPresets: db.prepare("SELECT * FROM vaccination_presets ORDER BY species_name COLLATE NOCASE, name COLLATE NOCASE").all(),
     users: db.prepare(`
       SELECT

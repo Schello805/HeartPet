@@ -1367,9 +1367,9 @@ test("Standardimpfungen sind als Stammdaten vollständig verwaltbar", async () =
 test("Stammdaten-Kategorien sind standardmäßig eingeklappte Akkordeons", async () => {
   const page = await agent.get("/admin/stammdaten");
   assert.equal(page.status, 200);
-  assert.equal((page.text.match(/<details class="[^"]*masterdata-accordion/g) || []).length, 4);
+  assert.equal((page.text.match(/<details class="[^"]*masterdata-accordion/g) || []).length, 5);
   assert.equal((page.text.match(/<details class="[^"]*masterdata-accordion[^>]*\sopen(?:\s|>)/g) || []).length, 0);
-  for (const heading of ["Tierärzte", "Tierarten", "Standardimpfungen", "Dokumentkategorien"]) {
+  for (const heading of ["Tierärzte", "Tierarten", "Standardimpfungen", "Dokumentkategorien", "Tierkörperbeseitigungsanlagen"]) {
     assert.match(page.text, new RegExp(`<summary[^>]*>[\\s\\S]*?${heading}`));
   }
 });
@@ -2532,6 +2532,27 @@ test("Gemeinsamer Eintragsweg speichert Fütterung, Notiz und Erinnerung", async
   assert.ok(db.prepare("SELECT id FROM reminders WHERE animal_id = ? AND title = ?").get(animalId, "Kontrolle"));
 });
 
+test("Tierärztlich markierte Ereignisse benötigen serverseitig einen Tierarzt", async () => {
+  const animalId = db.prepare("SELECT id FROM animals WHERE status = 'Aktiv' ORDER BY id ASC LIMIT 1").get()?.id;
+  assert.ok(animalId);
+
+  const response = await agent.post(`/animals/${animalId}/events`).type("form").send({
+    event_kind: "vaccination",
+    title: "Impfung ohne Tierarzt",
+    event_date: "2026-09-21",
+    handled_by_veterinarian: "1",
+    veterinarian_id: "",
+    return_to: `/animals/${animalId}`,
+  });
+
+  assert.equal(response.status, 302);
+  assert.match(response.headers.location, new RegExp(`^/animals/${animalId}/events/new\\?`));
+  assert.equal(
+    db.prepare("SELECT id FROM animal_vaccinations WHERE animal_id = ? AND name = ?").get(animalId, "Impfung ohne Tierarzt"),
+    undefined,
+  );
+});
+
 test("Tierseite zeigt Tierarzt-Kontakt und einen einfachen Haupteinstieg", async () => {
   const master = await agent.get("/admin/stammdaten");
   const vetId = master.text.match(/\/admin\/veterinarians\/(\d+)\/edit/)?.[1];
@@ -3306,6 +3327,83 @@ test("Instanz-Zeitzone kann ausgewählt und nur gültig gespeichert werden", asy
     assert.equal(db.prepare("SELECT value FROM settings WHERE key = ?").get("instance_timezone")?.value, "Europe/Berlin");
   } finally {
     upsertSetting(db, "instance_timezone", previousTimeZone);
+  }
+});
+
+test("Bundesland und Tierkörperbeseitigungsanlagen steuern den Hinweis in der Historie", async () => {
+  const previousState = db.prepare("SELECT value FROM settings WHERE key = ?").get("federal_state")?.value || "";
+  let facilityId;
+  try {
+    let response = await agent.get("/admin/benachrichtigungen");
+    assert.equal(response.status, 200);
+    assert.match(response.text, /id="federal_state"/);
+    assert.match(response.text, /<option value="Bayern"/);
+
+    response = await agent.post("/admin/settings").type("form").send({
+      _fields: "federal_state",
+      federal_state: "Bayern",
+    });
+    assert.ok([302, 303].includes(response.status));
+    assert.equal(db.prepare("SELECT value FROM settings WHERE key = ?").get("federal_state")?.value, "Bayern");
+
+    response = await agent.post("/admin/disposal-facilities").type("form").send({
+      name: "VTN Testanlage",
+      federal_state: "Bayern",
+      street: "Am Testweg 3",
+      postal_code: "91710",
+      city: "Gunzenhausen",
+      country: "Deutschland",
+      phone: "09831 123456",
+      email: "info@example.de",
+      website: "https://example.de/vtn",
+      opening_hours: "Montag bis Freitag",
+      pricing: "Preis nach Gewicht, Stand 09/2026",
+      pickup_available: "1",
+      pickup_details: "Abholung gegen Aufpreis",
+      notes: "Zuständigkeit vorher bestätigen",
+    });
+    assert.ok([302, 303].includes(response.status));
+    const facility = db.prepare("SELECT * FROM disposal_facilities WHERE name = ?").get("VTN Testanlage");
+    assert.ok(facility);
+    facilityId = facility.id;
+    assert.equal(facility.pickup_available, 1);
+
+    response = await agent.get("/animals/historie");
+    assert.equal(response.status, 200);
+    assert.match(response.text, /Hinweis nach dem Tod eines Tieres/);
+    assert.match(response.text, /Bayern · Entsorgung, Bestattung und zuständige Anlagen/);
+    assert.match(response.text, /VTN Testanlage/);
+    assert.match(response.text, /Abholung gegen Aufpreis/);
+
+    response = await agent.post(`/admin/disposal-facilities/${facilityId}/update`).type("form").send({
+      ...facility,
+      name: "VTN Testanlage aktualisiert",
+      pickup_available: "",
+    });
+    assert.ok([302, 303].includes(response.status));
+    assert.equal(db.prepare("SELECT name FROM disposal_facilities WHERE id = ?").get(facilityId)?.name, "VTN Testanlage aktualisiert");
+
+    response = await agent.post(`/admin/disposal-facilities/${facilityId}/delete`);
+    assert.ok([302, 303].includes(response.status));
+    assert.equal(db.prepare("SELECT id FROM disposal_facilities WHERE id = ?").get(facilityId), undefined);
+    facilityId = null;
+  } finally {
+    if (facilityId) db.prepare("DELETE FROM disposal_facilities WHERE id = ?").run(facilityId);
+    upsertSetting(db, "federal_state", previousState);
+  }
+});
+
+test("Ungültige Bundesländer werden nicht gespeichert", async () => {
+  const previousState = db.prepare("SELECT value FROM settings WHERE key = ?").get("federal_state")?.value || "";
+  try {
+    const response = await agent.post("/admin/settings").type("form").send({
+      _fields: "federal_state",
+      federal_state: "Phantasieland",
+    });
+    assert.equal(response.status, 302);
+    assert.equal(db.prepare("SELECT value FROM settings WHERE key = ?").get("federal_state")?.value || "", previousState);
+  } finally {
+    upsertSetting(db, "federal_state", previousState);
   }
 });
 
