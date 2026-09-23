@@ -2,6 +2,10 @@
 
 Alle wesentlichen Änderungen an HeartPet werden hier absteigend dokumentiert.
 
+## 0.10.86 - 23.09.2026
+
+- Der Hinweis für einen veralteten Serverprozess funktioniert unabhängig vom Installationsordner.
+
 ## 0.10.85 - 23.09.2026
 
 - Bei einem noch laufenden alten Serverprozess werden Versorgung und Kalenderexport nicht mehr als defekte Links angezeigt.

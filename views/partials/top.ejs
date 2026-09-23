@@ -83,7 +83,7 @@
             <% if (permissions.canManageAdmin && !(typeof runtimeFeatures !== 'undefined' && runtimeFeatures.deploymentGuard)) { %>
               <div class="alert alert-warning mb-3" role="alert">
                 <strong>Update noch nicht vollständig aktiviert.</strong>
-                Der laufende HeartPet-Prozess ist älter als die geladenen Oberflächendateien. Bitte auf dem Server <code>cd /opt/HeartPet &amp;&amp; ./scripts/update.sh</code> ausführen.
+                Der laufende HeartPet-Prozess ist älter als die geladenen Oberflächendateien. Bitte im HeartPet-Installationsordner <code>./scripts/update.sh</code> ausführen.
               </div>
             <% } %>
             <header class="page-header mb-3 d-none d-lg-block">
