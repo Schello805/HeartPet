@@ -131,6 +131,8 @@ const { normalizeAppBaseUrl, resolveAppBaseUrl: resolveConfiguredAppBaseUrl } = 
 const { FEDERAL_STATES, getDisposalGuidance, isValidFederalState } = require("./disposal-guidance");
 const { listTimeZones, resolveInstanceTimeZone } = require("./instance-timezone");
 const { createUpdateChecker } = require("./services/update-check");
+const { createRuntimeMetrics } = require("./runtime/runtime-metrics");
+const { startServer } = require("./runtime/start-server");
 
 const app = express();
 app.set("trust proxy", process.env.HEARTPET_TRUST_PROXY || "loopback");
@@ -154,7 +156,7 @@ const cameraCacheDir = path.join(dataDir, "cache", "cameras");
 const loginAttempts = new Map();
 const passwordResetAttempts = new Map();
 const userPresenceWrites = new Map();
-const runtimeMetrics = { startedAt: Date.now(), requests: 0, errors: 0, totalDurationMs: 0, slowestDurationMs: 0, recent: [] };
+const runtimeMetrics = createRuntimeMetrics();
 const microchipRegistryOptions = ["TASSO", "FINDEFIX", "TASSO und FINDEFIX", "Anderes Register", "Nicht registriert"];
 const microchipManufacturerSuggestions = ["Dechra", "Datamars", "MSD Animal Health", "Trovan", "Virbac"];
 const {
@@ -249,20 +251,7 @@ app.set("view engine", "ejs");
 app.set("views", path.join(projectRoot, "views"));
 
 app.disable("x-powered-by");
-app.use((req, res, next) => {
-  const startedAt = process.hrtime.bigint();
-  res.on("finish", () => {
-    if (req.path.startsWith("/static/")) return;
-    const durationMs = Number(process.hrtime.bigint() - startedAt) / 1e6;
-    runtimeMetrics.requests += 1;
-    runtimeMetrics.totalDurationMs += durationMs;
-    runtimeMetrics.slowestDurationMs = Math.max(runtimeMetrics.slowestDurationMs, durationMs);
-    if (res.statusCode >= 500) runtimeMetrics.errors += 1;
-    runtimeMetrics.recent.push({ method: req.method, path: req.path, status: res.statusCode, durationMs, at: new Date().toISOString() });
-    if (runtimeMetrics.recent.length > 50) runtimeMetrics.recent.shift();
-  });
-  next();
-});
+app.use(runtimeMetrics.middleware);
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(express.json({ limit: "1mb" }));
 app.use((req, res, next) => {
@@ -788,27 +777,14 @@ app.use(createErrorHandler({ redactSensitiveText, sanitizeLogText, setFlash }));
 const port = Number(process.env.PORT || 3000);
 const bindHost = resolveBindHost(process.env.HEARTPET_HOST);
 if (require.main === module) {
-  reminderScheduler.start();
-
-  const server = app.listen(port, bindHost, () => {
-    console.log("HeartPet läuft auf:");
-    for (const url of listLocalAccessUrls({ port, bindHost })) {
-      console.log(`- ${url}`);
-    }
-    console.log("Anmeldung unter /login.");
+  startServer({
+    app,
+    port,
+    bindHost,
+    scheduler: reminderScheduler,
+    accessUrls: listLocalAccessUrls({ port, bindHost }),
+    beforeClose: () => homematicSessionService.reset(getSettingsObject(db)),
   });
-  let shuttingDown = false;
-  const shutdown = async (signal) => {
-    if (shuttingDown) return;
-    shuttingDown = true;
-    console.log(`[HeartPet] ${signal}: Beende Dienst und CCU-Sitzung.`);
-    const forceExit = setTimeout(() => process.exit(1), 10000);
-    forceExit.unref();
-    await homematicSessionService.reset(getSettingsObject(db));
-    server.close(() => process.exit(0));
-  };
-  process.once("SIGTERM", () => void shutdown("SIGTERM"));
-  process.once("SIGINT", () => void shutdown("SIGINT"));
 }
 
 function requireAuth(req, res, next) {
@@ -1188,16 +1164,7 @@ function parseBooleanSettingValue(value) {
 }
 
 function getRuntimeMetricsSnapshot() {
-  const requests = runtimeMetrics.requests;
-  return {
-    uptimeSeconds: Math.round((Date.now() - runtimeMetrics.startedAt) / 1000),
-    requests,
-    errors: runtimeMetrics.errors,
-    averageDurationMs: requests ? Math.round(runtimeMetrics.totalDurationMs / requests) : 0,
-    slowestDurationMs: Math.round(runtimeMetrics.slowestDurationMs),
-    memoryMb: Math.round(process.memoryUsage().rss / 1024 / 1024),
-    recent: runtimeMetrics.recent.slice(-10).reverse(),
-  };
+  return runtimeMetrics.snapshot();
 }
 
 function buildOperationalHealthChecks(settings) {

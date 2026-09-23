@@ -1,0 +1,169 @@
+  <section class="accordion-item" id="animal-dokumente">
+    <h2 class="accordion-header" id="animal-dokumente-heading">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#animal-dokumente-body" aria-expanded="false" aria-controls="animal-dokumente-body">
+        <span class="accordion-summary-main">Dokumente / Fotos</span>
+        <span class="accordion-summary-meta"><%= related.documents.length %> Dokumente · <%= related.images.length %> Fotos</span>
+      </button>
+    </h2>
+    <div id="animal-dokumente-body" class="accordion-collapse collapse" aria-labelledby="animal-dokumente-heading" data-bs-parent="#animalRecordAccordion">
+      <div class="accordion-body d-grid gap-3">
+      <div class="accordion animal-subaccordion">
+      <section class="accordion-item">
+        <h3 class="accordion-header" id="animal-photos-heading">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#animal-photos-body" aria-expanded="false" aria-controls="animal-photos-body">
+            Fotos
+          </button>
+        </h3>
+        <div id="animal-photos-body" class="accordion-collapse collapse" aria-labelledby="animal-photos-heading">
+          <div class="accordion-body">
+          <div class="detail-card-stack">
+            <div class="detail-card-head d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-2">
+              <p class="small text-body-secondary mb-0">Galerie, Profilbild und visuelle Dokumentation.</p>
+              <% if (canManageGalleryNow) { %>
+                <a href="/animals/<%= animal.id %>/images/new" class="btn btn-outline-secondary btn-sm" data-drawer="animal-entry">Foto hochladen</a>
+              <% } %>
+            </div>
+            <% if (related.images.length === 0) { %>
+              <p class="empty-state detail-card-empty">Noch keine Galeriebilder vorhanden.</p>
+            <% } else { %>
+              <div class="gallery-grid detail-card-grid">
+                <% related.images.forEach((item) => { %>
+                  <article class="gallery-card compact-card">
+                    <a href="/media/<%= item.stored_name %>" target="_blank" rel="noreferrer">
+                      <img class="gallery-image" src="/media/<%= item.stored_name %>" alt="<%= item.title || animal.name %>" />
+                    </a>
+                    <div class="gallery-meta">
+                      <strong><%= item.title || 'Bild' %></strong>
+                      <small><%= formatDateTime(item.created_at) %></small>
+                    </div>
+                    <% if (canManageGalleryNow) { %>
+                      <div class="gallery-card-actions">
+                        <form method="post" action="/animals/<%= animal.id %>/images/<%= item.id %>/update" class="gallery-title-form">
+                          <input type="hidden" name="return_to" value="/animals/<%= animal.id %>#animal-dokumente" />
+                          <label class="visually-hidden" for="gallery-title-<%= item.id %>">Bildtitel</label>
+                          <input class="form-control form-control-sm" id="gallery-title-<%= item.id %>" name="title" value="<%= item.title || '' %>" placeholder="Bildtitel" />
+                          <button type="submit" class="btn btn-outline-secondary btn-sm">Titel speichern</button>
+                        </form>
+                        <div class="inline-actions">
+                        <form method="post" action="/animals/<%= animal.id %>/images/<%= item.id %>/set-profile">
+                          <input type="hidden" name="return_to" value="/animals/<%= animal.id %>#animal-dokumente" />
+                          <button type="submit" class="btn btn-outline-secondary btn-sm">Als Profilbild</button>
+                        </form>
+                        <form method="post" action="/animals/<%= animal.id %>/images/<%= item.id %>/delete" data-confirm="Galeriebild wirklich löschen?">
+                          <input type="hidden" name="return_to" value="/animals/<%= animal.id %>#animal-dokumente" />
+                          <button type="submit" class="btn btn-outline-danger btn-sm icon-button" aria-label="Galeriebild löschen" title="Löschen">
+                            <span aria-hidden="true">🗑</span>
+                            <span class="visually-hidden">Löschen</span>
+                          </button>
+                        </form>
+                        </div>
+                      </div>
+                    <% } %>
+                  </article>
+                <% }) %>
+              </div>
+            <% } %>
+          </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="accordion-item">
+        <h3 class="accordion-header" id="animal-documents-heading">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#animal-documents-body" aria-expanded="false" aria-controls="animal-documents-body">
+            Dokumente
+          </button>
+        </h3>
+        <div id="animal-documents-body" class="accordion-collapse collapse" aria-labelledby="animal-documents-heading">
+          <div class="accordion-body">
+          <div class="detail-card-stack">
+            <% if (missingRequiredCategories.length > 0) { %>
+              <div class="alert alert-warning mb-0">
+                Fehlende Pflichtkategorien:
+                <strong><%= missingRequiredCategories.map((item) => item.name).join(', ') %></strong>
+              </div>
+            <% } %>
+            <div class="detail-card-head d-flex flex-column gap-3">
+              <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-2">
+                <p class="small text-body-secondary mb-0">Impfnachweise, Verträge und weitere Unterlagen mit Filter.</p>
+                <% if (canManageDocumentsNow) { %>
+                  <a href="/animals/<%= animal.id %>/documents/new" class="btn btn-outline-secondary" data-drawer="animal-entry">Dokument hochladen</a>
+                <% } %>
+              </div>
+              <form method="get" action="/animals/<%= animal.id %>" class="document-filter-form">
+              <div class="document-filter-field">
+                <label class="form-label" for="document-category-filter">Kategorie</label>
+                <select class="form-select" id="document-category-filter" name="documentCategory">
+                  <option value="">Alle Kategorien</option>
+                  <% categories.forEach((category) => { %>
+                    <option value="<%= category.id %>" <%= String(documentFilter.categoryId || '') === String(category.id) ? 'selected' : '' %>><%= category.name %></option>
+                  <% }) %>
+                </select>
+              </div>
+              <div class="document-filter-field">
+                <label class="form-label" for="document-type-filter">Dateityp</label>
+                <select class="form-select" id="document-type-filter" name="documentType">
+                  <option value="">Alle Typen</option>
+                  <option value="images" <%= documentFilter.fileType === 'images' ? 'selected' : '' %>>Nur Bilder</option>
+                  <option value="files" <%= documentFilter.fileType === 'files' ? 'selected' : '' %>>Nur Dokumente</option>
+                </select>
+              </div>
+              <div class="document-filter-action d-grid">
+                <button type="submit" class="btn btn-outline-secondary">Filter anwenden</button>
+              </div>
+              </form>
+            </div>
+            <% if (related.documents.length === 0) { %>
+              <p class="empty-state detail-card-empty">Noch keine Dokumente hochgeladen.</p>
+            <% } else { %>
+              <div class="row g-2 detail-card-list">
+                <% related.documents.forEach((item) => { %>
+                  <div class="col-md-6">
+                    <div class="card border-0 bg-body-tertiary h-100 document-card-grid-item">
+                      <a class="card-body d-grid gap-1 p-3 flex-grow-1" href="/documents/<%= item.id %>/download">
+                        <div class="d-flex flex-wrap justify-content-between gap-2 align-items-start">
+                          <strong><%= item.title %></strong>
+                          <% if (Number(item.category_is_required || 0)) { %>
+                            <span class="badge text-bg-warning">Pflicht</span>
+                          <% } %>
+                        </div>
+                        <p><%= item.category_name || 'Ohne Kategorie' %></p>
+                        <% if ((item.mime_type || '').startsWith('image/')) { %>
+                          <img class="document-preview-image" src="/media/<%= item.stored_name %>" alt="<%= item.title %>" />
+                        <% } %>
+                        <small><%= formatDateTime(item.uploaded_at) %></small>
+                      </a>
+                      <% if (canManageDocumentsNow) { %>
+                        <div class="inline-actions px-3 pb-3 pt-0">
+                          <a href="/animals/<%= animal.id %>/documents/<%= item.id %>/edit" class="btn btn-outline-secondary btn-sm icon-button" aria-label="Dokument bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
+                            <span aria-hidden="true">✎</span>
+                            <span class="visually-hidden">Bearbeiten</span>
+                          </a>
+                          <form method="post" action="/animals/<%= animal.id %>/documents/<%= item.id %>/delete" data-confirm="Dokument wirklich löschen?">
+                            <button type="submit" class="btn btn-outline-danger btn-sm icon-button" aria-label="Dokument löschen" title="Löschen">
+                              <span aria-hidden="true">🗑</span>
+                              <span class="visually-hidden">Löschen</span>
+                            </button>
+                          </form>
+                        </div>
+                      <% } %>
+                    </div>
+                  </div>
+                <% }) %>
+              </div>
+            <% } %>
+          </div>
+          </div>
+        </div>
+      </section>
+      </div>
+
+      <div class="detail-card-footer d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2">
+        <% if (permissions.canEditAnimals && animalIsActive) { %>
+          <button type="submit" class="btn btn-link text-danger btn-sm p-0" form="animal-delete-<%= animal.id %>">Tier endgültig löschen</button>
+        <% } else { %><span></span><% } %>
+        <a href="/animals/<%= animal.id %>/export/json" class="link-secondary small">JSON Export</a>
+      </div>
+      </div>
+    </div>
+  </section>

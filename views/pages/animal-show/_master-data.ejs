@@ -1,0 +1,138 @@
+  <section class="accordion-item" id="animal-stammdaten">
+    <h2 class="accordion-header" id="animal-stammdaten-heading">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#animal-stammdaten-body" aria-expanded="false" aria-controls="animal-stammdaten-body">
+        <span class="accordion-summary-main">Stammdaten</span>
+        <span class="accordion-summary-meta">Basis, Fütterung, Protokolle</span>
+      </button>
+    </h2>
+    <div id="animal-stammdaten-body" class="accordion-collapse collapse" aria-labelledby="animal-stammdaten-heading" data-bs-parent="#animalRecordAccordion">
+      <div class="accordion-body d-grid gap-3">
+      <div class="card border-0 bg-body-tertiary">
+        <div class="card-body p-3">
+        <h3>Basisdaten</h3>
+        <dl class="row g-2 mb-3">
+          <div class="col-md-6"><div class="card border-0 bg-body h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Herkunft</dt><dd class="mb-0 fw-semibold"><%= animal.source || '-' %></dd></div></div></div>
+          <div class="col-md-6"><div class="card border-0 bg-body h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Rasse</dt><dd class="mb-0 fw-semibold"><%= animal.breed || '-' %></dd></div></div></div>
+          <div class="col-md-6"><div class="card border-0 bg-body h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Farbe</dt><dd class="mb-0 fw-semibold"><%= animal.color || '-' %></dd></div></div></div>
+          <div class="col-md-6"><div class="card border-0 bg-body h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Geschlecht</dt><dd class="mb-0 fw-semibold"><%= animal.sex || '-' %></dd></div></div></div>
+          <div class="col-md-6"><div class="card border-0 bg-body h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Mikrochip</dt><dd class="mb-0 fw-semibold text-break"><%= animal.microchip_number || '-' %></dd></div></div></div>
+          <div class="col-md-6"><div class="card border-0 bg-body h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Chip-Hersteller</dt><dd class="mb-0 fw-semibold"><%= animal.microchip_manufacturer || '-' %></dd></div></div></div>
+          <div class="col-md-6"><div class="card border-0 bg-body h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Haustierregister</dt><dd class="mb-0 fw-semibold"><%= animal.microchip_registry || 'Unbekannt' %></dd></div></div></div>
+          <div class="col-md-6"><div class="card border-0 bg-body h-100"><div class="card-body p-3"><dt class="small text-body-secondary mb-1">Gewicht</dt><dd class="mb-0 fw-semibold"><%= animal.weight_kg || '-' %></dd></div></div></div>
+        </dl>
+        <% if (microchipLinkState.checks.length > 0) { %>
+          <aside class="microchip-links" aria-label="Mikrochip und Vermisstmeldung">
+            <div>
+              <strong>Chip-Registrierung prüfen</strong>
+              <span>Die Chipnummer auf der Zielseite eintragen.</span>
+            </div>
+            <div class="microchip-link-actions">
+              <% microchipLinkState.checks.forEach((link) => { %>
+                <a class="btn btn-outline-primary btn-sm" href="<%= link.url %>" target="_blank" rel="noopener noreferrer"><%= link.label %></a>
+              <% }) %>
+              <% microchipLinkState.nextSteps.forEach((link) => { %>
+                <a class="btn <%= link.urgent ? 'btn-outline-danger' : 'btn-outline-secondary' %> btn-sm" href="<%= link.url %>" target="_blank" rel="noopener noreferrer"><%= link.label %></a>
+              <% }) %>
+            </div>
+          </aside>
+        <% } %>
+        <p class="small text-body-secondary mb-0"><%= animal.notes || 'Keine weiteren Notizen vorhanden.' %></p>
+        </div>
+      </div>
+
+      <div class="accordion animal-subaccordion">
+      <section class="accordion-item">
+        <h3 class="accordion-header" id="animal-feedings-heading">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#animal-feedings-body" aria-expanded="false" aria-controls="animal-feedings-body">
+            Fütterung
+          </button>
+        </h3>
+        <div id="animal-feedings-body" class="accordion-collapse collapse" aria-labelledby="animal-feedings-heading">
+          <div class="accordion-body d-grid gap-2">
+          <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-2">
+            <p class="small text-body-secondary mb-0">Zeiten, Futter und Mengen an einem Ort.</p>
+            <% if (canManageFeedingsNow) { %>
+              <a href="/animals/<%= animal.id %>/feedings/new" class="btn btn-outline-secondary btn-sm" data-drawer="animal-entry">Fütterung anlegen</a>
+            <% } %>
+          </div>
+          <div class="detail-entry-grid">
+          <% related.feedings.forEach((item) => { %>
+            <div class="card border-0 bg-body-tertiary detail-entry-card d-flex flex-column justify-content-between gap-3">
+              <div class="card-body d-grid gap-1 p-3 flex-grow-1">
+                <strong><%= item.label %></strong>
+                <p><%= item.time_of_day || '-' %> | <%= item.food || '-' %> | <%= item.amount || '-' %></p>
+                <% if (item.notes) { %><small><%= item.notes %></small><% } %>
+              </div>
+              <% if (canManageFeedingsNow) { %>
+                <div class="inline-actions">
+                  <a href="/animals/<%= animal.id %>/feedings/<%= item.id %>/edit" class="btn btn-outline-secondary btn-sm icon-button" aria-label="Fütterung bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
+                    <span aria-hidden="true">✎</span>
+                    <span class="visually-hidden">Bearbeiten</span>
+                  </a>
+                  <form method="post" action="/animals/<%= animal.id %>/feedings/<%= item.id %>/delete" data-confirm="Eintrag wirklich löschen?">
+                    <button type="submit" class="btn btn-outline-danger btn-sm icon-button" aria-label="Fütterung löschen" title="Löschen">
+                      <span aria-hidden="true">🗑</span>
+                      <span class="visually-hidden">Löschen</span>
+                    </button>
+                  </form>
+                </div>
+              <% } %>
+            </div>
+          <% }) %>
+          </div>
+          <% if (related.feedings.length === 0) { %>
+            <p class="empty-state">Noch kein Fütterungsplan hinterlegt.</p>
+          <% } %>
+          </div>
+        </div>
+      </section>
+
+      <section class="accordion-item">
+        <h3 class="accordion-header" id="animal-notes-heading">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#animal-notes-body" aria-expanded="false" aria-controls="animal-notes-body">
+            Protokolle
+          </button>
+        </h3>
+        <div id="animal-notes-body" class="accordion-collapse collapse" aria-labelledby="animal-notes-heading">
+          <div class="accordion-body d-grid gap-2">
+          <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-2">
+            <p class="small text-body-secondary mb-0">Kurze Einträge für Verlauf, Beobachtungen und Nachweise.</p>
+            <% if (canManageNotesNow) { %>
+              <a href="/animals/<%= animal.id %>/notes/new" class="btn btn-outline-secondary btn-sm" data-drawer="animal-entry">Protokoll anlegen</a>
+            <% } %>
+          </div>
+          <div class="detail-entry-grid">
+          <% related.notes.forEach((item) => { %>
+            <div class="card border-0 bg-body-tertiary detail-entry-card d-flex flex-column justify-content-between gap-3">
+              <div class="card-body d-grid gap-1 p-3 flex-grow-1">
+                <strong><%= item.title %></strong>
+                <p><%= item.content %></p>
+                <small><%= formatDateTime(item.created_at) %></small>
+              </div>
+              <% if (canManageNotesNow) { %>
+                <div class="inline-actions">
+                  <a href="/animals/<%= animal.id %>/notes/<%= item.id %>/edit" class="btn btn-outline-secondary btn-sm icon-button" aria-label="Protokoll bearbeiten" title="Bearbeiten" data-drawer="animal-entry">
+                    <span aria-hidden="true">✎</span>
+                    <span class="visually-hidden">Bearbeiten</span>
+                  </a>
+                  <form method="post" action="/animals/<%= animal.id %>/notes/<%= item.id %>/delete" data-confirm="Eintrag wirklich löschen?">
+                    <button type="submit" class="btn btn-outline-danger btn-sm icon-button" aria-label="Protokoll löschen" title="Löschen">
+                      <span aria-hidden="true">🗑</span>
+                      <span class="visually-hidden">Löschen</span>
+                    </button>
+                  </form>
+                </div>
+              <% } %>
+            </div>
+          <% }) %>
+          </div>
+          <% if (related.notes.length === 0) { %>
+            <p class="empty-state">Noch keine Protokolle vorhanden.</p>
+          <% } %>
+          </div>
+        </div>
+      </section>
+      </div>
+      </div>
+    </div>
+  </section>

@@ -2,6 +2,13 @@
 
 Alle wesentlichen Änderungen an HeartPet werden hier absteigend dokumentiert.
 
+## 0.10.90 - 23.09.2026
+
+- Tierakte, Benachrichtigungen und Browserlogik sind in kleinere fachliche Module aufgeteilt.
+- Laufzeitmessung und Prozessstart sind aus dem Server-Einstiegspunkt ausgelagert.
+- Der neue Befehl `./scripts/heartpet.sh` bündelt Status, Diagnose, Update, Backup, Logs, Passwort-Reset und Projektprüfung.
+- Engere automatische Größenlimits verhindern, dass zentrale Dateien erneut zu Sammeldateien anwachsen.
+
 ## 0.10.89 - 23.09.2026
 
 - Der Entsorgungshinweis in der Historie nennt das ausgewählte Bundesland auch im geöffneten Akkordeon eindeutig.

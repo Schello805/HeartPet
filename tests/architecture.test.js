@@ -177,12 +177,12 @@ test("Browser-Skripte fuer UI-Features bleiben modular geladen", () => {
 });
 
 test("Kamera-Vorschau wird in den Einstellungen nur bewusst gestartet", () => {
-  const appScript = fs.readFileSync(path.join(__dirname, "..", "public", "js", "app.js"), "utf8");
+  const deviceFeatures = fs.readFileSync(path.join(__dirname, "..", "public", "js", "device-features.js"), "utf8");
   const adminGeneral = fs.readFileSync(path.join(__dirname, "..", "views", "pages", "admin-general.ejs"), "utf8");
 
   assert.match(adminGeneral, /data-camera-preview-load/);
-  assert.match(appScript, /data-camera-preview-load/);
-  assert.doesNotMatch(appScript, /if \(snapshotUrl\) loadPreview\(card\)/);
+  assert.match(deviceFeatures, /data-camera-preview-load/);
+  assert.doesNotMatch(deviceFeatures, /if \(snapshotUrl\) loadPreview\(card\)/);
 });
 
 test("CI prüft Produktionsabhängigkeiten reproduzierbar aus der Lockdatei", () => {

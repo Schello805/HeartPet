@@ -51,7 +51,7 @@ Falls das Einmalpasswort verloren ging:
 
 ```bash
 cd /opt/HeartPet
-node scripts/reset-admin-password.js admin@example.de --generate
+./scripts/heartpet.sh password admin@example.de --generate
 systemctl restart heartpet
 ```
 
@@ -67,7 +67,7 @@ Status und Protokoll:
 
 ```bash
 cd /opt/HeartPet
-./scripts/status.sh
+./scripts/heartpet.sh status
 curl -fsS http://127.0.0.1:3000/health
 journalctl -u heartpet -n 100 --no-pager
 ```
@@ -84,7 +84,7 @@ systemctl restart heartpet
 
 ```bash
 cd /opt/HeartPet
-./scripts/update.sh
+./scripts/heartpet.sh update
 ```
 
 Das Update erstellt zuerst ein Backup, installiert Abhängigkeiten, aktiviert die neue Revision atomar und prüft anschließend Dienst und Health-Status. Bei einem fehlgeschlagenen Start wird das vorherige Release wiederhergestellt. Daten, Uploads und Sitzungen bleiben außerhalb des Releases erhalten, sodass ein Update normalerweise nicht abmeldet.
@@ -93,7 +93,7 @@ Das Update erstellt zuerst ein Backup, installiert Abhängigkeiten, aktiviert di
 
 ```bash
 cd /opt/HeartPet
-./scripts/backup.sh
+./scripts/heartpet.sh backup
 ```
 
 Die dauerhaften Daten liegen unter `/opt/HeartPet/data`:

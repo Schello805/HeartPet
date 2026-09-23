@@ -5,14 +5,21 @@ const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
 const limits = new Map([
-  ["src/app.js", 4000],
-  ["public/js/app.js", 1700],
+  ["src/app.js", 2050],
+  ["src/reminders.js", 700],
+  ["public/js/app.js", 1100],
+  ["public/js/device-features.js", 400],
+  ["views/pages/animal-show.ejs", 180],
 ]);
 
-for (const directory of ["src/routes", "src/repositories", "src/services", "src/middleware"]) {
+for (const directory of ["src/routes", "src/repositories", "src/services", "src/middleware", "src/runtime"]) {
   for (const name of fs.readdirSync(path.join(root, directory))) {
     if (name.endsWith(".js")) limits.set(`${directory}/${name}`, 500);
   }
+}
+
+for (const name of fs.readdirSync(path.join(root, "views/pages/animal-show"))) {
+  if (name.endsWith(".ejs")) limits.set(`views/pages/animal-show/${name}`, 400);
 }
 
 const failures = [];
