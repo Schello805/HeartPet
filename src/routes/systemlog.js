@@ -7,7 +7,7 @@ function createSystemlogRouter(dependencies) {
     captureCameraFrame,
     createAuditLog,
     formatAuditLogEntry,
-    getAdminViewData,
+    getAdminShellViewData,
     homematic,
     getInstanceTimeZone,
     getRuntimeMetricsSnapshot,
@@ -61,7 +61,7 @@ function createSystemlogRouter(dependencies) {
       installationChecks,
     };
     res.render("pages/admin-systemlog", {
-      ...getAdminViewData("Systemlog", "/admin/systemlog"),
+      ...getAdminShellViewData("Systemlog", "/admin/systemlog"),
       filters: { level },
       notificationLogs: repository.listNotificationLogs(level),
       auditLogs,

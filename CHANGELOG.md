@@ -2,6 +2,10 @@
 
 Alle wesentlichen Änderungen an HeartPet werden hier absteigend dokumentiert.
 
+## 0.10.83 - 23.09.2026
+
+- Der Systemlog bleibt mit älteren Audit-Einträgen und bei unvollständigen optionalen Stammdaten erreichbar.
+
 ## 0.10.82 - 23.09.2026
 
 - Der Footer prüft für Administratoren ausfallsicher auf neue GitHub-Versionen und zeigt den benötigten Updatebefehl an.

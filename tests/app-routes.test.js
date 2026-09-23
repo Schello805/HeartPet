@@ -541,6 +541,33 @@ test("Systemlog ist erreichbar (inkl. Alias)", async () => {
   assert.equal(nestedAlias.headers.location, "/admin/systemlog");
 });
 
+test("Systemlog bleibt mit älteren Audit-Daten und fehlenden optionalen Stammdaten erreichbar", async () => {
+  const legacyAudit = db.prepare(`
+    INSERT INTO audit_logs (actor_email, action, entity_type, entity_id, details)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(
+    "admin@test.local",
+    "vaccination.bulk_create",
+    "vaccination",
+    "legacy",
+    JSON.stringify({
+      name: "Altbestand",
+      animal_names: "Minka, Luna",
+      vaccination_date: "2026-09-20",
+    }),
+  );
+
+  db.exec("ALTER TABLE disposal_facilities RENAME TO disposal_facilities_systemlog_test");
+  try {
+    const response = await agent.get("/admin/systemlog");
+    assert.equal(response.status, 200);
+    assert.match(response.text, /Minka, Luna/);
+  } finally {
+    db.exec("ALTER TABLE disposal_facilities_systemlog_test RENAME TO disposal_facilities");
+    db.prepare("DELETE FROM audit_logs WHERE id = ?").run(legacyAudit.lastInsertRowid);
+  }
+});
+
 test("Health-Checks liefern einen minimalen öffentlichen und geschützten Detailstatus", async () => {
   const publicHealth = await request(app).get("/health");
   assert.equal(publicHealth.status, 200);

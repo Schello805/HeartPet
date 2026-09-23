@@ -679,7 +679,7 @@ app.use("/admin", createSystemlogRouter({
   captureCameraFrame,
   createAuditLog,
   formatAuditLogEntry,
-  getAdminViewData,
+  getAdminShellViewData,
   homematic,
   getInstanceTimeZone,
   getRuntimeMetricsSnapshot,
@@ -1451,7 +1451,8 @@ function buildSeoMeta(req, settings) {
 
 function parseAuditDetails(rawValue) {
   try {
-    return rawValue ? JSON.parse(rawValue) : {};
+    const parsed = rawValue ? JSON.parse(rawValue) : {};
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
   } catch {
     return {};
   }
@@ -1566,7 +1567,11 @@ function formatAuditLogEntry(entry) {
     case "animal.delete":
       return make("Tier gelöscht", details.name || `Tier #${details.animal_id || entityId}`, "Akte und zugehörige Inhalte entfernt");
     case "vaccination.bulk_create":
-      return make("Gruppenimpfung eingetragen", details.name || `Impfung #${entityId}`, `${(details.animal_names || []).join(", ")} · ${details.vaccination_date || "-"}`);
+      return make(
+        "Gruppenimpfung eingetragen",
+        details.name || `Impfung #${entityId}`,
+        `${Array.isArray(details.animal_names) ? details.animal_names.join(", ") : String(details.animal_names || "-")} · ${details.vaccination_date || "-"}`,
+      );
     case "veterinarian.create":
       return make("Tierarzt angelegt", details.name || `Tierarzt #${details.veterinarian_id || entityId}`, [details.city, details.email].filter(Boolean).join(" · ") || "Neuer Tierarzt hinterlegt");
     case "veterinarian.update":
@@ -1773,6 +1778,14 @@ function getAdminViewData(pageTitle, adminPath) {
       FROM users
       ORDER BY created_at ASC
     `).all(),
+  };
+}
+
+function getAdminShellViewData(pageTitle, adminPath) {
+  return {
+    pageTitle: `Admin · ${pageTitle}`,
+    adminPageTitle: pageTitle,
+    adminPath,
   };
 }
 
