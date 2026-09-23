@@ -411,7 +411,13 @@ app.use((req, res, next) => {
   res.locals.currentPath = req.path;
   res.locals.currentQuery = req.query || {};
   res.locals.appRevision = runtimeRevision;
-  res.locals.runtimeFeatures = { memorialNoteEditor: true, vaccinationPresets: true };
+  res.locals.runtimeFeatures = {
+    memorialNoteEditor: true,
+    vaccinationPresets: true,
+    disposalFacilities: true,
+    updateStatus: true,
+    webAppManifest: true,
+  };
   res.locals.fieldConstraints = htmlConstraints;
   res.locals.seoMeta = buildSeoMeta(req, res.locals.appSettings);
   res.locals.animalSpeciesMenu = animalWorkspace.listActiveSpecies();

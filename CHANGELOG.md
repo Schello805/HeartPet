@@ -2,6 +2,11 @@
 
 Alle wesentlichen Änderungen an HeartPet werden hier absteigend dokumentiert.
 
+## 0.10.84 - 23.09.2026
+
+- Gemischte Versionsstände blenden TBA, Updateprüfung und Web-App-Manifest sicher aus, bis der Serverprozess neu gestartet wurde.
+- Web-App-Metadaten verwenden zusätzlich den aktuellen browserübergreifenden Standard.
+
 ## 0.10.83 - 23.09.2026
 
 - Der Systemlog bleibt mit älteren Audit-Einträgen und bei unvollständigen optionalen Stammdaten erreichbar.

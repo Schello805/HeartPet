@@ -1000,6 +1000,7 @@ test("Web-App-Manifest und Icons sind öffentlich und verwenden das App-Logo", a
 
   const login = await request(app).get("/login");
   assert.match(login.text, /rel="manifest"/);
+  assert.match(login.text, /name="mobile-web-app-capable" content="yes"/);
   assert.match(login.text, /rel="apple-touch-icon" sizes="180x180"/);
   assert.match(login.text, /\/static\/js\/app-install\.js/);
 });
@@ -1513,8 +1514,16 @@ test("Updates behalten Laufzeitdaten und Session-Geheimnis außerhalb des Auto-S
 test("Stammdaten-Template bleibt mit einem älteren Serverstand renderbar", () => {
   const template = fs.readFileSync(path.join(__dirname, "..", "views", "pages", "admin-masterdata.ejs"), "utf8");
   assert.match(template, /typeof vaccinationPresets !== 'undefined'/);
+  assert.match(template, /runtimeFeatures\.disposalFacilities/);
   assert.doesNotMatch(template, /vaccinationPresets\.length/);
   assert.doesNotMatch(template, /vaccinationPresets\.forEach/);
+});
+
+test("Neue Browser-Funktionen bleiben bei einem älteren Serverprozess deaktiviert", () => {
+  const icons = fs.readFileSync(path.join(__dirname, "..", "views", "partials", "app-icons.ejs"), "utf8");
+  const bottom = fs.readFileSync(path.join(__dirname, "..", "views", "partials", "bottom.ejs"), "utf8");
+  assert.match(icons, /runtimeFeatures\.webAppManifest/);
+  assert.match(bottom, /runtimeFeatures\.updateStatus/);
 });
 
 test("Adressvalidierung für Tierarzt greift", async () => {

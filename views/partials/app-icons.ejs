@@ -1,10 +1,14 @@
 <% const appIconBaseUrl = typeof iconBaseUrl !== 'undefined' && iconBaseUrl ? iconBaseUrl.replace(/\/+$/, '') : ''; %>
 <% const resolvedAppIconVersion = encodeURIComponent(typeof appIconVersion !== 'undefined' ? appIconVersion : (typeof appRevision !== 'undefined' ? appRevision : 'dev')); %>
+<% const supportsWebAppManifest = typeof runtimeFeatures !== 'undefined' && runtimeFeatures.webAppManifest; %>
 <meta name="theme-color" content="#e6f6f6" />
+<meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <link rel="icon" type="image/png" sizes="32x32" href="<%= `${appIconBaseUrl}/app-icon/32.png?v=${resolvedAppIconVersion}` %>" />
 <link rel="shortcut icon" href="<%= `${appIconBaseUrl}/favicon.ico?v=${resolvedAppIconVersion}` %>" />
 <link rel="apple-touch-icon" sizes="180x180" href="<%= `${appIconBaseUrl}/app-icon/180.png?v=${resolvedAppIconVersion}` %>" />
-<link rel="manifest" href="<%= `${appIconBaseUrl}/app.webmanifest?v=${resolvedAppIconVersion}` %>" />
-<script defer src="<%= `${appIconBaseUrl}/static/js/app-install.js?v=${resolvedAppIconVersion}` %>"></script>
+<% if (supportsWebAppManifest) { %>
+  <link rel="manifest" href="<%= `${appIconBaseUrl}/app.webmanifest?v=${resolvedAppIconVersion}` %>" />
+  <script defer src="<%= `${appIconBaseUrl}/static/js/app-install.js?v=${resolvedAppIconVersion}` %>"></script>
+<% } %>

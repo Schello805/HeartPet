@@ -82,7 +82,7 @@
         </div>
       </div>
 
-      <% if (permissions.canManageAdmin) { %>
+      <% if (permissions.canManageAdmin && typeof runtimeFeatures !== 'undefined' && runtimeFeatures.updateStatus) { %>
       <div class="modal fade" id="app-update-modal" tabindex="-1" aria-labelledby="app-update-modal-title" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-sm">
           <div class="modal-content border-0 shadow-lg">
@@ -108,7 +108,7 @@
           <a href="/hilfe">Hilfe</a>
           <% if (permissions.canManageAdmin) { %><a href="/admin/allgemein">Verwaltung</a><% } %>
           <span class="text-body-secondary">Version <%= typeof appRevision !== 'undefined' ? appRevision : 'dev' %></span>
-          <% if (permissions.canManageAdmin) { %><button type="button" class="btn btn-link btn-sm p-0 d-none" data-update-indicator data-bs-toggle="modal" data-bs-target="#app-update-modal">Update verfügbar</button><% } %>
+          <% if (permissions.canManageAdmin && typeof runtimeFeatures !== 'undefined' && runtimeFeatures.updateStatus) { %><button type="button" class="btn btn-link btn-sm p-0 d-none" data-update-indicator data-bs-toggle="modal" data-bs-target="#app-update-modal">Update verfügbar</button><% } %>
         </div>
       </div>
     </footer>

@@ -4,6 +4,7 @@
   const vaccinationPresetsState = typeof vaccinationPresets !== 'undefined' && Array.isArray(vaccinationPresets) ? vaccinationPresets : [];
   const disposalFacilitiesState = typeof disposalFacilities !== 'undefined' && Array.isArray(disposalFacilities) ? disposalFacilities : [];
   const supportsVaccinationPresets = typeof runtimeFeatures !== 'undefined' && runtimeFeatures.vaccinationPresets;
+  const supportsDisposalFacilities = typeof runtimeFeatures !== 'undefined' && runtimeFeatures.disposalFacilities;
 %>
 
 <div class="vstack gap-3">
@@ -17,7 +18,7 @@
       <div class="d-flex flex-wrap gap-2">
         <span class="badge text-bg-secondary">Kategorien <%= categories.length %></span>
         <span class="badge text-bg-secondary">Tierärzte <%= veterinarians.length %></span>
-        <span class="badge text-bg-secondary">Tierkörperbeseitigung <%= disposalFacilitiesState.length %></span>
+        <% if (supportsDisposalFacilities) { %><span class="badge text-bg-secondary">Tierkörperbeseitigung <%= disposalFacilitiesState.length %></span><% } %>
         <span class="badge text-bg-secondary">Tierarten <%= species.length %></span>
         <% if (supportsVaccinationPresets) { %><span class="badge text-bg-secondary">Standardimpfungen <%= vaccinationPresetsState.length %></span><% } %>
       </div>
@@ -90,6 +91,7 @@
     </div>
   </details>
 
+  <% if (supportsDisposalFacilities) { %>
   <details class="card border-0 bg-body-tertiary admin-section-card masterdata-accordion">
     <summary class="masterdata-accordion-summary">
       <span><strong>Tierkörperbeseitigungsanlagen</strong><small>Kontakt, Annahme, Abholung und Preise</small></span>
@@ -115,6 +117,7 @@
       <% } %>
     </div>
   </details>
+  <% } %>
 
   <details class="card border-0 bg-body-tertiary admin-section-card masterdata-accordion">
     <summary class="masterdata-accordion-summary">
