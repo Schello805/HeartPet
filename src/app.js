@@ -130,6 +130,7 @@ const { getDefaultAppBaseUrl, listLocalAccessUrls, resolveBindHost } = require("
 const { normalizeAppBaseUrl, resolveAppBaseUrl: resolveConfiguredAppBaseUrl } = require("./app-url");
 const { FEDERAL_STATES, getDisposalGuidance, isValidFederalState } = require("./disposal-guidance");
 const { listTimeZones, resolveInstanceTimeZone } = require("./instance-timezone");
+const { createUpdateChecker } = require("./services/update-check");
 
 const app = express();
 app.set("trust proxy", process.env.HEARTPET_TRUST_PROXY || "loopback");
@@ -141,6 +142,7 @@ const calendarExportService = createCalendarExportService(db);
 const projectRoot = path.join(__dirname, "..");
 const revisionPath = path.join(projectRoot, "REVISION");
 const runtimeRevision = readAppRevision();
+const updateChecker = createUpdateChecker({ currentRevision: runtimeRevision });
 const configuredDataDir = String(process.env.HEARTPET_DATA_DIR || "").trim();
 const dataDir = configuredDataDir ? path.resolve(configuredDataDir) : path.join(projectRoot, "data");
 const uploadsDir = path.join(dataDir, "uploads");
@@ -473,6 +475,10 @@ app.use(createReminderActionsRouter({
 }));
 
 app.use(requireAuth);
+app.get("/api/update-status", requireAdmin, async (req, res) => {
+  res.set("Cache-Control", "private, no-store");
+  return res.json(await updateChecker.check());
+});
 app.use("/media", express.static(uploadsDir, {
   fallthrough: false,
   index: false,

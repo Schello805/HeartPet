@@ -557,6 +557,19 @@ test("Health-Checks liefern einen minimalen öffentlichen und geschützten Detai
   assert.equal(typeof adminHealth.body.runtime.averageDurationMs, "number");
 });
 
+test("Update-Status ist nur für Administratoren verfügbar und bleibt im Testbetrieb offline", async () => {
+  const anonymous = await request(app).get("/api/update-status");
+  assert.equal(anonymous.status, 302);
+  assert.match(anonymous.headers.location, /^\/login/);
+
+  await ensureAdminAuthenticated();
+  const response = await agent.get("/api/update-status");
+  assert.equal(response.status, 200);
+  assert.equal(response.body.checked, false);
+  assert.equal(response.body.updateAvailable, false);
+  assert.equal(response.headers["cache-control"], "private, no-store");
+});
+
 test("Alle internen API- und Steuerungsrouten sind mit der vorgesehenen Methode registriert", () => {
   const routeEntries = (stack, prefix = "") => stack.flatMap((layer) => {
     if (layer.route && typeof layer.route.path === "string") {
@@ -571,6 +584,7 @@ test("Alle internen API- und Steuerungsrouten sind mit der vorgesehenen Methode 
   const expected = [
     "GET /health",
     "GET /admin/health",
+    "GET /api/update-status",
     "GET /api/species/search",
     "GET /api/reminders/pending",
     "GET /animals/suggest",

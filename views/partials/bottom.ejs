@@ -82,6 +82,24 @@
         </div>
       </div>
 
+      <% if (permissions.canManageAdmin) { %>
+      <div class="modal fade" id="app-update-modal" tabindex="-1" aria-labelledby="app-update-modal-title" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+          <div class="modal-content border-0 shadow-lg">
+            <div class="modal-body p-4">
+              <h2 class="h5 mb-2" id="app-update-modal-title">HeartPet aktualisieren</h2>
+              <p class="text-body-secondary mb-3">Auf GitHub ist Version <strong data-update-latest-version></strong> verfügbar. Führe auf dem HeartPet-Server diesen Befehl aus:</p>
+              <code class="d-block p-3 rounded bg-body-tertiary text-break mb-3" data-update-command>cd /opt/HeartPet &amp;&amp; ./scripts/update.sh</code>
+              <div class="d-grid gap-2">
+                <button type="button" class="btn btn-primary" data-update-copy>Konsolenbefehl kopieren</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Schließen</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <% } %>
+
     </div>
 
     <footer class="app-footer">
@@ -90,6 +108,7 @@
           <a href="/hilfe">Hilfe</a>
           <% if (permissions.canManageAdmin) { %><a href="/admin/allgemein">Verwaltung</a><% } %>
           <span class="text-body-secondary">Version <%= typeof appRevision !== 'undefined' ? appRevision : 'dev' %></span>
+          <% if (permissions.canManageAdmin) { %><button type="button" class="btn btn-link btn-sm p-0 d-none" data-update-indicator data-bs-toggle="modal" data-bs-target="#app-update-modal">Update verfügbar</button><% } %>
         </div>
       </div>
     </footer>

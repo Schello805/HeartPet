@@ -49,6 +49,10 @@ test.beforeEach(async ({ page }, testInfo) => {
   process.env.HEARTPET_SESSION_SECRET = "playwright-secret";
   process.env.HEARTPET_SESSION_STORE = "memory";
   process.env.HEARTPET_DISABLE_PWNED_PASSWORD_CHECK = "true";
+  delete process.env.HEARTPET_UPDATE_REVISION_URL;
+  if (testInfo.title === "Footer zeigt ein verfügbares Update samt Konsolenbefehl") {
+    process.env.HEARTPET_UPDATE_REVISION_URL = "data:text/plain,99.0.0";
+  }
 
   delete require.cache[require.resolve("../../src/db")];
   const { initDatabase } = require("../../src/db");
@@ -97,6 +101,7 @@ test.afterEach(async () => {
     fs.rmSync(tempDataDir, { recursive: true, force: true });
   }
   tempDataDir = null;
+  delete process.env.HEARTPET_UPDATE_REVISION_URL;
 });
 
 async function ensureAuthenticated(page) {
@@ -445,6 +450,21 @@ test("Impf-Erinnerung fragt mobil nach dem tatsächlichen Impfdatum", async ({ p
     resultDb.prepare("SELECT vaccination_date FROM animal_vaccinations WHERE id = ?").get(vaccination.lastInsertRowid).vaccination_date
   ).toBe("2026-09-19");
   resultDb.close();
+});
+
+test("Footer zeigt ein verfügbares Update samt Konsolenbefehl", async ({ page }) => {
+  await ensureAuthenticated(page);
+  await page.goto("/");
+
+  const indicator = page.getByRole("button", { name: "Update 99.0.0 verfügbar" });
+  await expect(indicator).toBeVisible();
+  await indicator.click();
+
+  const modal = page.locator("#app-update-modal");
+  await expect(modal).toBeVisible();
+  await expect(modal).toContainText("cd /opt/HeartPet && ./scripts/update.sh");
+  await modal.getByRole("button", { name: "Konsolenbefehl kopieren" }).click();
+  await expect(modal.getByRole("button", { name: "Kopiert" })).toBeVisible();
 });
 
 test("Android-Nutzer können HeartPet über den nativen Dialog installieren", async ({ page }) => {

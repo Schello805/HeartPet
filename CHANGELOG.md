@@ -2,6 +2,10 @@
 
 Alle wesentlichen Änderungen an HeartPet werden hier absteigend dokumentiert.
 
+## 0.10.82 - 23.09.2026
+
+- Der Footer prüft für Administratoren ausfallsicher auf neue GitHub-Versionen und zeigt den benötigten Updatebefehl an.
+
 ## 0.10.81 - 23.09.2026
 
 - Beim Erledigen einer Impf-Erinnerung wird das tatsächliche Impfdatum abgefragt und im Impfeintrag gespeichert.

@@ -1218,6 +1218,49 @@ function initTimelineToggles() {
   });
 }
 
+let updateStatusInitialized = false;
+
+function initUpdateStatus() {
+  if (updateStatusInitialized) return;
+  const indicator = document.querySelector("[data-update-indicator]");
+  if (!indicator) return;
+  updateStatusInitialized = true;
+
+  const latestVersion = document.querySelector("[data-update-latest-version]");
+  const command = document.querySelector("[data-update-command]");
+  const copyButton = document.querySelector("[data-update-copy]");
+
+  fetch("/api/update-status", { headers: { Accept: "application/json" } })
+    .then((response) => response.ok ? response.json() : null)
+    .then((status) => {
+      if (!status?.updateAvailable || !status.latestRevision) return;
+      indicator.textContent = `Update ${status.latestRevision} verfügbar`;
+      indicator.classList.remove("d-none");
+      if (latestVersion) latestVersion.textContent = status.latestRevision;
+    })
+    .catch(() => {});
+
+  copyButton?.addEventListener("click", async () => {
+    const value = command?.textContent?.trim();
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      copyButton.textContent = "Kopiert";
+    } catch {
+      const field = document.createElement("textarea");
+      field.value = value;
+      field.setAttribute("readonly", "");
+      field.style.position = "fixed";
+      field.style.opacity = "0";
+      document.body.append(field);
+      field.select();
+      document.execCommand("copy");
+      field.remove();
+      copyButton.textContent = "Kopiert";
+    }
+  });
+}
+
 window.HeartPetFeatures?.register("veterinarian-contact", initVeterinarianContactPopover, { contexts: ["page", "fragment"] });
 window.HeartPetFeatures?.register("species-autocomplete", initSpeciesAutocomplete, { contexts: ["page", "fragment"] });
 window.HeartPetFeatures?.register("required-marks", initRequiredMarks, { contexts: ["page", "fragment"] });
@@ -1230,6 +1273,7 @@ window.HeartPetFeatures?.register("animal-workspace", initAnimalWorkspace, { con
 window.HeartPetFeatures?.register("camera-diagnostics", initCameraDiagnostics, { contexts: ["page"] });
 window.HeartPetFeatures?.register("dashboard-customizer", () => window.HeartPetDashboardCustomizer?.init(), { contexts: ["page"] });
 window.HeartPetFeatures?.register("timeline-toggles", initTimelineToggles, { contexts: ["page"] });
+window.HeartPetFeatures?.register("update-status", initUpdateStatus, { contexts: ["page"] });
 window.HeartPetFeatures?.register("camera-settings", initCameraSettings, { contexts: ["page"] });
 window.HeartPetFeatures?.register("homematic-door-discovery", initHomematicDoorDiscovery, { contexts: ["page"] });
 window.HeartPetFeatures?.register("climate-status", initClimateStatus, { contexts: ["page"] });
