@@ -80,6 +80,12 @@
 
         <main class="main-content">
           <div class="container-fluid app-main-container">
+            <% if (permissions.canManageAdmin && !(typeof runtimeFeatures !== 'undefined' && runtimeFeatures.deploymentGuard)) { %>
+              <div class="alert alert-warning mb-3" role="alert">
+                <strong>Update noch nicht vollständig aktiviert.</strong>
+                Der laufende HeartPet-Prozess ist älter als die geladenen Oberflächendateien. Bitte auf dem Server <code>cd /opt/HeartPet &amp;&amp; ./scripts/update.sh</code> ausführen.
+              </div>
+            <% } %>
             <header class="page-header mb-3 d-none d-lg-block">
               <div class="page-header-body">
                 <div class="d-grid gap-1 flex-grow-1 text-start">
@@ -104,8 +110,8 @@
                 </div>
                 <div class="offcanvas-body d-flex flex-column gap-4">
                   <div class="row g-2">
-                    <div class="col-12"><a class="btn btn-outline-secondary w-100 text-start p-3 <%= currentPath === '/versorgung' ? 'active' : '' %>" href="/versorgung"><strong class="d-block">Versorgung</strong><span class="small">Bestände und Kosten</span></a></div>
-                    <div class="col-12"><a class="btn btn-outline-secondary w-100 text-start p-3" href="/calendar.ics"><strong class="d-block">Kalender exportieren</strong><span class="small">Termine und Erinnerungen als ICS</span></a></div>
+                    <% if (typeof runtimeFeatures !== 'undefined' && runtimeFeatures.careManagement) { %><div class="col-12"><a class="btn btn-outline-secondary w-100 text-start p-3 <%= currentPath === '/versorgung' ? 'active' : '' %>" href="/versorgung"><strong class="d-block">Versorgung</strong><span class="small">Bestände und Kosten</span></a></div><% } %>
+                    <% if (typeof runtimeFeatures !== 'undefined' && runtimeFeatures.calendarExport) { %><div class="col-12"><a class="btn btn-outline-secondary w-100 text-start p-3" href="/calendar.ics"><strong class="d-block">Kalender exportieren</strong><span class="small">Termine und Erinnerungen als ICS</span></a></div><% } %>
                   </div>
                   <% if (permissions.canManageAdmin) { %>
                     <section aria-labelledby="mobile-admin-nav-title">

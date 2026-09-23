@@ -2,6 +2,11 @@
 
 Alle wesentlichen Änderungen an HeartPet werden hier absteigend dokumentiert.
 
+## 0.10.85 - 23.09.2026
+
+- Bei einem noch laufenden alten Serverprozess werden Versorgung und Kalenderexport nicht mehr als defekte Links angezeigt.
+- Administratoren erhalten bei einem gemischten Versionsstand einen sichtbaren Hinweis mit dem vollständigen Updatebefehl.
+
 ## 0.10.84 - 23.09.2026
 
 - Gemischte Versionsstände blenden TBA, Updateprüfung und Web-App-Manifest sicher aus, bis der Serverprozess neu gestartet wurde.

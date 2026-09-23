@@ -414,9 +414,12 @@ app.use((req, res, next) => {
   res.locals.runtimeFeatures = {
     memorialNoteEditor: true,
     vaccinationPresets: true,
+    careManagement: true,
+    calendarExport: true,
     disposalFacilities: true,
     updateStatus: true,
     webAppManifest: true,
+    deploymentGuard: true,
   };
   res.locals.fieldConstraints = htmlConstraints;
   res.locals.seoMeta = buildSeoMeta(req, res.locals.appSettings);

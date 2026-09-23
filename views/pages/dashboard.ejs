@@ -91,7 +91,7 @@
   <div class="card-body p-2 p-md-3">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
       <div><h2 class="h5 mb-1">Schnellerfassung</h2><p class="small text-body-secondary mb-0">Unterwegs einen Eintrag mit wenigen Fingertipps erfassen.</p></div>
-      <a href="/calendar.ics" class="btn btn-outline-secondary btn-sm">Kalender exportieren</a>
+      <% if (typeof runtimeFeatures !== 'undefined' && runtimeFeatures.calendarExport) { %><a href="/calendar.ics" class="btn btn-outline-secondary btn-sm">Kalender exportieren</a><% } %>
     </div>
     <label class="form-label" for="quick-entry-animal">Tier</label>
     <select class="form-select form-select-lg mb-3" id="quick-entry-animal" data-quick-entry-animal>

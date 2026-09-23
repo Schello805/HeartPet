@@ -1522,8 +1522,14 @@ test("Stammdaten-Template bleibt mit einem älteren Serverstand renderbar", () =
 test("Neue Browser-Funktionen bleiben bei einem älteren Serverprozess deaktiviert", () => {
   const icons = fs.readFileSync(path.join(__dirname, "..", "views", "partials", "app-icons.ejs"), "utf8");
   const bottom = fs.readFileSync(path.join(__dirname, "..", "views", "partials", "bottom.ejs"), "utf8");
+  const sidebar = fs.readFileSync(path.join(__dirname, "..", "views", "partials", "sidebar-nav.ejs"), "utf8");
+  const top = fs.readFileSync(path.join(__dirname, "..", "views", "partials", "top.ejs"), "utf8");
   assert.match(icons, /runtimeFeatures\.webAppManifest/);
   assert.match(bottom, /runtimeFeatures\.updateStatus/);
+  assert.match(sidebar, /runtimeFeatures\.careManagement/);
+  assert.match(top, /runtimeFeatures\.calendarExport/);
+  assert.match(top, /runtimeFeatures\.deploymentGuard/);
+  assert.match(top, /Update noch nicht vollständig aktiviert/);
 });
 
 test("Adressvalidierung für Tierarzt greift", async () => {
