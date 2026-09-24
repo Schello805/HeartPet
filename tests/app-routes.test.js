@@ -3153,6 +3153,32 @@ test("Impf-Erinnerung verlangt ein tatsächliches Impfdatum", async () => {
   );
 });
 
+test("Ältere Impf-Erinnerung öffnet die Datumsabfrage und kann nicht direkt erledigt werden", async () => {
+  await ensureAdminAuthenticated();
+  const animal = db.prepare("INSERT INTO animals (name, status) VALUES (?, ?)").run("Alte Impf-Erinnerung", "Aktiv");
+  const inserted = db.prepare(`
+    INSERT INTO reminders (animal_id, title, reminder_type, due_at, notes)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(animal.lastInsertRowid, "Nächste Impfung", "Allgemein", "2026-09-20T09:00", "Altbestand");
+
+  const dashboard = await agent.get("/");
+  assert.equal(dashboard.status, 200);
+  assert.match(
+    dashboard.text,
+    new RegExp(`action="/reminders/${inserted.lastInsertRowid}/complete"[^>]*data-vaccination-completion`)
+  );
+
+  let response = await agent.post(`/reminders/${inserted.lastInsertRowid}/complete`).send({});
+  assert.equal(response.status, 302);
+  assert.equal(db.prepare("SELECT completed_at FROM reminders WHERE id = ?").get(inserted.lastInsertRowid).completed_at, null);
+
+  response = await agent.post(`/reminders/${inserted.lastInsertRowid}/complete`)
+    .type("form")
+    .send({ vaccination_date: "2026-09-19" });
+  assert.equal(response.status, 302);
+  assert.ok(db.prepare("SELECT completed_at FROM reminders WHERE id = ?").get(inserted.lastInsertRowid).completed_at);
+});
+
 test("Dringende Dashboard-Erinnerungen sind zur Tierakte klickbar", async () => {
   db.prepare(`
     INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, notes, source_kind, source_id)

@@ -135,6 +135,15 @@ function getReminderStatusMeta(reminder) {
   return { label: "Offen", tone: "muted", detail: "noch nicht abgeschlossen" };
 }
 
+function isVaccinationReminder(reminder) {
+  if (!reminder) return false;
+  if (String(reminder.source_kind || "").toLowerCase() === "vaccination") return true;
+  if (String(reminder.reminder_type || "").trim().toLowerCase() === "impfung") return true;
+
+  const title = String(reminder.title || "").trim().toLowerCase();
+  return /^(?:n(?:ä|ae)chste\s+impfung|impftermin|impfung)(?:\b|\s*:)/.test(title);
+}
+
 function summarizeReminderState(reminders = []) {
   const items = Array.isArray(reminders) ? reminders : [];
   return {
@@ -207,6 +216,7 @@ module.exports = {
   getAnimalLifecycle,
   getReminderStatusMeta,
   getRoleLabel,
+  isVaccinationReminder,
   isActiveAnimalStatus,
   normalizeAnimalStatus,
   summarizeReminderState,

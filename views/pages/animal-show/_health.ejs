@@ -321,7 +321,7 @@
                 <% if (canManageRemindersNow) { %>
                   <div class="inline-actions">
                     <% if (!item.completed_at) { %>
-                      <form method="post" action="/reminders/<%= item.id %>/complete">
+                      <form method="post" action="/reminders/<%= item.id %>/complete" <% if (isVaccinationReminder(item)) { %>data-vaccination-completion data-reminder-title="<%= item.title %>"<% } %>>
                         <button type="submit" class="btn btn-outline-secondary btn-sm">Erledigt</button>
                       </form>
                     <% } else { %>

@@ -2,6 +2,11 @@
 
 Alle wesentlichen Änderungen an HeartPet werden hier absteigend dokumentiert.
 
+## 0.10.93 - 24.09.2026
+
+- Beim Erledigen einer Impf-Erinnerung wird das tatsächliche Impfdatum jetzt auch bei älteren, noch nicht technisch verknüpften Erinnerungen verbindlich abgefragt.
+- Impf-Erinnerungen lassen sich nicht mehr über die Massenaktion ohne Impfdatum abschließen.
+
 ## 0.10.92 - 24.09.2026
 
 - Die nicht gewünschte Versorgungsverwaltung für Vorräte und Kosten wurde vollständig aus Navigation, Oberfläche, Routing und Neuinstallationen entfernt.

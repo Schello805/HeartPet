@@ -7,6 +7,7 @@ const {
   getAnimalAge,
   getAnimalLifecycle,
   getReminderStatusMeta,
+  isVaccinationReminder,
   normalizeAnimalStatus,
   summarizeReminderState,
 } = require("../src/view-helpers");
@@ -19,6 +20,15 @@ test("Tieralter zeigt Jahre immer zusammen mit vollen Monaten und niemals Tage",
   assert.equal(getAnimalAge("2026-04-21", today), "5 Monate");
   assert.equal(getAnimalAge("2026-09-10", today), "0 Monate");
   assert.equal(getAnimalAge("2026-09-22", today), "-");
+});
+
+test("Impf-Erinnerungen werden auch bei älteren Datensätzen zuverlässig erkannt", () => {
+  assert.equal(isVaccinationReminder({ source_kind: "vaccination" }), true);
+  assert.equal(isVaccinationReminder({ reminder_type: "Impfung" }), true);
+  assert.equal(isVaccinationReminder({ title: "Nächste Impfung" }), true);
+  assert.equal(isVaccinationReminder({ title: "Impftermin: Tollwut" }), true);
+  assert.equal(isVaccinationReminder({ title: "Impfung: RCP" }), true);
+  assert.equal(isVaccinationReminder({ title: "Impfpass abholen", reminder_type: "Allgemein" }), false);
 });
 
 test("Tierstatus wird normalisiert und Lifecycle-Bereiche bleiben eindeutig", () => {

@@ -18,6 +18,7 @@ const {
   getAnimalLifecycle,
   getReminderStatusMeta,
   getRoleLabel,
+  isVaccinationReminder,
   isActiveAnimalStatus,
   normalizeAnimalStatus,
   summarizeReminderState,
@@ -419,6 +420,7 @@ app.use((req, res, next) => {
   res.locals.getRoleLabel = getRoleLabel;
   res.locals.getAnimalLifecycle = getAnimalLifecycle;
   res.locals.getReminderStatusMeta = getReminderStatusMeta;
+  res.locals.isVaccinationReminder = isVaccinationReminder;
   res.locals.permissions = buildPermissions(currentUserRecord || session.user);
   res.locals.editState = { type: "", id: null };
   res.locals.reminderBuckets = { overdue: [], open: [], done: [] };
@@ -581,7 +583,7 @@ app.use(createAnimalEntriesRouter({
 app.use(createAnimalRemindersRouter({
   db, requireAnimalPermission, safeLocalReturnPath, parsePositiveInteger, setFlash,
   createAuditLog, reminders: animalReminders, findAnimal, isActiveAnimalStatus,
-  renderNotFound, safeRefererPath, getAnimalReturnTo, redirectDocumentDrawerRequest,
+  isVaccinationReminder, renderNotFound, safeRefererPath, getAnimalReturnTo, redirectDocumentDrawerRequest,
 }));
 
 

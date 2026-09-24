@@ -4,7 +4,7 @@ const dayjs = require("dayjs");
 function createAnimalRemindersRouter({
   db, requireAnimalPermission, safeLocalReturnPath, parsePositiveInteger, setFlash,
   createAuditLog, reminders, findAnimal, isActiveAnimalStatus,
-  renderNotFound, safeRefererPath, getAnimalReturnTo, redirectDocumentDrawerRequest,
+  isVaccinationReminder, renderNotFound, safeRefererPath, getAnimalReturnTo, redirectDocumentDrawerRequest,
 }) {
   const router = express.Router();
   const { applyCompletionSideEffects } = reminders;
@@ -108,6 +108,10 @@ function createAnimalRemindersRouter({
     }
   
     if (action === "complete") {
+      if (reminders.some(isVaccinationReminder)) {
+        setFlash(req, "error", "Impf-Erinnerungen bitte einzeln abschließen, damit das tatsächliche Impfdatum erfasst wird.");
+        return res.redirect(`/animals/${req.params.id}`);
+      }
       const update = db.prepare("UPDATE reminders SET completed_at = CURRENT_TIMESTAMP WHERE id = ?");
       reminders.forEach((item) => {
         applyCompletionSideEffects(item);
@@ -148,9 +152,9 @@ function createAnimalRemindersRouter({
       return renderNotFound(req, res, "Erinnerung nicht gefunden.");
     }
 
-    const isVaccinationReminder = reminder.source_kind === "vaccination" && reminder.source_id;
+    const requiresVaccinationDate = isVaccinationReminder(reminder);
     const vaccinationDate = String(req.body?.vaccination_date || "").trim();
-    if (isVaccinationReminder && !isValidCompletionDate(vaccinationDate)) {
+    if (requiresVaccinationDate && !isValidCompletionDate(vaccinationDate)) {
       setFlash(req, "error", "Bitte wähle ein gültiges Impfdatum, das nicht in der Zukunft liegt.");
       return res.redirect(safeRefererPath(req, "/"));
     }
@@ -171,7 +175,7 @@ function createAnimalRemindersRouter({
     createAuditLog(req, "reminder.complete", {
       reminder_id: reminder.id,
       animal_id: reminder.animal_id,
-      vaccination_date: isVaccinationReminder ? vaccinationDate : null,
+      vaccination_date: requiresVaccinationDate ? vaccinationDate : null,
     }, { entityType: "reminder", entityId: reminder.id });
     res.redirect(safeRefererPath(req, "/"));
   });
