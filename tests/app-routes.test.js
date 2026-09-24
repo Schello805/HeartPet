@@ -3467,6 +3467,8 @@ test("Bundesland und Tierkörperbeseitigungsanlagen steuern den Hinweis in der H
     assert.equal(response.status, 200);
     assert.match(response.text, /Hinweis nach dem Tod eines Tieres/);
     assert.match(response.text, /Bayern · Entsorgung, Bestattung und zuständige Anlagen/);
+    assert.match(response.text, /Auf dem eigenen Grundstück dürfen nur einzelne Heimtiere bestattet werden/);
+    assert.doesNotMatch(response.text, /Die Ausnahme gilt nicht automatisch/);
     assert.match(response.text, /Ausgewähltes Bundesland:/);
     assert.match(response.text, /Für Bayern: bundesweite Regeln und örtliche Prüfung/);
     assert.match(response.text, /VTN Testanlage/);

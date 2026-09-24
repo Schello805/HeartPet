@@ -2,6 +2,10 @@
 
 Alle wesentlichen Änderungen an HeartPet werden hier absteigend dokumentiert.
 
+## 0.10.91 - 24.09.2026
+
+- Der Entsorgungshinweis erklärt die Grundstücksbestattung jetzt ohne unklaren Verweis auf eine „Ausnahme“ und grenzt Heimtiere verständlich von Nutz- und landwirtschaftlich gehaltenen Tieren ab.
+
 ## 0.10.90 - 23.09.2026
 
 - Tierakte, Benachrichtigungen und Browserlogik sind in kleinere fachliche Module aufgeteilt.
