@@ -123,6 +123,13 @@ test("Stall-Endpunkte und Wetterlogik bleiben fachlich getrennt", () => {
   assert.doesNotMatch(appSource, /function parseCoopCameraLines/);
 });
 
+test("Nicht gewünschte Versorgungsverwaltung bleibt entfernt", () => {
+  const appSource = fs.readFileSync(path.join(__dirname, "..", "src", "app.js"), "utf8");
+  const migrationIndex = fs.readFileSync(path.join(__dirname, "..", "src", "migrations", "index.js"), "utf8");
+  assert.doesNotMatch(appSource, /createCareManagementRouter|careManagement|\/versorgung/);
+  assert.doesNotMatch(migrationIndex, /care_management/);
+});
+
 test("Dashboard, Suche und Erinnerungs-API bleiben aus app.js ausgelagert", () => {
   const appSource = fs.readFileSync(path.join(__dirname, "..", "src", "app.js"), "utf8");
   const dashboardRouter = fs.readFileSync(path.join(__dirname, "..", "src", "routes", "dashboard.js"), "utf8");

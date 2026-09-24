@@ -504,7 +504,6 @@ test("Datenbank-Migrationen werden protokolliert", () => {
   assert.ok(migrationIds.includes("007_animal_microchip_details"));
   assert.ok(migrationIds.includes("008_vaccination_presets"));
   assert.ok(migrationIds.includes("009_repair_vaccination_presets"));
-  assert.ok(migrationIds.includes("010_care_management"));
   assert.ok(db.prepare("SELECT 1 FROM vaccination_presets WHERE species_name = ? AND name = ?").get(
     "Katze",
     "RCP (Katzenschnupfen und Katzenseuche)",
@@ -1535,7 +1534,7 @@ test("Neue Browser-Funktionen bleiben bei einem älteren Serverprozess deaktivie
   const top = fs.readFileSync(path.join(__dirname, "..", "views", "partials", "top.ejs"), "utf8");
   assert.match(icons, /runtimeFeatures\.webAppManifest/);
   assert.match(bottom, /runtimeFeatures\.updateStatus/);
-  assert.match(sidebar, /runtimeFeatures\.careManagement/);
+  assert.doesNotMatch(sidebar, /Versorgung|\/versorgung|careManagement/);
   assert.match(top, /runtimeFeatures\.calendarExport/);
   assert.match(top, /runtimeFeatures\.deploymentGuard/);
   assert.match(top, /Update noch nicht vollständig aktiviert/);
@@ -2705,7 +2704,6 @@ test("Wichtige interne Links liefern keine 404", async () => {
     "/",
     "/animals",
     "/animals/1",
-    "/versorgung",
     "/admin/allgemein",
     "/admin/benachrichtigungen",
     "/admin/stammdaten",
@@ -2774,53 +2772,15 @@ test("Kalenderexport liefert globale und tierbezogene ICS-Dateien", async () => 
   assert.match(animalCalendar.text, /Kalenderkontrolle/);
 });
 
-test("Versorgungsseite verwaltet Bestände und Kosten vollständig", async () => {
-  const page = await agent.get("/versorgung");
-  assert.equal(page.status, 200);
-  assert.match(page.text, /Bestände und Kosten/);
+test("Versorgungsverwaltung ist vollständig entfernt", async () => {
+  assert.equal((await agent.get("/versorgung")).status, 404);
+  assert.equal((await agent.get("/versorgung/bestand/new")).status, 404);
+  assert.equal((await agent.post("/versorgung/kosten").type("form").send({})).status, 404);
 
-  const inventoryDrawer = await agent.get("/versorgung/bestand/new").set("X-Requested-With", "heartpet-drawer");
-  assert.equal(inventoryDrawer.status, 200);
-  assert.match(inventoryDrawer.text, /data-drawer-fragment/);
-
-  const inventoryCreate = await agent.post("/versorgung/bestand").type("form").send({
-    name: "Testfutter",
-    category: "Futter",
-    quantity: "2,5",
-    unit: "kg",
-    minimum_quantity: "1",
-    expires_on: "2027-01-01",
-  });
-  assert.equal(inventoryCreate.status, 302);
-  const inventory = db.prepare("SELECT * FROM inventory_items WHERE name = ?").get("Testfutter");
-  assert.equal(inventory.quantity, 2.5);
-
-  const inventoryUpdate = await agent.post(`/versorgung/bestand/${inventory.id}/update`).type("form").send({
-    name: "Testfutter neu",
-    category: "Futter",
-    quantity: "0.5",
-    unit: "kg",
-    minimum_quantity: "1",
-  });
-  assert.equal(inventoryUpdate.status, 302);
-  assert.equal(db.prepare("SELECT name FROM inventory_items WHERE id = ?").get(inventory.id).name, "Testfutter neu");
-
-  const expenseCreate = await agent.post("/versorgung/kosten").type("form").send({
-    description: "Testrechnung",
-    category: "Tierarzt",
-    amount: "12,34",
-    expense_date: "2026-09-21",
-    animal_id: "1",
-  });
-  assert.equal(expenseCreate.status, 302);
-  const expense = db.prepare("SELECT * FROM expenses WHERE description = ?").get("Testrechnung");
-  assert.equal(expense.amount_cents, 1234);
-  assert.equal(expense.animal_id, 1);
-
-  assert.equal((await agent.post(`/versorgung/kosten/${expense.id}/delete`).type("form").send({})).status, 302);
-  assert.equal((await agent.post(`/versorgung/bestand/${inventory.id}/delete`).type("form").send({})).status, 302);
-  assert.equal(db.prepare("SELECT 1 FROM expenses WHERE id = ?").get(expense.id), undefined);
-  assert.equal(db.prepare("SELECT 1 FROM inventory_items WHERE id = ?").get(inventory.id), undefined);
+  const sidebar = fs.readFileSync(path.join(__dirname, "..", "views", "partials", "sidebar-nav.ejs"), "utf8");
+  const mobileNavigation = fs.readFileSync(path.join(__dirname, "..", "views", "partials", "top.ejs"), "utf8");
+  assert.doesNotMatch(sidebar, /Versorgung|\/versorgung|careManagement/);
+  assert.doesNotMatch(mobileNavigation, /Versorgung|\/versorgung|careManagement/);
 });
 
 test("Rechtstext-Seiten und Einstellungen sind vollständig entfernt", async () => {

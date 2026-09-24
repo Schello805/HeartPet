@@ -2,6 +2,10 @@
 
 Alle wesentlichen Änderungen an HeartPet werden hier absteigend dokumentiert.
 
+## 0.10.92 - 24.09.2026
+
+- Die nicht gewünschte Versorgungsverwaltung für Vorräte und Kosten wurde vollständig aus Navigation, Oberfläche, Routing und Neuinstallationen entfernt.
+
 ## 0.10.91 - 24.09.2026
 
 - Der Entsorgungshinweis erklärt die Grundstücksbestattung jetzt ohne unklaren Verweis auf eine „Ausnahme“ und grenzt Heimtiere verständlich von Nutz- und landwirtschaftlich gehaltenen Tieren ab.
@@ -28,7 +32,7 @@ Alle wesentlichen Änderungen an HeartPet werden hier absteigend dokumentiert.
 
 ## 0.10.85 - 23.09.2026
 
-- Bei einem noch laufenden alten Serverprozess werden Versorgung und Kalenderexport nicht mehr als defekte Links angezeigt.
+- Bei einem noch laufenden alten Serverprozess wird der Kalenderexport nicht mehr als defekter Link angezeigt.
 - Administratoren erhalten bei einem gemischten Versionsstand einen sichtbaren Hinweis mit dem vollständigen Updatebefehl.
 
 ## 0.10.84 - 23.09.2026
@@ -59,7 +63,6 @@ Alle wesentlichen Änderungen an HeartPet werden hier absteigend dokumentiert.
 
 - Termine und offene Erinnerungen lassen sich global oder je Tier als Kalenderdatei exportieren.
 - Das mobile Dashboard bietet eine kompakte Schnellerfassung.
-- Neue Versorgungsverwaltung für Vorräte, Mindestbestände, Haltbarkeit und Kosten.
 - Tieralter zeigt Jahre immer zusammen mit den vollen Monaten und keine Tage mehr.
 - Profil- und Galeriebilder werden beim Upload automatisch verkleinert und als WebP gespeichert.
 - Android- und andere unterstützte Smartphone-Browser bieten die Installation als Web-App an.

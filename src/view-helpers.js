@@ -14,12 +14,6 @@ function formatDateTime(value) {
   return dayjs(value).format("DD.MM.YYYY HH:mm");
 }
 
-function formatCurrency(amountCents) {
-  const cents = Number(amountCents);
-  if (!Number.isFinite(cents)) return "-";
-  return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(cents / 100);
-}
-
 function getAnimalAge(dateString, referenceDate = dayjs()) {
   if (!dateString) {
     return "-";
@@ -207,7 +201,6 @@ module.exports = {
   buildPermissions,
   formatDate,
   formatDateTime,
-  formatCurrency,
   getAnimalAge,
   getAnimalInitial,
   getAnimalSpeciesIcon,

@@ -612,9 +612,7 @@ body.bootstrap-app {
   color: #075f67;
 }
 
-.bootstrap-app .quick-entry-actions,
-.bootstrap-app .care-summary-grid,
-.bootstrap-app .care-card-grid {
+.bootstrap-app .quick-entry-actions {
   display: grid;
   gap: .75rem;
 }
@@ -631,29 +629,8 @@ body.bootstrap-app {
   font-weight: 700;
 }
 
-.bootstrap-app .care-summary-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.bootstrap-app .care-card-grid {
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-}
-
-.bootstrap-app .care-item-warning {
-  border-color: var(--bs-warning-border-subtle);
-  box-shadow: inset .22rem 0 0 var(--bs-warning);
-}
-
 @media (max-width: 767.98px) {
-  .bootstrap-app .care-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .bootstrap-app .quick-entry-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .bootstrap-app .care-expense-table table,
-  .bootstrap-app .care-expense-table tbody,
-  .bootstrap-app .care-expense-table tr,
-  .bootstrap-app .care-expense-table td { display: block; width: 100%; }
-  .bootstrap-app .care-expense-table thead { display: none; }
-  .bootstrap-app .care-expense-table tr { padding: .75rem 0; border-bottom: 1px solid var(--bs-border-color); }
-  .bootstrap-app .care-expense-table td { border: 0; padding: .15rem 0; text-align: left !important; }
 }
 
 @media (max-width: 991.98px) {

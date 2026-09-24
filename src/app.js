@@ -10,7 +10,6 @@ const { createSessionMiddleware } = require("./http-session");
 const { createImportUploadMiddleware, createStoredUploadName, createUploadMiddleware } = require("./uploads");
 const {
   buildPermissions,
-  formatCurrency,
   formatDate,
   formatDateTime,
   getAnimalAge,
@@ -119,7 +118,6 @@ const { createAnimalReminderService } = require("./services/animal-reminders");
 const { createMasterdataRouter } = require("./routes/masterdata");
 const { createSystemlogRouter } = require("./routes/systemlog");
 const { createCalendarRouter } = require("./routes/calendar");
-const { createCareManagementRouter } = require("./routes/care-management");
 const { createCalendarExportService } = require("./services/calendar-export");
 const { createErrorHandler } = require("./middleware/error-handler");
 const { createReminderScheduler } = require("./services/reminder-scheduler");
@@ -404,7 +402,6 @@ app.use((req, res, next) => {
   res.locals.runtimeFeatures = {
     memorialNoteEditor: true,
     vaccinationPresets: true,
-    careManagement: true,
     calendarExport: true,
     disposalFacilities: true,
     updateStatus: true,
@@ -416,7 +413,6 @@ app.use((req, res, next) => {
   res.locals.animalSpeciesMenu = animalWorkspace.listActiveSpecies();
   res.locals.formatDate = formatDate;
   res.locals.formatDateTime = formatDateTime;
-  res.locals.formatCurrency = formatCurrency;
   res.locals.getAnimalAge = getAnimalAge;
   res.locals.getAnimalInitial = getAnimalInitial;
   res.locals.getAnimalSpeciesIcon = getAnimalSpeciesIcon;
@@ -501,17 +497,6 @@ app.use((req, res, next) => {
 
 app.use(createDashboardRouter({ dashboard: dashboardService, search: searchService }));
 app.use(createCalendarRouter({ calendar: calendarExportService, db, renderNotFound }));
-app.use(createCareManagementRouter({
-  createAuditLog,
-  db,
-  isDrawerRequest,
-  redirectDocumentDrawerRequest,
-  renderNotFound,
-  requireAdmin,
-  safeLocalReturnPath,
-  setFlash,
-}));
-
 app.use(createCoopRouter({
   db, getSettingsObject, homematic, createAuditLog, setFlash, parseCoopCameras, streamRtspCamera, fetchCameraStream,
   redactSensitiveText, cameraFrameCache, readCameraFrameCache, captureCameraFrame, writeCameraFrameCache,
