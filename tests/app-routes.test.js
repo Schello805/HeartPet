@@ -2646,6 +2646,30 @@ test("Tierärztlich markierte Ereignisse benötigen serverseitig einen Tierarzt"
   );
 });
 
+test("Mehrere ausgewählte Impfungen werden als getrennte Akteneinträge gespeichert", async () => {
+  await ensureAdminAuthenticated();
+  const animalId = Number(db.prepare("INSERT INTO animals (name, status) VALUES (?, ?)")
+    .run(`Mehrfachimpfung ${Date.now()}`, "Aktiv").lastInsertRowid);
+
+  const response = await agent.post(`/animals/${animalId}/events`).type("form").send({
+    event_kind: "vaccination",
+    vaccination_names: ["Tollwut", "RCP", "Tollwut"],
+    title: "Individuelle Impfung",
+    event_date: "2026-09-22",
+    notes: "Gemeinsamer Termin",
+    return_to: `/animals/${animalId}`,
+  });
+
+  assert.equal(response.status, 302);
+  const vaccinations = db.prepare(`
+    SELECT name, vaccination_date, notes
+    FROM animal_vaccinations
+    WHERE animal_id = ? AND vaccination_date = ? AND notes = ?
+    ORDER BY name ASC
+  `).all(animalId, "2026-09-22", "Gemeinsamer Termin");
+  assert.deepEqual(vaccinations.map((item) => item.name), ["Individuelle Impfung", "RCP", "Tollwut"]);
+});
+
 test("Tierseite zeigt Tierarzt-Kontakt und einen einfachen Haupteinstieg", async () => {
   const master = await agent.get("/admin/stammdaten");
   const vetId = master.text.match(/\/admin\/veterinarians\/(\d+)\/edit/)?.[1];

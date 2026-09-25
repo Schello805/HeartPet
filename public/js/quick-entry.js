@@ -18,6 +18,14 @@
       };
 
       select.addEventListener("change", updateLinks);
+      links.forEach((link) => {
+        link.addEventListener("click", () => {
+          const modal = link.closest(".modal");
+          if (modal && window.bootstrap?.Modal) {
+            window.bootstrap.Modal.getOrCreateInstance(modal).hide();
+          }
+        });
+      });
       updateLinks();
     });
   }

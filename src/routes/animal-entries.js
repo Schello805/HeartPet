@@ -157,6 +157,12 @@ function createAnimalEntriesRouter({
     const permissions = buildPermissions(user);
     const eventKind = String(req.body.event_kind || "").trim();
     const title = String(req.body.title || "").trim();
+    const vaccinationNames = [...new Set(
+      [].concat(req.body.vaccination_names || [])
+        .map((name) => String(name || "").trim())
+        .concat(title && eventKind === "vaccination" ? [title] : [])
+        .filter(Boolean),
+    )];
     const notes = appendVeterinarianNote(req.body.notes, req.body.handled_by_veterinarian, req.body.veterinarian_id);
     const returnTo = safeLocalReturnPath(req.body.return_to, `/animals/${req.params.id}`);
     const certificateError = getVaccinationCertificateError(req.file);
@@ -172,9 +178,15 @@ function createAnimalEntriesRouter({
       return res.redirect(`/animals/${req.params.id}/events/new?return_to=${encodeURIComponent(returnTo)}`);
     }
 
-    if (!title) {
+    if (eventKind !== "vaccination" && !title) {
       discardUploadedFile(req.file);
       setFlash(req, "error", "Bitte gib eine Bezeichnung für das Ereignis an.");
+      return res.redirect(`/animals/${req.params.id}/events/new?return_to=${encodeURIComponent(returnTo)}`);
+    }
+
+    if (eventKind === "vaccination" && vaccinationNames.length === 0) {
+      discardUploadedFile(req.file);
+      setFlash(req, "error", "Bitte wähle mindestens eine Impfung aus oder gib eine andere Impfung ein.");
       return res.redirect(`/animals/${req.params.id}/events/new?return_to=${encodeURIComponent(returnTo)}`);
     }
 
@@ -258,14 +270,15 @@ function createAnimalEntriesRouter({
         }
         const isFuture = dayjs(eventDate).isAfter(dayjs(), "day");
 
-        const result = db.prepare(`
+        const insertVaccination = db.prepare(`
           INSERT INTO animal_vaccinations (
             animal_id, name, vaccination_date, next_due_date, reminder_enabled, notes,
             certificate_original_name, certificate_stored_name, certificate_mime_type, certificate_file_size
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
+        `);
+        const vaccinationIds = db.transaction((names) => names.map((name) => Number(insertVaccination.run(
           req.params.id,
-          title,
+          name,
           isFuture ? null : eventDate,
           isFuture ? eventDate : null,
           req.body.create_reminder ? 1 : 0,
@@ -273,10 +286,10 @@ function createAnimalEntriesRouter({
           req.file?.originalname || null,
           req.file?.filename || null,
           req.file?.mimetype || null,
-          req.file?.size || null
-        );
-        syncVaccinationReminders(req.params.id, result.lastInsertRowid);
-        setFlash(req, "success", "Impfung gespeichert.");
+          req.file?.size || null,
+        ).lastInsertRowid)))(vaccinationNames);
+        vaccinationIds.forEach((vaccinationId) => syncVaccinationReminders(req.params.id, vaccinationId));
+        setFlash(req, "success", vaccinationIds.length === 1 ? "Impfung gespeichert." : `${vaccinationIds.length} Impfungen gespeichert.`);
         return res.redirect(returnTo);
       }
 

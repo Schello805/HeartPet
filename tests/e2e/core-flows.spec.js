@@ -164,10 +164,12 @@ test("Tiere-Arbeitsansicht zeigt die Akte im Browser-Kontext", async ({ page }) 
   await expect(page.locator("[data-drawer-body]")).toContainText("Was möchtest du eintragen?");
   await expect(page.locator("[data-drawer-body] label[for='event-kind-reminder']")).toHaveText("Erinnerung");
   await page.locator("[data-drawer-body] label[for='event-kind-vaccination']").click();
-  const vaccinationPreset = page.getByLabel("Häufige Impfungen für Katze");
-  await expect(vaccinationPreset).toBeVisible();
-  await vaccinationPreset.selectOption("RCP (Katzenschnupfen und Katzenseuche)");
-  await expect(page.locator("#event-title")).toHaveValue("RCP (Katzenschnupfen und Katzenseuche)");
+  const vaccinationOptions = page.getByRole("group", { name: "Impfungen für Katze" });
+  await expect(vaccinationOptions).toBeVisible();
+  await vaccinationOptions.getByLabel("RCP (Katzenschnupfen und Katzenseuche)").check();
+  await vaccinationOptions.getByLabel("Tollwut").check();
+  await expect(vaccinationOptions.getByLabel("RCP (Katzenschnupfen und Katzenseuche)")).toBeChecked();
+  await expect(vaccinationOptions.getByLabel("Tollwut")).toBeChecked();
 });
 
 test("Profilbild kann auf dem Smartphone hochgeladen, ersetzt und entfernt werden", async ({ page }) => {
@@ -362,12 +364,13 @@ test("Dashboard zeigt mobil nur einen Einstieg für ein neues Tier", async ({ pa
   await expect(page.locator('a[data-drawer="animal-form"]:visible')).toHaveCount(1);
   await expect(page.locator("main").getByText("Was ist heute wichtig?", { exact: true })).toHaveCount(0);
 
-  const quickVaccination = page.locator('[data-quick-entry-kind="vaccination"]');
+  await page.getByRole("button", { name: "Schnellerfassung", exact: true }).click();
+  const quickVaccination = page.locator('#quick-entry-modal [data-quick-entry-kind="vaccination"]');
   await expect(quickVaccination).toBeVisible();
   await quickVaccination.click();
   await expect(page.locator("[data-drawer-body] #event-kind-vaccination")).toBeChecked();
-  await expect(page.locator("[data-drawer-body] [data-vaccination-preset]")).toBeVisible();
-  await page.locator("#app-drawer [data-drawer-close]").first().click();
+  await expect(page.locator("[data-drawer-body] [data-vaccination-choice]").first()).toBeVisible();
+  await page.locator("#app-drawer [data-bs-dismiss='offcanvas']").click();
 
   await page.locator(".app-mobile-bottom-nav").getByText("Tiere", { exact: true }).click();
   await expect(page).toHaveURL(/\/animals$/);
@@ -932,11 +935,31 @@ test("Leere Impfungen bieten einen Plus-Einstieg mit tierartspezifischer Auswahl
   await expect(addVaccination).toBeVisible();
   await addVaccination.click();
 
-  const preset = page.getByLabel("Häufige Impfungen für Katze");
-  await expect(preset).toBeVisible();
-  await expect(preset).toContainText("RCP (Katzenschnupfen und Katzenseuche)");
-  await preset.selectOption({ label: "Tollwut" });
-  await expect(page.getByLabel("Bezeichnung")).toHaveValue("Tollwut");
+  const choices = page.getByRole("group", { name: "Impfungen für Katze" });
+  await expect(choices).toBeVisible();
+  await choices.getByLabel("RCP (Katzenschnupfen und Katzenseuche)").check();
+  await choices.getByLabel("Tollwut").check();
+  await expect(choices.getByLabel("RCP (Katzenschnupfen und Katzenseuche)")).toBeChecked();
+  await expect(choices.getByLabel("Tollwut")).toBeChecked();
+  await expect(page.getByLabel("Andere Impfung (optional)")).toBeVisible();
+});
+
+test("Mehrere Impfungen werden mobil in einem Schritt als einzelne Einträge gespeichert", async ({ page }) => {
+  await ensureAuthenticated(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/animals/1");
+  await page.getByRole("link", { name: /Aktion hinzufügen/ }).click();
+  await page.locator("[data-drawer-body] label[for='event-kind-vaccination']").click();
+
+  const choices = page.getByRole("group", { name: "Impfungen für Katze" });
+  await choices.getByLabel("RCP (Katzenschnupfen und Katzenseuche)").check();
+  await choices.getByLabel("Tollwut").check();
+  await page.getByLabel("Datum").fill("2026-09-23");
+  await page.getByRole("button", { name: "Eintrag speichern" }).click();
+
+  await expect(page.locator("[data-drawer-body]")).toBeEmpty();
+  await expect(page.getByText("Impfung durchgeführt: RCP (Katzenschnupfen und Katzenseuche)")).toBeVisible();
+  await expect(page.getByText("Impfung durchgeführt: Tollwut")).toBeVisible();
 });
 
 test("Mobile Impfung verlangt bei tierärztlicher Durchführung eine eindeutige Entscheidung", async ({ page }) => {
@@ -945,7 +968,7 @@ test("Mobile Impfung verlangt bei tierärztlicher Durchführung eine eindeutige 
   await page.goto("/animals/1");
   await page.getByRole("link", { name: /Aktion hinzufügen/ }).click();
   await page.locator("[data-drawer-body] label[for='event-kind-vaccination']").click();
-  await page.getByLabel("Bezeichnung").fill("Mobile Testimpfung");
+  await page.locator("#event-title").fill("Mobile Testimpfung");
   await page.getByLabel("Datum").fill("2026-09-21");
   await page.getByLabel("Durch Tierarzt").check();
   await page.locator("[data-drawer-body]").getByLabel("Tierarzt", { exact: true }).selectOption("");
@@ -961,7 +984,7 @@ test("Mobile Impfung verlangt bei tierärztlicher Durchführung eine eindeutige 
 
   await page.getByRole("link", { name: /Aktion hinzufügen/ }).click();
   await page.locator("[data-drawer-body] label[for='event-kind-vaccination']").click();
-  await page.getByLabel("Bezeichnung").fill("Mobile Impfung ohne Tierarzt");
+  await page.locator("#event-title").fill("Mobile Impfung ohne Tierarzt");
   await page.getByLabel("Datum").fill("2026-09-22");
   await page.getByLabel("Durch Tierarzt").check();
   await page.locator("[data-drawer-body]").getByLabel("Tierarzt", { exact: true }).selectOption("");

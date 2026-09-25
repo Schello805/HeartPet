@@ -86,27 +86,50 @@
 <% const quickAnimals = typeof activeAnimals !== 'undefined' ? activeAnimals : []; %>
 <% const canQuickCapture = permissions.canManageFeedings || permissions.canManageNotes || permissions.canManageHealth || permissions.canManageReminders; %>
 <% if (quickAnimals.length && canQuickCapture) { %>
-<div class="row g-2 mb-2 quick-entry-section" data-quick-entry data-dashboard-section="quick-entry" data-dashboard-title="Schnellerfassung">
-  <div class="col-12"><section class="card border-0 dashboard-surface-card app-section-card quick-entry-card">
-  <div class="card-body p-2 p-md-3">
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
-      <div><h2 class="h5 mb-1">Schnellerfassung</h2><p class="small text-body-secondary mb-0">Unterwegs einen Eintrag mit wenigen Fingertipps erfassen.</p></div>
-      <% if (typeof runtimeFeatures !== 'undefined' && runtimeFeatures.calendarExport) { %><a href="/calendar.ics" class="btn btn-outline-secondary btn-sm">Kalender exportieren</a><% } %>
-    </div>
-    <label class="form-label" for="quick-entry-animal">Tier</label>
-    <select class="form-select form-select-lg mb-3" id="quick-entry-animal" data-quick-entry-animal>
-      <% quickAnimals.forEach((animal) => { %><option value="<%= animal.id %>"><%= getAnimalSpeciesIcon(animal.species_name) %> <%= animal.name %></option><% }) %>
-    </select>
-    <div class="quick-entry-actions">
-      <% if (permissions.canManageHealth) { %><a class="btn btn-outline-primary" data-drawer="animal-entry" data-quick-entry-kind="vaccination" href="#">Impfung</a><% } %>
-      <% if (permissions.canManageFeedings) { %><a class="btn btn-outline-primary" data-drawer="animal-entry" data-quick-entry-kind="feeding" href="#">Fütterung</a><% } %>
-      <% if (permissions.canManageNotes) { %><a class="btn btn-outline-primary" data-drawer="animal-entry" data-quick-entry-kind="note" href="#">Notiz</a><% } %>
-      <% if (permissions.canManageHealth) { %><a class="btn btn-outline-primary" data-drawer="animal-entry" data-quick-entry-kind="medication" href="#">Medikament</a><% } %>
-      <% if (permissions.canManageHealth) { %><a class="btn btn-outline-primary" data-drawer="animal-entry" data-quick-entry-kind="appointment" href="#">Termin</a><% } %>
-      <% if (permissions.canManageReminders) { %><a class="btn btn-outline-primary" data-drawer="animal-entry" data-quick-entry-kind="reminder" href="#">Erinnerung</a><% } %>
+<div class="row g-2 mb-2 quick-entry-section" data-dashboard-section="quick-entry" data-dashboard-title="Schnellerfassung">
+  <div class="col-12">
+    <section class="card border-0 dashboard-surface-card app-section-card quick-entry-launch-card">
+      <div class="card-body p-2 p-md-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <div>
+          <h2 class="h6 mb-1">Schnellerfassung</h2>
+          <p class="small text-body-secondary mb-0">Eintrag mit wenigen Fingertipps erfassen.</p>
+        </div>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#quick-entry-modal">Schnellerfassung</button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="modal fade" id="quick-entry-modal" tabindex="-1" aria-labelledby="quick-entry-modal-title" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow-lg" data-quick-entry>
+      <div class="modal-header">
+        <div>
+          <h2 class="modal-title h5 mb-1" id="quick-entry-modal-title">Schnellerfassung</h2>
+          <p class="small text-body-secondary mb-0">Unterwegs einen Eintrag mit wenigen Fingertipps erfassen.</p>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fenster schließen"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label" for="quick-entry-animal">Tier</label>
+        <select class="form-select form-select-lg mb-3" id="quick-entry-animal" data-quick-entry-animal>
+          <% quickAnimals.forEach((animal) => { %><option value="<%= animal.id %>"><%= getAnimalSpeciesIcon(animal.species_name) %> <%= animal.name %></option><% }) %>
+        </select>
+        <div class="quick-entry-actions">
+          <% if (permissions.canManageHealth) { %><a class="btn btn-outline-primary" data-drawer="animal-entry" data-quick-entry-kind="vaccination" href="#">Impfung</a><% } %>
+          <% if (permissions.canManageFeedings) { %><a class="btn btn-outline-primary" data-drawer="animal-entry" data-quick-entry-kind="feeding" href="#">Fütterung</a><% } %>
+          <% if (permissions.canManageNotes) { %><a class="btn btn-outline-primary" data-drawer="animal-entry" data-quick-entry-kind="note" href="#">Notiz</a><% } %>
+          <% if (permissions.canManageHealth) { %><a class="btn btn-outline-primary" data-drawer="animal-entry" data-quick-entry-kind="medication" href="#">Medikament</a><% } %>
+          <% if (permissions.canManageHealth) { %><a class="btn btn-outline-primary" data-drawer="animal-entry" data-quick-entry-kind="appointment" href="#">Termin</a><% } %>
+          <% if (permissions.canManageReminders) { %><a class="btn btn-outline-primary" data-drawer="animal-entry" data-quick-entry-kind="reminder" href="#">Erinnerung</a><% } %>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <span class="small text-body-secondary">Der vollständige Eintrag öffnet sich danach direkt.</span>
+        <% if (typeof runtimeFeatures !== 'undefined' && runtimeFeatures.calendarExport) { %><a href="/calendar.ics" class="btn btn-outline-secondary btn-sm">Kalender exportieren</a><% } %>
+      </div>
     </div>
   </div>
-  </section></div>
 </div>
 <% } %>
 

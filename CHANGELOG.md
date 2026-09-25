@@ -2,6 +2,16 @@
 
 Alle wesentlichen Änderungen an HeartPet werden hier absteigend dokumentiert.
 
+## 0.10.97 - 25.09.2026
+
+- Die Schnellerfassung ist auf dem Dashboard jetzt als kompakter Button verfügbar und öffnet die Aktionen in einem übersichtlichen Modal.
+- Beim Start einer Aktion schließt sich das Modal sauber, bevor der eigentliche Eingabedrawer geöffnet wird.
+
+## 0.10.96 - 25.09.2026
+
+- Bei einer Impfung können jetzt mehrere Standardimpfungen per Checkbox ausgewählt und gemeinsam gespeichert werden.
+- Jede ausgewählte Impfung bleibt als eigener Akteneintrag unabhängig bearbeitbar; Datum, Notiz, Tierarzt und Impfnachweis werden gemeinsam übernommen.
+
 ## 0.10.95 - 25.09.2026
 
 - Impfungen stehen jetzt als erster und direkter Einstieg in der Schnellerfassung auf dem Dashboard bereit.

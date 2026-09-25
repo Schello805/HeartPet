@@ -431,7 +431,16 @@ function initEventFormBehavior(scope = document) {
     const vaccinationCertificateWrap = form.querySelector("[data-vaccination-certificate-wrap]");
     const vaccinationCertificate = form.querySelector("[data-vaccination-certificate]");
     const vaccinationPresetWrap = form.querySelector("[data-vaccination-preset-wrap]");
-    const vaccinationPreset = vaccinationPresetWrap?.querySelector("[data-vaccination-preset]");
+    const vaccinationChoices = [...form.querySelectorAll("[data-vaccination-choice]")];
+    const titleInput = form.querySelector("[data-event-title]");
+    const titleLabel = form.querySelector("[data-event-title-label]");
+
+    function validateVaccinationSelection() {
+      if (!titleInput) return;
+      const isVaccination = kindInputs.find((input) => input.checked)?.value === "vaccination";
+      const hasSelection = vaccinationChoices.some((input) => input.checked) || Boolean(titleInput.value.trim());
+      titleInput.setCustomValidity(isVaccination && !hasSelection ? "Bitte wähle mindestens eine Impfung aus oder gib eine andere Impfung ein." : "");
+    }
 
     function updateEventForm() {
       const kind = kindInputs.find((input) => input.checked)?.value || "medication";
@@ -452,8 +461,15 @@ function initEventFormBehavior(scope = document) {
       if (vaccinationPresetWrap) {
         vaccinationPresetWrap.hidden = !isVaccination;
       }
-      if (vaccinationPreset) {
-        vaccinationPreset.disabled = !isVaccination;
+      vaccinationChoices.forEach((input) => {
+        input.disabled = !isVaccination;
+      });
+      if (titleInput) {
+        titleInput.required = !isVaccination;
+        titleInput.placeholder = isVaccination ? "Andere Impfung ergänzen" : "z. B. Wurmkur, Tollwut, Nachkontrolle";
+      }
+      if (titleLabel) {
+        titleLabel.textContent = isVaccination ? "Andere Impfung (optional)" : "Bezeichnung";
       }
 
       if (dateWrap) {
@@ -501,9 +517,12 @@ function initEventFormBehavior(scope = document) {
       if (reminderInlineWrap) {
         reminderInlineWrap.hidden = !canHaveReminder;
       }
+      validateVaccinationSelection();
     }
 
     kindInputs.forEach((input) => input.addEventListener("change", updateEventForm));
+    vaccinationChoices.forEach((input) => input.addEventListener("change", validateVaccinationSelection));
+    titleInput?.addEventListener("input", validateVaccinationSelection);
     handledByVet?.addEventListener("change", updateEventForm);
     form.addEventListener("submit", (event) => {
       if (!handledByVet?.checked || veterinarianSelect?.value) return;

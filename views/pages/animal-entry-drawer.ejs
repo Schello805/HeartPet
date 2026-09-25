@@ -89,20 +89,23 @@
                   <% } %>
                 </div>
               </div>
-              <div class="col-12" data-vaccination-preset-wrap hidden>
-                  <label class="form-label" for="event-vaccination-preset"><%= vaccinationSuggestionState.suggestions.length > 0 ? `Häufige Impfungen für ${vaccinationSuggestionState.speciesName}` : 'Impfung auswählen' %></label>
-                  <select class="form-select" id="event-vaccination-preset" data-vaccination-preset data-vaccination-target="#event-title" disabled>
-                    <option value="">Impfung auswählen</option>
-                    <% vaccinationSuggestionState.suggestions.forEach((suggestion) => { %>
-                      <option value="<%= suggestion %>"><%= suggestion %></option>
+              <fieldset class="col-12" data-vaccination-preset-wrap hidden>
+                <legend class="form-label"><%= vaccinationSuggestionState.suggestions.length > 0 ? `Impfungen für ${vaccinationSuggestionState.speciesName}` : 'Impfung auswählen' %></legend>
+                <% if (vaccinationSuggestionState.suggestions.length > 0) { %>
+                  <div class="vaccination-choice-grid">
+                    <% vaccinationSuggestionState.suggestions.forEach((suggestion, index) => { %>
+                      <label class="vaccination-choice" for="event-vaccination-<%= index %>">
+                        <input class="form-check-input" id="event-vaccination-<%= index %>" type="checkbox" name="vaccination_names" value="<%= suggestion %>" data-vaccination-choice disabled />
+                        <span><%= suggestion %></span>
+                      </label>
                     <% }); %>
-                    <option value="__custom__">Andere Impfung manuell eingeben</option>
-                  </select>
-                  <div class="form-text"><%= vaccinationSuggestionState.suggestions.length > 0 ? 'Auswahlhilfe, kein Impfplan. Bitte die passende Impfung tierärztlich abstimmen.' : 'Für diese Tierart sind noch keine Standardimpfungen hinterlegt. Du kannst die Bezeichnung frei eingeben.' %></div>
-              </div>
+                  </div>
+                <% } %>
+                <div class="form-text"><%= vaccinationSuggestionState.suggestions.length > 0 ? 'Mehrere Impfungen sind möglich. Auswahlhilfe, kein Impfplan: Bitte tierärztlich abstimmen.' : 'Für diese Tierart sind noch keine Standardimpfungen hinterlegt. Du kannst die Bezeichnung frei eingeben.' %></div>
+              </fieldset>
               <div class="col-12">
-                <label class="form-label" for="event-title">Bezeichnung</label>
-                <input class="form-control" id="event-title" type="text" name="title" required placeholder="z. B. Wurmkur, Tollwut, Nachkontrolle" />
+                <label class="form-label" for="event-title" data-event-title-label>Bezeichnung</label>
+                <input class="form-control" id="event-title" type="text" name="title" required placeholder="z. B. Wurmkur, Tollwut, Nachkontrolle" data-event-title />
               </div>
               <div class="col-md-6" data-event-date-wrap>
                 <label class="form-label" for="event-date">Datum</label>
