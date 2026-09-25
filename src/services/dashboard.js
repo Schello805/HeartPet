@@ -6,6 +6,7 @@ function createDashboardService({ db, animalWorkspace, getSettings, homematic, p
     const searchable = q.length >= 2;
     const now = dayjs();
     const endOfDay = now.endOf("day").format("YYYY-MM-DDTHH:mm");
+    const upcomingWindowEnd = now.add(7, "day").endOf("day").format("YYYY-MM-DDTHH:mm");
     const nowValue = now.format("YYYY-MM-DDTHH:mm");
     const stats = {
       animalCount: db.prepare("SELECT COUNT(DISTINCT id) AS count FROM animals WHERE status = 'Aktiv'").get().count,
@@ -30,8 +31,9 @@ function createDashboardService({ db, animalWorkspace, getSettings, homematic, p
       LEFT JOIN animals ON animals.id = reminders.animal_id
       WHERE reminders.completed_at IS NULL AND animals.status = 'Aktiv'
         AND REPLACE(reminders.due_at, ' ', 'T') > ?
+        AND REPLACE(reminders.due_at, ' ', 'T') <= ?
       ORDER BY REPLACE(reminders.due_at, ' ', 'T') ASC LIMIT 10
-    `).all(endOfDay);
+    `).all(endOfDay, upcomingWindowEnd);
     const urgentReminders = db.prepare(`
       SELECT reminders.*, animals.name AS animal_name,
         CASE WHEN REPLACE(reminders.due_at, ' ', 'T') < ? THEN 'overdue'

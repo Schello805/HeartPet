@@ -2121,6 +2121,26 @@ test("Dashboard zeigt dringende Erinnerungen nicht doppelt bei den nächsten Eri
   assert.doesNotMatch(response.text, /<span class="badge text-bg-warning">\d+ (?:überfällig|offen)<\/span>/);
 });
 
+test("Dashboard zeigt unter Demnächst nur Erinnerungen der nächsten sieben Tage", async () => {
+  await ensureAdminAuthenticated();
+  const animalId = db.prepare("INSERT INTO animals (name, status) VALUES (?, ?)")
+    .run(`Sieben-Tage-Tier ${Date.now()}`, "Aktiv").lastInsertRowid;
+  const soonTitle = `Innerhalb von sieben Tagen ${Date.now()}`;
+  const distantTitle = `Erst in einem Jahr ${Date.now()}`;
+  const insert = db.prepare(`
+    INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, notes)
+    VALUES (?, ?, ?, ?, 1, 0, '')
+  `);
+  insert.run(animalId, soonTitle, "Termin", dayjs().add(7, "day").hour(9).minute(0).format("YYYY-MM-DDTHH:mm"));
+  insert.run(animalId, distantTitle, "Termin", dayjs().add(1, "year").hour(9).minute(0).format("YYYY-MM-DDTHH:mm"));
+
+  const response = await agent.get("/");
+  assert.equal(response.status, 200);
+  assert.match(response.text, /In den nächsten 7 Tagen fällig\./);
+  assert.match(response.text, new RegExp(soonTitle));
+  assert.doesNotMatch(response.text, new RegExp(distantTitle));
+});
+
 test("Dashboard verlinkt die Tier-Karte auf die Tierübersicht und zeigt die eindeutige Tierzahl", async () => {
   const response = await agent.get("/");
   assert.equal(response.status, 200);

@@ -2,6 +2,10 @@
 
 Alle wesentlichen Änderungen an HeartPet werden hier absteigend dokumentiert.
 
+## 0.10.94 - 25.09.2026
+
+- Der Dashboard-Bereich „Demnächst“ zeigt nur noch Erinnerungen, die innerhalb der nächsten sieben Tage fällig werden, statt bereits Jahrestermine aufzulisten.
+
 ## 0.10.93 - 24.09.2026
 
 - Beim Erledigen einer Impf-Erinnerung wird das tatsächliche Impfdatum jetzt auch bei älteren, noch nicht technisch verknüpften Erinnerungen verbindlich abgefragt.
