@@ -2,6 +2,10 @@
 
 Alle wesentlichen Änderungen an HeartPet werden hier absteigend dokumentiert.
 
+## 0.10.95 - 25.09.2026
+
+- Impfungen stehen jetzt als erster und direkter Einstieg in der Schnellerfassung auf dem Dashboard bereit.
+
 ## 0.10.94 - 25.09.2026
 
 - Der Dashboard-Bereich „Demnächst“ zeigt nur noch Erinnerungen, die innerhalb der nächsten sieben Tage fällig werden, statt bereits Jahrestermine aufzulisten.

@@ -98,6 +98,7 @@
       <% quickAnimals.forEach((animal) => { %><option value="<%= animal.id %>"><%= getAnimalSpeciesIcon(animal.species_name) %> <%= animal.name %></option><% }) %>
     </select>
     <div class="quick-entry-actions">
+      <% if (permissions.canManageHealth) { %><a class="btn btn-outline-primary" data-drawer="animal-entry" data-quick-entry-kind="vaccination" href="#">Impfung</a><% } %>
       <% if (permissions.canManageFeedings) { %><a class="btn btn-outline-primary" data-drawer="animal-entry" data-quick-entry-kind="feeding" href="#">Fütterung</a><% } %>
       <% if (permissions.canManageNotes) { %><a class="btn btn-outline-primary" data-drawer="animal-entry" data-quick-entry-kind="note" href="#">Notiz</a><% } %>
       <% if (permissions.canManageHealth) { %><a class="btn btn-outline-primary" data-drawer="animal-entry" data-quick-entry-kind="medication" href="#">Medikament</a><% } %>

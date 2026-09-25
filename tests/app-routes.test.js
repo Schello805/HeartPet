@@ -2528,6 +2528,15 @@ test("Dashboard enthält getrennte Bereiche für Tierbestand, Wetter und Stall",
   }
 });
 
+test("Dashboard bietet Impfungen direkt in der Schnellerfassung an", async () => {
+  await ensureAdminAuthenticated();
+  db.prepare("INSERT INTO animals (name, status) VALUES (?, ?)")
+    .run(`Schnellerfassung ${Date.now()}`, "Aktiv");
+  const response = await agent.get("/");
+  assert.equal(response.status, 200);
+  assert.match(response.text, /data-quick-entry-kind="vaccination"[^>]*>Impfung<\/a>/);
+});
+
 test("Kamera-Einstellungen erklären RTSP und Wansview verständlich", async () => {
   const response = await agent.get("/admin/stall");
   assert.equal(response.status, 200);

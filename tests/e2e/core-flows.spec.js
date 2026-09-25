@@ -362,6 +362,13 @@ test("Dashboard zeigt mobil nur einen Einstieg für ein neues Tier", async ({ pa
   await expect(page.locator('a[data-drawer="animal-form"]:visible')).toHaveCount(1);
   await expect(page.locator("main").getByText("Was ist heute wichtig?", { exact: true })).toHaveCount(0);
 
+  const quickVaccination = page.locator('[data-quick-entry-kind="vaccination"]');
+  await expect(quickVaccination).toBeVisible();
+  await quickVaccination.click();
+  await expect(page.locator("[data-drawer-body] #event-kind-vaccination")).toBeChecked();
+  await expect(page.locator("[data-drawer-body] [data-vaccination-preset]")).toBeVisible();
+  await page.locator("#app-drawer [data-drawer-close]").first().click();
+
   await page.locator(".app-mobile-bottom-nav").getByText("Tiere", { exact: true }).click();
   await expect(page).toHaveURL(/\/animals$/);
   await expect(page.locator("body")).toHaveClass(/animals-page/);
