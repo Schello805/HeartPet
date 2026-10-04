@@ -10,6 +10,7 @@ const migrations = [
   require("./009_repair_vaccination_presets"),
   require("./011_disposal_facilities"),
   require("./012_species_facts_media"),
+  require("./013_species_fact_media_gallery"),
 ];
 
 function ensureMigrationsTable(db) {

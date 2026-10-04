@@ -111,15 +111,23 @@ function createAnimalWorkspaceService({
   }
 
   function listActiveSpecies() {
-    return db.prepare(`
-      SELECT species.id, species.name, COUNT(animals.id) AS animal_count,
-        species.facts_media_stored_name AS facts_media_stored_name,
-        species.facts_media_original_name AS facts_media_original_name,
-        species.facts_media_mime_type AS facts_media_mime_type
+    const species = db.prepare(`
+      SELECT species.id, species.name, COUNT(animals.id) AS animal_count
       FROM species INNER JOIN animals ON animals.species_id = species.id
       WHERE animals.status = 'Aktiv'
       GROUP BY species.id, species.name ORDER BY species.name COLLATE NOCASE ASC
     `).all();
+    if (!species.length) return [];
+
+    const mediaRows = db.prepare(`
+      SELECT id, species_id, stored_name, original_name, mime_type, sort_order
+      FROM species_fact_media
+      WHERE species_id IN (${species.map(() => "?").join(", ")})
+      ORDER BY sort_order ASC, id ASC
+    `).all(...species.map((item) => item.id));
+    const mediaBySpecies = new Map(species.map((item) => [item.id, []]));
+    mediaRows.forEach((media) => mediaBySpecies.get(media.species_id)?.push(media));
+    return species.map((item) => ({ ...item, factsMedia: mediaBySpecies.get(item.id) || [] }));
   }
 
   function getAnimalSectionConfig(section) {

@@ -505,14 +505,45 @@ test("Datenbank-Migrationen werden protokolliert", () => {
   assert.ok(migrationIds.includes("008_vaccination_presets"));
   assert.ok(migrationIds.includes("009_repair_vaccination_presets"));
   assert.ok(migrationIds.includes("012_species_facts_media"));
+  assert.ok(migrationIds.includes("013_species_fact_media_gallery"));
   const speciesColumns = db.prepare("PRAGMA table_info(species)").all().map((column) => column.name);
   assert.ok(speciesColumns.includes("facts_media_stored_name"));
   assert.ok(speciesColumns.includes("facts_media_original_name"));
   assert.ok(speciesColumns.includes("facts_media_mime_type"));
+  assert.ok(db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'species_fact_media'").get());
   assert.ok(db.prepare("SELECT 1 FROM vaccination_presets WHERE species_name = ? AND name = ?").get(
     "Katze",
     "RCP (Katzenschnupfen und Katzenseuche)",
   ));
+});
+
+test("Tierart-Einzelmedium wird bei der Galerie-Migration erhalten", () => {
+  const legacyDb = new Database(":memory:");
+  legacyDb.exec(`
+    CREATE TABLE species (
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      facts_media_stored_name TEXT,
+      facts_media_original_name TEXT,
+      facts_media_mime_type TEXT
+    )
+  `);
+  legacyDb.prepare(`
+    INSERT INTO species (id, name, facts_media_stored_name, facts_media_original_name, facts_media_mime_type)
+    VALUES (1, 'Huhn', 'legacy-fact.jpg', 'Hühner-Fakten.jpg', 'image/jpeg')
+  `).run();
+
+  require("../src/migrations/013_species_fact_media_gallery").up(legacyDb);
+
+  assert.deepEqual(legacyDb.prepare("SELECT species_id, stored_name, original_name, mime_type, sort_order FROM species_fact_media").get(), {
+    species_id: 1,
+    stored_name: "legacy-fact.jpg",
+    original_name: "Hühner-Fakten.jpg",
+    mime_type: "image/jpeg",
+    sort_order: 0,
+  });
+  assert.equal(legacyDb.prepare("SELECT facts_media_stored_name FROM species WHERE id = 1").get().facts_media_stored_name, null);
+  legacyDb.close();
 });
 
 test("Reparaturmigration stellt eine trotz Migrationsprotokoll fehlende Impfungstabelle wieder her", () => {
@@ -1717,7 +1748,7 @@ test("Tierart-Speichern aus eingeblendetem Formular landet sauber zurück", asyn
   assert.match(save.text, /Stammdaten/i);
 });
 
-test("Tierart-Faktenmedium kann als Bild oder PDF hochgeladen, ersetzt und entfernt werden", async () => {
+test("Bis zu drei Tierart-Faktenmedien können hochgeladen und einzeln entfernt werden", async () => {
   await ensureAdminAuthenticated();
   const name = `Faktenmedium ${Date.now()}`;
   const pdfContent = Buffer.from("%PDF-1.4\nHeartPet Fakten\n%%EOF\n");
@@ -1729,50 +1760,64 @@ test("Tierart-Faktenmedium kann als Bild oder PDF hochgeladen, ersetzt und entfe
   assert.ok([302, 303].includes(create.status));
 
   const species = db.prepare("SELECT * FROM species WHERE name = ?").get(name);
-  assert.equal(species.facts_media_original_name, "tierart-fakten.pdf");
-  assert.equal(species.facts_media_mime_type, "application/pdf");
   const uploadsDir = path.join(tempDataDir, "uploads");
-  const originalPath = path.join(uploadsDir, species.facts_media_stored_name);
+  const firstMedia = db.prepare("SELECT * FROM species_fact_media WHERE species_id = ?").all(species.id);
+  assert.equal(firstMedia.length, 1);
+  assert.equal(firstMedia[0].original_name, "tierart-fakten.pdf");
+  assert.equal(firstMedia[0].mime_type, "application/pdf");
+  const originalPath = path.join(uploadsDir, firstMedia[0].stored_name);
   assert.equal(fs.existsSync(originalPath), true);
 
   const animalId = Number(db.prepare("INSERT INTO animals (name, species_id, status) VALUES (?, ?, 'Aktiv')")
     .run(`${name} Tier`, species.id).lastInsertRowid);
   const dashboard = await agent.get("/");
-  assert.doesNotMatch(dashboard.text, new RegExp(`/media/${species.facts_media_stored_name}`));
+  assert.doesNotMatch(dashboard.text, new RegExp(`/media/${firstMedia[0].stored_name}`));
   assert.doesNotMatch(dashboard.text, /PDF ansehen/);
   const speciesList = await agent.get("/animals").query({ species_id: species.id });
   assert.equal(speciesList.status, 200);
   assert.match(speciesList.text, /Tier auswählen/);
-  assert.match(speciesList.text, new RegExp(`/media/${species.facts_media_stored_name}`));
+  assert.match(speciesList.text, new RegExp(`/media/${firstMedia[0].stored_name}`));
   assert.match(speciesList.text, /PDF öffnen: tierart-fakten\.pdf/);
-  assert.ok(speciesList.text.indexOf(`/media/${species.facts_media_stored_name}`) > speciesList.text.indexOf('id="selected-animal"'));
+  assert.ok(speciesList.text.indexOf(`/media/${firstMedia[0].stored_name}`) > speciesList.text.indexOf('id="selected-animal"'));
 
   const logoPath = path.join(process.cwd(), "public", "images", "logo-heartpet.png");
-  const replace = await agent
+  const addMedia = await agent
     .post(`/admin/species/${species.id}/update`)
     .field("name", name)
     .field("notes", "Tierart-Medientest")
     .field("default_veterinarian_id", "")
-    .attach("facts_media", logoPath);
-  assert.ok([302, 303].includes(replace.status));
-  const withImage = db.prepare("SELECT * FROM species WHERE id = ?").get(species.id);
-  assert.match(withImage.facts_media_mime_type, /^image\//);
-  assert.equal(fs.existsSync(originalPath), false);
-  const speciesListWithImage = await agent.get("/animals").query({ species_id: species.id });
-  assert.match(speciesListWithImage.text, new RegExp(`/media/${withImage.facts_media_stored_name}`));
-  assert.ok(speciesListWithImage.text.indexOf(`/media/${withImage.facts_media_stored_name}`) > speciesListWithImage.text.indexOf('id="selected-animal"'));
+    .attach("facts_media", logoPath, { filename: "huhn-2.png", contentType: "image/png" })
+    .attach("facts_media", logoPath, { filename: "huhn-3.png", contentType: "image/png" });
+  assert.ok([302, 303].includes(addMedia.status));
+  const allMedia = db.prepare("SELECT * FROM species_fact_media WHERE species_id = ? ORDER BY sort_order, id").all(species.id);
+  assert.equal(allMedia.length, 3);
+  assert.match(allMedia[1].mime_type, /^image\//);
+  assert.equal(fs.existsSync(originalPath), true, "Bestehende Medien bleiben beim Ergänzen erhalten");
+  const speciesListWithMedia = await agent.get("/animals").query({ species_id: species.id });
+  allMedia.forEach((media) => assert.match(speciesListWithMedia.text, new RegExp(`/media/${media.stored_name}`)));
+  assert.ok(speciesListWithMedia.text.indexOf(`/media/${allMedia[0].stored_name}`) > speciesListWithMedia.text.indexOf('id="selected-animal"'));
 
-  const imagePath = path.join(uploadsDir, withImage.facts_media_stored_name);
+  const fourthUpload = await agent
+    .post(`/admin/species/${species.id}/update`)
+    .field("name", name)
+    .field("notes", "Tierart-Medientest")
+    .attach("facts_media", logoPath, { filename: "huhn-4.png", contentType: "image/png" });
+  assert.ok([302, 303].includes(fourthUpload.status));
+  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM species_fact_media WHERE species_id = ?").get(species.id).count, 3);
+
   const remove = await agent
     .post(`/admin/species/${species.id}/update`)
     .type("form")
-    .send({ name, notes: "Tierart-Medientest", default_veterinarian_id: "", remove_facts_media: "1" });
+    .send({ name, notes: "Tierart-Medientest", default_veterinarian_id: "", remove_facts_media: String(allMedia[0].id) });
   assert.ok([302, 303].includes(remove.status));
-  assert.equal(db.prepare("SELECT facts_media_stored_name FROM species WHERE id = ?").get(species.id).facts_media_stored_name, null);
-  assert.equal(fs.existsSync(imagePath), false);
+  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM species_fact_media WHERE species_id = ?").get(species.id).count, 2);
+  assert.equal(fs.existsSync(originalPath), false);
 
   db.prepare("DELETE FROM animals WHERE id = ?").run(animalId);
-  db.prepare("DELETE FROM species WHERE id = ?").run(species.id);
+  const remainingMedia = db.prepare("SELECT stored_name FROM species_fact_media WHERE species_id = ?").all(species.id);
+  const deleteSpecies = await agent.post(`/admin/species/${species.id}/delete`).type("form").send({});
+  assert.ok([302, 303].includes(deleteSpecies.status));
+  remainingMedia.forEach((media) => assert.equal(fs.existsSync(path.join(uploadsDir, media.stored_name)), false));
 });
 
 test("Falsche GET-Aufrufe auf Admin-Speicherpfade liefern kein 404", async () => {

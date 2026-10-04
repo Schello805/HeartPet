@@ -28,7 +28,7 @@ function createUploadMiddleware(dataDir) {
 
   return multer({
     storage: uploadStorage,
-    limits: { fileSize: 20 * 1024 * 1024, files: 1, fields: 100 },
+    limits: { fileSize: 20 * 1024 * 1024, files: 3, fields: 100 },
     fileFilter: (req, file, cb) => cb(null, allowedUploadTypes.has(normalizeMimeType(file.mimetype))),
   });
 }

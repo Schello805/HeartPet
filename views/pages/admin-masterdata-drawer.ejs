@@ -19,6 +19,7 @@
     veterinarianNotes: { maxlength: 4000 },
   };
   const resolvedFederalStates = typeof federalStates !== 'undefined' && Array.isArray(federalStates) ? federalStates : [];
+  const resolvedSpeciesMedia = typeof speciesMedia !== 'undefined' && Array.isArray(speciesMedia) ? speciesMedia : [];
   const getFieldConstraints = typeof fieldConstraints === 'function'
     ? fieldConstraints
     : (name) => legacyFieldConstraints[name] || { minlength: 1, maxlength: 4000 };
@@ -180,20 +181,24 @@
                 </select>
               </div>
               <div class="col-12">
-                <label class="form-label" for="species-facts-media">Bild oder PDF mit Fakten</label>
-                <input class="form-control" id="species-facts-media" type="file" name="facts_media" accept="image/jpeg,image/png,image/webp,application/pdf" />
-                <div class="form-text">JPG, PNG, WebP oder PDF, maximal 20 MB.</div>
-                <% if (item?.facts_media_stored_name) { %>
-                  <div class="species-facts-media-current mt-2">
-                    <% if (String(item.facts_media_mime_type || '').startsWith('image/')) { %>
-                      <img class="species-facts-media-preview" src="/media/<%= item.facts_media_stored_name %>" alt="Faktenbild für <%= item.name %>" />
-                    <% } else { %>
-                      <a href="/media/<%= item.facts_media_stored_name %>" target="_blank" rel="noopener">PDF öffnen: <%= item.facts_media_original_name || 'Tierart-Fakten' %></a>
-                    <% } %>
-                    <div class="form-check mt-2">
-                      <input class="form-check-input" id="species-remove-facts-media" type="checkbox" name="remove_facts_media" value="1" />
-                      <label class="form-check-label" for="species-remove-facts-media">Vorhandenes Medium entfernen</label>
-                    </div>
+                <label class="form-label" for="species-facts-media">Bilder oder PDFs mit Fakten</label>
+                <input class="form-control" id="species-facts-media" type="file" name="facts_media" accept="image/jpeg,image/png,image/webp,application/pdf" multiple />
+                <div class="form-text">Bis zu drei Dateien insgesamt; JPG, PNG, WebP oder PDF, maximal 20 MB je Datei.</div>
+                <% if (resolvedSpeciesMedia.length) { %>
+                  <div class="species-facts-media-current mt-3">
+                    <% resolvedSpeciesMedia.forEach((media) => { %>
+                      <div class="species-facts-media-row">
+                        <% if (String(media.mime_type || '').startsWith('image/')) { %>
+                          <img class="species-facts-media-preview" src="/media/<%= media.stored_name %>" alt="Faktenbild für <%= item.name %>" />
+                        <% } else { %>
+                          <a href="/media/<%= media.stored_name %>" target="_blank" rel="noopener">PDF öffnen: <%= media.original_name || 'Tierart-Fakten' %></a>
+                        <% } %>
+                        <div class="form-check mt-2">
+                          <input class="form-check-input" id="species-remove-facts-media-<%= media.id %>" type="checkbox" name="remove_facts_media" value="<%= media.id %>" />
+                          <label class="form-check-label" for="species-remove-facts-media-<%= media.id %>">Datei entfernen</label>
+                        </div>
+                      </div>
+                    <% }) %>
                   </div>
                 <% } %>
               </div>
