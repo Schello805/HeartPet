@@ -1,5 +1,4 @@
 const dayjs = require("dayjs");
-const { getAnimalSpeciesFacts } = require("../view-helpers");
 
 function createDashboardService({ db, animalWorkspace, getSettings, homematic, parseCameras, readWeather, search }) {
   async function buildView(rawQuery) {
@@ -20,7 +19,7 @@ function createDashboardService({ db, animalWorkspace, getSettings, homematic, p
       FROM animals LEFT JOIN species ON species.id = animals.species_id
       WHERE animals.status = 'Aktiv' GROUP BY species.id, species.name
       ORDER BY species.name COLLATE NOCASE ASC
-    `).all().map((species) => ({ ...species, facts: getAnimalSpeciesFacts(species.name) }));
+    `).all();
     const activeAnimals = db.prepare(`
       SELECT animals.id, animals.name, species.name AS species_name
       FROM animals LEFT JOIN species ON species.id = animals.species_id

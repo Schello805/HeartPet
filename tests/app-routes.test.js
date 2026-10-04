@@ -2612,6 +2612,8 @@ test("Dashboard zeigt Tierarten und konkrete Aufmerksamkeitspunkte", async () =>
 
   const response = await agent.get("/");
   assert.equal(response.status, 200);
+  assert.match(response.text, /dashboard-species-icon/);
+  assert.doesNotMatch(response.text, /Wissenswertes zu/);
   assert.match(response.text, /Hinweise/);
   assert.match(response.text, /Radar/);
   assert.doesNotMatch(response.text, /Profilbild von Radar/);
@@ -2887,7 +2889,7 @@ test("Wichtige interne Links liefern keine 404", async () => {
       }
       checked.add(href);
       const target = await agent.get(href).redirects(3);
-      assert.notEqual(target.status, 404, href);
+      assert.notEqual(target.status, 404, `${href}: ${String(target.text || "").slice(0, 240)}`);
     }
   }
 });

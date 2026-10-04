@@ -63,39 +63,6 @@ function getAnimalSpeciesIcon(speciesName) {
   return icons[normalized] || "🐾";
 }
 
-function getAnimalSpeciesFacts(speciesName) {
-  const normalized = String(speciesName || "")
-    .trim()
-    .toLocaleLowerCase("de-DE")
-    .replace(/ä/g, "a")
-    .replace(/ö/g, "o")
-    .replace(/ü/g, "u")
-    .replace(/ß/g, "ss");
-  const speciesAliases = {
-    hunde: "hund", katzen: "katze", huhner: "huhn", hahne: "hahn",
-    pferde: "pferd", hasen: "hase", schafe: "schaf", ziegen: "ziege",
-    schweine: "schwein", rinder: "rind", kuh: "rind", enten: "ente", ganse: "gans",
-  };
-  const facts = {
-    hund: "Hunde haben einen besonders leistungsfähigen Geruchssinn. Schnüffel- und Suchaufgaben beschäftigen sie artgerecht.",
-    katze: "Katzen sind obligate Fleischfresser. Ein Teil ihres Flüssigkeitsbedarfs wird über die Nahrung gedeckt.",
-    huhn: "Hühner verbringen viel Zeit mit Scharren und Picken. Staubbaden gehört zu ihrem natürlichen Pflegeverhalten.",
-    hahn: "Hühner verbringen viel Zeit mit Scharren und Picken. Staubbaden gehört zu ihrem natürlichen Pflegeverhalten.",
-    kaninchen: "Kaninchen sind soziale Pflanzenfresser. Heu und anderes Raufutter bilden den Hauptteil ihrer Ernährung.",
-    hase: "Hasen sind Pflanzenfresser und bewegen sich in der Natur über weite Strecken auf offenen Flächen.",
-    pferd: "Pferde sind Herdentiere und auf regelmäßige Bewegung ausgelegt. Sozialkontakt gehört zu ihrer artgerechten Haltung.",
-    frettchen: "Frettchen sind Fleischfresser und dämmerungsaktiv. Sie brauchen täglich sichere Bewegungs- und Beschäftigungsphasen.",
-    schaf: "Schafe sind Herdentiere und Wiederkäuer. Sie nehmen Futter bevorzugt in kleinen Portionen über den Tag verteilt auf.",
-    ziege: "Ziegen sind neugierige Wiederkäuer. Klettermöglichkeiten und abwechslungsreiche Beschäftigung kommen ihrem Erkundungsverhalten entgegen.",
-    schwein: "Schweine sind sehr lernfähig und neugierig. Wühlen und Erkunden sind wichtige natürliche Verhaltensweisen.",
-    rind: "Rinder sind Wiederkäuer und soziale Herdentiere. Sie bauen stabile Beziehungen zu Artgenossen auf.",
-    ente: "Enten pflegen ihr Gefieder regelmäßig mit Wasser. Als Wasservögel benötigen sie Zugang zu geeignetem Bade- und Trinkwasser.",
-    gans: "Gänse sind ausgeprägte Weidetiere und leben sozial in Gruppen. Grasen ist ein wichtiger Teil ihres natürlichen Verhaltens.",
-    vogel: "Viele Vogelarten sind sehr sozial und brauchen tägliche Beschäftigung. Der genaue Platz- und Bewegungsbedarf hängt stark von der Art ab.",
-  };
-  return facts[speciesAliases[normalized] || normalized] || "Für diese Tierart sind noch keine geprüften Fakten hinterlegt.";
-}
-
 function normalizeAnimalStatus(status) {
   const allowedStatuses = ["Aktiv", "Vermittelt", "Verkauft", "Verstorben"];
   const normalized = String(status || "").trim();
@@ -246,7 +213,6 @@ module.exports = {
   getAnimalAge,
   getAnimalInitial,
   getAnimalSpeciesIcon,
-  getAnimalSpeciesFacts,
   getAnimalLifecycle,
   getReminderStatusMeta,
   getRoleLabel,

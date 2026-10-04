@@ -6,7 +6,6 @@ const {
   buildPermissions,
   getAnimalAge,
   getAnimalLifecycle,
-  getAnimalSpeciesFacts,
   getReminderStatusMeta,
   isVaccinationReminder,
   normalizeAnimalStatus,
@@ -21,12 +20,6 @@ test("Tieralter zeigt Jahre immer zusammen mit vollen Monaten und niemals Tage",
   assert.equal(getAnimalAge("2026-04-21", today), "5 Monate");
   assert.equal(getAnimalAge("2026-09-10", today), "0 Monate");
   assert.equal(getAnimalAge("2026-09-22", today), "-");
-});
-
-test("Tierart-Fakten erkennen gängige Arten und erfinden nichts für unbekannte Arten", () => {
-  assert.match(getAnimalSpeciesFacts("Katzen"), /Fleischfresser/);
-  assert.match(getAnimalSpeciesFacts("Huhn"), /Staubbaden/);
-  assert.match(getAnimalSpeciesFacts("Axolotl"), /keine geprüften Fakten/);
 });
 
 test("Impf-Erinnerungen werden auch bei älteren Datensätzen zuverlässig erkannt", () => {
