@@ -1738,8 +1738,13 @@ test("Tierart-Faktenmedium kann als Bild oder PDF hochgeladen, ersetzt und entfe
   const animalId = Number(db.prepare("INSERT INTO animals (name, species_id, status) VALUES (?, ?, 'Aktiv')")
     .run(`${name} Tier`, species.id).lastInsertRowid);
   const dashboard = await agent.get("/");
-  assert.match(dashboard.text, new RegExp(`/media/${species.facts_media_stored_name}`));
-  assert.match(dashboard.text, /PDF ansehen/);
+  assert.doesNotMatch(dashboard.text, new RegExp(`/media/${species.facts_media_stored_name}`));
+  assert.doesNotMatch(dashboard.text, /PDF ansehen/);
+  const speciesList = await agent.get("/animals").query({ species_id: species.id });
+  assert.equal(speciesList.status, 200);
+  assert.match(speciesList.text, /Tier auswählen/);
+  assert.match(speciesList.text, new RegExp(`/media/${species.facts_media_stored_name}`));
+  assert.match(speciesList.text, /PDF öffnen: tierart-fakten\.pdf/);
 
   const logoPath = path.join(process.cwd(), "public", "images", "logo-heartpet.png");
   const replace = await agent
@@ -1752,6 +1757,8 @@ test("Tierart-Faktenmedium kann als Bild oder PDF hochgeladen, ersetzt und entfe
   const withImage = db.prepare("SELECT * FROM species WHERE id = ?").get(species.id);
   assert.match(withImage.facts_media_mime_type, /^image\//);
   assert.equal(fs.existsSync(originalPath), false);
+  const speciesListWithImage = await agent.get("/animals").query({ species_id: species.id });
+  assert.match(speciesListWithImage.text, new RegExp(`/media/${withImage.facts_media_stored_name}`));
 
   const imagePath = path.join(uploadsDir, withImage.facts_media_stored_name);
   const remove = await agent

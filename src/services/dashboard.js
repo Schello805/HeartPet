@@ -16,10 +16,7 @@ function createDashboardService({ db, animalWorkspace, getSettings, homematic, p
       dueReminderCount: db.prepare(`SELECT COUNT(*) AS count FROM reminders INNER JOIN animals ON animals.id = reminders.animal_id WHERE reminders.completed_at IS NULL AND REPLACE(reminders.due_at, ' ', 'T') <= ? AND animals.status = 'Aktiv'`).get(nowValue).count,
     };
     const speciesCounts = db.prepare(`
-      SELECT COALESCE(species.name, 'Ohne Tierart') AS name, species.id AS species_id, COUNT(animals.id) AS count,
-        species.facts_media_stored_name AS media_stored_name,
-        species.facts_media_original_name AS media_original_name,
-        species.facts_media_mime_type AS media_mime_type
+      SELECT COALESCE(species.name, 'Ohne Tierart') AS name, species.id AS species_id, COUNT(animals.id) AS count
       FROM animals LEFT JOIN species ON species.id = animals.species_id
       WHERE animals.status = 'Aktiv' GROUP BY species.id, species.name
       ORDER BY species.name COLLATE NOCASE ASC

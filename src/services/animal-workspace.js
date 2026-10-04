@@ -112,7 +112,10 @@ function createAnimalWorkspaceService({
 
   function listActiveSpecies() {
     return db.prepare(`
-      SELECT species.id, species.name, COUNT(animals.id) AS animal_count
+      SELECT species.id, species.name, COUNT(animals.id) AS animal_count,
+        species.facts_media_stored_name AS facts_media_stored_name,
+        species.facts_media_original_name AS facts_media_original_name,
+        species.facts_media_mime_type AS facts_media_mime_type
       FROM species INNER JOIN animals ON animals.species_id = species.id
       WHERE animals.status = 'Aktiv'
       GROUP BY species.id, species.name ORDER BY species.name COLLATE NOCASE ASC

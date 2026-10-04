@@ -80,13 +80,7 @@
             <% speciesOverview.forEach((species) => { %>
               <article class="dashboard-species-fact">
                 <div class="dashboard-species-fact-image">
-                  <% if (species.media_mime_type === 'application/pdf' && species.media_stored_name) { %>
-                    <a class="dashboard-species-pdf" href="/media/<%= species.media_stored_name %>" target="_blank" rel="noopener" aria-label="PDF mit Fakten über <%= species.name %> öffnen">PDF ansehen</a>
-                  <% } else if (species.media_mime_type && species.media_mime_type.startsWith('image/') && species.media_stored_name) { %>
-                    <img src="/media/<%= species.media_stored_name %>" alt="Faktenbild für <%= species.name %>" loading="lazy" />
-                  <% } else { %>
-                    <span aria-hidden="true"><%= getAnimalSpeciesIcon(species.name) %></span>
-                  <% } %>
+                  <span aria-hidden="true"><%= getAnimalSpeciesIcon(species.name) %></span>
                 </div>
                 <div>
                   <h3 class="small fw-semibold mb-1">Wissenswertes zu <%= species.name %></h3>
