@@ -1,4 +1,5 @@
 const dayjs = require("dayjs");
+const { getAnimalSpeciesFacts } = require("../view-helpers");
 
 function createDashboardService({ db, animalWorkspace, getSettings, homematic, parseCameras, readWeather, search }) {
   async function buildView(rawQuery) {
@@ -15,11 +16,16 @@ function createDashboardService({ db, animalWorkspace, getSettings, homematic, p
       dueReminderCount: db.prepare(`SELECT COUNT(*) AS count FROM reminders INNER JOIN animals ON animals.id = reminders.animal_id WHERE reminders.completed_at IS NULL AND REPLACE(reminders.due_at, ' ', 'T') <= ? AND animals.status = 'Aktiv'`).get(nowValue).count,
     };
     const speciesCounts = db.prepare(`
-      SELECT COALESCE(species.name, 'Ohne Tierart') AS name, species.id AS species_id, COUNT(animals.id) AS count
+      SELECT COALESCE(species.name, 'Ohne Tierart') AS name, species.id AS species_id, COUNT(animals.id) AS count,
+        (SELECT representative.profile_image_stored_name FROM animals AS representative
+          WHERE representative.status = 'Aktiv' AND representative.profile_image_stored_name IS NOT NULL
+            AND ((species.id IS NOT NULL AND representative.species_id = species.id)
+              OR (species.id IS NULL AND representative.species_id IS NULL))
+          ORDER BY representative.id ASC LIMIT 1) AS image
       FROM animals LEFT JOIN species ON species.id = animals.species_id
       WHERE animals.status = 'Aktiv' GROUP BY species.id, species.name
       ORDER BY species.name COLLATE NOCASE ASC
-    `).all();
+    `).all().map((species) => ({ ...species, facts: getAnimalSpeciesFacts(species.name) }));
     const activeAnimals = db.prepare(`
       SELECT animals.id, animals.name, species.name AS species_name
       FROM animals LEFT JOIN species ON species.id = animals.species_id

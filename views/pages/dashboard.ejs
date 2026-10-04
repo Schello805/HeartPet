@@ -76,6 +76,23 @@
               </div>
             <% }) %>
           </div>
+          <div class="dashboard-species-facts" aria-label="Wissenswertes zu den Tierarten">
+            <% speciesOverview.forEach((species) => { %>
+              <article class="dashboard-species-fact">
+                <div class="dashboard-species-fact-image">
+                  <% if (species.image) { %>
+                    <img src="/media/<%= species.image %>" alt="Tier aus der Tierart <%= species.name %>" loading="lazy" />
+                  <% } else { %>
+                    <span aria-hidden="true"><%= getAnimalSpeciesIcon(species.name) %></span>
+                  <% } %>
+                </div>
+                <div>
+                  <h3 class="small fw-semibold mb-1">Wissenswertes zu <%= species.name %></h3>
+                  <p class="small text-body-secondary mb-0"><%= species.facts %></p>
+                </div>
+              </article>
+            <% }) %>
+          </div>
         <% } %>
       </div>
     </section>
