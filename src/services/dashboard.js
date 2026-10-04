@@ -17,11 +17,9 @@ function createDashboardService({ db, animalWorkspace, getSettings, homematic, p
     };
     const speciesCounts = db.prepare(`
       SELECT COALESCE(species.name, 'Ohne Tierart') AS name, species.id AS species_id, COUNT(animals.id) AS count,
-        (SELECT representative.profile_image_stored_name FROM animals AS representative
-          WHERE representative.status = 'Aktiv' AND representative.profile_image_stored_name IS NOT NULL
-            AND ((species.id IS NOT NULL AND representative.species_id = species.id)
-              OR (species.id IS NULL AND representative.species_id IS NULL))
-          ORDER BY representative.id ASC LIMIT 1) AS image
+        species.facts_media_stored_name AS media_stored_name,
+        species.facts_media_original_name AS media_original_name,
+        species.facts_media_mime_type AS media_mime_type
       FROM animals LEFT JOIN species ON species.id = animals.species_id
       WHERE animals.status = 'Aktiv' GROUP BY species.id, species.name
       ORDER BY species.name COLLATE NOCASE ASC

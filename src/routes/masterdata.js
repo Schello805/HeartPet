@@ -1,4 +1,7 @@
 const express = require("express");
+const { normalizeMimeType } = require("../uploads");
+
+const allowedSpeciesMediaTypes = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
 
 function createMasterdataRouter({
   backTo,
@@ -20,6 +23,8 @@ function createMasterdataRouter({
   normalizeVeterinarianPayload,
   validateVeterinarian,
   isValidFederalState,
+  safeDeleteUploadedFile,
+  upload,
 }) {
   const router = express.Router();
   router.use(requireAdmin);
@@ -120,32 +125,72 @@ function createMasterdataRouter({
     res.redirect(backTo(req, "/admin/stammdaten"));
   });
 
-  router.post("/species", (req, res) => {
+  router.post("/species", upload.single("facts_media"), (req, res) => {
     const error = validateText(req.body?.name, FIELD_SCHEMAS.speciesName, "Tierart");
-    if (error) return validationFailure(req, res, error);
+    if (error) {
+      if (req.file) safeDeleteUploadedFile(req.file.filename);
+      return validationFailure(req, res, error);
+    }
+    if (req.file && !allowedSpeciesMediaTypes.has(normalizeMimeType(req.file.mimetype))) {
+      safeDeleteUploadedFile(req.file.filename);
+      setFlash(req, "error", "Bitte lade ein Bild (JPG, PNG, WebP) oder ein PDF hoch.");
+      return redirectAfterPost(res, returnPath(req));
+    }
     const name = String(req.body.name).trim();
+    const media = req.file ? {
+      storedName: req.file.filename,
+      originalName: req.file.originalname,
+      mimeType: normalizeMimeType(req.file.mimetype),
+    } : { storedName: null, originalName: null, mimeType: null };
     try {
-      const result = db.prepare("INSERT INTO species (name, default_veterinarian_id, notes) VALUES (?, ?, ?)")
-        .run(name, req.body.default_veterinarian_id || null, String(req.body.notes || "").trim());
+      const result = db.prepare(`
+        INSERT INTO species (name, default_veterinarian_id, notes, facts_media_stored_name, facts_media_original_name, facts_media_mime_type)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(name, req.body.default_veterinarian_id || null, String(req.body.notes || "").trim(), media.storedName, media.originalName, media.mimeType);
       createAuditLog(req, "species.create", { species_id: result.lastInsertRowid, name, default_veterinarian_id: req.body.default_veterinarian_id || null }, { entityType: "species", entityId: result.lastInsertRowid });
       setFlash(req, "success", "Tierart angelegt.");
     } catch {
+      if (req.file) safeDeleteUploadedFile(req.file.filename);
       setFlash(req, "error", "Tierart konnte nicht angelegt werden (Name ggf. bereits vorhanden).");
     }
     return redirectAfterPost(res, returnPath(req));
   });
 
-  router.post("/species/:id/update", (req, res) => {
+  router.post("/species/:id/update", upload.single("facts_media"), (req, res) => {
     const error = validateText(req.body?.name, FIELD_SCHEMAS.speciesName, "Tierart");
-    if (error) return validationFailure(req, res, error);
+    if (error) {
+      if (req.file) safeDeleteUploadedFile(req.file.filename);
+      return validationFailure(req, res, error);
+    }
+    if (req.file && !allowedSpeciesMediaTypes.has(normalizeMimeType(req.file.mimetype))) {
+      safeDeleteUploadedFile(req.file.filename);
+      setFlash(req, "error", "Bitte lade ein Bild (JPG, PNG, WebP) oder ein PDF hoch.");
+      return redirectAfterPost(res, returnPath(req));
+    }
     const name = String(req.body.name).trim();
+    const existing = db.prepare("SELECT * FROM species WHERE id = ?").get(req.params.id);
+    if (!existing) {
+      if (req.file) safeDeleteUploadedFile(req.file.filename);
+      return renderNotFound(req, res, "Tierart nicht gefunden.");
+    }
+    const removeMedia = String(req.body.remove_facts_media || "") === "1";
+    const media = req.file
+      ? { storedName: req.file.filename, originalName: req.file.originalname, mimeType: normalizeMimeType(req.file.mimetype) }
+      : removeMedia
+        ? { storedName: null, originalName: null, mimeType: null }
+        : { storedName: existing.facts_media_stored_name, originalName: existing.facts_media_original_name, mimeType: existing.facts_media_mime_type };
     try {
-      const existing = db.prepare("SELECT * FROM species WHERE id = ?").get(req.params.id);
-      db.prepare("UPDATE species SET name = ?, default_veterinarian_id = ?, notes = ? WHERE id = ?")
-        .run(name, req.body.default_veterinarian_id || null, String(req.body.notes || "").trim(), req.params.id);
+      db.prepare(`
+        UPDATE species
+        SET name = ?, default_veterinarian_id = ?, notes = ?, facts_media_stored_name = ?,
+          facts_media_original_name = ?, facts_media_mime_type = ?
+        WHERE id = ?
+      `).run(name, req.body.default_veterinarian_id || null, String(req.body.notes || "").trim(), media.storedName, media.originalName, media.mimeType, req.params.id);
       createAuditLog(req, "species.update", { species_id: req.params.id, name, previous_name: existing?.name || "", default_veterinarian_id: req.body.default_veterinarian_id || null }, { entityType: "species", entityId: req.params.id });
+      safeDeleteUploadedFile(existing.facts_media_stored_name, media.storedName);
       setFlash(req, "success", "Tierart aktualisiert.");
     } catch {
+      if (req.file) safeDeleteUploadedFile(req.file.filename);
       setFlash(req, "error", "Tierart konnte nicht aktualisiert werden.");
     }
     return redirectAfterPost(res, returnPath(req));
@@ -154,6 +199,7 @@ function createMasterdataRouter({
   router.post("/species/:id/delete", (req, res) => {
     const item = db.prepare("SELECT * FROM species WHERE id = ?").get(req.params.id);
     db.prepare("DELETE FROM species WHERE id = ?").run(req.params.id);
+    safeDeleteUploadedFile(item?.facts_media_stored_name);
     createAuditLog(req, "species.delete", { species_id: req.params.id, name: item?.name || "" }, { entityType: "species", entityId: req.params.id });
     setFlash(req, "success", "Tierart entfernt.");
     res.redirect(backTo(req, "/admin/stammdaten"));
