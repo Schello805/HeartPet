@@ -1745,6 +1745,7 @@ test("Tierart-Faktenmedium kann als Bild oder PDF hochgeladen, ersetzt und entfe
   assert.match(speciesList.text, /Tier auswählen/);
   assert.match(speciesList.text, new RegExp(`/media/${species.facts_media_stored_name}`));
   assert.match(speciesList.text, /PDF öffnen: tierart-fakten\.pdf/);
+  assert.ok(speciesList.text.indexOf(`/media/${species.facts_media_stored_name}`) > speciesList.text.indexOf('id="selected-animal"'));
 
   const logoPath = path.join(process.cwd(), "public", "images", "logo-heartpet.png");
   const replace = await agent
@@ -1759,6 +1760,7 @@ test("Tierart-Faktenmedium kann als Bild oder PDF hochgeladen, ersetzt und entfe
   assert.equal(fs.existsSync(originalPath), false);
   const speciesListWithImage = await agent.get("/animals").query({ species_id: species.id });
   assert.match(speciesListWithImage.text, new RegExp(`/media/${withImage.facts_media_stored_name}`));
+  assert.ok(speciesListWithImage.text.indexOf(`/media/${withImage.facts_media_stored_name}`) > speciesListWithImage.text.indexOf('id="selected-animal"'));
 
   const imagePath = path.join(uploadsDir, withImage.facts_media_stored_name);
   const remove = await agent

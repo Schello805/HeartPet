@@ -130,20 +130,6 @@
             <% } %>
           </div>
         </div>
-        <% const selectedSpecies = sectionState.key === 'active' && filters.speciesId
-          ? speciesOptions.find((item) => String(item.id) === String(filters.speciesId))
-          : null; %>
-        <% if (selectedSpecies?.facts_media_stored_name) { %>
-          <article class="animals-species-facts-media mb-2 pb-2 border-bottom">
-            <h3 class="small fw-semibold mb-2">Fakten zu <%= selectedSpecies.name %></h3>
-            <% if (selectedSpecies.facts_media_mime_type === 'application/pdf') { %>
-              <a class="btn btn-outline-secondary btn-sm" href="/media/<%= selectedSpecies.facts_media_stored_name %>" target="_blank" rel="noopener">PDF öffnen: <%= selectedSpecies.facts_media_original_name || 'Tierart-Fakten' %></a>
-            <% } else if (String(selectedSpecies.facts_media_mime_type || '').startsWith('image/')) { %>
-              <img class="animals-species-facts-image" src="/media/<%= selectedSpecies.facts_media_stored_name %>" alt="Faktenbild für <%= selectedSpecies.name %>" loading="lazy" />
-            <% } %>
-          </article>
-        <% } %>
-
         <% if (animals.length === 0) { %>
           <div class="card border bg-body-tertiary-subtle">
             <div class="card-body">
@@ -235,6 +221,21 @@
       <%- include('./animal-workspace-detail', { selectedAnimal: selectedAnimalState, selectedAnimalView: selectedAnimalViewState, animalSection: sectionState }) %>
     </section>
   </div>
+  <% const selectedSpecies = sectionState.key === 'active' && filters.speciesId
+    ? speciesOptions.find((item) => String(item.id) === String(filters.speciesId))
+    : null; %>
+  <% if (selectedSpecies?.facts_media_stored_name) { %>
+    <div class="col-12">
+      <article class="animals-species-facts-media">
+        <h2 class="h6 mb-2">Fakten zu <%= selectedSpecies.name %></h2>
+        <% if (selectedSpecies.facts_media_mime_type === 'application/pdf') { %>
+          <a class="btn btn-outline-secondary btn-sm" href="/media/<%= selectedSpecies.facts_media_stored_name %>" target="_blank" rel="noopener">PDF öffnen: <%= selectedSpecies.facts_media_original_name || 'Tierart-Fakten' %></a>
+        <% } else if (String(selectedSpecies.facts_media_mime_type || '').startsWith('image/')) { %>
+          <img class="animals-species-facts-image" src="/media/<%= selectedSpecies.facts_media_stored_name %>" alt="Faktenbild für <%= selectedSpecies.name %>" loading="lazy" />
+        <% } %>
+      </article>
+    </div>
+  <% } %>
 </div>
 
 <%- include('../partials/bottom') %>
