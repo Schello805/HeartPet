@@ -2,6 +2,10 @@
 
 Alle wesentlichen Änderungen an HeartPet werden hier absteigend dokumentiert.
 
+## 0.10.100 - 07.10.2026
+
+- Sicherheitsupdates für `sharp` (0.35.5) und die transitive Express-Abhängigkeit `proxy-addr` (2.0.8); der Produktions-Audit meldet keine bekannten Schwachstellen mehr.
+
 ## 0.10.99 - 07.10.2026
 
 - Der Schlüssel für The Cat API lässt sich jetzt unter Verwaltung > Allgemein speichern. Er wird im Formular nicht erneut ausgegeben und steht dem Katzenrassenimport ohne Dienstneustart zur Verfügung.
