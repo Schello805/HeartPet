@@ -973,6 +973,21 @@ window.HeartPetFeatures?.register("bulk-selection", initBulkSelection, { context
 window.HeartPetFeatures?.register("profile-upload", initProfileUploadAutoSubmit, { contexts: ["page", "fragment"] });
 window.HeartPetFeatures?.register("animal-workspace", initAnimalWorkspace, { contexts: ["page"] });
 window.HeartPetFeatures?.register("dashboard-customizer", () => window.HeartPetDashboardCustomizer?.init(), { contexts: ["page"] });
+let nextFactCountdownTimer;
+window.HeartPetFeatures?.register("daily-fact-countdown", () => {
+  clearInterval(nextFactCountdownTimer);
+  const counters = [...document.querySelectorAll("[data-next-fact-at]")];
+  if (!counters.length) return;
+  const update = () => {
+    counters.forEach((counter) => {
+      const minutes = Math.max(0, Math.ceil((Number(counter.dataset.nextFactAt) - Date.now()) / 60000));
+      const hours = Math.floor(minutes / 60);
+      counter.textContent = minutes ? `Nächster Fakt in ${hours ? `${hours} Std. ` : ""}${minutes % 60} Min.` : "Nächster Fakt jetzt verfügbar";
+    });
+  };
+  update();
+  nextFactCountdownTimer = setInterval(update, 60000);
+}, { contexts: ["page"] });
 window.HeartPetFeatures?.register("timeline-toggles", initTimelineToggles, { contexts: ["page"] });
 window.HeartPetFeatures?.register("update-status", initUpdateStatus, { contexts: ["page"] });
 window.HeartPetFeatures?.register("pending-reminders", loadPendingReminders, { contexts: ["page"] });

@@ -2,6 +2,10 @@
 
 Alle wesentlichen Änderungen an HeartPet werden hier absteigend dokumentiert.
 
+## 0.10.101 - 07.10.2026
+
+- Unter dem Tagesfakt zeigt das Dashboard einen kleinen, kursiven Countdown bis zum nächsten Fakt.
+
 ## 0.10.100 - 07.10.2026
 
 - Sicherheitsupdates für `sharp` (0.35.5) und die transitive Express-Abhängigkeit `proxy-addr` (2.0.8); der Produktions-Audit meldet keine bekannten Schwachstellen mehr.

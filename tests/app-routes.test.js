@@ -2605,7 +2605,9 @@ test("Statuswechsel speichert Abschlussdaten und zeigt alle Statuswerte in der H
 });
 
 test("Dashboard zeigt Tierarten und konkrete Aufmerksamkeitspunkte", async () => {
-  const speciesId = db.prepare("SELECT id FROM species ORDER BY id ASC LIMIT 1").get()?.id;
+  const selectedSpecies = db.prepare("SELECT id, daily_facts FROM species ORDER BY id ASC LIMIT 1").get();
+  const speciesId = selectedSpecies?.id;
+  db.prepare("UPDATE species SET daily_facts = ? WHERE id = ?").run("Testfakt", speciesId);
   const animalId = db.prepare("INSERT INTO animals (name, species_id, status) VALUES (?, ?, ?)").run("Radar", speciesId, "Aktiv").lastInsertRowid;
   db.prepare(`
     INSERT INTO reminders (animal_id, title, reminder_type, due_at, channel_email, channel_telegram, notes)
@@ -2617,8 +2619,10 @@ test("Dashboard zeigt Tierarten und konkrete Aufmerksamkeitspunkte", async () =>
   `).run(1, "admin@test.local", "animal.update", "animal", String(animalId), JSON.stringify({ animal_id: animalId, name: "Radar" }));
 
   const response = await agent.get("/");
+  db.prepare("UPDATE species SET daily_facts = ? WHERE id = ?").run(selectedSpecies.daily_facts, speciesId);
   assert.equal(response.status, 200);
   assert.match(response.text, /dashboard-species-icon/);
+  assert.match(response.text, /data-next-fact-at="\d+">Nächster Fakt in Kürze/);
   assert.doesNotMatch(response.text, /Wissenswertes zu/);
   assert.match(response.text, /Hinweise/);
   assert.match(response.text, /Radar/);

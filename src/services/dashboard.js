@@ -22,7 +22,8 @@ function createDashboardService({ db, animalWorkspace, getSettings, homematic, p
       ORDER BY species.name COLLATE NOCASE ASC
     `).all();
     const catalogBreeds = db.prepare("SELECT species_id, name, origin, source FROM species_breeds ORDER BY name COLLATE NOCASE").all();
-    const today = new Date();
+    const today = now.toDate();
+    const nextFactAt = now.add(1, "day").startOf("day").valueOf();
     const dayNumber = Math.floor(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) / 86400000);
     speciesCounts.forEach((species) => {
       const custom = String(species.daily_facts || "").trim();
@@ -34,6 +35,7 @@ function createDashboardService({ db, animalWorkspace, getSettings, homematic, p
       } else {
         species.dailyFact = dailyFact(species.name, today, custom);
       }
+      if (species.dailyFact) species.nextFactAt = nextFactAt;
     });
     const activeAnimals = db.prepare(`
       SELECT animals.id, animals.name, species.name AS species_name

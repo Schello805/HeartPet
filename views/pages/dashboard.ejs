@@ -71,7 +71,10 @@
                       <span class="small text-body-secondary"><%= species.name %></span>
                     </div>
                     <strong class="fw-semibold text-primary d-block"><%= species.count %></strong>
-                    <% if (species.dailyFact) { %><p class="small text-body-secondary mt-2 mb-0"><%= species.dailyFact %><% if (species.factSource) { %> <span class="visually-hidden">Quelle:</span><span class="text-decoration-underline">API</span><% } %></p><% } %>
+                    <% if (species.dailyFact) { %>
+                      <p class="small text-body-secondary mt-2 mb-0"><%= species.dailyFact %><% if (species.factSource) { %> <span class="visually-hidden">Quelle:</span><span class="text-decoration-underline">API</span><% } %></p>
+                      <p class="small fst-italic text-body-secondary mt-1 mb-0" data-next-fact-at="<%= species.nextFactAt %>">Nächster Fakt in Kürze</p>
+                    <% } %>
                   </div>
                 </a>
               </div>
