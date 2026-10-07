@@ -147,6 +147,23 @@
               </datalist>
               <div class="form-text">Vorhandene Tierarten werden vorgeschlagen. Neue werden beim Speichern angelegt.</div>
             </div>
+            <div class="col-12">
+              <label class="form-label" for="animal-breed-choice">Rasse / Unterart</label>
+              <select class="form-select mb-2" id="animal-breed-choice" aria-label="Rasse aus Katalog wählen">
+                <option value="">Tierart wählen, um Rassen anzuzeigen</option>
+              </select>
+              <template id="animal-breed-options">
+                <% (typeof speciesBreeds !== 'undefined' ? speciesBreeds : []).forEach((breed) => { %>
+                  <option value="<%= breed.name %>" data-species="<%= breed.species_name %>" data-image="<%= breed.image_url ? `/api/breed-images/${breed.id}` : '' %>" data-credit="<%= breed.image_credit %>" data-source="<%= breed.image_source_url %>"><%= breed.name %></option>
+                <% }) %>
+              </template>
+              <input class="form-control" id="animal-breed" type="text" name="breed" value="<%= animal?.breed || '' %>" placeholder="Andere Rasse oder Unterart eingeben" aria-label="Andere Rasse oder Unterart" />
+              <div class="form-text">Rasse aus dem Katalog wählen oder bei fehlender Auswahl selbst eingeben.</div>
+              <figure class="mt-2 d-none" id="animal-breed-preview">
+                <img class="rounded border" style="max-width: 180px; max-height: 140px; object-fit: cover" alt="" />
+                <figcaption class="small text-body-secondary mt-1"></figcaption>
+              </figure>
+            </div>
             <% if (animal) { %>
               <div class="col-md-6">
                 <label class="form-label" for="animal-status">Status</label>
@@ -296,21 +313,6 @@
                 <div class="col-md-6">
                   <label class="form-label" for="animal-source">Herkunft</label>
                   <input class="form-control" id="animal-source" type="text" name="source" value="<%= animal?.source || '' %>" placeholder="Züchter, Fundtier, Vorbesitzer" />
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label" for="animal-breed">Rasse / Unterart</label>
-                  <select class="form-select mb-2 d-none" id="animal-breed-choice" aria-label="Rasse aus Katalog wählen"></select>
-                  <template id="animal-breed-options">
-                    <% (typeof speciesBreeds !== 'undefined' ? speciesBreeds : []).forEach((breed) => { %>
-                      <option value="<%= breed.name %>" data-species="<%= breed.species_name %>" data-image="<%= breed.image_url ? `/api/breed-images/${breed.id}` : '' %>" data-credit="<%= breed.image_credit %>" data-source="<%= breed.image_source_url %>"><%= breed.name %></option>
-                    <% }) %>
-                  </template>
-                  <input class="form-control" id="animal-breed" type="text" name="breed" value="<%= animal?.breed || '' %>" placeholder="Rasse auswählen oder selbst eingeben" />
-                  <div class="form-text">Die freie Eingabe bleibt auch ohne API-Rassen möglich.</div>
-                  <figure class="mt-2 d-none" id="animal-breed-preview">
-                    <img class="rounded border" style="max-width: 180px; max-height: 140px; object-fit: cover" alt="" />
-                    <figcaption class="small text-body-secondary mt-1"></figcaption>
-                  </figure>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label" for="animal-color">Farbe</label>

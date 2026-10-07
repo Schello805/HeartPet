@@ -2,6 +2,11 @@
 
 Alle wesentlichen Änderungen an HeartPet werden hier absteigend dokumentiert.
 
+## 0.10.102 - 07.10.2026
+
+- Der Countdown unter Tagesfakten ist jetzt tatsächlich klein und kursiv; ohne Fakt erscheint dezent „Leider keine API verfügbar.“
+- Die Rassenauswahl steht sichtbar bei den Tier-Grunddaten. Vorhandene Katalograssen können gewählt werden, bei fehlendem Katalog bleibt eine eigene Eingabe möglich.
+
 ## 0.10.101 - 07.10.2026
 
 - Unter dem Tagesfakt zeigt das Dashboard einen kleinen, kursiven Countdown bis zum nächsten Fakt.

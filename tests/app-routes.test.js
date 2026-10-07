@@ -2635,6 +2635,27 @@ test("Dashboard zeigt Tierarten und konkrete Aufmerksamkeitspunkte", async () =>
   assert.doesNotMatch(response.text, /Schnell weiter/);
 });
 
+test("Tierformular zeigt die Rassenauswahl vor optionalen Angaben", async () => {
+  const response = await agent.get("/animals/new");
+  assert.equal(response.status, 200);
+  assert.match(response.text, /id="animal-breed-choice"/);
+  assert.ok(response.text.indexOf('id="animal-breed-choice"') < response.text.indexOf('id="animalFormOptionalDetails"'));
+  assert.match(response.text, /Rasse aus dem Katalog wählen oder bei fehlender Auswahl selbst eingeben/);
+});
+
+test("Dashboard zeigt bei Tierarten ohne Fakt einen dezenten Hinweis", async () => {
+  const speciesId = db.prepare("INSERT INTO species (name) VALUES (?)").run("Testtier ohne API").lastInsertRowid;
+  const animalId = db.prepare("INSERT INTO animals (name, species_id, status) VALUES (?, ?, ?)").run("Faktenlos", speciesId, "Aktiv").lastInsertRowid;
+  try {
+    const response = await agent.get("/");
+    assert.equal(response.status, 200);
+    assert.match(response.text, /class="dashboard-fact-meta mt-2 mb-0">Leider keine API verfügbar\./);
+  } finally {
+    db.prepare("DELETE FROM animals WHERE id = ?").run(animalId);
+    db.prepare("DELETE FROM species WHERE id = ?").run(speciesId);
+  }
+});
+
 test("Dashboard enthält getrennte Bereiche für Tierbestand, Wetter und Stall", async () => {
   upsertSetting(db, "coop_camera_streams", "Testkamera|http://127.0.0.1/test.jpg");
   try {

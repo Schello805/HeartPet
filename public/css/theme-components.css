@@ -247,6 +247,14 @@ body.bootstrap-app {
   font-weight: 600;
 }
 
+.bootstrap-app.dashboard-page .dashboard-stat-card .dashboard-fact-meta {
+  color: var(--bs-secondary-color);
+  font-size: .75rem;
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.35;
+}
+
 .species-facts-media-preview {
   display: block;
   max-width: min(100%, 18rem);

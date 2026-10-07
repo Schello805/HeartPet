@@ -376,7 +376,7 @@ function initBreedCatalog() {
   const all = [...template.content.querySelectorAll("option")];
   const image = preview.querySelector("img");
   const caption = preview.querySelector("figcaption");
-  let selectedBreed = "";
+  let previousSpecies = species.value.trim().toLocaleLowerCase("de-DE");
 
   function updatePreview() {
     const selected = [...choice.options].find((option) => option.value === breed.value);
@@ -402,12 +402,14 @@ function initBreedCatalog() {
   }
 
   function updateChoices() {
-    if (selectedBreed && breed.value === selectedBreed) breed.value = "";
-    selectedBreed = "";
     const currentSpecies = species.value.trim().toLocaleLowerCase("de-DE");
+    if (currentSpecies !== previousSpecies) breed.value = "";
+    previousSpecies = currentSpecies;
     const options = all.filter((option) => option.dataset.species.toLocaleLowerCase("de-DE") === currentSpecies);
-    choice.replaceChildren(new Option("Rasse aus Katalog auswählen", ""), ...options.map((option) => option.cloneNode(true)));
-    choice.classList.toggle("d-none", options.length === 0);
+    const prompt = currentSpecies
+      ? options.length ? "Rasse aus Katalog auswählen" : "Keine Rassen geladen – eigene Eingabe möglich"
+      : "Tierart wählen, um Rassen anzuzeigen";
+    choice.replaceChildren(new Option(prompt, ""), ...options.map((option) => option.cloneNode(true)));
     choice.value = options.some((option) => option.value === breed.value) ? breed.value : "";
     updatePreview();
   }
@@ -416,7 +418,6 @@ function initBreedCatalog() {
   choice.addEventListener("change", () => {
     if (choice.value) {
       breed.value = choice.value;
-      selectedBreed = choice.value;
     }
     updatePreview();
   });
