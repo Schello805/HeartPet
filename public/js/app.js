@@ -365,6 +365,65 @@ function initSpeciesAutocomplete() {
   });
 }
 
+function initBreedCatalog() {
+  const species = document.querySelector("#animal-species");
+  const breed = document.querySelector("#animal-breed");
+  const choice = document.querySelector("#animal-breed-choice");
+  const template = document.querySelector("#animal-breed-options");
+  const preview = document.querySelector("#animal-breed-preview");
+  if (!species || !breed || !choice || !template || !preview || choice.dataset.bound) return;
+  choice.dataset.bound = "1";
+  const all = [...template.content.querySelectorAll("option")];
+  const image = preview.querySelector("img");
+  const caption = preview.querySelector("figcaption");
+  let selectedBreed = "";
+
+  function updatePreview() {
+    const selected = [...choice.options].find((option) => option.value === breed.value);
+    if (!selected?.dataset.image) {
+      preview.classList.add("d-none");
+      image.removeAttribute("src");
+      return;
+    }
+    image.src = selected.dataset.image;
+    image.alt = `Bild der Rasse ${selected.value}`;
+    caption.replaceChildren();
+    if (selected.dataset.source) {
+      const link = document.createElement("a");
+      link.href = selected.dataset.source;
+      link.textContent = selected.dataset.credit || "Bildquelle";
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      caption.append(link);
+    } else {
+      caption.textContent = selected.dataset.credit || "";
+    }
+    preview.classList.remove("d-none");
+  }
+
+  function updateChoices() {
+    if (selectedBreed && breed.value === selectedBreed) breed.value = "";
+    selectedBreed = "";
+    const currentSpecies = species.value.trim().toLocaleLowerCase("de-DE");
+    const options = all.filter((option) => option.dataset.species.toLocaleLowerCase("de-DE") === currentSpecies);
+    choice.replaceChildren(new Option("Rasse aus Katalog auswählen", ""), ...options.map((option) => option.cloneNode(true)));
+    choice.classList.toggle("d-none", options.length === 0);
+    choice.value = options.some((option) => option.value === breed.value) ? breed.value : "";
+    updatePreview();
+  }
+
+  species.addEventListener("input", updateChoices);
+  choice.addEventListener("change", () => {
+    if (choice.value) {
+      breed.value = choice.value;
+      selectedBreed = choice.value;
+    }
+    updatePreview();
+  });
+  breed.addEventListener("input", updatePreview);
+  updateChoices();
+}
+
 function initRequiredMarks() {
   document.querySelectorAll("label").forEach((label) => {
     const requiredField = label.querySelector("input[required], select[required], textarea[required]");
@@ -905,6 +964,7 @@ function initUpdateStatus() {
 
 window.HeartPetFeatures?.register("veterinarian-contact", initVeterinarianContactPopover, { contexts: ["page", "fragment"] });
 window.HeartPetFeatures?.register("species-autocomplete", initSpeciesAutocomplete, { contexts: ["page", "fragment"] });
+window.HeartPetFeatures?.register("breed-catalog", initBreedCatalog, { contexts: ["page", "fragment"] });
 window.HeartPetFeatures?.register("required-marks", initRequiredMarks, { contexts: ["page", "fragment"] });
 window.HeartPetFeatures?.register("event-form", initEventFormBehavior, { contexts: ["page", "fragment"] });
 window.HeartPetFeatures?.register("vaccination-presets", initVaccinationPresets, { contexts: ["page", "fragment"] });

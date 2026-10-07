@@ -2,6 +2,15 @@
 
 Alle wesentlichen Änderungen an HeartPet werden hier absteigend dokumentiert.
 
+## 0.10.99 - 07.10.2026
+
+- Der Schlüssel für The Cat API lässt sich jetzt unter Verwaltung > Allgemein speichern. Er wird im Formular nicht erneut ausgegeben und steht dem Katzenrassenimport ohne Dienstneustart zur Verfügung.
+
+## 0.10.98 - 07.10.2026
+
+- Tierarten können Rassen aus Dog API, Chicken API beziehungsweise The Cat API importieren. Der lokale Katalog bietet im Tierformular eine Auswahl mit Bildvorschau und Bildquelle, sofern ein Bild vorhanden ist.
+- Auf dem Dashboard wechselt täglich eine Rasse aus dem importierten Katalog. Ohne Import werden für Hund, Katze und Huhn lokale Fakten angezeigt; eigene Fakten sind pro Tierart pflegbar.
+
 ## 0.10.97 - 25.09.2026
 
 - Die Schnellerfassung ist auf dem Dashboard jetzt als kompakter Button verfügbar und öffnet die Aktionen in einem übersichtlichen Modal.

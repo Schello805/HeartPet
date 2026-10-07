@@ -32,6 +32,7 @@ function seedDefaults(db) {
     access_mode: "lan",
     app_domain: "",
     app_logo_stored_name: "",
+    cat_api_key: "",
     organization_name: "Mein Tierbestand",
     smtp_host: "",
     smtp_port: "587",

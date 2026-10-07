@@ -11,6 +11,7 @@ const migrations = [
   require("./011_disposal_facilities"),
   require("./012_species_facts_media"),
   require("./013_species_fact_media_gallery"),
+  require("./014_species_breeds"),
 ];
 
 function ensureMigrationsTable(db) {

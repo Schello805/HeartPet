@@ -604,19 +604,25 @@ test("Systemlog bleibt mit älteren Audit-Daten und fehlenden optionalen Stammda
 });
 
 test("Health-Checks liefern einen minimalen öffentlichen und geschützten Detailstatus", async () => {
-  const publicHealth = await request(app).get("/health");
-  assert.equal(publicHealth.status, 200);
-  assert.equal(publicHealth.body.ok, true);
-  assert.equal(publicHealth.body.service, "heartpet");
-  assert.equal(publicHealth.body.restartRequired, false);
-  assert.equal(publicHealth.body.revision, publicHealth.body.availableRevision);
+  const originalStatfsSync = fs.statfsSync;
+  fs.statfsSync = () => ({ bavail: 10_000_000, blocks: 100_000_000, bsize: 1024 });
+  try {
+    const publicHealth = await request(app).get("/health");
+    assert.equal(publicHealth.status, 200);
+    assert.equal(publicHealth.body.ok, true);
+    assert.equal(publicHealth.body.service, "heartpet");
+    assert.equal(publicHealth.body.restartRequired, false);
+    assert.equal(publicHealth.body.revision, publicHealth.body.availableRevision);
 
-  const adminHealth = await agent.get("/admin/health");
-  assert.equal(adminHealth.status, 200);
-  assert.equal(adminHealth.body.ok, true);
-  assert.equal(adminHealth.body.restartRequired, false);
-  assert.ok(Array.isArray(adminHealth.body.checks));
-  assert.equal(typeof adminHealth.body.runtime.averageDurationMs, "number");
+    const adminHealth = await agent.get("/admin/health");
+    assert.equal(adminHealth.status, 200);
+    assert.equal(adminHealth.body.ok, true);
+    assert.equal(adminHealth.body.restartRequired, false);
+    assert.ok(Array.isArray(adminHealth.body.checks));
+    assert.equal(typeof adminHealth.body.runtime.averageDurationMs, "number");
+  } finally {
+    fs.statfsSync = originalStatfsSync;
+  }
 });
 
 test("Update-Status ist nur für Administratoren verfügbar und bleibt im Testbetrieb offline", async () => {
@@ -3711,13 +3717,14 @@ test("Normales Speichern von E-Mail und Telegram ändert den Aktiv-Status nicht"
 test("Gespeicherte Zugangsdaten werden nicht wieder im Adminformular ausgegeben", async () => {
   await ensureAdminAuthenticated();
 
-  const keys = ["smtp_password", "telegram_bot_token", "ntfy_access_token", "homematic_xmlapi_token"];
+  const keys = ["smtp_password", "telegram_bot_token", "ntfy_access_token", "homematic_xmlapi_token", "cat_api_key"];
   const previous = require("../src/db").getSettingsObject(db);
   try {
     upsertSetting(db, "smtp_password", "smtp-nicht-ausgeben");
     upsertSetting(db, "telegram_bot_token", "telegram-nicht-ausgeben");
     upsertSetting(db, "ntfy_access_token", "ntfy-nicht-ausgeben");
     upsertSetting(db, "homematic_xmlapi_token", "ccu-nicht-ausgeben");
+    upsertSetting(db, "cat_api_key", "katzen-nicht-ausgeben");
 
     const communication = await agent.get("/admin/benachrichtigungen");
     assert.equal(communication.status, 200);
@@ -3725,6 +3732,10 @@ test("Gespeicherte Zugangsdaten werden nicht wieder im Adminformular ausgegeben"
     const coop = await agent.get("/admin/stall");
     assert.equal(coop.status, 200);
     assert.doesNotMatch(coop.text, /ccu-nicht-ausgeben/);
+    const general = await agent.get("/admin/allgemein");
+    assert.equal(general.status, 200);
+    assert.match(general.text, /Katzenrassen aus The Cat API/);
+    assert.doesNotMatch(general.text, /katzen-nicht-ausgeben/);
 
     await agent.post("/admin/settings").type("form").send({
       _fields: keys.join(","),
@@ -3732,12 +3743,17 @@ test("Gespeicherte Zugangsdaten werden nicht wieder im Adminformular ausgegeben"
       telegram_bot_token: "",
       ntfy_access_token: "",
       homematic_xmlapi_token: "",
+      cat_api_key: "",
     });
     const settings = require("../src/db").getSettingsObject(db);
     assert.equal(settings.smtp_password, "smtp-nicht-ausgeben");
     assert.equal(settings.telegram_bot_token, "telegram-nicht-ausgeben");
     assert.equal(settings.ntfy_access_token, "ntfy-nicht-ausgeben");
     assert.equal(settings.homematic_xmlapi_token, "ccu-nicht-ausgeben");
+    assert.equal(settings.cat_api_key, "katzen-nicht-ausgeben");
+    const saveKey = await agent.post("/admin/settings").type("form").send({ _fields: "cat_api_key", cat_api_key: "neuer-katzen-schluessel" });
+    assert.ok([302, 303].includes(saveKey.status));
+    assert.equal(require("../src/db").getSettingsObject(db).cat_api_key, "neuer-katzen-schluessel");
   } finally {
     keys.forEach((key) => upsertSetting(db, key, previous[key] || ""));
   }

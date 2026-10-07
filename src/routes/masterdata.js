@@ -1,5 +1,6 @@
 const express = require("express");
 const { normalizeMimeType } = require("../uploads");
+const breedCatalog = require("../services/breed-catalog");
 
 const allowedSpeciesMediaTypes = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
 
@@ -75,6 +76,8 @@ function createMasterdataRouter({
   router.get("/species/:id/edit", drawer("species", "Tierart bearbeiten", (id) => db.prepare("SELECT * FROM species WHERE id = ?").get(id), (id) => ({
     veterinarians: db.prepare("SELECT * FROM veterinarians ORDER BY name ASC").all(),
     speciesMedia: db.prepare("SELECT * FROM species_fact_media WHERE species_id = ? ORDER BY sort_order ASC, id ASC").all(id),
+    breedProvider: breedCatalog.providerForSpecies(db.prepare("SELECT name FROM species WHERE id = ?").get(id)?.name),
+    breedCount: db.prepare("SELECT COUNT(*) AS count FROM species_breeds WHERE species_id = ?").get(id).count,
   })));
   router.get("/vaccination-presets/new", drawer("vaccinationPreset", "Neue Standardimpfung", null, () => ({ species: db.prepare("SELECT * FROM species ORDER BY name").all() })));
   router.get("/vaccination-presets/:id/edit", drawer("vaccinationPreset", "Standardimpfung bearbeiten", (id) => db.prepare("SELECT * FROM vaccination_presets WHERE id = ?").get(id), () => ({ species: db.prepare("SELECT * FROM species ORDER BY name").all() })));
@@ -131,7 +134,7 @@ function createMasterdataRouter({
     res.redirect(backTo(req, "/admin/stammdaten"));
   });
 
-  router.post("/species", upload.array("facts_media", 3), (req, res) => {
+  router.post("/species", upload.array("facts_media", 3), async (req, res) => {
     const files = Array.isArray(req.files) ? req.files : [];
     const error = validateText(req.body?.name, FIELD_SCHEMAS.speciesName, "Tierart");
     if (error) {
@@ -147,8 +150,8 @@ function createMasterdataRouter({
     let speciesId;
     try {
       speciesId = db.transaction(() => {
-        const result = db.prepare("INSERT INTO species (name, default_veterinarian_id, notes) VALUES (?, ?, ?)")
-          .run(name, req.body.default_veterinarian_id || null, String(req.body.notes || "").trim());
+        const result = db.prepare("INSERT INTO species (name, default_veterinarian_id, notes, daily_facts) VALUES (?, ?, ?, ?)")
+          .run(name, req.body.default_veterinarian_id || null, String(req.body.notes || "").trim(), String(req.body.daily_facts || "").trim().slice(0, 4000));
         const insertMedia = db.prepare(`
           INSERT INTO species_fact_media (species_id, stored_name, original_name, mime_type, sort_order)
           VALUES (?, ?, ?, ?, ?)
@@ -162,8 +165,36 @@ function createMasterdataRouter({
       return redirectAfterPost(res, returnPath(req));
     }
     createAuditLog(req, "species.create", { species_id: speciesId, name, default_veterinarian_id: req.body.default_veterinarian_id || null, media_count: files.length }, { entityType: "species", entityId: speciesId });
-    setFlash(req, "success", "Tierart angelegt.");
+    let message = "Tierart angelegt.";
+    const provider = breedCatalog.providerForSpecies(name);
+    if (provider && req.body.import_breeds) {
+      try {
+        const count = breedCatalog.importBreeds(db, speciesId, provider, await breedCatalog.loadBreeds(provider, { catApiKey: getSettingsObject(db).cat_api_key }));
+        message += ` ${count} Rassen geladen.`;
+      } catch (error) {
+        message += ` Rassenimport nicht möglich: ${error.message}`;
+      }
+    }
+    setFlash(req, "success", message);
     return redirectAfterPost(res, returnPath(req));
+  });
+
+  router.post("/species/:id/import-breeds", async (req, res) => {
+    const species = db.prepare("SELECT id, name FROM species WHERE id = ?").get(req.params.id);
+    if (!species) return renderNotFound(req, res, "Tierart nicht gefunden.");
+    const provider = breedCatalog.providerForSpecies(species.name);
+    if (!provider) {
+      setFlash(req, "error", "Für diese Tierart gibt es noch keine angebundene Rassenquelle.");
+      return redirectAfterPost(res, "/admin/stammdaten");
+    }
+    try {
+      const breeds = await breedCatalog.loadBreeds(provider, { catApiKey: getSettingsObject(db).cat_api_key });
+      const count = breedCatalog.importBreeds(db, species.id, provider, breeds);
+      setFlash(req, "success", `${count} Rassen für ${species.name} geladen.`);
+    } catch (error) {
+      setFlash(req, "error", `Rassen konnten nicht geladen werden: ${error.message}`);
+    }
+    return redirectAfterPost(res, "/admin/stammdaten");
   });
 
   router.post("/species/:id/update", upload.array("facts_media", 3), (req, res) => {
@@ -197,8 +228,8 @@ function createMasterdataRouter({
     }
     try {
       db.transaction(() => {
-        db.prepare("UPDATE species SET name = ?, default_veterinarian_id = ?, notes = ? WHERE id = ?")
-          .run(name, req.body.default_veterinarian_id || null, String(req.body.notes || "").trim(), req.params.id);
+        db.prepare("UPDATE species SET name = ?, default_veterinarian_id = ?, notes = ?, daily_facts = ? WHERE id = ?")
+          .run(name, req.body.default_veterinarian_id || null, String(req.body.notes || "").trim(), String(req.body.daily_facts || "").trim().slice(0, 4000), req.params.id);
         const deleteMedia = db.prepare("DELETE FROM species_fact_media WHERE species_id = ? AND id = ?");
         removedMedia.forEach((media) => deleteMedia.run(req.params.id, media.id));
         const nextOrder = retainedMedia.reduce((max, media) => Math.max(max, Number(media.sort_order) || 0), -1) + 1;

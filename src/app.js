@@ -497,7 +497,7 @@ app.use((req, res, next) => {
   return next();
 });
 
-app.use(createDashboardRouter({ dashboard: dashboardService, search: searchService }));
+app.use(createDashboardRouter({ dashboard: dashboardService, search: searchService, db }));
 app.use(createCalendarRouter({ calendar: calendarExportService, db, renderNotFound }));
 app.use(createCoopRouter({
   db, getSettingsObject, homematic, createAuditLog, setFlash, parseCoopCameras, streamRtspCamera, fetchCameraStream,
@@ -1707,6 +1707,7 @@ function getAdminViewData(pageTitle, adminPath) {
     adminPageTitle: pageTitle,
     adminPath,
     settings,
+    catApiKeyConfigured: Boolean(settings.cat_api_key || process.env.HEARTPET_CAT_API_KEY),
     instanceTimezone: getInstanceTimeZone(),
     timeZoneOptions: listTimeZones(),
     federalStates: FEDERAL_STATES,

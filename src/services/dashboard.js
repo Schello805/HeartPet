@@ -1,4 +1,5 @@
 const dayjs = require("dayjs");
+const { dailyFact } = require("./daily-species-facts");
 
 function createDashboardService({ db, animalWorkspace, getSettings, homematic, parseCameras, readWeather, search }) {
   async function buildView(rawQuery) {
@@ -15,11 +16,25 @@ function createDashboardService({ db, animalWorkspace, getSettings, homematic, p
       dueReminderCount: db.prepare(`SELECT COUNT(*) AS count FROM reminders INNER JOIN animals ON animals.id = reminders.animal_id WHERE reminders.completed_at IS NULL AND REPLACE(reminders.due_at, ' ', 'T') <= ? AND animals.status = 'Aktiv'`).get(nowValue).count,
     };
     const speciesCounts = db.prepare(`
-      SELECT COALESCE(species.name, 'Ohne Tierart') AS name, species.id AS species_id, COUNT(animals.id) AS count
+      SELECT COALESCE(species.name, 'Ohne Tierart') AS name, species.id AS species_id, species.daily_facts, COUNT(animals.id) AS count
       FROM animals LEFT JOIN species ON species.id = animals.species_id
       WHERE animals.status = 'Aktiv' GROUP BY species.id, species.name
       ORDER BY species.name COLLATE NOCASE ASC
     `).all();
+    const catalogBreeds = db.prepare("SELECT species_id, name, origin, source FROM species_breeds ORDER BY name COLLATE NOCASE").all();
+    const today = new Date();
+    const dayNumber = Math.floor(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) / 86400000);
+    speciesCounts.forEach((species) => {
+      const custom = String(species.daily_facts || "").trim();
+      const breeds = catalogBreeds.filter((breed) => breed.species_id === species.species_id);
+      if (!custom && breeds.length > 1) {
+        const breed = breeds[dayNumber % breeds.length];
+        species.dailyFact = `Rasse des Tages: ${breed.name}${breed.origin ? ` (${breed.origin})` : ""}.`;
+        species.factSource = { dogapi: "https://dogapi.dog/", thecatapi: "https://thecatapi.com/", chickenapi: "https://chickenapi.com/" }[breed.source];
+      } else {
+        species.dailyFact = dailyFact(species.name, today, custom);
+      }
+    });
     const activeAnimals = db.prepare(`
       SELECT animals.id, animals.name, species.name AS species_name
       FROM animals LEFT JOIN species ON species.id = animals.species_id

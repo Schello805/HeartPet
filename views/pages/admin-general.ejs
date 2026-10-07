@@ -90,6 +90,26 @@
       </form>
     </div>
   </section>
+  <section class="card border-0 bg-body-tertiary admin-section-card">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+        <div>
+          <h2 class="h5 mb-1">Katzenrassen aus The Cat API</h2>
+          <p class="text-body-secondary mb-0">Der kostenlose Schlüssel ermöglicht den Rassenimport für die Tierart Katze.</p>
+        </div>
+        <span class="status-chip <%= catApiKeyConfigured ? 'status-ok' : 'status-muted' %>"><%= catApiKeyConfigured ? 'Konfiguriert' : 'Nicht konfiguriert' %></span>
+      </div>
+      <form method="post" action="/admin/settings" class="row g-2 align-items-end">
+        <input type="hidden" name="_fields" value="cat_api_key" />
+        <div class="col-12 col-lg-8">
+          <label class="form-label" for="cat_api_key">API-Schlüssel</label>
+          <input class="form-control" id="cat_api_key" type="password" name="cat_api_key" value="" maxlength="512" autocomplete="new-password" placeholder="<%= catApiKeyConfigured ? 'Gespeichert, leer lassen zum Beibehalten' : 'Schlüssel von The Cat API eingeben' %>" />
+          <div class="form-text">Der Schlüssel wird nicht erneut angezeigt. <a href="https://thecatapi.com/signup" target="_blank" rel="noopener noreferrer">Kostenlosen Schlüssel anfordern</a>.</div>
+        </div>
+        <div class="col-12 col-lg-auto"><button type="submit" class="btn btn-primary">API-Schlüssel speichern</button></div>
+      </form>
+    </div>
+  </section>
   <% } %>
 
   <% if (currentPath === '/admin/stall') { %>

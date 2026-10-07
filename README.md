@@ -110,6 +110,12 @@ npm run images:audit
 npm run images:optimize
 ```
 
+## Rassen und tägliche Fakten
+
+Unter **Stammdaten > Tierarten** können beim Anlegen von Hund, Katze oder Huhn Rassen importiert und später erneut geladen werden. Der Import speichert Namen lokal; verfügbare Rassenbilder werden bei der Auswahl über HeartPet geladen. Nicht jede Rasse hat in der Quelle ein Bild. Die freie Rasseneingabe bleibt möglich, auch wenn die API nicht erreichbar ist.
+
+Für Hunde und Hühner werden die schlüssellosen Dog API und Chicken API verwendet. Für Katzen verlangt The Cat API einen kostenlosen Schlüssel. Diesen unter **Verwaltung > Allgemein > Katzenrassen aus The Cat API** eintragen und speichern; ein Neustart ist nicht nötig. Ein bereits gesetztes `HEARTPET_CAT_API_KEY` in der Dienstumgebung bleibt als Fallback gültig. Ohne Schlüssel bleibt die Katzen-Rasseneingabe frei. Auf dem Dashboard wechselt die Rasse des Tages aus dem importierten Katalog. Ohne Katalog gibt es für Hund, Katze und Huhn lokale Fakten; eigene Fakten lassen sich pro Tierart zeilenweise in den Stammdaten hinterlegen.
+
 ## Reverse Proxy
 
 HeartPet stellt intern HTTP bereit. HTTPS endet am Reverse Proxy. Für Nginx liegt eine Vorlage unter `deploy/nginx-heartpet.example.conf`.

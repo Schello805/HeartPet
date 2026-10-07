@@ -9,6 +9,8 @@ const { buildCoreOperationalChecks, buildInstallationChecks, summarizeOperationa
 test("Betriebsdiagnose unterscheidet kritische Fehler und Warnungen", () => {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "heartpet-health-check-"));
   const db = new Database(":memory:");
+  const originalStatfsSync = fs.statfsSync;
+  fs.statfsSync = () => ({ bavail: 10_000_000, blocks: 100_000_000, bsize: 1024 });
   try {
     db.exec(`
       CREATE TABLE animals (id INTEGER PRIMARY KEY);
@@ -32,6 +34,7 @@ test("Betriebsdiagnose unterscheidet kritische Fehler und Warnungen", () => {
     assert.equal(unhealthy.ok, false);
     assert.equal(unhealthy.status, "unhealthy");
   } finally {
+    fs.statfsSync = originalStatfsSync;
     db.close();
     fs.rmSync(dataDir, { recursive: true, force: true });
   }

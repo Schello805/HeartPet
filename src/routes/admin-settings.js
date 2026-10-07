@@ -37,6 +37,7 @@ function createAdminSettingsRouter({
       "daily_digest_only_when_open",
     ]);
     const secretKeys = new Set([
+      "cat_api_key",
       "smtp_password",
       "telegram_bot_token",
       "ntfy_access_token",
@@ -47,6 +48,10 @@ function createAdminSettingsRouter({
       .split(",")
       .map((item) => item.trim())
       .filter(Boolean);
+    if (fields.includes("cat_api_key") && String(req.body.cat_api_key || "").trim().length > 512) {
+      setFlash(req, "error", "Der Katzen-API-Schlüssel darf höchstens 512 Zeichen lang sein.");
+      return res.redirect("/admin/allgemein");
+    }
 
     const urlSettingKeys = new Set([
       "homematic_ccu_url",
