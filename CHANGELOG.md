@@ -2,6 +2,10 @@
 
 Alle wesentlichen Änderungen an HeartPet werden hier absteigend dokumentiert.
 
+## 0.10.103 - 07.10.2026
+
+- Der Dashboard-Countdown wurde aus der zentralen Browserdatei in das Dashboard-Modul verschoben. Damit bleibt die Qualitätsgrenze eingehalten und GitHub Verify läuft wieder durch.
+
 ## 0.10.102 - 07.10.2026
 
 - Der Countdown unter Tagesfakten ist jetzt tatsächlich klein und kursiv; ohne Fakt erscheint dezent „Leider keine API verfügbar.“

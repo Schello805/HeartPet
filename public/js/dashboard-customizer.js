@@ -1,7 +1,24 @@
 (function setupDashboardCustomizer(global) {
   const storageKey = "heartpet-dashboard-layout-v1";
+  let nextFactCountdownTimer;
+
+  function initFactCountdown() {
+    clearInterval(nextFactCountdownTimer);
+    const counters = [...document.querySelectorAll("[data-next-fact-at]")];
+    if (!counters.length) return;
+    const update = () => {
+      counters.forEach((counter) => {
+        const minutes = Math.max(0, Math.ceil((Number(counter.dataset.nextFactAt) - Date.now()) / 60000));
+        const hours = Math.floor(minutes / 60);
+        counter.textContent = minutes ? `Nächster Fakt in ${hours ? `${hours} Std. ` : ""}${minutes % 60} Min.` : "Nächster Fakt jetzt verfügbar";
+      });
+    };
+    update();
+    nextFactCountdownTimer = setInterval(update, 60000);
+  }
 
   function init() {
+    initFactCountdown();
     const root = document.querySelector("[data-dashboard-customizer]");
     const panel = root?.querySelector("[data-dashboard-customize-panel]");
     const toggle = root?.querySelector("[data-dashboard-customize-toggle]");
@@ -99,4 +116,5 @@
   }
 
   global.HeartPetDashboardCustomizer = { init };
+  global.HeartPetFeatures?.register("dashboard-customizer", init, { contexts: ["page"] });
 })(window);
