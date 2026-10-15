@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const express = require("express");
 const dayjs = require("dayjs");
+const { listForAnimalForm } = require("../services/breed-catalog");
 
 function createAnimalRecordsRouter({
   db,
@@ -39,7 +40,7 @@ function createAnimalRecordsRouter({
       pageTitle: "Tier anlegen",
       animal: null,
       species: db.prepare("SELECT * FROM species ORDER BY name ASC").all(),
-      speciesBreeds: db.prepare("SELECT species.name AS species_name, species_breeds.* FROM species_breeds JOIN species ON species.id = species_breeds.species_id ORDER BY species_breeds.name COLLATE NOCASE").all(),
+      speciesBreeds: listForAnimalForm(db),
       veterinarians: db.prepare("SELECT * FROM veterinarians ORDER BY name ASC").all(),
       microchipRegistryOptions,
       microchipManufacturerSuggestions,
@@ -112,7 +113,7 @@ function createAnimalRecordsRouter({
       pageTitle: `${animal.name} bearbeiten`,
       animal,
       species: db.prepare("SELECT * FROM species ORDER BY name ASC").all(),
-      speciesBreeds: db.prepare("SELECT species.name AS species_name, species_breeds.* FROM species_breeds JOIN species ON species.id = species_breeds.species_id ORDER BY species_breeds.name COLLATE NOCASE").all(),
+      speciesBreeds: listForAnimalForm(db),
       veterinarians: db.prepare("SELECT * FROM veterinarians ORDER BY name ASC").all(),
       microchipRegistryOptions,
       microchipManufacturerSuggestions,

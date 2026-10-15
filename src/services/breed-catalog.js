@@ -8,8 +8,32 @@ const PROVIDERS = {
   chicken: "chickenapi",
 };
 
+const CHICKEN_BREEDS = [
+  "Ameraucana", "Ancona", "Araucana", "Australorp", "Barnevelder", "Brahma",
+  "Bresse", "Cochin", "Delaware", "Dominique", "Dorking", "Faverolles",
+  "Hamburg", "ISA Brown", "Leghorn", "Marans", "New Hampshire", "Orpington",
+  "Plymouth Rock", "Polish", "Rhode Island Red", "Serama", "Silkie", "Sussex",
+  "Welsummer", "Wyandotte",
+];
+
 function providerForSpecies(name) {
   return PROVIDERS[String(name || "").trim().toLocaleLowerCase("de-DE")] || null;
+}
+
+function listForAnimalForm(db) {
+  const breeds = db.prepare(`
+    SELECT species.name AS species_name, species_breeds.*
+    FROM species_breeds JOIN species ON species.id = species_breeds.species_id
+    ORDER BY species_breeds.name COLLATE NOCASE
+  `).all();
+  const species = db.prepare("SELECT id, name FROM species").all();
+  for (const item of species) {
+    if (providerForSpecies(item.name) !== "chickenapi" || breeds.some((breed) => breed.species_id === item.id)) continue;
+    breeds.push(...CHICKEN_BREEDS.map((name) => ({
+      species_id: item.id, species_name: item.name, name, image_url: "", image_credit: "", image_source_url: "",
+    })));
+  }
+  return breeds;
 }
 
 function imageUrl(value, host) {
@@ -111,4 +135,4 @@ function importBreeds(db, speciesId, provider, breeds) {
   })();
 }
 
-module.exports = { providerForSpecies, loadBreeds, importBreeds };
+module.exports = { providerForSpecies, loadBreeds, importBreeds, listForAnimalForm };

@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const Database = require("better-sqlite3");
-const { providerForSpecies, loadBreeds, importBreeds } = require("../src/services/breed-catalog");
+const { providerForSpecies, loadBreeds, importBreeds, listForAnimalForm } = require("../src/services/breed-catalog");
 const { dailyFact } = require("../src/services/daily-species-facts");
 const migration = require("../src/migrations/014_species_breeds");
 
@@ -55,6 +55,23 @@ test("Hühnerrassen übernehmen nur Bilder vom bekannten Host", async () => {
     assert.match(breeds[0].image_url, /^https:\/\/qwex\.co\//);
   } finally {
     global.fetch = originalFetch;
+  }
+});
+
+test("Vorhandene Hühner erhalten auch ohne API-Import eine Rassenauswahl", () => {
+  const db = new Database(":memory:");
+  try {
+    db.exec("CREATE TABLE species (id INTEGER PRIMARY KEY, name TEXT); INSERT INTO species VALUES (1, 'Huhn'), (2, 'Katze')");
+    migration.up(db);
+    const fallback = listForAnimalForm(db);
+    assert.ok(fallback.some((breed) => breed.species_name === "Huhn" && breed.name === "Brahma"));
+    assert.ok(!fallback.some((breed) => breed.species_name === "Katze"));
+    importBreeds(db, 1, "chickenapi", [{ name: "Brahma", image_url: "https://qwex.co/brahma.png" }]);
+    const imported = listForAnimalForm(db);
+    assert.deepEqual(imported.map((breed) => breed.name), ["Brahma"]);
+    assert.equal(imported[0].image_url, "https://qwex.co/brahma.png");
+  } finally {
+    db.close();
   }
 });
 

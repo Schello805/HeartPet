@@ -2,6 +2,10 @@
 
 Alle wesentlichen Änderungen an HeartPet werden hier absteigend dokumentiert.
 
+## 0.10.104 - 15.10.2026
+
+- Vorhandene Hühner-Tierarten erhalten im Tierformular auch ohne vorherigen API-Import eine lokale Rassenauswahl. Ein späterer Import ersetzt die Grundliste durch den vollständigen Katalog mit verfügbaren Bildern.
+
 ## 0.10.103 - 07.10.2026
 
 - Der Dashboard-Countdown wurde aus der zentralen Browserdatei in das Dashboard-Modul verschoben. Damit bleibt die Qualitätsgrenze eingehalten und GitHub Verify läuft wieder durch.

@@ -2643,6 +2643,17 @@ test("Tierformular zeigt die Rassenauswahl vor optionalen Angaben", async () => 
   assert.match(response.text, /Rasse aus dem Katalog wählen oder bei fehlender Auswahl selbst eingeben/);
 });
 
+test("Vorhandene Hühner zeigen Rassen auch ohne vorherigen API-Import", async () => {
+  const speciesId = db.prepare("INSERT INTO species (name) VALUES (?)").run("Hühner").lastInsertRowid;
+  try {
+    const response = await agent.get("/animals/new");
+    assert.equal(response.status, 200);
+    assert.match(response.text, /value="Brahma" data-species="Hühner"/);
+  } finally {
+    db.prepare("DELETE FROM species WHERE id = ?").run(speciesId);
+  }
+});
+
 test("Dashboard zeigt bei Tierarten ohne Fakt einen dezenten Hinweis", async () => {
   const speciesId = db.prepare("INSERT INTO species (name) VALUES (?)").run("Testtier ohne API").lastInsertRowid;
   const animalId = db.prepare("INSERT INTO animals (name, species_id, status) VALUES (?, ?, ?)").run("Faktenlos", speciesId, "Aktiv").lastInsertRowid;
