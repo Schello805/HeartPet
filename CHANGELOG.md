@@ -2,6 +2,10 @@
 
 Alle wesentlichen Änderungen an HeartPet werden hier absteigend dokumentiert.
 
+## 0.10.106 - 23.10.2026
+
+- Sicherheitsupdate der transitiven Abhängigkeit `ip-address` auf 10.7.4; der Produktions-Audit läuft wieder ohne Befund.
+
 ## 0.10.105 - 23.10.2026
 
 - Der Schließen-Button im mobilen Drawer hat nun ein sichtbares, kontrastreiches Symbol und eine 44-Pixel-Tippfläche.
