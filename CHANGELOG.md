@@ -2,6 +2,10 @@
 
 Alle wesentlichen Änderungen an HeartPet werden hier absteigend dokumentiert.
 
+## 0.10.107 - 23.10.2026
+
+- Die GitHub-Prüfung nutzt einen festen Ubuntu-Runner und lädt nur den Playwright-Browser. Das langsame erneute Installieren von Systemschriftarten entfällt, damit die App-Tests nicht am Job-Zeitlimit scheitern.
+
 ## 0.10.106 - 23.10.2026
 
 - Sicherheitsupdate der transitiven Abhängigkeit `ip-address` auf 10.7.4; der Produktions-Audit läuft wieder ohne Befund.

@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Repository auschecken
@@ -30,25 +30,7 @@ jobs:
         run: npm run audit:production
 
       - name: Chromium installieren
-        shell: bash
-        run: |
-          # The hosted runner adds this optional source for system Chrome. Playwright
-          # downloads its own Chromium, while a stale Google mirror can break apt.
-          sudo rm -f /etc/apt/sources.list.d/google-chrome.list
-
-          for attempt in 1 2 3; do
-            if npx playwright install --with-deps chromium; then
-              exit 0
-            fi
-
-            if [ "$attempt" -lt 3 ]; then
-              echo "Chromium-Installation fehlgeschlagen, Versuch $((attempt + 1)) von 3 folgt."
-              sudo rm -rf /var/lib/apt/lists/*
-              sleep $((attempt * 5))
-            fi
-          done
-
-          exit 1
+        run: npx playwright install chromium
 
       - name: HeartPet vollständig prüfen
         run: npm run verify
