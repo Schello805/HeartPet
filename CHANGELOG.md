@@ -2,6 +2,10 @@
 
 Alle wesentlichen Änderungen an HeartPet werden hier absteigend dokumentiert.
 
+## 0.10.105 - 23.10.2026
+
+- Der Schließen-Button im mobilen Drawer hat nun ein sichtbares, kontrastreiches Symbol und eine 44-Pixel-Tippfläche.
+
 ## 0.10.104 - 15.10.2026
 
 - Vorhandene Hühner-Tierarten erhalten im Tierformular auch ohne vorherigen API-Import eine lokale Rassenauswahl. Ein späterer Import ersetzt die Grundliste durch den vollständigen Katalog mit verfügbaren Bildern.

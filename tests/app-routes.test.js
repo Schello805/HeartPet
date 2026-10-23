@@ -2643,6 +2643,13 @@ test("Tierformular zeigt die Rassenauswahl vor optionalen Angaben", async () => 
   assert.match(response.text, /Rasse aus dem Katalog wählen oder bei fehlender Auswahl selbst eingeben/);
 });
 
+test("Drawer hat einen sichtbaren Schließen-Button ohne weißen Bootstrap-Filter", async () => {
+  const response = await agent.get("/");
+  assert.equal(response.status, 200);
+  assert.match(response.text, /class="drawer-close" data-bs-dismiss="offcanvas" aria-label="Fenster schließen">&times;<\/button>/);
+  assert.doesNotMatch(response.text, /btn-close-white drawer-close/);
+});
+
 test("Vorhandene Hühner zeigen Rassen auch ohne vorherigen API-Import", async () => {
   const speciesId = db.prepare("INSERT INTO species (name) VALUES (?)").run("Hühner").lastInsertRowid;
   try {

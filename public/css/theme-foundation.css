@@ -640,13 +640,16 @@ tbody tr td:last-child {
 }
 
 .drawer-close {
-  width: 42px;
-  height: 42px;
+  display: grid;
+  flex: 0 0 44px;
+  place-items: center;
+  width: 44px;
+  height: 44px;
   border-radius: 999px;
   border: 1px solid rgba(109, 40, 217, 0.12);
   background: rgba(39, 39, 42, 0.88);
   color: var(--text);
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   line-height: 1;
   cursor: pointer;
 }

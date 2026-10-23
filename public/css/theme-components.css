@@ -1092,7 +1092,7 @@ body.bootstrap-app {
 }
 
 .bootstrap-app .drawer-close {
-  color: var(--text-soft);
+  color: var(--text-strong);
   border-color: var(--surface-border);
   background: rgba(47, 111, 237, 0.06);
 }
